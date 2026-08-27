@@ -1,5 +1,7 @@
 "use client";
 
+import { LOCALES, type Locale } from "@/i18n/locales";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -21,8 +23,12 @@ import { updateMyPortalAccount } from "./actions";
 import { PHONE_RE } from "./portal-types";
 
 /** The portal's three languages, in the project's priority order. */
-export const LOCALES = ["ar", "en", "fr"] as const;
-export type ProfileLocale = (typeof LOCALES)[number];
+// Re-exported for the call sites that already import them from here. The
+// values themselves live in a plain module: a server component importing a
+// runtime value out of a "use client" file gets a client reference, not the
+// value (this page crashed on exactly that).
+export { LOCALES } from "@/i18n/locales";
+export type ProfileLocale = Locale;
 
 export function ProfileAccountForm({
   fullName: initialName,

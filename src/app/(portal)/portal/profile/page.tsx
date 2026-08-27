@@ -16,11 +16,10 @@ import {
   ProfileDetailsForm,
   type MyGuardianDetails,
 } from "@/components/modules/portal/profile-details-form";
-import {
-  LOCALES,
-  ProfileAccountForm,
-  type ProfileLocale,
-} from "@/components/modules/portal/profile-account-form";
+import { ProfileAccountForm } from "@/components/modules/portal/profile-account-form";
+// Values from the plain module, never through the client component: across the
+// RSC boundary a "use client" export is a reference, not the value.
+import { LOCALES, type Locale as ProfileLocale } from "@/i18n/locales";
 import { ProfilePhoto } from "@/components/modules/portal/profile-photo";
 import { ProfileSignOutButton } from "@/components/modules/portal/profile-sign-out-button";
 import { displayIdentity } from "@/lib/auth-identifier";

@@ -1,10 +1,11 @@
 import { getRequestConfig } from "next-intl/server";
 import { cookies } from "next/headers";
 
-// Language priority for Algeria: Arabic first, English second, French third.
-export const LOCALES = ["ar", "en", "fr"] as const;
-export type Locale = (typeof LOCALES)[number];
-export const DEFAULT_LOCALE: Locale = "ar";
+// Defined in ./locales so client components can import them too — see the note
+// there. Re-exported here because most of the app already imports them from
+// this module.
+export { LOCALES, DEFAULT_LOCALE, type Locale } from "./locales";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "./locales";
 
 // Each module owns its namespace file in messages/{locale}/{ns}.json.
 const NAMESPACES = [
