@@ -21,10 +21,28 @@ export function ThemeProvider({
 }) {
   return (
     <DirectionProvider dir={dir}>
+      {/*
+        LIGHT ONLY, deliberately.
+
+        `enableSystem` used to be on, so anyone whose laptop or phone sat in
+        dark mode got the dark palette — while the app shipped no way to turn it
+        off, because there is no theme toggle anywhere in the product. A theme
+        nobody chose and nobody can leave is not a feature.
+
+        `forcedTheme` rather than just dropping `enableSystem`: next-themes
+        honours a previously stored preference, so anyone already carrying
+        `theme: dark` in localStorage would have stayed dark forever.
+
+        The kiosk is the one exception and it still works. It applies `.dark` to
+        its OWN wrapper (kiosk-shell.tsx) to go dark after dusk on a tablet
+        mounted by the door, and the dark variant is `&:is(.dark *)` — scoped to
+        descendants of any element carrying the class, not to <html>. So the
+        door tablet keeps its night mode while the rest of the app stays light.
+      */}
       <NextThemesProvider
         attribute="class"
         defaultTheme="light"
-        enableSystem
+        forcedTheme="light"
         disableTransitionOnChange
       >
         {children}
