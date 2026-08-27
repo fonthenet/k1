@@ -1,0 +1,205 @@
+{
+  "title": "Notifications",
+  "description": "Everything happening across the kindergarten, newest first.",
+  "empty": "No notifications",
+  "emptyUnread": "You're all caught up",
+  "emptyHint": "Updates from the kindergarten will appear here.",
+  "markAllRead": "Mark all as read",
+  "unreadCount": "{count, plural, =0 {Nothing new} one {# new notification} other {# new notifications}}",
+  "seeAll": "See all notifications",
+  "justNow": "Just now",
+  "unreadOnly": "Unread",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "types": {
+    "message": {
+      "title": "New message",
+      "body": "{name}: {text}"
+    },
+    "incident": {
+      "title": "Incident report — {child}",
+      "body": "{text}"
+    },
+    "announcement": {
+      "title": "New announcement",
+      "body": "{text}"
+    },
+    "application": {
+      "title": "New enrolment application",
+      "body": "{child}"
+    },
+    "checkin": {
+      "title": "{child} arrived",
+      "body": "Checked in at {time}"
+    },
+    "checkout": {
+      "title": "{child} left",
+      "body": "Checked out at {time}"
+    },
+    "daily_report": {
+      "title": "{child}'s daily journal",
+      "body": "Today's journal has been published."
+    },
+    "task": {
+      "title": "New task",
+      "body": "{text}"
+    },
+    "activity_request": {
+      "title": "Activity request",
+      "body": "{child} — {activity}"
+    },
+    "parent_update": {
+      "title": "Parent update — {child}",
+      "body": "{text}"
+    },
+    "payment_overdue": {
+      "title": "Unpaid fees from {count} of your families",
+      "body": "{amount} outstanding in total. Open the arrears list to follow up."
+    },
+    "consent_changed": {
+      "title": "A permission changed — {child}",
+      "body": "{consent} — {state}. Check it if this was not agreed with you."
+    },
+    "pickup_changed": {
+      "title": "Authorised pickup — {child}",
+      "body": "{person}: {action}. Check who may collect your child."
+    },
+    "guardian_access_changed": {
+      "title": "Family access — {child}",
+      "body": "{person}: {action}."
+    },
+    "allergy_changed": {
+      "title": "Allergy changed — {child}",
+      "body": "{allergen} ({severity}): {action}. Check this was agreed with you."
+    },
+    "health_changed": {
+      "title": "Health record — {child}",
+      "body": "Changed by the crèche: {fields}."
+    },
+    "incident_updated": {
+      "title": "Incident report corrected — {child}",
+      "body": "{fields} — please read it again and confirm."
+    },
+    "enrollment_changed": {
+      "title": "Enrolment — {child}",
+      "body": "Status: {status}, from {date}."
+    },
+    "invoice_issued": {
+      "title": "New invoice — {child}",
+      "body": "{invoiceNo} — {amount}, due {date}."
+    },
+    "payment_recorded": {
+      "title": "Payment received — {amount}",
+      "body": "{child} — receipt {receipt} ({method}) at {time}."
+    },
+    "payment_reversed": {
+      "title": "Payment changed — {child}",
+      "body": "{previousAmount} → {amount} (receipt {receipt})."
+    },
+    "fee_changed": {
+      "title": "Fee changed — {child}",
+      "body": "{plan} — {amount} a month, from {date}."
+    },
+    "attendance_flagged": {
+      "title": "{child} — {status}",
+      "body": "On {date}. {reason}"
+    },
+    "activity_decision": {
+      "title": "{activity} — {status}",
+      "body": "{child} — {amount}, from {date}."
+    },
+    "session_published": {
+      "title": "{child}'s session",
+      "body": "{text}"
+    }
+  },
+  "push": {
+    "enable": "Enable notifications",
+    "enabled": "Notifications on",
+    "disable": "Turn off notifications",
+    "blocked": "Notifications are blocked in your browser. Enable them in site settings.",
+    "unsupported": "Your browser does not support notifications.",
+    "enableHint": "Get alerted the moment your child arrives or the kindergarten writes to you.",
+    "enableHintStaff": "Get alerted when an application or a parent message comes in.",
+    "success": "Notifications enabled on this device.",
+    "removed": "Notifications turned off on this device.",
+    "error": "Could not enable notifications. Please try again."
+  },
+  "consentTypes": {
+    "photos": "Photos and videos",
+    "outings": "School outings",
+    "medical_emergency": "Medical emergency"
+  },
+  "consentStates": {
+    "granted": "granted",
+    "refused": "refused",
+    "pending": "pending",
+    "withdrawn": "withdrawn"
+  },
+  "actions": {
+    "added": "added",
+    "updated": "updated",
+    "removed": "removed",
+    "linked": "linked",
+    "unlinked": "unlinked",
+    "pickup_granted": "may now collect",
+    "pickup_revoked": "may no longer collect",
+    "access_removed": "access removed",
+    "assigned": "assigned",
+    "changed": "changed",
+    "ended": "ended",
+    "amended": "amended",
+    "updated_link": "updated"
+  },
+  "allergySeverities": {
+    "mild": "mild",
+    "moderate": "moderate",
+    "severe": "severe"
+  },
+  "healthFields": {
+    "medical_conditions": "medical conditions",
+    "medications": "medications",
+    "vaccinations": "vaccinations",
+    "dietary_restrictions": "dietary needs",
+    "special_needs": "special needs",
+    "doctor_name": "the doctor",
+    "doctor_phone": "the doctor's phone",
+    "emergency_notes": "emergency notes"
+  },
+  "incidentFields": {
+    "severity": "severity",
+    "description": "the description",
+    "action_taken": "what was done",
+    "location": "the place",
+    "occurred_at": "the time"
+  },
+  "enrollmentStates": {
+    "pending": "pending",
+    "enrolled": "enrolled",
+    "waitlist": "waiting list",
+    "withdrawn": "withdrawn",
+    "alumni": "alumni"
+  },
+  "attendanceStatuses": {
+    "absent": "absent",
+    "late": "late",
+    "excused": "excused absence",
+    "sick": "off sick",
+    "present": "present"
+  },
+  "activityStates": {
+    "requested": "requested",
+    "active": "approved",
+    "ended": "ended",
+    "cancelled": "declined"
+  },
+  "paymentMethods": {
+    "cash": "cash",
+    "cib": "CIB",
+    "edahabia": "Edahabia",
+    "bank_transfer": "bank transfer",
+    "cheque": "cheque",
+    "chargily": "Chargily",
+    "other": "other"
+  }
+}

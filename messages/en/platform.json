@@ -1,0 +1,119 @@
+{
+  "brand": "Rawdati",
+  "badge": "Platform",
+  "signedInAs": "Signed in as {email}",
+  "nav": {
+    "leads": "Leads",
+    "tenants": "Crèches",
+    "exit": "Exit"
+  },
+  "overview": {
+    "title": "Platform",
+    "subtitle": "Enquiries from the site, and how the crèches are doing."
+  },
+  "stats": {
+    "leadsNew": "New leads",
+    "leadsTotal": "{count} in total",
+    "tenants": "Active crèches",
+    "signups30d": "{count} signed up in 30 days",
+    "children": "Children enrolled",
+    "families": "{count} families",
+    "staff": "Staff"
+  },
+  "leads": {
+    "metaTitle": "Leads · Platform",
+    "title": "Enquiries",
+    "call": "Call",
+    "statusSaved": "Status updated",
+    "emptyTitle": "No enquiries yet",
+    "emptyBody": "Everyone who finishes the quiz on the landing page shows up here.",
+    "columns": {
+      "phone": "Phone",
+      "profile": "Centre",
+      "wilaya": "Wilaya",
+      "plan": "Suggested plan",
+      "received": "Received",
+      "status": "Status"
+    },
+    "status": {
+      "new": "New",
+      "contacted": "Contacted",
+      "converted": "Signed up",
+      "lost": "Lost",
+      "spam": "Spam"
+    }
+  },
+  "tenants": {
+    "metaTitle": "Crèches · Platform",
+    "title": "Crèches",
+    "subtitle": "Who is using Rawdati, and how big they are.",
+    "privacyNote": "This panel shows counts only. Children's records and parents' details cannot be opened from here — that is enforced in the database, not just hidden in this page.",
+    "never": "No activity",
+    "emptyTitle": "No crèches yet",
+    "emptyBody": "Crèches appear here as soon as they are created.",
+    "suspend": "Suspend",
+    "suspendTitle": "Suspend {name}?",
+    "suspendBody": "Their team loses access to their own records immediately. You can re-activate at any time.",
+    "suspendConfirm": "Suspend account",
+    "cancel": "Cancel",
+    "resume": "Re-activate",
+    "resumed": "Re-activated",
+    "suspended": "Suspended",
+    "columns": {
+      "name": "Crèche",
+      "where": "Where",
+      "children": "Children",
+      "staff": "Staff",
+      "joined": "Joined",
+      "lastActivity": "Last activity",
+      "status": "Status"
+    },
+    "statusLabel": {
+      "active": "Active",
+      "suspended": "Suspended"
+    }
+  },
+  "quizValues": {
+    "centre": {
+      "nursery": "Nursery",
+      "kindergarten": "Kindergarten",
+      "therapy": "Specialist centre",
+      "activity": "Activity club"
+    },
+    "size": {
+      "under20": "Under 20 children",
+      "to50": "20–50 children",
+      "to100": "50–100 children",
+      "over100": "Over 100"
+    },
+    "priority": {
+      "enrollment": "Enrolment",
+      "attendance": "Attendance",
+      "billing": "Billing",
+      "comms": "Communication"
+    },
+    "wilaya": {
+      "jijel": "Jijel",
+      "alger": "Algiers",
+      "oran": "Oran",
+      "constantine": "Constantine",
+      "setif": "Sétif",
+      "annaba": "Annaba",
+      "bejaia": "Béjaïa",
+      "batna": "Batna",
+      "blida": "Blida",
+      "tiziouzou": "Tizi Ouzou",
+      "skikda": "Skikda",
+      "mila": "Mila",
+      "other": "Other wilaya"
+    },
+    "plan": {
+      "essential": "Essential",
+      "pro": "Pro",
+      "network": "Network"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again."
+  }
+}

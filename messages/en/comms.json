@@ -1,0 +1,238 @@
+{
+  "audience": {
+    "all": "Everyone",
+    "parents": "Parents",
+    "staff": "Staff",
+    "class": "Class"
+  },
+  "severity": {
+    "minor": "Minor",
+    "moderate": "Moderate",
+    "serious": "Serious"
+  },
+  "meals": {
+    "breakfast": "Breakfast",
+    "lunch": "Lunch",
+    "snack": "Snack"
+  },
+  "allergens": {
+    "gluten": "Gluten",
+    "lactose": "Lactose",
+    "eggs": "Eggs",
+    "peanuts": "Peanuts",
+    "nuts": "Tree nuts",
+    "fish": "Fish"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "This page could not be loaded. Check your connection and try again.",
+    "retry": "Try again"
+  },
+  "announcements": {
+    "title": "Announcements",
+    "description": "Information published to families and staff",
+    "new": "New announcement",
+    "empty": "No announcements",
+    "emptyDescription": "Publish your first announcement to keep families informed.",
+    "pinned": "Pinned",
+    "scheduled": "Scheduled",
+    "by": "By {name}",
+    "share": "Share on WhatsApp",
+    "form": {
+      "title": "Title",
+      "body": "Content",
+      "audience": "Audience",
+      "class": "Class",
+      "chooseClass": "Choose a class",
+      "pin": "Pin to the top of the feed",
+      "publishAt": "Publish date"
+    },
+    "createDialog": {
+      "title": "New announcement",
+      "description": "The announcement becomes visible to the chosen audience from the publish date.",
+      "submit": "Publish"
+    },
+    "editDialog": {
+      "title": "Edit announcement",
+      "submit": "Save"
+    },
+    "delete": {
+      "title": "Delete this announcement?",
+      "description": "The announcement will be permanently removed for everyone."
+    },
+    "toasts": {
+      "created": "Announcement published",
+      "updated": "Announcement updated",
+      "deleted": "Announcement deleted",
+      "error": "Something went wrong. Try again."
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "description": "Conversations with families and staff",
+    "new": "New message",
+    "empty": "No conversations",
+    "emptyDescription": "Start a conversation with a child's parents.",
+    "selectThread": "Select a conversation",
+    "selectThreadHint": "Pick a conversation from the list, or start a new one.",
+    "noSubject": "No subject",
+    "you": "You",
+    "replyPlaceholder": "Write your message…",
+    "send": "Send",
+    "back": "Back to messages",
+    "dialog": {
+      "title": "New message",
+      "description": "If the conversation is about a child, their parents can see it and reply.",
+      "child": "Child concerned",
+      "generalOption": "General conversation (staff)",
+      "subject": "Subject",
+      "message": "Message",
+      "submit": "Send"
+    },
+    "toasts": {
+      "created": "Conversation created",
+      "sent": "Message sent",
+      "error": "Something went wrong. Try again."
+    }
+  },
+  "calendar": {
+    "title": "Calendar",
+    "description": "Kindergarten events and public holidays",
+    "newEvent": "New event",
+    "tentative": "to be confirmed",
+    "holiday": "Holiday",
+    "upcoming": "Upcoming",
+    "upcomingEmpty": "No upcoming events",
+    "form": {
+      "title": "Title",
+      "description": "Description",
+      "startAt": "Start",
+      "endAt": "End",
+      "optional": "optional",
+      "audience": "Audience",
+      "class": "Class",
+      "chooseClass": "Choose a class",
+      "color": "Colour"
+    },
+    "createDialog": {
+      "title": "New event",
+      "description": "The event will appear on the calendar of the chosen audience.",
+      "submit": "Create"
+    },
+    "editDialog": {
+      "title": "Edit event",
+      "submit": "Save"
+    },
+    "deleteEvent": "Delete event",
+    "toasts": {
+      "created": "Event created",
+      "updated": "Event updated",
+      "deleted": "Event deleted",
+      "error": "Something went wrong. Try again."
+    },
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "today": "Today",
+    "addOn": "Add an event on {date}",
+    "deleteConfirm": "Confirm deletion",
+    "monthEmpty": "No events this month"
+  },
+  "menus": {
+    "title": "Menus",
+    "description": "This week's menus, Sunday to Thursday",
+    "weekOf": "{start} – {end}",
+    "copyLastWeek": "Copy last week",
+    "published": "Published",
+    "draft": "Draft",
+    "notSet": "Not set",
+    "allergyWarning": "Allergy alert",
+    "allergyChildren": "Children concerned: {names}",
+    "dialog": {
+      "title": "Menu for {date}",
+      "description": "Fill in the day's meals and tick the allergens present.",
+      "allergens": "Allergens present",
+      "allergensHint": "Used to warn you when an enrolled child has a matching allergy.",
+      "published": "Published to parents",
+      "publishedHint": "An unpublished menu stays visible to staff only.",
+      "submit": "Save"
+    },
+    "toasts": {
+      "saved": "Menu saved",
+      "copied": "{count, plural, =0 {No menus to copy from last week} one {1 day copied} other {# days copied}}",
+      "error": "Something went wrong. Try again."
+    },
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "thisWeek": "This week",
+    "editDay": "Edit the menu for {date}",
+    "allergyWarningDescription": "This week's menu contains allergens affecting enrolled children."
+  },
+  "incidents": {
+    "title": "Incidents",
+    "description": "Incident log and parent notification follow-up",
+    "report": "Report an incident",
+    "empty": "No incidents reported",
+    "emptyDescription": "Reported incidents will appear here with their parent follow-up.",
+    "view": "View details",
+    "columns": {
+      "date": "Date",
+      "child": "Child",
+      "severity": "Severity",
+      "description": "Description",
+      "parent": "Parent"
+    },
+    "ack": {
+      "acked": "Acknowledged",
+      "ackedAt": "on {date}",
+      "pending": "Pending",
+      "pendingSince": "since {date}",
+      "notNotified": "Not notified"
+    },
+    "form": {
+      "child": "Child",
+      "chooseChild": "Choose a child",
+      "severity": "Severity",
+      "location": "Location",
+      "locationPlaceholder": "Playground, classroom…",
+      "occurredAt": "Date and time",
+      "description": "Description",
+      "actionTaken": "Action taken",
+      "notify": "Notify the parent now",
+      "notifyHint": "Records the notification time and starts the acknowledgement follow-up."
+    },
+    "dialog": {
+      "title": "Report an incident",
+      "description": "Describe what happened and the action that was taken.",
+      "submit": "Report"
+    },
+    "detail": {
+      "title": "Incident of {date}",
+      "back": "Back to incidents",
+      "child": "Child",
+      "class": "Class",
+      "occurredAt": "Occurred on",
+      "location": "Location",
+      "descriptionLabel": "Description",
+      "actionTaken": "Action taken",
+      "reportedBy": "Reported by",
+      "timeline": "Parent follow-up",
+      "timelineOccurred": "Incident occurred",
+      "timelineReported": "Incident reported",
+      "timelineReportedBy": "by {name}",
+      "timelineNotified": "Parent notified",
+      "timelineAcked": "Acknowledged by the parent",
+      "timelineAckedBy": "by {name}",
+      "awaitingAck": "Waiting for the parent's acknowledgement",
+      "notNotifiedYet": "The parent has not been notified yet.",
+      "notifyNow": "Notify the parent",
+      "notFound": "Incident not found",
+      "notFoundHint": "This incident may have been deleted, or the link is incorrect."
+    },
+    "toasts": {
+      "reported": "Incident reported",
+      "notified": "Parent notified",
+      "error": "Something went wrong. Try again."
+    },
+    "severityFilter": "Filter by severity"
+  }
+}

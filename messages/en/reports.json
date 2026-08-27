@@ -1,0 +1,130 @@
+{
+  "title": "Reports",
+  "subtitle": "Monthly analytics and official registers for your kindergarten",
+  "monthLabel": "Month",
+  "csv": "Export CSV",
+  "loadError": "Some data couldn't be loaded. Please refresh the page.",
+  "tabs": {
+    "attendance": "Attendance",
+    "billing": "Billing",
+    "team": "Team",
+    "registers": "Registers"
+  },
+  "attendance": {
+    "byClass": "Attendance rate by class",
+    "byClassHint": "Based on the attendance days recorded this month",
+    "class": "Class",
+    "unassigned": "No class",
+    "enrolled": "Enrolled",
+    "records": "Days recorded",
+    "present": "Present",
+    "absences": "Absences",
+    "rate": "Rate",
+    "total": "Total",
+    "heat": "Weekly grid (Sun – Thu)",
+    "heatHint": "Children present on each working day of the month",
+    "empty": "No attendance recorded for this month."
+  },
+  "billing": {
+    "revenue": "Invoiced revenue by type",
+    "revenueHint": "Line items from invoices issued during the month",
+    "kind": "Fee type",
+    "kinds": {
+      "tuition": "Tuition",
+      "registration": "Registration",
+      "activity": "Activities",
+      "meal": "Meals",
+      "transport": "Transport",
+      "uniform": "Uniform",
+      "other": "Other"
+    },
+    "lines": "{count, plural, one {# line} other {# lines}}",
+    "amount": "Amount",
+    "share": "Share",
+    "emptyRevenue": "No invoices issued during this month.",
+    "arrears": "Overdue receivables",
+    "arrearsHint": "Unpaid invoices grouped by age, as of today",
+    "buckets": {
+      "current": "Not yet due",
+      "d30": "1–30 d",
+      "d60": "31–60 d",
+      "d90": "61–90 d",
+      "d90plus": "90+ d"
+    },
+    "invoice": "Invoice",
+    "child": "Child",
+    "guardian": "Guardian",
+    "phone": "Phone",
+    "dueDate": "Due date",
+    "daysLate": "Overdue",
+    "days": "{count} d",
+    "balance": "Balance due",
+    "emptyArrears": "No overdue receivables. Nice work!"
+  },
+  "team": {
+    "title": "Hours worked per staff member",
+    "hint": "Total of this month's clock-ins — expected: working days (Sun–Thu) × 8 h",
+    "member": "Staff member",
+    "role": "Role",
+    "days": "Days",
+    "hours": "Hours",
+    "expected": "Expected",
+    "delta": "Difference",
+    "overtime": "Overtime",
+    "hoursFmt": "{h} h {m}",
+    "empty": "No clock-ins for this month."
+  },
+  "registers": {
+    "title": "Inspection registers (DAS)",
+    "hint": "Printable documents for Directorate of Social Action inspections",
+    "open": "Printable version",
+    "matricule": {
+      "title": "Enrollment register",
+      "description": "Official list of every child: identity, enrollment and withdrawal dates, legal guardian and contact details."
+    },
+    "exits": {
+      "title": "Entry and exit register",
+      "description": "Check-ins for the selected month with arrival and departure times and who collected the child."
+    }
+  },
+  "print": {
+    "republic": "People's Democratic Republic of Algeria",
+    "back": "Back to reports",
+    "print": "Print",
+    "generated": "Generated on {date}",
+    "period": "Period: {month}",
+    "count": "{count, plural, =0 {No records} one {# record} other {# records}}",
+    "signature": "Signature and stamp of the management",
+    "male": "M",
+    "female": "F",
+    "matricule": {
+      "title": "Children's enrollment register",
+      "num": "No.",
+      "child": "Full name",
+      "dob": "Date of birth",
+      "gender": "Sex",
+      "enrolled": "Enrolled on",
+      "withdrawn": "Withdrawn on",
+      "guardian": "Legal guardian",
+      "phone": "Phone",
+      "address": "Address"
+    },
+    "exits": {
+      "title": "Entry and exit register",
+      "date": "Date",
+      "child": "Child",
+      "in": "Arrival",
+      "out": "Departure",
+      "pickedUpBy": "Collected by",
+      "notes": "Remarks"
+    },
+    "relationship": {
+      "father": "Father",
+      "mother": "Mother",
+      "guardian": "Guardian",
+      "grandparent": "Grandparent",
+      "sibling": "Sibling",
+      "other": "Other"
+    }
+  }
+}

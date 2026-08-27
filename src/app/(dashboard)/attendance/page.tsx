@@ -1,0 +1,149 @@
+import { getLocale, getTranslations } from "next-intl/server";
+import { requireStaff, signedMediaUrl } from "@/lib/tenant";
+import { createClient } from "@/lib/supabase/server";
+import { isDzWeekend } from "@/lib/format";
+import type { AttendanceStatus } from "@/lib/types";
+import { PageHeader } from "@/components/shared/page-header";
+import {
+  RegisterClient,
+  type RegisterClassTab,
+  type RegisterRow,
+} from "@/components/modules/attendance/register-client";
+import {
+  isValidDateStr,
+  parseDateStr,
+  toDateStr,
+} from "@/components/modules/attendance/dates";
+
+export const dynamic = "force-dynamic";
+
+interface ChildRecord {
+  id: string;
+  first_name: string;
+  last_name: string;
+  first_name_ar: string | null;
+  last_name_ar: string | null;
+  photo_path: string | null;
+  class_id: string | null;
+}
+
+interface AttendanceRecord {
+  child_id: string;
+  status: AttendanceStatus;
+  check_in_at: string | null;
+  check_out_at: string | null;
+  picked_up_by: string | null;
+  absence_reason: string | null;
+}
+
+export default async function AttendancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string; class?: string }>;
+}) {
+  const ctx = await requireStaff();
+  const t = await getTranslations("attendance");
+  const locale = await getLocale();
+  const sp = await searchParams;
+
+  const date = isValidDateStr(sp.date) ? sp.date : toDateStr(new Date());
+  const activeClass = sp.class && sp.class !== "all" ? sp.class : "all";
+
+  const supabase = await createClient();
+
+  let childrenQuery = supabase
+    .from("kg_children")
+    .select("id, first_name, last_name, first_name_ar, last_name_ar, photo_path, class_id")
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("status", "enrolled")
+    .order("first_name")
+    .order("last_name");
+  if (activeClass !== "all") childrenQuery = childrenQuery.eq("class_id", activeClass);
+
+  const [classesRes, childrenRes, attendanceRes, allergiesRes] = await Promise.all([
+    supabase
+      .from("kg_classes")
+      .select("id, name, name_ar")
+      .eq("tenant_id", ctx.tenant.id)
+      .order("name"),
+    childrenQuery,
+    supabase
+      .from("kg_attendance")
+      .select("child_id, status, check_in_at, check_out_at, picked_up_by, absence_reason")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("date", date),
+    supabase
+      .from("kg_child_allergies")
+      .select("child_id, allergen")
+      .eq("tenant_id", ctx.tenant.id),
+  ]);
+
+  const firstError =
+    classesRes.error ?? childrenRes.error ?? attendanceRes.error ?? allergiesRes.error;
+  if (firstError) throw new Error(firstError.message);
+
+  const classes = (classesRes.data ?? []) as RegisterClassTab[];
+  const children = (childrenRes.data ?? []) as ChildRecord[];
+  const attendance = (attendanceRes.data ?? []) as AttendanceRecord[];
+
+  const attendanceByChild = new Map(attendance.map((a) => [a.child_id, a]));
+  const allergiesByChild = new Map<string, string[]>();
+  for (const a of allergiesRes.data ?? []) {
+    const list = allergiesByChild.get(a.child_id) ?? [];
+    list.push(a.allergen);
+    allergiesByChild.set(a.child_id, list);
+  }
+  const classById = new Map(classes.map((c) => [c.id, c]));
+
+  const photoUrls = await Promise.all(
+    children.map((c) => signedMediaUrl(c.photo_path))
+  );
+
+  const rows: RegisterRow[] = children.map((c, i) => {
+    const klass = c.class_id ? classById.get(c.class_id) : undefined;
+    const att = attendanceByChild.get(c.id);
+    return {
+      child: {
+        id: c.id,
+        first_name: c.first_name,
+        last_name: c.last_name,
+        first_name_ar: c.first_name_ar,
+        last_name_ar: c.last_name_ar,
+        photoUrl: photoUrls[i],
+        className: klass?.name ?? null,
+        classNameAr: klass?.name_ar ?? null,
+      },
+      allergies: allergiesByChild.get(c.id) ?? [],
+      attendance: att
+        ? {
+            status: att.status,
+            check_in_at: att.check_in_at,
+            check_out_at: att.check_out_at,
+            picked_up_by: att.picked_up_by,
+            absence_reason: att.absence_reason,
+          }
+        : null,
+    };
+  });
+
+  const dateObj = parseDateStr(date);
+  const dateLabel = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(dateObj);
+
+  return (
+    <div>
+      <PageHeader title={t("title")} description={`${t("description")} — ${dateLabel}`} />
+      <RegisterClient
+        date={date}
+        isWeekend={isDzWeekend(dateObj)}
+        classes={classes}
+        activeClass={activeClass}
+        rows={rows}
+      />
+    </div>
+  );
+}

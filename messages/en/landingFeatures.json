@@ -1,0 +1,248 @@
+{
+  "eyebrow": "Modules",
+  "title": "One platform, from the first application to the end-of-month books",
+  "subtitle": "Eight connected modules built around how Algerian nurseries and kindergartens actually run — Arabic first, priced in dinars, and a week that runs Sunday to Thursday.",
+  "cta": "Try Rawdati free",
+  "ctaNote": "30-day trial · no bank card · we help you set everything up",
+  "items": {
+    "enrollment": {
+      "title": "Online enrolment",
+      "desc": "Parents fill in the child's file from their phone; applications land in one clean pipeline.",
+      "preview": {
+        "head": "Applications",
+        "count": "3 new",
+        "r1": {
+          "mono": "AB",
+          "name": "Amina Belaid",
+          "sub": "Age 3 · Small group",
+          "pill": "New"
+        },
+        "r2": {
+          "mono": "YM",
+          "name": "Yacine Merabet",
+          "sub": "Age 4 · Interview Sun",
+          "pill": "Interview"
+        },
+        "r3": {
+          "mono": "MH",
+          "name": "Malak Haddad",
+          "sub": "Age 5 · Preschool",
+          "pill": "Accepted"
+        }
+      }
+    },
+    "checkin": {
+      "title": "Badge check-in",
+      "desc": "A badge or code at reception, and the parent is notified the second a child arrives or leaves.",
+      "preview": {
+        "head": "Today's check-in",
+        "count": "07:58",
+        "r1": {
+          "mono": "SB",
+          "name": "Serine",
+          "sub": "Blossoms",
+          "allergy": "Allergy",
+          "pill": "In"
+        },
+        "r2": {
+          "mono": "RK",
+          "name": "Riad",
+          "sub": "Butterflies",
+          "pill": "In"
+        },
+        "r3": {
+          "mono": "NL",
+          "name": "Nour",
+          "sub": "Stars",
+          "pill": "Absent"
+        }
+      }
+    },
+    "parentApp": {
+      "title": "Parent app",
+      "desc": "Photos, announcements and invoices in one app, each parent in their own language.",
+      "preview": {
+        "head": "Blossoms group",
+        "count": "now",
+        "educator": "Good morning! Serine finished all her breakfast and joined the painting activity.",
+        "parent": "Thank you so much for the update.",
+        "photo": "4 photos from painting",
+        "photoTime": "10:24"
+      }
+    },
+    "sessions": {
+      "title": "Sessions & progress",
+      "desc": "Log every child's sessions and follow their learning goals week after week.",
+      "preview": {
+        "head": "This week",
+        "badge": "+18%",
+        "d1": "Sun",
+        "d2": "Mon",
+        "d3": "Tue",
+        "d4": "Wed",
+        "d5": "Thu",
+        "statSessions": "Sessions completed",
+        "statSessionsValue": "128",
+        "statGoals": "Goals achieved",
+        "statGoalsValue": "76%"
+      }
+    },
+    "invoicing": {
+      "title": "Invoicing in dinars",
+      "desc": "Monthly invoices raised automatically, with a printable receipt for every payment.",
+      "preview": {
+        "number": "Invoice 0142",
+        "pill": "Paid",
+        "child": "Yacine Merabet",
+        "period": "September 2026 fees",
+        "totalLabel": "Total",
+        "amount": "8,100 DA",
+        "receipt": "Receipt issued",
+        "receiptPill": "Cash"
+      }
+    },
+    "accounting": {
+      "title": "Built-in accounting",
+      "desc": "Income, expenses and payroll in a single ledger that is up to date every single day.",
+      "preview": {
+        "head": "Budget · September",
+        "in": "Income",
+        "out": "Expenses",
+        "statNet": "Net this month",
+        "statNetValue": "143,500 DA",
+        "statPayroll": "Team payroll",
+        "statPayrollValue": "186,000 DA"
+      }
+    },
+    "team": {
+      "title": "Team & tasks",
+      "desc": "Assign tasks to your educators and follow hours, shifts and leave in the same place.",
+      "preview": {
+        "head": "Team tasks",
+        "count": "2 / 3",
+        "t1": {
+          "text": "Prepare the lunch menu",
+          "due": "Today",
+          "who": "Nadia · kitchen"
+        },
+        "t2": {
+          "text": "Call Yacine's parent",
+          "due": "Today",
+          "who": "Sara · reception"
+        },
+        "t3": {
+          "text": "Update the incident log",
+          "due": "Tomorrow",
+          "who": "Director"
+        }
+      }
+    },
+    "compliance": {
+      "title": "Compliance registers",
+      "desc": "Children, incident and staff registers, ready to export the day an inspector walks in.",
+      "preview": {
+        "head": "Official registers",
+        "d1": {
+          "name": "Children register",
+          "sub": "58 children enrolled",
+          "pill": "Up to date"
+        },
+        "d2": {
+          "name": "Safety certificate",
+          "sub": "Expires 07 October",
+          "pill": "42 days"
+        },
+        "d3": {
+          "name": "Staff register",
+          "sub": "12 staff · contracts",
+          "pill": "Export"
+        }
+      }
+    }
+  },
+  "centres": {
+    "eyebrow": "Every kind of centre",
+    "title": "What kind of centre do you run?",
+    "subtitle": "Rawdati adapts to the way you work, not the other way round. Pick your kind of centre to see the setup we would start you with.",
+    "tabsLabel": "Kinds of early-childhood centre",
+    "ageLabel": "Ages",
+    "modulesTitle": "Modules we'd start with",
+    "modulesNote": "Every other module stays available the day you need it.",
+    "modules": {
+      "enrollment": "Online enrolment",
+      "attendance": "Attendance",
+      "billing": "Invoicing & receipts",
+      "sessions": "Sessions & goals",
+      "activities": "Activities & workshops",
+      "meals": "Meals & naps",
+      "reports": "Reports & files",
+      "portal": "Parent app",
+      "staff": "Team & hours"
+    },
+    "types": {
+      "nursery": {
+        "label": "Nursery",
+        "title": "Nursery",
+        "age": "3 months to 3 years",
+        "line": "Hour-by-hour care for babies and toddlers, and a parent who never has to wonder how the day went.",
+        "b1": "Track meals, naps and nappy changes",
+        "b2": "Assign children to educators by age group",
+        "b3": "A photo day-report that reaches parents before pick-up"
+      },
+      "kindergarten": {
+        "label": "Kindergarten",
+        "title": "Kindergarten",
+        "age": "3 to 6 years",
+        "line": "From the first application to the preschool year: organised groups, a weekly plan, and monthly invoicing that never slips.",
+        "b1": "Groups by age with daily attendance lists",
+        "b2": "A weekly plan and ready-to-print learning activities",
+        "b3": "Monthly invoices and dinar receipts in one click"
+      },
+      "montessori": {
+        "label": "Montessori",
+        "title": "Montessori setting",
+        "age": "2 to 6 years",
+        "line": "Follow each child on their own path rather than on the pace of the whole group.",
+        "b1": "Independent goals and progress stages per child",
+        "b2": "Educator observations with photos and video",
+        "b3": "A progress report shared with parents at each stage"
+      },
+      "educational": {
+        "label": "Educational centre",
+        "title": "Educational & tutoring centre",
+        "age": "6 to 15 years",
+        "line": "After-school groups on a shifting timetable, with attendance and money both under control.",
+        "b1": "Groups and sessions on a flexible weekly timetable",
+        "b2": "Monthly subscription or pay-per-session, per group",
+        "b3": "Attendance per group and results per student"
+      },
+      "therapy": {
+        "label": "Early intervention",
+        "title": "Speech therapy & special education",
+        "age": "Case by case",
+        "line": "One-to-one sessions, explicit therapeutic goals, and a confidential file for every child.",
+        "b1": "Individual appointments with goals logged per session",
+        "b2": "A protected file holding assessments and reports",
+        "b3": "A progress report you can export for the parent or doctor"
+      },
+      "activity": {
+        "label": "Activity club",
+        "title": "Activity & workshop club",
+        "age": "4 to 12 years",
+        "line": "Workshops and rotating groups, with sign-up through a single link and no paperwork.",
+        "b1": "Sign-ups through a link you share on your page",
+        "b2": "An attendance list per workshop and per instructor",
+        "b3": "Pay per workshop or by monthly subscription"
+      },
+      "camps": {
+        "label": "Seasonal camps",
+        "title": "Holiday camps & clubs",
+        "age": "Seasonal",
+        "line": "Open a session, take registrations, and close it automatically when the last place is filled.",
+        "b1": "Seasonal sessions with a capped number of places",
+        "b2": "Registration and payment before the session starts",
+        "b3": "Archive the whole session in one click when it ends"
+      }
+    }
+  }
+}

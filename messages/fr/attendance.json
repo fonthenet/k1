@@ -1,0 +1,87 @@
+{
+  "title": "Registre des présences",
+  "description": "Pointage quotidien des enfants — arrivées, sorties et absences",
+  "nav": {
+    "prevDay": "Jour précédent",
+    "nextDay": "Jour suivant",
+    "today": "Aujourd'hui",
+    "history": "Historique",
+    "register": "Registre du jour",
+    "weekendNotice": "Week-end (vendredi / samedi) — le jardin d'enfants est normalement fermé."
+  },
+  "tabs": {
+    "all": "Toutes les classes"
+  },
+  "counters": {
+    "present": "{count, plural, =0 {0 présent} one {# présent} other {# présents}}",
+    "absent": "{count, plural, =0 {0 absent} one {# absent} other {# absents}}",
+    "notMarked": "{count, plural, =0 {0 non pointé} one {# non pointé} other {# non pointés}}",
+    "checkedOut": "{count, plural, =0 {0 sorti} one {# sorti} other {# sortis}}"
+  },
+  "status": {
+    "present": "Présent",
+    "late": "En retard",
+    "absent": "Absent",
+    "sick": "Malade",
+    "excused": "Excusé",
+    "notMarked": "Non pointé"
+  },
+  "table": {
+    "child": "Enfant",
+    "status": "Statut",
+    "checkIn": "Arrivée",
+    "checkOut": "Sortie",
+    "details": "Détails",
+    "actions": "Actions"
+  },
+  "actions": {
+    "markAllPresent": "Tout marquer présent",
+    "checkOutNow": "Pointer la sortie",
+    "editTimes": "Modifier les horaires"
+  },
+  "timeDialog": {
+    "title": "Horaires — {name}",
+    "description": "Réglez manuellement l'heure d'arrivée et de sortie pour le {date}.",
+    "checkIn": "Heure d'arrivée",
+    "checkOut": "Heure de sortie",
+    "hint": "Laissez un champ vide pour effacer l'heure correspondante."
+  },
+  "fields": {
+    "pickedUpBy": "Récupéré par",
+    "pickedUpByPlaceholder": "Nom de la personne",
+    "absenceReason": "Motif d'absence",
+    "absenceReasonPlaceholder": "Motif…"
+  },
+  "allergy": {
+    "badge": "Allergie",
+    "list": "Allergies : {list}"
+  },
+  "toasts": {
+    "saved": "Pointage enregistré",
+    "timesSaved": "Horaires mis à jour",
+    "checkedOut": "Sortie enregistrée",
+    "bulkDone": "{count, plural, one {# enfant marqué présent} other {# enfants marqués présents}}",
+    "bulkNone": "Tous les enfants sont déjà pointés",
+    "error": "Une erreur est survenue. Réessayez."
+  },
+  "empty": {
+    "title": "Aucun enfant",
+    "description": "Aucun enfant inscrit dans cette classe pour le moment."
+  },
+  "error": {
+    "title": "Impossible de charger les présences",
+    "description": "Une erreur est survenue lors du chargement des données.",
+    "retry": "Réessayer"
+  },
+  "history": {
+    "title": "Historique des présences",
+    "description": "Grille hebdomadaire (dimanche – jeudi) par classe",
+    "prevMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "legend": "Légende",
+    "noStatus": "Non pointé",
+    "total": "Total",
+    "totalTitle": "Jours de présence dans le mois",
+    "empty": "Aucune donnée de présence pour ce mois."
+  }
+}

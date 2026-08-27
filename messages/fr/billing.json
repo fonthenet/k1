@@ -1,0 +1,320 @@
+{
+  "hub": {
+    "title": "Facturation",
+    "description": "Factures, encaissements et suivi des paiements des familles",
+    "monthAria": "Choisir le mois",
+    "plansLink": "Formules et tarifs",
+    "arrearsLink": "Impayés",
+    "stats": {
+      "invoiced": "Facturé ce mois",
+      "collected": "Encaissé ce mois",
+      "outstanding": "Impayé ce mois"
+    },
+    "filters": {
+      "all": "Toutes",
+      "unpaid": "Impayées",
+      "partial": "Partielles",
+      "paid": "Payées",
+      "overdue": "En retard",
+      "void": "Annulées"
+    },
+    "columns": {
+      "number": "N°",
+      "child": "Enfant",
+      "period": "Période",
+      "total": "Total",
+      "paid": "Payé",
+      "balance": "Solde",
+      "dueDate": "Échéance",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "view": "Voir la facture",
+    "empty": "Aucune facture pour ce mois",
+    "emptyHint": "Générez les factures du mois à partir des formules assignées aux enfants, ou créez une facture manuelle."
+  },
+  "status": {
+    "draft": "Brouillon",
+    "sent": "Envoyée",
+    "unpaid": "Impayée",
+    "partial": "Partielle",
+    "paid": "Payée",
+    "overdue": "En retard",
+    "void": "Annulée"
+  },
+  "filters": {
+    "all": "Toutes",
+    "unpaid": "Impayées",
+    "partial": "Partielles",
+    "paid": "Payées",
+    "overdue": "En retard",
+    "void": "Annulées"
+  },
+  "methods": {
+    "cash": "Espèces",
+    "cib": "CIB",
+    "edahabia": "Edahabia",
+    "bank_transfer": "Virement",
+    "cheque": "Chèque",
+    "chargily": "Chargily",
+    "other": "Autre"
+  },
+  "periods": {
+    "once": "Unique",
+    "monthly": "Mensuel",
+    "quarterly": "Trimestriel",
+    "yearly": "Annuel",
+    "per_session": "Par séance"
+  },
+  "kinds": {
+    "tuition": "Scolarité",
+    "registration": "Inscription",
+    "activity": "Activité",
+    "meal": "Cantine",
+    "transport": "Transport",
+    "other": "Autre"
+  },
+  "generate": {
+    "button": "Générer les factures du mois",
+    "title": "Générer les factures mensuelles",
+    "description": "Créer les factures de {month} pour tous les enfants inscrits ayant une formule mensuelle. Les enfants déjà facturés pour ce mois seront ignorés.",
+    "confirm": "Générer",
+    "success": "{count, plural, =0 {Aucune nouvelle facture à générer} one {# facture générée} other {# factures générées}}"
+  },
+  "newInvoice": {
+    "button": "Nouvelle facture",
+    "title": "Nouvelle facture manuelle",
+    "description": "Facturez des frais ponctuels : inscription, activité, cantine…",
+    "child": "Enfant",
+    "childPlaceholder": "Choisir un enfant",
+    "dueDate": "Date d'échéance",
+    "items": "Lignes de la facture",
+    "addItem": "Ajouter une ligne",
+    "itemKind": "Type",
+    "itemDescription": "Description",
+    "itemQty": "Qté",
+    "itemUnit": "Prix unitaire",
+    "removeItem": "Supprimer la ligne",
+    "submit": "Créer la facture",
+    "success": "Facture créée"
+  },
+  "payment": {
+    "button": "Encaisser",
+    "title": "Encaisser un paiement",
+    "description": "Facture {number} — {child}",
+    "amount": "Montant (DA)",
+    "balance": "Reste à payer : {amount}",
+    "method": "Mode de paiement",
+    "reference": "Référence",
+    "referencePlaceholder": "N° de chèque, de transaction…",
+    "note": "Note",
+    "submit": "Enregistrer le paiement",
+    "success": "Paiement enregistré",
+    "receipt": "Reçu {number}",
+    "viewReceipt": "Voir le reçu"
+  },
+  "invoice": {
+    "back": "Retour aux factures",
+    "notFound": "Facture introuvable",
+    "notFoundHint": "Cette facture n'existe pas ou n'appartient pas à votre établissement.",
+    "issuedOn": "Émise le {date}",
+    "dueOn": "Échéance le {date}",
+    "period": "Période {month}",
+    "itemsTitle": "Détail de la facture",
+    "itemsColumns": {
+      "kind": "Type",
+      "description": "Description",
+      "qty": "Qté",
+      "unit": "P.U.",
+      "amount": "Montant"
+    },
+    "paymentsTitle": "Paiements",
+    "noPayments": "Aucun paiement enregistré pour cette facture.",
+    "paymentsColumns": {
+      "receipt": "Reçu",
+      "date": "Date",
+      "amount": "Montant",
+      "method": "Mode",
+      "reference": "Référence"
+    },
+    "totalsTitle": "Totaux",
+    "totals": {
+      "subtotal": "Sous-total",
+      "discount": "Remise",
+      "total": "Total",
+      "paid": "Payé",
+      "balance": "Reste à payer"
+    },
+    "childCard": "Enfant",
+    "guardians": "Tuteurs",
+    "noGuardians": "Aucun tuteur enregistré.",
+    "relationships": {
+      "father": "Père",
+      "mother": "Mère",
+      "guardian": "Tuteur",
+      "grandparent": "Grand-parent",
+      "sibling": "Frère / Sœur",
+      "other": "Autre"
+    },
+    "void": {
+      "button": "Annuler la facture",
+      "title": "Annuler cette facture ?",
+      "description": "La facture sera marquée comme annulée et n'apparaîtra plus dans les impayés. Les paiements déjà encaissés restent enregistrés.",
+      "confirm": "Annuler la facture",
+      "success": "Facture annulée"
+    }
+  },
+  "receipt": {
+    "print": "Imprimer",
+    "back": "Retour à la facture",
+    "pageDescription": "Reçu de paiement bilingue, format A5",
+    "notFound": "Reçu introuvable",
+    "notFoundHint": "Ce reçu n'existe pas ou n'appartient pas à votre établissement.",
+    "docTitleFr": "Reçu de paiement",
+    "docTitleAr": "وصل دفع",
+    "dateFr": "Date",
+    "dateAr": "التاريخ",
+    "childFr": "Enfant",
+    "childAr": "الطفل(ة)",
+    "methodFr": "Mode de paiement",
+    "methodAr": "طريقة الدفع",
+    "invoiceFr": "Facture",
+    "invoiceAr": "الفاتورة",
+    "referenceFr": "Référence",
+    "referenceAr": "المرجع",
+    "amountFr": "Montant",
+    "amountAr": "المبلغ",
+    "amountWordsFr": "Arrêté à la somme de",
+    "dinars": "dinars algériens",
+    "receivedByFr": "Reçu par",
+    "receivedByAr": "استلمه",
+    "signatureFr": "Signature et cachet",
+    "signatureAr": "الإمضاء والختم",
+    "thanksFr": "Merci de votre confiance",
+    "thanksAr": "شكرا لثقتكم",
+    "methodsFr": {
+      "cash": "Espèces",
+      "cib": "Carte CIB",
+      "edahabia": "Edahabia",
+      "bank_transfer": "Virement bancaire",
+      "cheque": "Chèque",
+      "chargily": "Chargily",
+      "other": "Autre"
+    },
+    "methodsAr": {
+      "cash": "نقدا",
+      "cib": "بطاقة CIB",
+      "edahabia": "الذهبية",
+      "bank_transfer": "تحويل بنكي",
+      "cheque": "صك بنكي",
+      "chargily": "Chargily",
+      "other": "أخرى"
+    }
+  },
+  "plans": {
+    "title": "Formules et tarifs",
+    "description": "Formules de frais et assignation aux enfants inscrits",
+    "addPlan": "Nouvelle formule",
+    "empty": "Aucune formule de frais",
+    "emptyHint": "Créez une première formule (ex. : Garde à plein temps, 12 000 DA / mois) pour pouvoir facturer les familles.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "assignedCount": "{count, plural, =0 {Aucun enfant assigné} one {# enfant assigné} other {# enfants assignés}}",
+    "saved": "Formule enregistrée",
+    "deleted": "Formule supprimée",
+    "inUse": "Cette formule est assignée à des enfants. Désactivez-la plutôt que de la supprimer.",
+    "deleteTitle": "Supprimer cette formule ?",
+    "deleteDescription": "La formule sera définitivement supprimée. Cette action est impossible si des enfants y sont encore assignés.",
+    "dialog": {
+      "newTitle": "Nouvelle formule",
+      "editTitle": "Modifier la formule",
+      "description": "Nom, tarif en dinars et périodicité de la formule.",
+      "name": "Nom (français)",
+      "nameAr": "Nom (arabe)",
+      "amount": "Montant (DA)",
+      "period": "Périodicité",
+      "planDescription": "Description",
+      "active": "Formule active"
+    },
+    "assignments": {
+      "title": "Assignations",
+      "description": "Formule appliquée à chaque enfant inscrit lors de la génération mensuelle",
+      "empty": "Aucun enfant inscrit.",
+      "columns": {
+        "child": "Enfant",
+        "plan": "Formule",
+        "base": "Tarif",
+        "discount": "Remise",
+        "effective": "Montant dû",
+        "since": "Depuis",
+        "actions": "Actions"
+      },
+      "noPlan": "Sans formule",
+      "assign": "Assigner",
+      "change": "Modifier",
+      "end": "Terminer",
+      "endTitle": "Terminer l'assignation ?",
+      "endDescription": "L'enfant ne sera plus facturé sur cette formule à partir du mois prochain.",
+      "ended": "Assignation terminée"
+    },
+    "assignDialog": {
+      "title": "Assigner une formule",
+      "plan": "Formule",
+      "planPlaceholder": "Choisir une formule",
+      "customAmount": "Montant personnalisé (DA)",
+      "customAmountHint": "Laisser vide pour utiliser le tarif de la formule.",
+      "discountPct": "Remise (%)",
+      "note": "Motif de la remise",
+      "notePlaceholder": "Remise fratrie",
+      "preview": "Montant facturé chaque mois : {amount}",
+      "submit": "Assigner",
+      "success": "Formule assignée"
+    }
+  },
+  "arrears": {
+    "title": "Impayés",
+    "description": "Soldes dus par famille, classés par ancienneté de la dette",
+    "stats": {
+      "total": "Total impayé",
+      "children": "Enfants concernés",
+      "oldest": "Dont 90 jours et plus"
+    },
+    "columns": {
+      "child": "Enfant",
+      "phone": "Téléphone",
+      "current": "Courant",
+      "d30": "30 j",
+      "d60": "60 j",
+      "d90": "90 j +",
+      "total": "Total dû",
+      "actions": "Rappel",
+      "class": "Classe",
+      "months": "Mois dus",
+      "days": "Retard",
+      "guardian": "Tuteur"
+    },
+    "empty": "Aucun impayé",
+    "emptyHint": "Toutes les factures sont réglées. Excellent travail !",
+    "call": "Appeler le tuteur",
+    "whatsapp": "Envoyer un rappel WhatsApp",
+    "totalRow": "Total",
+    "waMessage": "Bonjour, ici {kindergarten}. Nous nous permettons de vous rappeler aimablement que le solde de {child} s'élève à {amount}. Merci de bien vouloir régulariser la situation dès que possible. Cordialement.",
+    "tabs": {
+      "families": "Par famille",
+      "aging": "Par ancienneté"
+    },
+    "daysBadge": "{count, plural, =0 {Pas encore échu} one {# jour} other {# jours}}",
+    "monthsOwed": "{count, plural, =0 {Aucun} one {# mois} other {# mois}}",
+    "dueSince": "Échéance {date}",
+    "noGuardian": "Aucun numéro enregistré",
+    "loadError": "Impossible de charger la liste des familles. Le tableau par ancienneté reste disponible."
+  },
+  "error": {
+    "title": "Un problème est survenu",
+    "description": "Impossible de charger les données de facturation. Vérifiez votre connexion puis réessayez.",
+    "retry": "Réessayer"
+  },
+  "toasts": {
+    "error": "Une erreur est survenue. Réessayez."
+  }
+}

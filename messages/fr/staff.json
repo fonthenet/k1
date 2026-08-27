@@ -1,0 +1,237 @@
+{
+  "team": {
+    "title": "Équipe",
+    "description": "Membres du personnel, rôles et pointage du jour",
+    "leavesLink": "Congés",
+    "invitesLink": "Invitations",
+    "empty": "Aucun membre dans l'équipe",
+    "emptyHint": "Invitez votre premier membre pour commencer.",
+    "loadError": "Impossible de charger l'équipe. Réessayez.",
+    "columns": {
+      "member": "Membre",
+      "role": "Rôle",
+      "code": "Code",
+      "phone": "Téléphone",
+      "hireDate": "Embauche",
+      "status": "Statut",
+      "today": "Aujourd'hui"
+    }
+  },
+  "roles": {
+    "owner": "Propriétaire",
+    "admin": "Administrateur",
+    "educator": "Éducateur·rice",
+    "staff": "Personnel",
+    "accountant": "Comptable"
+  },
+  "roleDescriptions": {
+    "owner": "Accès total : gère tout, y compris les paramètres et l'équipe.",
+    "admin": "Gère le quotidien : enfants, équipe, présences et finances.",
+    "educator": "Gère sa classe : présences, activités et suivi des enfants.",
+    "staff": "Accès limité : son pointage et les informations de base.",
+    "accountant": "Uniquement l'argent : factures, paiements, dépenses et salaires."
+  },
+  "memberStatus": {
+    "active": "Actif",
+    "invited": "Invité",
+    "disabled": "Désactivé"
+  },
+  "clock": {
+    "in": "Pointer l'arrivée",
+    "out": "Pointer le départ",
+    "clockedIn": "Arrivée enregistrée à {time}",
+    "clockedOut": "Départ enregistré à {time}",
+    "presentSince": "Présent depuis {time}",
+    "leftAt": "Parti à {time}",
+    "notIn": "Non pointé"
+  },
+  "invite": {
+    "button": "Inviter un membre",
+    "title": "Inviter un membre",
+    "description": "Créez un lien d'invitation pour un nouveau membre de l'équipe.",
+    "email": "E-mail",
+    "role": "Rôle",
+    "jobTitle": "Poste",
+    "jobTitlePlaceholder": "Éducatrice petite section",
+    "create": "Créer l'invitation",
+    "linkTitle": "Invitation créée",
+    "linkHelp": "Partagez ce lien avec {email}. Il expire dans 14 jours.",
+    "copy": "Copier le lien",
+    "copied": "Lien copié",
+    "modeInvite": "Inviter par e-mail",
+    "modeLocal": "Créer directement",
+    "addButton": "Ajouter un membre",
+    "addTitle": "Ajouter un membre de l'équipe"
+  },
+  "edit": {
+    "title": "Modifier le membre",
+    "description": "Rôle, poste, salaire et codes de {name}.",
+    "role": "Rôle",
+    "jobTitle": "Poste",
+    "baseSalary": "Salaire de base (DA)",
+    "staffCode": "Code badge",
+    "pinCode": "Code PIN",
+    "status": "Statut",
+    "saved": "Membre mis à jour",
+    "payType": "Type de rémunération",
+    "hourlyRate": "Taux horaire",
+    "monthlyHint": "Salaire mensuel fixe, indépendant des heures pointées.",
+    "hourlyHint": "La paie est calculée sur les heures enregistrées dans le pointage chaque mois."
+  },
+  "detail": {
+    "backToTeam": "Équipe",
+    "notFound": "Membre introuvable",
+    "notFoundHint": "Ce membre n'existe pas ou a été retiré.",
+    "hiredOn": "Embauché le {date}",
+    "tabs": {
+      "timesheets": "Pointages",
+      "leaves": "Congés",
+      "salary": "Salaire"
+    }
+  },
+  "timesheets": {
+    "monthTotal": "Total du mois : {total}",
+    "columns": {
+      "date": "Date",
+      "in": "Arrivée",
+      "out": "Départ",
+      "duration": "Durée",
+      "approved": "Approuvé"
+    },
+    "empty": "Aucun pointage ce mois-ci.",
+    "add": "Ajouter un pointage",
+    "addTitle": "Ajouter un pointage",
+    "editTitle": "Modifier le pointage",
+    "dialogDescription": "Les saisies manuelles sont consignées dans le journal d'audit.",
+    "date": "Date",
+    "clockIn": "Heure d'arrivée",
+    "clockOut": "Heure de départ",
+    "notes": "Notes",
+    "saved": "Pointage enregistré",
+    "approvedToast": "Pointage approuvé",
+    "unapprovedToast": "Approbation retirée",
+    "inProgress": "En cours",
+    "duration": "{hours} h {minutes} min",
+    "breakMinutes": "Minutes de pause (non payées)"
+  },
+  "leaves": {
+    "title": "Congés",
+    "description": "Demandes de congés de l'équipe",
+    "request": "Demander un congé",
+    "requestTitle": "Nouvelle demande de congé",
+    "requestDescription": "Votre demande sera transmise à la direction pour décision.",
+    "type": "Type de congé",
+    "types": {
+      "vacation": "Congé annuel",
+      "sick": "Congé maladie",
+      "personal": "Raison personnelle"
+    },
+    "startDate": "Du",
+    "endDate": "Au",
+    "reason": "Motif",
+    "reasonPlaceholder": "Précisez le motif (facultatif)",
+    "submitted": "Demande envoyée",
+    "myRequests": "Mes demandes",
+    "pendingTitle": "En attente de décision",
+    "allTitle": "Toutes les demandes",
+    "upcomingTitle": "Congés approuvés à venir",
+    "upcomingEmpty": "Aucun congé approuvé à venir.",
+    "columns": {
+      "member": "Membre",
+      "type": "Type",
+      "period": "Période",
+      "reason": "Motif",
+      "status": "Statut",
+      "requestedOn": "Demandé le"
+    },
+    "status": {
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "rejected": "Refusé",
+      "cancelled": "Annulé"
+    },
+    "approve": "Approuver",
+    "reject": "Refuser",
+    "cancel": "Annuler la demande",
+    "approvedToast": "Congé approuvé",
+    "rejectedToast": "Congé refusé",
+    "cancelledToast": "Demande annulée",
+    "empty": "Aucune demande de congé.",
+    "days": "{count, plural, one {# jour} other {# jours}}",
+    "dateError": "La date de fin doit être après la date de début."
+  },
+  "salary": {
+    "baseSalary": "Salaire de base",
+    "notSet": "Non défini",
+    "advancesTitle": "Avances sur salaire",
+    "advancesEmpty": "Aucune avance enregistrée.",
+    "advanceColumns": {
+      "date": "Date",
+      "amount": "Montant",
+      "repaid": "Remboursée",
+      "note": "Note"
+    },
+    "payrollTitle": "Historique de paie",
+    "payrollEmpty": "Aucun bulletin de paie.",
+    "payrollColumns": {
+      "month": "Mois",
+      "base": "Base",
+      "bonuses": "Primes",
+      "deductions": "Retenues",
+      "advances": "Avances",
+      "net": "Net",
+      "paidAt": "Payé le"
+    },
+    "unpaid": "Non payé",
+    "perHour": "{amount} / heure",
+    "hours": "{hours} h"
+  },
+  "invites": {
+    "title": "Invitations",
+    "description": "Invitations en attente d'acceptation",
+    "empty": "Aucune invitation en attente",
+    "emptyHint": "Créez une invitation depuis la page Équipe.",
+    "columns": {
+      "email": "E-mail",
+      "role": "Rôle",
+      "jobTitle": "Poste",
+      "expires": "Expire le"
+    },
+    "expired": "Expirée",
+    "copyLink": "Copier le lien",
+    "copied": "Lien copié",
+    "revoke": "Révoquer",
+    "revokeTitle": "Révoquer l'invitation ?",
+    "revokeDescription": "Le lien envoyé à {email} ne fonctionnera plus.",
+    "revoked": "Invitation révoquée"
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Réessayez.",
+    "forbidden": "Action non autorisée.",
+    "invalid": "Données invalides.",
+    "notClockedIn": "Aucun pointage d'arrivée aujourd'hui."
+  },
+  "payType": {
+    "monthly": "Mensuel",
+    "hourly": "Horaire"
+  },
+  "badge": {
+    "title": "Badge du personnel",
+    "back": "Retour au profil",
+    "scanHint": "Scannez ce code au kiosque pour pointer.",
+    "noCodeTitle": "Aucun code personnel",
+    "noCodeBody": "Ajoutez un code sur la fiche du membre avant d'imprimer un badge.",
+    "print": "Imprimer le badge"
+  },
+  "local": {
+    "description": "Pour un membre sans e-mail. Il est créé ici et reçoit un code et un PIN pour le kiosque.",
+    "fullName": "Nom complet",
+    "fullNamePlaceholder": "Fatiha Belkacem",
+    "create": "Créer le membre",
+    "created": "Membre ajouté",
+    "handOver": "Remettez ces codes à {name} maintenant.",
+    "staffCode": "Code personnel",
+    "pinCode": "Code PIN",
+    "pinOnce": "Le PIN n'est affiché qu'une fois. Notez-le — il ne réapparaîtra jamais."
+  }
+}

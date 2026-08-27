@@ -1,0 +1,263 @@
+{
+  "quiz": {
+    "eyebrow": "Free consultation",
+    "title": "Tell us about your centre and we'll point you to the right start",
+    "subtitle": "Four short questions are enough for us to understand how your centre runs today — and to suggest the plan and the setup that fit it.",
+    "timeBadge": "Under a minute · No account needed",
+    "cardLabel": "Plan finder",
+    "trust": {
+      "commitment": {
+        "title": "No commitment",
+        "desc": "No card, no contract, no marketing emails."
+      },
+      "consult": {
+        "title": "Free consultation",
+        "desc": "We help you set up your classes and fees in your own language."
+      }
+    },
+    "stepOf": "Step {current} of {total}",
+    "goToStep": "Go to step {n}: {name}",
+    "stepNames": {
+      "centre": "Type of centre",
+      "size": "Number of children",
+      "priority": "Priority",
+      "contact": "Location and contact"
+    },
+    "steps": {
+      "centre": {
+        "q": "What kind of centre do you run?",
+        "hint": "Pick whichever is closest to your day-to-day.",
+        "options": {
+          "nursery": {
+            "label": "Nursery",
+            "hint": "From 3 months to 3 years"
+          },
+          "kindergarten": {
+            "label": "Kindergarten",
+            "hint": "From 3 to 6 years, preschool included"
+          },
+          "therapy": {
+            "label": "Therapy centre",
+            "hint": "Speech therapy, special education, psychological support"
+          },
+          "activity": {
+            "label": "Activity centre",
+            "hint": "Workshops, tutoring, holiday programmes"
+          }
+        }
+      },
+      "size": {
+        "q": "How many children are enrolled today?",
+        "hint": "A rough number is plenty.",
+        "options": {
+          "under20": {
+            "label": "Fewer than 20 children",
+            "hint": "Just starting out, or a small centre"
+          },
+          "to50": {
+            "label": "20 to 50 children",
+            "hint": "The most common size in Algeria"
+          },
+          "to100": {
+            "label": "50 to 100 children",
+            "hint": "Several classes and a larger team"
+          },
+          "over100": {
+            "label": "More than 100 children",
+            "hint": "A large centre, or several branches"
+          }
+        }
+      },
+      "priority": {
+        "q": "What matters most right now?",
+        "hint": "That is exactly where we'll begin your setup.",
+        "options": {
+          "enrollment": {
+            "label": "Enrollment and admissions",
+            "hint": "Application forms, waiting lists, missing documents"
+          },
+          "attendance": {
+            "label": "Attendance and safety",
+            "hint": "Check-in and pick-up, parent alerts, allergies"
+          },
+          "billing": {
+            "label": "Invoicing and accounting",
+            "hint": "Invoices, receipts, arrears and payroll"
+          },
+          "comms": {
+            "label": "Parent communication",
+            "hint": "Announcements, messages and photos of the day"
+          }
+        }
+      },
+      "contact": {
+        "q": "Where are you based?",
+        "hint": "So we know how to support you, and can prepare a setup ready for your wilaya.",
+        "wilayaLabel": "Wilaya",
+        "wilayaPlaceholder": "Choose your wilaya",
+        "phoneLabel": "Phone number",
+        "phonePlaceholder": "05 00 00 00 00",
+        "phoneHint": "We only use it to reach you when your account is created — nothing else.",
+        "phoneError": "Enter a valid Algerian number (at least 9 digits)."
+      }
+    },
+    "wilayas": {
+      "jijel": "Jijel",
+      "alger": "Algiers",
+      "oran": "Oran",
+      "constantine": "Constantine",
+      "setif": "Sétif",
+      "annaba": "Annaba",
+      "bejaia": "Béjaïa",
+      "batna": "Batna",
+      "blida": "Blida",
+      "tiziouzou": "Tizi Ouzou",
+      "skikda": "Skikda",
+      "mila": "Mila",
+      "other": "Another wilaya"
+    },
+    "back": "Back",
+    "next": "Next",
+    "finish": "Show my recommendation",
+    "done": {
+      "badge": "Our recommendation",
+      "title": "The {plan} plan is your best starting point",
+      "subtitle": "Based on what you told us, this is the setup we would suggest. You can change plan whenever you like, at no cost.",
+      "summaryTitle": "Your answers",
+      "labels": {
+        "centre": "Type of centre",
+        "size": "Number of children",
+        "priority": "Priority",
+        "wilaya": "Wilaya",
+        "phone": "Phone"
+      },
+      "empty": "Not specified",
+      "cta": "Create your centre's space",
+      "restart": "Start over",
+      "note": "Nothing was sent anywhere — your answers stayed in this browser, and only serve to suggest a starting point.",
+      "noteOffline": "We could not save your number. Create your account directly, or try again later."
+    },
+    "sending": "Sending…"
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "One price per centre, however big it grows",
+    "subtitle": "We don't charge per child or per staff member. A flat monthly fee, clear from day one.",
+    "perMonth": "/ month",
+    "perCentre": "per centre, whatever your headcount",
+    "popular": "Most chosen",
+    "cta": "Get started",
+    "ctaPopular": "Start with this plan",
+    "footnote": "No commitment · Unlimited children and staff",
+    "tiers": {
+      "essential": {
+        "name": "Essential",
+        "tagline": "For a centre leaving the paperwork behind.",
+        "features": [
+          "Online enrollment and file approval",
+          "Daily attendance and absence tracking",
+          "Invoicing and receipts in dinars",
+          "Trilingual parent app",
+          "One centre · Email support"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "For a centre that wants it all automated, from enrollment to payroll.",
+        "features": [
+          "Everything in Essential",
+          "Accounting and payslips",
+          "Front-desk kiosk and badge check-in",
+          "Compliance registers and inspection export",
+          "Announcements, messaging and monthly reports"
+        ]
+      },
+      "network": {
+        "name": "Network",
+        "tagline": "For several centres under one management.",
+        "features": [
+          "Everything in Pro",
+          "Unlimited centres",
+          "Consolidated group dashboard",
+          "Advanced roles and permissions per team",
+          "Dedicated onboarding support"
+        ]
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "FAQ",
+    "title": "What owners ask us before they start",
+    "subtitle": "The questions Algerian nursery and kindergarten directors put to us most often.",
+    "contact": {
+      "title": "Still have questions?",
+      "desc": "Write to us and we'll reply the same day — in Arabic, English or French.",
+      "email": "contact@rawdati.dz",
+      "cta": "Contact us",
+      "hours": "Sunday to Thursday · 8:00 – 17:00"
+    },
+    "items": {
+      "security": {
+        "q": "Is children's data safe?",
+        "a": "Yes. Everything is stored encrypted, and each centre is fully isolated from every other: a user only ever sees the children of their own centre, and only what their role allows. Backups run daily, and you can export all of your data whenever you want."
+      },
+      "cash": {
+        "q": "Most of my parents pay in cash. Is that supported?",
+        "a": "Cash is the default payment method in Rawdati, because that is the reality on the ground here. Record the amount received and print the receipt on the spot; bank and postal transfers as well as instalment plans are supported too."
+      },
+      "arabic": {
+        "q": "Does the platform really work in Arabic?",
+        "a": "Rawdati is Arabic-first: the right-to-left interface was designed that way from the start, not mirrored from a translation. Children's names, receipts and reports are all in Arabic, and every parent or staff member picks their own language between Arabic, English and French."
+      },
+      "multi": {
+        "q": "I run more than one centre. Can I manage them all?",
+        "a": "Yes, with the Network plan. Switch between your centres from the same account in one click, with a consolidated dashboard for the group and separate permissions for each team."
+      },
+      "mobile": {
+        "q": "Do parents have to install an app from the store?",
+        "a": "No. Rawdati runs straight in a phone or computer browser, and a parent can add it to their home screen so it opens like any regular app — no updates, no storage taken."
+      },
+      "migrate": {
+        "q": "My data lives in notebooks and Excel files. How do I move it?",
+        "a": "We import your children, guardians and fee lists from an Excel file — or even from photos of your notebooks — and review them with you before you go live. It usually takes a single day, and it's free when you open your account."
+      }
+    }
+  },
+  "final": {
+    "eyebrow": "Start today",
+    "title": "Your centre deserves tools that match it",
+    "subtitle": "Set up your space in five minutes and share the enrollment link with parents tonight.",
+    "primary": "Try it free",
+    "secondary": "Talk to us",
+    "note": "No card required · Cancel any time · Support in Arabic"
+  },
+  "footer": {
+    "label": "Site footer",
+    "blurb": "An Algerian platform for running nurseries, kindergartens and specialised centres.\nFrom the first application file to the end-of-month accounts.",
+    "languageNote": "Available in Arabic, English and French",
+    "columns": {
+      "features": "Features",
+      "solutions": "Solutions",
+      "why": "Why Rawdati"
+    },
+    "links": {
+      "enrollment": "Online enrollment",
+      "attendance": "Attendance and safety",
+      "billing": "Invoicing in dinars",
+      "accounting": "Accounting and payroll",
+      "parents": "Parent app",
+      "nurseries": "Nurseries",
+      "kindergartens": "Kindergartens",
+      "therapy": "Therapy centres",
+      "activities": "Activity centres",
+      "owners": "For owners",
+      "educators": "For educators",
+      "families": "For parents"
+    },
+    "contact": "Contact us",
+    "email": "contact@rawdati.dz",
+    "terms": "Terms of use",
+    "privacy": "Privacy policy",
+    "copyright": "© 2026 Rawdati · Jijel, Algeria"
+  }
+}

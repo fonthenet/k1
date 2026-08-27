@@ -1,0 +1,162 @@
+{
+  "meta": {
+    "title": "Rawdati — nursery and kindergarten management for Algeria",
+    "description": "One Algerian platform to run your nursery: online enrolment, daily attendance, dinar invoicing, accounting and payroll, and a parent space in Arabic, English and French."
+  },
+  "brand": {
+    "nameAr": "روضتي",
+    "nameLatin": "Rawdati",
+    "tagline": "Nursery management, made simple"
+  },
+  "nav": {
+    "primaryLabel": "Primary navigation",
+    "menu": "Menu",
+    "language": "Language",
+    "login": "Sign in",
+    "signup": "Start free",
+    "features": "Features",
+    "solutions": "Solutions",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "menuFooter": {
+      "features": "See all features",
+      "solutions": "See all solutions"
+    },
+    "featuresMenu": {
+      "admissions": {
+        "title": "Admissions",
+        "desc": "Parent applications arrive sorted and ready to approve."
+      },
+      "attendance": {
+        "title": "Attendance & check-in",
+        "desc": "Badge in, badge out — the parent is notified the same second."
+      },
+      "billing": {
+        "title": "Billing in dinars",
+        "desc": "Monthly invoices raised for you, receipts ready to print."
+      },
+      "parents": {
+        "title": "Parent space",
+        "desc": "Photos, announcements and messages in a single thread."
+      }
+    },
+    "solutionsMenu": {
+      "creche": {
+        "title": "Nursery",
+        "desc": "Three months to three years."
+      },
+      "kindergarten": {
+        "title": "Kindergarten",
+        "desc": "Three to five years."
+      },
+      "preschool": {
+        "title": "Preschool class",
+        "desc": "Getting children ready for primary."
+      },
+      "network": {
+        "title": "Multi-site network",
+        "desc": "Several centres, one account, one dashboard."
+      }
+    }
+  },
+  "hero": {
+    "eyebrow": "Built in Algeria · Arabic-first, right to left",
+    "headline": "Your whole nursery<br></br>on <mark>one screen</mark>",
+    "subtext": "Enrolments, daily attendance, dinar invoicing and parent messages — one platform made for Algerian nurseries, on the office computer and on your phone.",
+    "ctaPrimary": "Create my nursery",
+    "ctaSecondary": "Explore the features",
+    "serves": {
+      "creche": "nurseries",
+      "kindergarten": "kindergartens",
+      "preschool": "preschool classes"
+    }
+  },
+  "mockup": {
+    "label": "A look inside the Rawdati dashboard",
+    "monogram": "A",
+    "greeting": "Good morning, Amina",
+    "date": "Sunday 18 October 2026",
+    "stats": {
+      "children": {
+        "label": "Enrolled children",
+        "value": "92"
+      },
+      "attendance": {
+        "label": "Attendance today",
+        "value": "94%"
+      },
+      "sessions": {
+        "label": "Sessions today",
+        "value": "6"
+      },
+      "messages": {
+        "label": "Unread messages",
+        "value": "5"
+      }
+    },
+    "calendar": {
+      "title": "October 2026",
+      "weekdays": {
+        "sun": "S",
+        "mon": "M",
+        "tue": "T",
+        "wed": "W",
+        "thu": "T",
+        "fri": "F",
+        "sat": "S"
+      }
+    },
+    "sessions": {
+      "title": "Today's sessions",
+      "more": "See all",
+      "items": {
+        "one": {
+          "time": "09:00",
+          "title": "Painting workshop",
+          "room": "Buds class",
+          "count": "12"
+        },
+        "two": {
+          "time": "10:30",
+          "title": "Movement & play",
+          "room": "Blossoms class",
+          "count": "15"
+        },
+        "three": {
+          "time": "13:15",
+          "title": "Story & music",
+          "room": "Butterflies class",
+          "count": "9"
+        }
+      }
+    },
+    "chips": {
+      "enrollment": {
+        "title": "New enrolment request",
+        "sub": "Yasmine Hammadi · age 4"
+      },
+      "payment": {
+        "title": "Payment received",
+        "sub": "Ben Amar family"
+      }
+    }
+  },
+  "trust": {
+    "designed": {
+      "title": "Built for Algerian crèches",
+      "desc": "A Sunday-to-Thursday week, dinar amounts, Arabic names."
+    },
+    "decree": {
+      "title": "Compliant with decree 19-253",
+      "desc": "Registers and exports ready for the social-action inspection."
+    },
+    "languages": {
+      "title": "Arabic, English and French",
+      "desc": "Every parent and staff member picks their own interface language."
+    },
+    "backups": {
+      "title": "Encrypted daily backups",
+      "desc": "Each centre's data stays isolated, and is saved every single day."
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "brand": "Rawdati",
+  "badge": "Plateforme",
+  "signedInAs": "Connecté en tant que {email}",
+  "nav": {
+    "leads": "Demandes",
+    "tenants": "Crèches",
+    "exit": "Quitter"
+  },
+  "overview": {
+    "title": "Plateforme",
+    "subtitle": "Les demandes venues du site, et l'état des crèches abonnées."
+  },
+  "stats": {
+    "leadsNew": "Nouvelles demandes",
+    "leadsTotal": "{count} au total",
+    "tenants": "Crèches actives",
+    "signups30d": "{count} inscriptions en 30 jours",
+    "children": "Enfants inscrits",
+    "families": "{count} familles",
+    "staff": "Personnel"
+  },
+  "leads": {
+    "metaTitle": "Demandes · Plateforme",
+    "title": "Demandes de contact",
+    "call": "Appeler",
+    "statusSaved": "Statut mis à jour",
+    "emptyTitle": "Aucune demande",
+    "emptyBody": "Toute personne qui termine le questionnaire de la page d'accueil apparaît ici.",
+    "columns": {
+      "phone": "Téléphone",
+      "profile": "Établissement",
+      "wilaya": "Wilaya",
+      "plan": "Offre suggérée",
+      "received": "Reçue le",
+      "status": "Statut"
+    },
+    "status": {
+      "new": "Nouvelle",
+      "contacted": "Contactée",
+      "converted": "Inscrite",
+      "lost": "Perdue",
+      "spam": "Indésirable"
+    }
+  },
+  "tenants": {
+    "metaTitle": "Crèches · Plateforme",
+    "title": "Crèches abonnées",
+    "subtitle": "Qui utilise Rawdati, et à quelle échelle.",
+    "privacyNote": "Ce panneau n'affiche que des totaux. Les dossiers des enfants et les coordonnées des parents ne sont pas consultables ici — c'est imposé par la base de données, pas seulement masqué dans cette page.",
+    "never": "Aucune activité",
+    "emptyTitle": "Aucune crèche",
+    "emptyBody": "Les crèches apparaissent ici dès leur création.",
+    "suspend": "Suspendre",
+    "suspendTitle": "Suspendre {name} ?",
+    "suspendBody": "Leur équipe perd immédiatement l'accès à ses propres dossiers. Vous pouvez réactiver à tout moment.",
+    "suspendConfirm": "Suspendre le compte",
+    "cancel": "Annuler",
+    "resume": "Réactiver",
+    "resumed": "Réactivée",
+    "suspended": "Suspendue",
+    "columns": {
+      "name": "Crèche",
+      "where": "Lieu",
+      "children": "Enfants",
+      "staff": "Personnel",
+      "joined": "Inscrite le",
+      "lastActivity": "Dernière activité",
+      "status": "Statut"
+    },
+    "statusLabel": {
+      "active": "Active",
+      "suspended": "Suspendue"
+    }
+  },
+  "quizValues": {
+    "centre": {
+      "nursery": "Crèche",
+      "kindergarten": "Jardin d'enfants",
+      "therapy": "Centre spécialisé",
+      "activity": "Club d'activités"
+    },
+    "size": {
+      "under20": "Moins de 20 enfants",
+      "to50": "20–50 enfants",
+      "to100": "50–100 enfants",
+      "over100": "Plus de 100"
+    },
+    "priority": {
+      "enrollment": "Inscriptions",
+      "attendance": "Présences",
+      "billing": "Facturation",
+      "comms": "Communication"
+    },
+    "wilaya": {
+      "jijel": "Jijel",
+      "alger": "Alger",
+      "oran": "Oran",
+      "constantine": "Constantine",
+      "setif": "Sétif",
+      "annaba": "Annaba",
+      "bejaia": "Béjaïa",
+      "batna": "Batna",
+      "blida": "Blida",
+      "tiziouzou": "Tizi Ouzou",
+      "skikda": "Skikda",
+      "mila": "Mila",
+      "other": "Autre wilaya"
+    },
+    "plan": {
+      "essential": "Essentiel",
+      "pro": "Pro",
+      "network": "Réseau"
+    }
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Réessayez."
+  }
+}

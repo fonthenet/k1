@@ -1,0 +1,320 @@
+{
+  "hub": {
+    "title": "الفوترة",
+    "description": "الفواتير والمدفوعات ومتابعة تسديدات العائلات",
+    "monthAria": "اختيار الشهر",
+    "plansLink": "الصيغ والأسعار",
+    "arrearsLink": "المستحقات غير المدفوعة",
+    "stats": {
+      "invoiced": "المفوتر هذا الشهر",
+      "collected": "المحصَّل هذا الشهر",
+      "outstanding": "غير المدفوع هذا الشهر"
+    },
+    "filters": {
+      "all": "الكل",
+      "unpaid": "غير مدفوعة",
+      "partial": "مدفوعة جزئيا",
+      "paid": "مدفوعة",
+      "overdue": "متأخرة",
+      "void": "ملغاة"
+    },
+    "columns": {
+      "number": "الرقم",
+      "child": "الطفل",
+      "period": "الفترة",
+      "total": "المجموع",
+      "paid": "المدفوع",
+      "balance": "الباقي",
+      "dueDate": "أجل الدفع",
+      "status": "الحالة",
+      "actions": "إجراءات"
+    },
+    "view": "عرض الفاتورة",
+    "empty": "لا توجد فواتير لهذا الشهر",
+    "emptyHint": "أنشئ فواتير الشهر انطلاقا من الصيغ المسندة إلى الأطفال، أو أنشئ فاتورة يدوية."
+  },
+  "status": {
+    "draft": "مسودة",
+    "sent": "مرسلة",
+    "unpaid": "غير مدفوعة",
+    "partial": "مدفوعة جزئيا",
+    "paid": "مدفوعة",
+    "overdue": "متأخرة",
+    "void": "ملغاة"
+  },
+  "filters": {
+    "all": "الكل",
+    "unpaid": "غير مدفوعة",
+    "partial": "مدفوعة جزئيا",
+    "paid": "مدفوعة",
+    "overdue": "متأخرة",
+    "void": "ملغاة"
+  },
+  "methods": {
+    "cash": "نقدا",
+    "cib": "بطاقة CIB",
+    "edahabia": "الذهبية",
+    "bank_transfer": "تحويل بنكي",
+    "cheque": "صك",
+    "chargily": "Chargily",
+    "other": "أخرى"
+  },
+  "periods": {
+    "once": "مرة واحدة",
+    "monthly": "شهري",
+    "quarterly": "فصلي",
+    "yearly": "سنوي",
+    "per_session": "لكل حصة"
+  },
+  "kinds": {
+    "tuition": "رسوم التمدرس",
+    "registration": "رسوم التسجيل",
+    "activity": "نشاط",
+    "meal": "الإطعام",
+    "transport": "النقل",
+    "other": "أخرى"
+  },
+  "generate": {
+    "button": "إنشاء فواتير الشهر",
+    "title": "إنشاء الفواتير الشهرية",
+    "description": "سيتم إنشاء فواتير شهر {month} لكل الأطفال المسجلين الذين لديهم صيغة شهرية. الأطفال المفوترون مسبقا لهذا الشهر لن تُنشأ لهم فواتير جديدة.",
+    "confirm": "إنشاء",
+    "success": "{count, plural, =0 {لا توجد فواتير جديدة للإنشاء} one {تم إنشاء فاتورة واحدة} two {تم إنشاء فاتورتين} few {تم إنشاء # فواتير} many {تم إنشاء # فاتورة} other {تم إنشاء # فاتورة}}"
+  },
+  "newInvoice": {
+    "button": "فاتورة جديدة",
+    "title": "فاتورة يدوية جديدة",
+    "description": "فوترة مصاريف ظرفية: تسجيل، نشاط، إطعام…",
+    "child": "الطفل",
+    "childPlaceholder": "اختر طفلا",
+    "dueDate": "أجل الدفع",
+    "items": "بنود الفاتورة",
+    "addItem": "إضافة بند",
+    "itemKind": "النوع",
+    "itemDescription": "الوصف",
+    "itemQty": "الكمية",
+    "itemUnit": "سعر الوحدة",
+    "removeItem": "حذف البند",
+    "submit": "إنشاء الفاتورة",
+    "success": "تم إنشاء الفاتورة"
+  },
+  "payment": {
+    "button": "تحصيل",
+    "title": "تحصيل دفعة",
+    "description": "الفاتورة {number} — {child}",
+    "amount": "المبلغ (دج)",
+    "balance": "الباقي للدفع: {amount}",
+    "method": "طريقة الدفع",
+    "reference": "المرجع",
+    "referencePlaceholder": "رقم الصك أو المعاملة…",
+    "note": "ملاحظة",
+    "submit": "تسجيل الدفعة",
+    "success": "تم تسجيل الدفعة",
+    "receipt": "الوصل {number}",
+    "viewReceipt": "عرض الوصل"
+  },
+  "invoice": {
+    "back": "العودة إلى الفواتير",
+    "notFound": "الفاتورة غير موجودة",
+    "notFoundHint": "هذه الفاتورة غير موجودة أو لا تنتمي إلى مؤسستكم.",
+    "issuedOn": "صدرت في {date}",
+    "dueOn": "أجل الدفع {date}",
+    "period": "فترة {month}",
+    "itemsTitle": "تفاصيل الفاتورة",
+    "itemsColumns": {
+      "kind": "النوع",
+      "description": "الوصف",
+      "qty": "الكمية",
+      "unit": "سعر الوحدة",
+      "amount": "المبلغ"
+    },
+    "paymentsTitle": "الدفعات",
+    "noPayments": "لم تُسجَّل أي دفعة لهذه الفاتورة.",
+    "paymentsColumns": {
+      "receipt": "الوصل",
+      "date": "التاريخ",
+      "amount": "المبلغ",
+      "method": "الطريقة",
+      "reference": "المرجع"
+    },
+    "totalsTitle": "المجاميع",
+    "totals": {
+      "subtotal": "المجموع الجزئي",
+      "discount": "التخفيض",
+      "total": "المجموع",
+      "paid": "المدفوع",
+      "balance": "الباقي للدفع"
+    },
+    "childCard": "الطفل",
+    "guardians": "الأولياء",
+    "noGuardians": "لا يوجد أولياء مسجلون.",
+    "relationships": {
+      "father": "الأب",
+      "mother": "الأم",
+      "guardian": "الولي",
+      "grandparent": "الجد / الجدة",
+      "sibling": "الأخ / الأخت",
+      "other": "آخر"
+    },
+    "void": {
+      "button": "إلغاء الفاتورة",
+      "title": "إلغاء هذه الفاتورة؟",
+      "description": "ستُعتبر الفاتورة ملغاة ولن تظهر ضمن المستحقات غير المدفوعة. الدفعات المحصَّلة مسبقا تبقى مسجلة.",
+      "confirm": "إلغاء الفاتورة",
+      "success": "تم إلغاء الفاتورة"
+    }
+  },
+  "receipt": {
+    "print": "طباعة",
+    "back": "العودة إلى الفاتورة",
+    "pageDescription": "وصل دفع ثنائي اللغة، قياس A5",
+    "notFound": "الوصل غير موجود",
+    "notFoundHint": "هذا الوصل غير موجود أو لا ينتمي إلى مؤسستكم.",
+    "docTitleFr": "Reçu de paiement",
+    "docTitleAr": "وصل دفع",
+    "dateFr": "Date",
+    "dateAr": "التاريخ",
+    "childFr": "Enfant",
+    "childAr": "الطفل(ة)",
+    "methodFr": "Mode de paiement",
+    "methodAr": "طريقة الدفع",
+    "invoiceFr": "Facture",
+    "invoiceAr": "الفاتورة",
+    "referenceFr": "Référence",
+    "referenceAr": "المرجع",
+    "amountFr": "Montant",
+    "amountAr": "المبلغ",
+    "amountWordsFr": "Arrêté à la somme de",
+    "dinars": "dinars algériens",
+    "receivedByFr": "Reçu par",
+    "receivedByAr": "استلمه",
+    "signatureFr": "Signature et cachet",
+    "signatureAr": "الإمضاء والختم",
+    "thanksFr": "Merci de votre confiance",
+    "thanksAr": "شكرا لثقتكم",
+    "methodsFr": {
+      "cash": "Espèces",
+      "cib": "Carte CIB",
+      "edahabia": "Edahabia",
+      "bank_transfer": "Virement bancaire",
+      "cheque": "Chèque",
+      "chargily": "Chargily",
+      "other": "Autre"
+    },
+    "methodsAr": {
+      "cash": "نقدا",
+      "cib": "بطاقة CIB",
+      "edahabia": "الذهبية",
+      "bank_transfer": "تحويل بنكي",
+      "cheque": "صك بنكي",
+      "chargily": "Chargily",
+      "other": "أخرى"
+    }
+  },
+  "plans": {
+    "title": "الصيغ والأسعار",
+    "description": "صيغ المصاريف وإسنادها إلى الأطفال المسجلين",
+    "addPlan": "صيغة جديدة",
+    "empty": "لا توجد صيغ مصاريف",
+    "emptyHint": "أنشئ أول صيغة (مثلا: دوام كامل، 12 000 دج شهريا) لتتمكن من فوترة العائلات.",
+    "active": "نشطة",
+    "inactive": "غير نشطة",
+    "assignedCount": "{count, plural, =0 {لا يوجد أطفال مسندون} one {طفل واحد مسند} two {طفلان مسندان} few {# أطفال مسندون} many {# طفلا مسندا} other {# طفل مسند}}",
+    "saved": "تم حفظ الصيغة",
+    "deleted": "تم حذف الصيغة",
+    "inUse": "هذه الصيغة مسندة إلى أطفال. عطّلها بدل حذفها.",
+    "deleteTitle": "حذف هذه الصيغة؟",
+    "deleteDescription": "ستُحذف الصيغة نهائيا. لا يمكن الحذف ما دام أطفال مسندين إليها.",
+    "dialog": {
+      "newTitle": "صيغة جديدة",
+      "editTitle": "تعديل الصيغة",
+      "description": "اسم الصيغة وسعرها بالدينار ودوريتها.",
+      "name": "الاسم (بالفرنسية)",
+      "nameAr": "الاسم (بالعربية)",
+      "amount": "المبلغ (دج)",
+      "period": "الدورية",
+      "planDescription": "الوصف",
+      "active": "صيغة نشطة"
+    },
+    "assignments": {
+      "title": "الإسنادات",
+      "description": "الصيغة المطبقة على كل طفل مسجل عند إنشاء الفواتير الشهرية",
+      "empty": "لا يوجد أطفال مسجلون.",
+      "columns": {
+        "child": "الطفل",
+        "plan": "الصيغة",
+        "base": "السعر",
+        "discount": "التخفيض",
+        "effective": "المبلغ المستحق",
+        "since": "منذ",
+        "actions": "إجراءات"
+      },
+      "noPlan": "بدون صيغة",
+      "assign": "إسناد",
+      "change": "تعديل",
+      "end": "إنهاء",
+      "endTitle": "إنهاء الإسناد؟",
+      "endDescription": "لن يُفوتر الطفل على هذه الصيغة ابتداء من الشهر القادم.",
+      "ended": "تم إنهاء الإسناد"
+    },
+    "assignDialog": {
+      "title": "إسناد صيغة",
+      "plan": "الصيغة",
+      "planPlaceholder": "اختر صيغة",
+      "customAmount": "مبلغ مخصص (دج)",
+      "customAmountHint": "اتركه فارغا لاستعمال سعر الصيغة.",
+      "discountPct": "التخفيض (%)",
+      "note": "سبب التخفيض",
+      "notePlaceholder": "تخفيض الإخوة",
+      "preview": "المبلغ المفوتر كل شهر: {amount}",
+      "submit": "إسناد",
+      "success": "تم إسناد الصيغة"
+    }
+  },
+  "arrears": {
+    "title": "المستحقات غير المدفوعة",
+    "description": "المبالغ المستحقة على كل عائلة حسب قِدم الدين",
+    "stats": {
+      "total": "إجمالي غير المدفوع",
+      "children": "الأطفال المعنيون",
+      "oldest": "منها 90 يوما فأكثر"
+    },
+    "columns": {
+      "child": "الطفل",
+      "phone": "الهاتف",
+      "current": "جارية",
+      "d30": "30 يوما",
+      "d60": "60 يوما",
+      "d90": "90 يوما +",
+      "total": "إجمالي المستحق",
+      "actions": "تذكير",
+      "class": "القسم",
+      "months": "الأشهر غير المدفوعة",
+      "days": "التأخّر",
+      "guardian": "وليّ الأمر"
+    },
+    "empty": "لا توجد مستحقات غير مدفوعة",
+    "emptyHint": "كل الفواتير مسددة. عمل ممتاز!",
+    "call": "الاتصال بالولي",
+    "whatsapp": "إرسال تذكير عبر واتساب",
+    "totalRow": "المجموع",
+    "waMessage": "السلام عليكم، معكم {kindergarten}. نذكّركم بلطف بأن المبلغ المستحق الخاص بـ{child} هو {amount}. نرجو منكم تسوية الوضعية في أقرب وقت. شكرا جزيلا لكم.",
+    "tabs": {
+      "families": "حسب العائلة",
+      "aging": "حسب قِدم الدين"
+    },
+    "daysBadge": "{count, plural, =0 {لم يحن الأجل} one {يوم واحد} two {يومان} few {# أيام} many {# يوماً} other {# يوم}}",
+    "monthsOwed": "{count, plural, =0 {لا شيء} one {شهر واحد} two {شهران} few {# أشهر} many {# شهراً} other {# شهر}}",
+    "dueSince": "الأجل: {date}",
+    "noGuardian": "لا يوجد رقم مسجّل",
+    "loadError": "تعذّر تحميل قائمة العائلات المعنية. جدول الأعمار أدناه لا يزال متاحاً."
+  },
+  "error": {
+    "title": "حدث خلل",
+    "description": "تعذّر تحميل بيانات الفوترة. تحقّق من الاتصال ثم أعد المحاولة.",
+    "retry": "إعادة المحاولة"
+  },
+  "toasts": {
+    "error": "حدث خطأ. أعد المحاولة."
+  }
+}

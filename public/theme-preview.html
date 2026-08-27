@@ -1,0 +1,100 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rawdati — theme directions</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#0b0f19;color:#e5e7eb;padding:28px}
+h1{font-size:22px;margin-bottom:4px}
+.sub{color:#9ca3af;font-size:13px;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}}
+.opt{border-radius:16px;overflow:hidden;border:1px solid #1f2937}
+.opthead{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111827}
+.optname{font-weight:700;font-size:14px}
+.swatches{display:flex;gap:5px}
+.sw{width:16px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,.15)}
+/* mini app */
+.app{display:flex;height:390px;font-size:11px}
+.side{width:130px;padding:10px 8px;display:flex;flex-direction:column;gap:2px}
+.brand{display:flex;align-items:center;gap:7px;padding:6px 8px 12px}
+.logo{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:11px}
+.bname{font-weight:700;font-size:12px}
+.nav{padding:6px 9px;border-radius:7px;display:flex;align-items:center;gap:7px;opacity:.72}
+.nav .dot{width:11px;height:11px;border-radius:3px;background:currentColor;opacity:.5}
+.nav.on{opacity:1;font-weight:600}
+.main{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.top{display:flex;align-items:center;justify-content:space-between;padding-bottom:9px}
+.h2{font-size:15px;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.card{border-radius:11px;padding:9px}
+.clab{font-size:9px;opacity:.65}
+.cval{font-size:17px;font-weight:800;margin-top:2px}
+.ci{width:22px;height:22px;border-radius:7px;margin-bottom:5px}
+.panel{border-radius:11px;padding:10px;flex:1}
+.ptitle{font-weight:700;font-size:11px;margin-bottom:8px;display:flex;justify-content:space-between}
+.row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:700}
+.nm{font-weight:600;font-size:10px}
+.cls{font-size:9px;opacity:.6}
+.pill{font-size:8px;padding:2px 6px;border-radius:99px;font-weight:700}
+.time{margin-inline-start:auto;font-size:10px;font-weight:700}
+.bars{display:flex;align-items:flex-end;gap:6px;height:52px;margin-top:8px}
+.bar{flex:1;border-radius:4px 4px 0 0}
+.btns{display:flex;gap:6px;margin-top:9px}
+.btn{padding:6px 11px;border-radius:8px;font-size:10px;font-weight:700}
+</style></head><body>
+<h1>Four theme directions — same screen, same data</h1>
+<div class="sub">Each shows the real dashboard shell: sidebar, stat cards, today's check-ins with an allergy badge, chart and buttons. Pick by eye.</div>
+<div class="grid" id="g"></div>
+<script>
+const THEMES=[
+ {id:"A",name:"Sunshine — warm orange + teal",bg:"#FFFBF5",card:"#FFFFFF",side:"#FFF4E6",text:"#3B2F2A",mut:"#8B7A6F",bd:"#F3E3D0",
+  pri:"#F97316",pri2:"#FDBA74",acc:"#0D9488",ok:"#16A34A",warn:"#F59E0B",dan:"#E11D48",
+  tint:"#FFF1E2",chart:["#F97316","#FB923C","#0D9488","#2DD4BF","#FBBF24"]},
+ {id:"B",name:"Ocean — teal + coral",bg:"#F6FBFC",card:"#FFFFFF",side:"#ECF8F8",text:"#0F2E33",mut:"#6B8A8F",bd:"#D9EDEF",
+  pri:"#0E9488",pri2:"#5EEAD4",acc:"#FB7185",ok:"#10B981",warn:"#F59E0B",dan:"#E11D48",
+  tint:"#DCF5F2",chart:["#0E9488","#2DD4BF","#FB7185","#38BDF8","#FBBF24"]},
+ {id:"C",name:"Violet Pop — keeps the landing's energy",bg:"#FBFAFF",card:"#FFFFFF",side:"#F4F1FE",text:"#241B45",mut:"#7C7597",bd:"#E7E2F8",
+  pri:"#7C3AED",pri2:"#C4B5FD",acc:"#D946EF",ok:"#10B981",warn:"#F59E0B",dan:"#E11D48",
+  tint:"#EFE9FE",chart:["#7C3AED","#A78BFA","#D946EF","#22D3EE","#F59E0B"]},
+ {id:"D",name:"Algiers — emerald + gold",bg:"#F7FDF9",card:"#FFFFFF",side:"#ECFAF1",text:"#12352A",mut:"#6D8C7E",bd:"#D6EFE0",
+  pri:"#059669",pri2:"#6EE7B7",acc:"#F59E0B",ok:"#16A34A",warn:"#F59E0B",dan:"#E11D48",
+  tint:"#DCF7E8",chart:["#059669","#34D399","#F59E0B","#0EA5E9","#FBBF24"]}
+];
+const NAV=["Dashboard","Children","Attendance","Billing","Accounting","Team"];
+const KIDS=[["AB","Adam Benali","Moyenne Section","09:07",1],["SB","Sirine Bouaziz","Grande Section","09:56",0],
+            ["NA","Nour Attia","Moyenne Section","09:42",0],["MB","Maria Boudiaf","Petite Section","09:28",1]];
+document.getElementById("g").innerHTML=THEMES.map(t=>`
+<div class="opt">
+ <div class="opthead"><span class="optname">${t.id} · ${t.name}</span>
+  <span class="swatches">${[t.pri,t.acc,t.ok,t.warn,t.dan].map(c=>`<span class="sw" style="background:${c}"></span>`).join("")}</span></div>
+ <div class="app" style="background:${t.bg};color:${t.text}">
+  <div class="side" style="background:${t.side};border-inline-end:1px solid ${t.bd}">
+   <div class="brand"><div class="logo" style="background:${t.pri}">R</div><div><div class="bname">Rawdati</div><div style="font-size:8px;color:${t.mut}">Les Petits Génies</div></div></div>
+   ${NAV.map((n,i)=>`<div class="nav ${i==0?'on':''}" style="${i==0?`background:${t.tint};color:${t.pri}`:`color:${t.text}`}"><span class="dot"></span>${n}</div>`).join("")}
+  </div>
+  <div class="main">
+   <div class="top"><div><div class="h2">Dashboard</div><div style="font-size:9px;color:${t.mut}">mercredi 26 août 2026</div></div>
+    <div class="btn" style="background:${t.pri};color:#fff">+ New</div></div>
+   <div class="cards">
+    ${[["Present","8",t.pri],["Staff","4",t.acc],["Outstanding","35 000 DA",t.dan],["Applications","2",t.warn]].map(c=>`
+     <div class="card" style="background:${t.card};border:1px solid ${t.bd}">
+      <div class="ci" style="background:${c[2]}22"></div>
+      <div class="clab" style="color:${t.mut}">${c[0]}</div><div class="cval" style="color:${c[2]}">${c[1]}</div></div>`).join("")}
+   </div>
+   <div class="panel" style="background:${t.card};border:1px solid ${t.bd}">
+    <div class="ptitle">Today's check-ins <span style="color:${t.pri};font-size:9px">View all ›</span></div>
+    ${KIDS.map(k=>`<div class="row">
+      <div class="av" style="background:${t.tint};color:${t.pri}">${k[0]}</div>
+      <div><div class="nm">${k[1]} ${k[4]?`<span class="pill" style="background:${t.dan}1a;color:${t.dan}">⚠ Allergy</span>`:""}</div>
+      <div class="cls" style="color:${t.mut}">${k[2]}</div></div>
+      <div class="time" style="color:${t.ok}">${k[3]}</div></div>`).join("")}
+    <div class="bars">${[40,62,35,80,55,95].map((h,i)=>`<div class="bar" style="height:${h}%;background:${t.chart[i%5]}"></div>`).join("")}</div>
+    <div class="btns"><div class="btn" style="background:${t.pri};color:#fff">Primary</div>
+     <div class="btn" style="background:${t.tint};color:${t.pri}">Secondary</div>
+     <div class="btn" style="background:transparent;border:1px solid ${t.bd};color:${t.text}">Outline</div></div>
+   </div>
+  </div>
+ </div></div>`).join("");
+</script></body></html>

@@ -1,0 +1,137 @@
+{
+  "list": {
+    "title": "Activités",
+    "description": "Activités périscolaires, tarifs et planning hebdomadaire",
+    "addActivity": "Nouvelle activité",
+    "empty": "Aucune activité pour le moment",
+    "emptyDescription": "Ajoutez une première activité (Coran, arts, langues, sport…) pour pouvoir y inscrire des enfants.",
+    "activeToggle": "Activité active",
+    "inactive": "Inactive",
+    "enrolled": "Inscrits",
+    "noCapacity": "Illimitée",
+    "noSchedule": "Planning non défini",
+    "free": "Gratuite",
+    "requests": "{count} demandes en attente",
+    "view": "Voir l'activité"
+  },
+  "categories": {
+    "religion": "Éducation islamique",
+    "art": "Arts",
+    "language": "Langues",
+    "sport": "Sport",
+    "general": "Général"
+  },
+  "periods": {
+    "once": "Unique",
+    "monthly": "Mensuel",
+    "quarterly": "Trimestriel",
+    "yearly": "Annuel",
+    "per_session": "Par séance"
+  },
+  "days": {
+    "sun": "Dim",
+    "mon": "Lun",
+    "tue": "Mar",
+    "wed": "Mer",
+    "thu": "Jeu"
+  },
+  "daysFull": {
+    "sun": "Dimanche",
+    "mon": "Lundi",
+    "tue": "Mardi",
+    "wed": "Mercredi",
+    "thu": "Jeudi"
+  },
+  "dialog": {
+    "newTitle": "Nouvelle activité",
+    "editTitle": "Modifier l'activité",
+    "description": "Définissez le nom, la catégorie, le tarif et le planning hebdomadaire (dimanche à jeudi).",
+    "name": "Nom",
+    "nameAr": "Nom en arabe",
+    "category": "Catégorie",
+    "capacity": "Capacité",
+    "capacityHint": "Laisser vide si illimitée",
+    "fee": "Tarif (DA)",
+    "period": "Périodicité",
+    "activityDescription": "Description",
+    "schedule": "Planning hebdomadaire",
+    "addSlot": "Ajouter une séance",
+    "day": "Jour",
+    "time": "Heure",
+    "active": "Activité active"
+  },
+  "addDialog": {
+    "title": "Inscrire un enfant à l'activité",
+    "description": "Sélectionnez l'enfant à inscrire à cette activité.",
+    "selectChild": "Enfant",
+    "placeholder": "Choisir un enfant",
+    "submit": "Inscrire",
+    "noneAvailable": "Tous les enfants inscrits participent déjà à cette activité."
+  },
+  "detail": {
+    "back": "Retour aux activités",
+    "notFound": "Activité introuvable",
+    "notFoundDescription": "Cette activité n'existe pas ou n'appartient pas à votre crèche.",
+    "schedule": {
+      "title": "Planning",
+      "none": "Planning non défini"
+    },
+    "stats": {
+      "enrolled": "Inscrits",
+      "capacity": "Capacité",
+      "requests": "Demandes des parents",
+      "full": "Complète"
+    },
+    "enrollments": {
+      "title": "Enfants inscrits",
+      "addChild": "Inscrire un enfant",
+      "child": "Enfant",
+      "class": "Classe",
+      "startDate": "Date de début",
+      "status": "Statut",
+      "actions": "Actions",
+      "noClass": "Sans classe",
+      "empty": "Aucun enfant inscrit à cette activité",
+      "emptyDescription": "Inscrivez des enfants à cette activité pour les voir apparaître ici.",
+      "end": "Terminer",
+      "endTitle": "Terminer l'inscription ?",
+      "endDescription": "{name} ne participera plus à cette activité à compter d'aujourd'hui."
+    },
+    "pending": {
+      "title": "Demandes des parents",
+      "description": "Demandes d'inscription envoyées depuis l'espace parents, en attente de validation.",
+      "empty": "Aucune demande en attente.",
+      "requestedOn": "Demandé le",
+      "approve": "Accepter",
+      "decline": "Refuser"
+    },
+    "revenue": {
+      "title": "Revenu attendu",
+      "line": "{count} inscrits × {fee}",
+      "period": "Par période : {period}",
+      "free": "Activité gratuite — aucun revenu."
+    }
+  },
+  "status": {
+    "requested": "Demandée",
+    "active": "Inscrit",
+    "ended": "Terminée",
+    "cancelled": "Annulée"
+  },
+  "toasts": {
+    "saved": "Enregistré avec succès",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "forbidden": "Vous n'avez pas les droits pour cette action.",
+    "activated": "Activité activée",
+    "deactivated": "Activité désactivée",
+    "enrolled": "Enfant inscrit à l'activité",
+    "ended": "Inscription terminée",
+    "approved": "Demande acceptée",
+    "declined": "Demande refusée"
+  },
+  "error": {
+    "title": "Impossible de charger les activités",
+    "description": "Une erreur est survenue lors du chargement des données. Veuillez réessayer.",
+    "retry": "Réessayer"
+  }
+}

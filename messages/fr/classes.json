@@ -1,0 +1,115 @@
+{
+  "list": {
+    "title": "Classes",
+    "description": "Groupes, capacités et affectation des éducateurs",
+    "addClass": "Nouvelle classe",
+    "empty": "Aucune classe pour le moment",
+    "emptyDescription": "Créez une première classe pour regrouper les enfants par tranche d'âge.",
+    "occupancy": "Remplissage",
+    "full": "Complète",
+    "room": "Salle {room}",
+    "mainTeacher": "Éducateur principal :",
+    "noTeacher": "Aucun éducateur affecté"
+  },
+  "ageRange": {
+    "between": "De {min} à {max} ans",
+    "from": "À partir de {min} ans",
+    "upTo": "Jusqu'à {max} ans",
+    "none": "Tous les âges"
+  },
+  "dialog": {
+    "newTitle": "Nouvelle classe",
+    "editTitle": "Modifier la classe",
+    "description": "Définissez le nom, la tranche d'âge et la capacité de la classe.",
+    "name": "Nom",
+    "nameAr": "Nom en arabe",
+    "ageMin": "Âge minimum (mois)",
+    "ageMax": "Âge maximum (mois)",
+    "capacity": "Capacité",
+    "room": "Salle",
+    "roomHint": "Salle A",
+    "color": "Couleur"
+  },
+  "delete": {
+    "title": "Supprimer cette classe ?",
+    "description": "Cette classe sera définitivement supprimée. Action irréversible.",
+    "blocked": "Suppression impossible : {count} enfants sont encore affectés à cette classe. Retirez-les d'abord."
+  },
+  "assignDialog": {
+    "title": "Affecter des enfants à la classe",
+    "description": "Sélectionnez les enfants à placer dans cette classe.",
+    "empty": "Tous les enfants inscrits sont déjà dans cette classe.",
+    "noClass": "Sans classe",
+    "overCapacity": "Attention : cette sélection dépasse la capacité de la classe.",
+    "submit": "Affecter ({count})"
+  },
+  "detail": {
+    "back": "Retour aux classes",
+    "notFound": "Classe introuvable",
+    "notFoundDescription": "Cette classe n'existe pas ou n'appartient pas à votre crèche.",
+    "children": {
+      "title": "Enfants ({count})",
+      "empty": "Aucun enfant dans cette classe",
+      "emptyDescription": "Affectez des enfants à cette classe pour les voir apparaître ici.",
+      "assign": "Affecter des enfants",
+      "unassign": "Retirer de la classe",
+      "unassignTitle": "Retirer de la classe ?",
+      "unassignDescription": "{name} sera retiré de cette classe. Vous pourrez le réaffecter plus tard."
+    },
+    "occupancy": {
+      "title": "Remplissage"
+    },
+    "attendance": {
+      "title": "Présences du jour",
+      "present": "Présent",
+      "absent": "Absent",
+      "late": "En retard",
+      "excused": "Excusé",
+      "sick": "Malade",
+      "notMarked": "Non pointé",
+      "noChildren": "Aucun enfant dans cette classe."
+    },
+    "staff": {
+      "title": "Équipe pédagogique",
+      "empty": "Aucun membre affecté à cette classe.",
+      "main": "Principal",
+      "makeMain": "Définir comme principal",
+      "remove": "Retirer",
+      "add": "Ajouter",
+      "selectPlaceholder": "Choisir un membre de l'équipe",
+      "noneAvailable": "Aucun membre disponible"
+    }
+  },
+  "childStatus": {
+    "pending": "En attente",
+    "enrolled": "Inscrit",
+    "waitlist": "Liste d'attente",
+    "withdrawn": "Retiré",
+    "alumni": "Ancien"
+  },
+  "roles": {
+    "owner": "Propriétaire",
+    "admin": "Administrateur",
+    "educator": "Éducateur",
+    "staff": "Personnel",
+    "accountant": "Comptable",
+    "parent": "Parent"
+  },
+  "toasts": {
+    "saved": "Enregistré avec succès",
+    "deleted": "Classe supprimée",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "forbidden": "Vous n'avez pas les droits pour cette action.",
+    "inUse": "Suppression impossible : la classe contient encore des enfants.",
+    "assigned": "{count} enfants affectés à la classe",
+    "unassigned": "Enfant retiré de la classe",
+    "staffAdded": "Membre ajouté à la classe",
+    "staffRemoved": "Membre retiré de la classe",
+    "mainSet": "Éducateur principal défini"
+  },
+  "error": {
+    "title": "Impossible de charger les classes",
+    "description": "Une erreur est survenue lors du chargement des données. Veuillez réessayer.",
+    "retry": "Réessayer"
+  }
+}

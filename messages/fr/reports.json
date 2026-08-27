@@ -1,0 +1,130 @@
+{
+  "title": "Rapports",
+  "subtitle": "Analyses mensuelles et registres réglementaires de l'établissement",
+  "monthLabel": "Mois",
+  "csv": "Exporter CSV",
+  "loadError": "Certaines données n'ont pas pu être chargées. Actualisez la page.",
+  "tabs": {
+    "attendance": "Présences",
+    "billing": "Facturation",
+    "team": "Équipe",
+    "registers": "Registres"
+  },
+  "attendance": {
+    "byClass": "Taux de présence par classe",
+    "byClassHint": "Calculé sur les jours de présence enregistrés du mois",
+    "class": "Classe",
+    "unassigned": "Sans classe",
+    "enrolled": "Inscrits",
+    "records": "Jours enregistrés",
+    "present": "Présences",
+    "absences": "Absences",
+    "rate": "Taux",
+    "total": "Total",
+    "heat": "Grille hebdomadaire (dim. – jeu.)",
+    "heatHint": "Enfants présents chaque jour ouvré du mois",
+    "empty": "Aucune présence enregistrée pour ce mois."
+  },
+  "billing": {
+    "revenue": "Recettes facturées par type",
+    "revenueHint": "Lignes des factures émises durant le mois",
+    "kind": "Type de frais",
+    "kinds": {
+      "tuition": "Scolarité",
+      "registration": "Inscription",
+      "activity": "Activités",
+      "meal": "Cantine",
+      "transport": "Transport",
+      "uniform": "Tenue",
+      "other": "Autre"
+    },
+    "lines": "{count, plural, one {# ligne} other {# lignes}}",
+    "amount": "Montant",
+    "share": "Part",
+    "emptyRevenue": "Aucune facture émise durant ce mois.",
+    "arrears": "Créances en retard",
+    "arrearsHint": "Factures impayées classées par ancienneté, à la date du jour",
+    "buckets": {
+      "current": "À échoir",
+      "d30": "1–30 j",
+      "d60": "31–60 j",
+      "d90": "61–90 j",
+      "d90plus": "+90 j"
+    },
+    "invoice": "Facture",
+    "child": "Enfant",
+    "guardian": "Tuteur",
+    "phone": "Téléphone",
+    "dueDate": "Échéance",
+    "daysLate": "Retard",
+    "days": "{count} j",
+    "balance": "Solde dû",
+    "emptyArrears": "Aucune créance en retard. Bravo !"
+  },
+  "team": {
+    "title": "Heures travaillées par employé",
+    "hint": "Somme des pointages du mois — attendu : jours ouvrés (dim.–jeu.) × 8 h",
+    "member": "Employé",
+    "role": "Poste",
+    "days": "Jours",
+    "hours": "Heures",
+    "expected": "Attendues",
+    "delta": "Écart",
+    "overtime": "Heures sup.",
+    "hoursFmt": "{h} h {m}",
+    "empty": "Aucun pointage pour ce mois."
+  },
+  "registers": {
+    "title": "Registres d'inspection (DAS)",
+    "hint": "Documents imprimables pour les contrôles de la Direction de l'Action Sociale",
+    "open": "Version imprimable",
+    "matricule": {
+      "title": "Registre matricule",
+      "description": "Liste réglementaire de tous les enfants : identité, dates d'inscription et de sortie, tuteur légal et coordonnées."
+    },
+    "exits": {
+      "title": "Registre des entrées et sorties",
+      "description": "Pointages du mois sélectionné avec heures d'arrivée, de sortie et personne ayant récupéré l'enfant."
+    }
+  },
+  "print": {
+    "republic": "République Algérienne Démocratique et Populaire",
+    "back": "Retour aux rapports",
+    "print": "Imprimer",
+    "generated": "Généré le {date}",
+    "period": "Période : {month}",
+    "count": "{count, plural, =0 {Aucun enregistrement} one {# enregistrement} other {# enregistrements}}",
+    "signature": "Signature et cachet de la direction",
+    "male": "M",
+    "female": "F",
+    "matricule": {
+      "title": "Registre matricule des enfants",
+      "num": "N°",
+      "child": "Nom et prénom",
+      "dob": "Date de naissance",
+      "gender": "Sexe",
+      "enrolled": "Inscrit le",
+      "withdrawn": "Sorti le",
+      "guardian": "Tuteur légal",
+      "phone": "Téléphone",
+      "address": "Adresse"
+    },
+    "exits": {
+      "title": "Registre des entrées et sorties",
+      "date": "Date",
+      "child": "Enfant",
+      "in": "Arrivée",
+      "out": "Sortie",
+      "pickedUpBy": "Récupéré par",
+      "notes": "Observations"
+    },
+    "relationship": {
+      "father": "Père",
+      "mother": "Mère",
+      "guardian": "Tuteur",
+      "grandparent": "Grand-parent",
+      "sibling": "Frère/Sœur",
+      "other": "Autre"
+    }
+  }
+}

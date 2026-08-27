@@ -1,0 +1,72 @@
+{
+  "title": "Tableau de bord",
+  "subtitle": "{date} — voici l'activité de {name}.",
+  "statsError": "Impossible de charger les statistiques. Actualisez la page.",
+  "arrears": {
+    "title": "{count, plural, one {# famille a des impayés} other {# familles ont des impayés}}",
+    "hint": "Factures dépassant leur échéance. Un appel maintenant évite une situation difficile plus tard.",
+    "outstanding": "Total impayé",
+    "oldest": "Dette la plus ancienne",
+    "days": "{count, plural, one {# jour} other {# jours}}",
+    "oldestFamily": "La plus ancienne : {name}",
+    "cta": "Voir les impayés"
+  },
+  "stats": {
+    "presentNow": "Enfants présents",
+    "ofEnrolled": "sur {count} inscrits",
+    "staffPresent": "Équipe présente",
+    "staffHint": "pointés en ce moment",
+    "unpaidTotal": "Impayés",
+    "unpaidHint": "{count, plural, =0 {aucune facture} one {# facture} other {# factures}}",
+    "pendingApplications": "Demandes en attente",
+    "applicationsHint": "inscriptions à examiner"
+  },
+  "today": {
+    "title": "Aujourd'hui",
+    "viewAll": "Voir les présences",
+    "checkins": "Arrivées ({count})",
+    "absents": "Absents ({count})",
+    "emptyCheckins": "Aucune arrivée pointée pour le moment.",
+    "emptyAbsents": "Tout le monde est là aujourd'hui !",
+    "notCheckedIn": "Non pointé",
+    "allergy": "Allergie",
+    "noClass": "Sans classe",
+    "more": "+{count} autres",
+    "reasons": {
+      "absent": "Absent",
+      "sick": "Malade",
+      "excused": "Excusé"
+    }
+  },
+  "finance": {
+    "title": "Finances",
+    "subtitle": "Recettes et dépenses des 6 derniers mois",
+    "income": "Recettes",
+    "expenses": "Dépenses",
+    "mtdIncome": "Recettes ce mois-ci",
+    "mtdExpense": "Dépenses ce mois-ci",
+    "net": "Solde du mois",
+    "empty": "Aucune transaction enregistrée sur les 6 derniers mois."
+  },
+  "todo": {
+    "title": "À traiter",
+    "applications": "{count, plural, one {# demande d'inscription à examiner} other {# demandes d'inscription à examiner}}",
+    "incidents": "{count, plural, one {# incident sans accusé parental} other {# incidents sans accusé parental}}",
+    "holidays": "{count, plural, one {# jour férié à confirmer} other {# jours fériés à confirmer}}",
+    "invoices": "{count, plural, one {# facture impayée} other {# factures impayées}}",
+    "nextHoliday": "Prochain : {name} ({date})",
+    "empty": "Tout est à jour !",
+    "emptyHint": "Aucune tâche en attente pour le moment."
+  },
+  "announcements": {
+    "title": "Annonces récentes",
+    "empty": "Aucune annonce publiée.",
+    "pinned": "Épinglée",
+    "audience": {
+      "all": "Tous",
+      "parents": "Parents",
+      "staff": "Équipe",
+      "class": "Classe"
+    }
+  }
+}

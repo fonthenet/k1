@@ -1,0 +1,85 @@
+{
+  "title": "Tasks",
+  "description": "Who is doing what, and by when. This board is visible to staff only.",
+  "newTask": "New task",
+  "stats": {
+    "open": "Open tasks",
+    "dueToday": "Due today",
+    "overdue": "Overdue",
+    "doneThisWeek": "Done this week"
+  },
+  "filters": {
+    "scope": "Scope",
+    "mine": "My tasks",
+    "all": "Whole team",
+    "status": "Status",
+    "board": "Full board"
+  },
+  "status": {
+    "todo": "To do",
+    "in_progress": "In progress",
+    "done": "Done",
+    "cancelled": "Cancelled"
+  },
+  "laneEmpty": {
+    "todo": "Nothing waiting.",
+    "in_progress": "Nothing in progress.",
+    "done": "Nothing completed yet."
+  },
+  "priority": {
+    "urgent": "Urgent",
+    "high": "High",
+    "normal": "Normal",
+    "low": "Low"
+  },
+  "form": {
+    "newTitle": "New task",
+    "editTitle": "Edit task",
+    "description": "Assign the task to a team member and set its due date and priority.",
+    "title": "Task title",
+    "titlePlaceholder": "Call Yasmine's parents",
+    "notes": "Details",
+    "notesPlaceholder": "Anything that helps get it done…",
+    "assignee": "Assigned to",
+    "unassigned": "Unassigned",
+    "unnamedMember": "Team member",
+    "dueDate": "Due date",
+    "priority": "Priority",
+    "child": "Related child",
+    "noChild": "No child",
+    "save": "Save changes",
+    "create": "Create task"
+  },
+  "card": {
+    "markDone": "Mark as done",
+    "reopen": "Reopen",
+    "more": "More options",
+    "moveTo": "Move to",
+    "overdueOn": "Was due {date}",
+    "deleteTitle": "Delete this task?",
+    "deleteDesc": "“{title}” will be permanently deleted. This cannot be undone."
+  },
+  "empty": {
+    "title": "No tasks yet",
+    "description": "Create the first task to organise your team's day-to-day work.",
+    "filteredTitle": "No matching tasks",
+    "filteredDescription": "Change the filters, or create a new task."
+  },
+  "error": {
+    "title": "Tasks unavailable",
+    "description": "Something went wrong while loading the board.",
+    "retry": "Try again",
+    "load": "Could not load tasks. Reload the page."
+  },
+  "toasts": {
+    "created": "Task created",
+    "updated": "Task updated",
+    "done": "Task completed",
+    "moved": "Status updated",
+    "deleted": "Task deleted",
+    "error": "Action failed. Please try again."
+  },
+  "board": {
+    "moreDone": "{count, plural, one {Show 1 more completed task} other {Show # more completed tasks}}"
+  }
+}

@@ -1,0 +1,320 @@
+{
+  "hub": {
+    "title": "Billing",
+    "description": "Invoices, cash collection and family payment tracking",
+    "monthAria": "Select month",
+    "plansLink": "Fee plans",
+    "arrearsLink": "Arrears",
+    "stats": {
+      "invoiced": "Invoiced this month",
+      "collected": "Collected this month",
+      "outstanding": "Outstanding this month"
+    },
+    "filters": {
+      "all": "All",
+      "unpaid": "Unpaid",
+      "partial": "Partial",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "void": "Void"
+    },
+    "columns": {
+      "number": "No.",
+      "child": "Child",
+      "period": "Period",
+      "total": "Total",
+      "paid": "Paid",
+      "balance": "Balance",
+      "dueDate": "Due date",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "view": "View invoice",
+    "empty": "No invoices for this month",
+    "emptyHint": "Generate the month's invoices from the fee plans assigned to children, or create a manual invoice."
+  },
+  "status": {
+    "draft": "Draft",
+    "sent": "Sent",
+    "unpaid": "Unpaid",
+    "partial": "Partial",
+    "paid": "Paid",
+    "overdue": "Overdue",
+    "void": "Void"
+  },
+  "filters": {
+    "all": "All",
+    "unpaid": "Unpaid",
+    "partial": "Partial",
+    "paid": "Paid",
+    "overdue": "Overdue",
+    "void": "Void"
+  },
+  "methods": {
+    "cash": "Cash",
+    "cib": "CIB card",
+    "edahabia": "Edahabia",
+    "bank_transfer": "Bank transfer",
+    "cheque": "Cheque",
+    "chargily": "Chargily",
+    "other": "Other"
+  },
+  "periods": {
+    "once": "One-time",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "yearly": "Yearly",
+    "per_session": "Per session"
+  },
+  "kinds": {
+    "tuition": "Tuition",
+    "registration": "Registration",
+    "activity": "Activity",
+    "meal": "Meals",
+    "transport": "Transport",
+    "other": "Other"
+  },
+  "generate": {
+    "button": "Generate this month's invoices",
+    "title": "Generate monthly invoices",
+    "description": "Create the {month} invoices for every enrolled child with a monthly fee plan. Children already invoiced for this month are skipped.",
+    "confirm": "Generate",
+    "success": "{count, plural, =0 {No new invoices to generate} one {# invoice generated} other {# invoices generated}}"
+  },
+  "newInvoice": {
+    "button": "New invoice",
+    "title": "New manual invoice",
+    "description": "Bill one-off fees: registration, activities, meals…",
+    "child": "Child",
+    "childPlaceholder": "Select a child",
+    "dueDate": "Due date",
+    "items": "Invoice lines",
+    "addItem": "Add line",
+    "itemKind": "Type",
+    "itemDescription": "Description",
+    "itemQty": "Qty",
+    "itemUnit": "Unit price",
+    "removeItem": "Remove line",
+    "submit": "Create invoice",
+    "success": "Invoice created"
+  },
+  "payment": {
+    "button": "Take payment",
+    "title": "Record a payment",
+    "description": "Invoice {number} — {child}",
+    "amount": "Amount (DZD)",
+    "balance": "Balance due: {amount}",
+    "method": "Payment method",
+    "reference": "Reference",
+    "referencePlaceholder": "Cheque or transaction number…",
+    "note": "Note",
+    "submit": "Save payment",
+    "success": "Payment recorded",
+    "receipt": "Receipt {number}",
+    "viewReceipt": "View receipt"
+  },
+  "invoice": {
+    "back": "Back to invoices",
+    "notFound": "Invoice not found",
+    "notFoundHint": "This invoice does not exist or does not belong to your school.",
+    "issuedOn": "Issued on {date}",
+    "dueOn": "Due on {date}",
+    "period": "Period {month}",
+    "itemsTitle": "Invoice details",
+    "itemsColumns": {
+      "kind": "Type",
+      "description": "Description",
+      "qty": "Qty",
+      "unit": "Unit price",
+      "amount": "Amount"
+    },
+    "paymentsTitle": "Payments",
+    "noPayments": "No payments recorded for this invoice.",
+    "paymentsColumns": {
+      "receipt": "Receipt",
+      "date": "Date",
+      "amount": "Amount",
+      "method": "Method",
+      "reference": "Reference"
+    },
+    "totalsTitle": "Totals",
+    "totals": {
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "total": "Total",
+      "paid": "Paid",
+      "balance": "Balance due"
+    },
+    "childCard": "Child",
+    "guardians": "Guardians",
+    "noGuardians": "No guardians on file.",
+    "relationships": {
+      "father": "Father",
+      "mother": "Mother",
+      "guardian": "Guardian",
+      "grandparent": "Grandparent",
+      "sibling": "Sibling",
+      "other": "Other"
+    },
+    "void": {
+      "button": "Void invoice",
+      "title": "Void this invoice?",
+      "description": "The invoice will be marked as void and will no longer count as arrears. Payments already collected remain recorded.",
+      "confirm": "Void invoice",
+      "success": "Invoice voided"
+    }
+  },
+  "receipt": {
+    "print": "Print",
+    "back": "Back to invoice",
+    "pageDescription": "Bilingual payment receipt, A5 format",
+    "notFound": "Receipt not found",
+    "notFoundHint": "This receipt does not exist or does not belong to your school.",
+    "docTitleFr": "Reçu de paiement",
+    "docTitleAr": "وصل دفع",
+    "dateFr": "Date",
+    "dateAr": "التاريخ",
+    "childFr": "Enfant",
+    "childAr": "الطفل(ة)",
+    "methodFr": "Mode de paiement",
+    "methodAr": "طريقة الدفع",
+    "invoiceFr": "Facture",
+    "invoiceAr": "الفاتورة",
+    "referenceFr": "Référence",
+    "referenceAr": "المرجع",
+    "amountFr": "Montant",
+    "amountAr": "المبلغ",
+    "amountWordsFr": "Arrêté à la somme de",
+    "dinars": "dinars algériens",
+    "receivedByFr": "Reçu par",
+    "receivedByAr": "استلمه",
+    "signatureFr": "Signature et cachet",
+    "signatureAr": "الإمضاء والختم",
+    "thanksFr": "Merci de votre confiance",
+    "thanksAr": "شكرا لثقتكم",
+    "methodsFr": {
+      "cash": "Espèces",
+      "cib": "Carte CIB",
+      "edahabia": "Edahabia",
+      "bank_transfer": "Virement bancaire",
+      "cheque": "Chèque",
+      "chargily": "Chargily",
+      "other": "Autre"
+    },
+    "methodsAr": {
+      "cash": "نقدا",
+      "cib": "بطاقة CIB",
+      "edahabia": "الذهبية",
+      "bank_transfer": "تحويل بنكي",
+      "cheque": "صك بنكي",
+      "chargily": "Chargily",
+      "other": "أخرى"
+    }
+  },
+  "plans": {
+    "title": "Fee plans",
+    "description": "Fee plans and their assignment to enrolled children",
+    "addPlan": "New plan",
+    "empty": "No fee plans",
+    "emptyHint": "Create a first plan (e.g. Full-time care, DZD 12,000 / month) to start billing families.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "assignedCount": "{count, plural, =0 {No children assigned} one {# child assigned} other {# children assigned}}",
+    "saved": "Plan saved",
+    "deleted": "Plan deleted",
+    "inUse": "This plan is assigned to children. Deactivate it instead of deleting it.",
+    "deleteTitle": "Delete this plan?",
+    "deleteDescription": "The plan will be permanently deleted. Deletion is blocked while children are still assigned to it.",
+    "dialog": {
+      "newTitle": "New plan",
+      "editTitle": "Edit plan",
+      "description": "Plan name, price in dinars and billing period.",
+      "name": "Name (French)",
+      "nameAr": "Name (Arabic)",
+      "amount": "Amount (DZD)",
+      "period": "Billing period",
+      "planDescription": "Description",
+      "active": "Active plan"
+    },
+    "assignments": {
+      "title": "Assignments",
+      "description": "Plan applied to each enrolled child during monthly generation",
+      "empty": "No enrolled children.",
+      "columns": {
+        "child": "Child",
+        "plan": "Plan",
+        "base": "Rate",
+        "discount": "Discount",
+        "effective": "Amount due",
+        "since": "Since",
+        "actions": "Actions"
+      },
+      "noPlan": "No plan",
+      "assign": "Assign",
+      "change": "Change",
+      "end": "End",
+      "endTitle": "End this assignment?",
+      "endDescription": "The child will no longer be billed on this plan starting next month.",
+      "ended": "Assignment ended"
+    },
+    "assignDialog": {
+      "title": "Assign a plan",
+      "plan": "Plan",
+      "planPlaceholder": "Select a plan",
+      "customAmount": "Custom amount (DZD)",
+      "customAmountHint": "Leave empty to use the plan rate.",
+      "discountPct": "Discount (%)",
+      "note": "Discount reason",
+      "notePlaceholder": "Sibling discount",
+      "preview": "Amount billed each month: {amount}",
+      "submit": "Assign",
+      "success": "Plan assigned"
+    }
+  },
+  "arrears": {
+    "title": "Arrears",
+    "description": "Balances due per family, aged by how old the debt is",
+    "stats": {
+      "total": "Total outstanding",
+      "children": "Children concerned",
+      "oldest": "Of which 90+ days"
+    },
+    "columns": {
+      "child": "Child",
+      "phone": "Phone",
+      "current": "Current",
+      "d30": "30 d",
+      "d60": "60 d",
+      "d90": "90 d+",
+      "total": "Total due",
+      "actions": "Reminder",
+      "class": "Class",
+      "months": "Months owed",
+      "days": "Overdue",
+      "guardian": "Guardian"
+    },
+    "empty": "No arrears",
+    "emptyHint": "All invoices are settled. Great job!",
+    "call": "Call guardian",
+    "whatsapp": "Send WhatsApp reminder",
+    "totalRow": "Total",
+    "waMessage": "Hello, this is {kindergarten}. This is a friendly reminder that the balance for {child} currently stands at {amount}. Could you please settle it when you can? Thank you very much.",
+    "tabs": {
+      "families": "By family",
+      "aging": "By age of debt"
+    },
+    "daysBadge": "{count, plural, =0 {Not due yet} one {# day} other {# days}}",
+    "monthsOwed": "{count, plural, =0 {None} one {# month} other {# months}}",
+    "dueSince": "Due {date}",
+    "noGuardian": "No number on file",
+    "loadError": "We couldn't load the family list. The aging table below still works."
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "Could not load billing data. Check your connection and try again.",
+    "retry": "Retry"
+  },
+  "toasts": {
+    "error": "An error occurred. Please try again."
+  }
+}

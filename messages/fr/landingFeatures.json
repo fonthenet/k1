@@ -1,0 +1,248 @@
+{
+  "eyebrow": "Les modules",
+  "title": "Une seule plateforme, de la première inscription au bilan de fin de mois",
+  "subtitle": "Huit modules connectés, pensés pour la façon dont fonctionnent réellement les crèches et jardins d'enfants en Algérie : l'arabe d'abord, le dinar, et une semaine du dimanche au jeudi.",
+  "cta": "Essayer Rawdati gratuitement",
+  "ctaNote": "30 jours d'essai · sans carte bancaire · nous vous accompagnons à la configuration",
+  "items": {
+    "enrollment": {
+      "title": "Inscription en ligne",
+      "desc": "Le parent remplit le dossier de l'enfant depuis son téléphone ; les demandes arrivent dans un seul flux.",
+      "preview": {
+        "head": "Demandes d'inscription",
+        "count": "3 nouvelles",
+        "r1": {
+          "mono": "AB",
+          "name": "Amina Belaïd",
+          "sub": "3 ans · Petite section",
+          "pill": "Nouvelle"
+        },
+        "r2": {
+          "mono": "YM",
+          "name": "Yacine Merabet",
+          "sub": "4 ans · Entretien dim.",
+          "pill": "Entretien"
+        },
+        "r3": {
+          "mono": "MH",
+          "name": "Malak Haddad",
+          "sub": "5 ans · Préscolaire",
+          "pill": "Acceptée"
+        }
+      }
+    },
+    "checkin": {
+      "title": "Pointage par badge",
+      "desc": "Un badge ou un code à l'accueil, et le parent est prévenu à la seconde où l'enfant arrive ou repart.",
+      "preview": {
+        "head": "Pointage du jour",
+        "count": "07:58",
+        "r1": {
+          "mono": "SB",
+          "name": "Serine",
+          "sub": "Fleurs",
+          "allergy": "Allergie",
+          "pill": "Présente"
+        },
+        "r2": {
+          "mono": "RK",
+          "name": "Riad",
+          "sub": "Papillons",
+          "pill": "Présent"
+        },
+        "r3": {
+          "mono": "NL",
+          "name": "Nour",
+          "sub": "Étoiles",
+          "pill": "Absente"
+        }
+      }
+    },
+    "parentApp": {
+      "title": "Application parents",
+      "desc": "Photos, annonces et factures dans une seule application, chaque parent dans sa langue.",
+      "preview": {
+        "head": "Groupe Fleurs",
+        "count": "à l'instant",
+        "educator": "Bonjour ! Serine a terminé tout son petit-déjeuner et a rejoint l'atelier peinture.",
+        "parent": "Merci beaucoup pour le suivi.",
+        "photo": "4 photos de l'atelier peinture",
+        "photoTime": "10:24"
+      }
+    },
+    "sessions": {
+      "title": "Séances et progrès",
+      "desc": "Enregistrez les séances de chaque enfant et suivez ses objectifs semaine après semaine.",
+      "preview": {
+        "head": "Cette semaine",
+        "badge": "+18 %",
+        "d1": "Dim",
+        "d2": "Lun",
+        "d3": "Mar",
+        "d4": "Mer",
+        "d5": "Jeu",
+        "statSessions": "Séances réalisées",
+        "statSessionsValue": "128",
+        "statGoals": "Objectifs atteints",
+        "statGoalsValue": "76 %"
+      }
+    },
+    "invoicing": {
+      "title": "Facturation en dinars",
+      "desc": "Factures mensuelles générées automatiquement, avec un reçu imprimable à chaque paiement.",
+      "preview": {
+        "number": "Facture 0142",
+        "pill": "Payée",
+        "child": "Yacine Merabet",
+        "period": "Frais de septembre 2026",
+        "totalLabel": "Total",
+        "amount": "8 100 DA",
+        "receipt": "Reçu délivré",
+        "receiptPill": "Espèces"
+      }
+    },
+    "accounting": {
+      "title": "Comptabilité intégrée",
+      "desc": "Recettes, dépenses et salaires dans un seul journal, à jour chaque jour.",
+      "preview": {
+        "head": "Budget · septembre",
+        "in": "Recettes",
+        "out": "Dépenses",
+        "statNet": "Net du mois",
+        "statNetValue": "143 500 DA",
+        "statPayroll": "Salaires de l'équipe",
+        "statPayrollValue": "186 000 DA"
+      }
+    },
+    "team": {
+      "title": "Équipe et tâches",
+      "desc": "Répartissez les tâches entre les éducatrices et suivez horaires et congés au même endroit.",
+      "preview": {
+        "head": "Tâches de l'équipe",
+        "count": "2 / 3",
+        "t1": {
+          "text": "Préparer le menu du midi",
+          "due": "Aujourd'hui",
+          "who": "Nadia · cuisine"
+        },
+        "t2": {
+          "text": "Appeler le parent de Yacine",
+          "due": "Aujourd'hui",
+          "who": "Sara · accueil"
+        },
+        "t3": {
+          "text": "Mettre à jour le registre",
+          "due": "Demain",
+          "who": "Directrice"
+        }
+      }
+    },
+    "compliance": {
+      "title": "Registres de conformité",
+      "desc": "Registres des enfants, des incidents et de l'équipe, exportables le jour d'un contrôle.",
+      "preview": {
+        "head": "Registres officiels",
+        "d1": {
+          "name": "Registre des enfants",
+          "sub": "58 enfants inscrits",
+          "pill": "À jour"
+        },
+        "d2": {
+          "name": "Attestation de sécurité",
+          "sub": "Expire le 07 octobre",
+          "pill": "42 jours"
+        },
+        "d3": {
+          "name": "Registre du personnel",
+          "sub": "12 employés · contrats",
+          "pill": "Export"
+        }
+      }
+    }
+  },
+  "centres": {
+    "eyebrow": "Chaque type de structure",
+    "title": "Quel type de structure gérez-vous ?",
+    "subtitle": "Rawdati s'adapte à votre façon de travailler, et non l'inverse. Choisissez votre type de structure pour voir la configuration que nous vous proposons dès le premier jour.",
+    "tabsLabel": "Types de structures de la petite enfance",
+    "ageLabel": "Tranche d'âge",
+    "modulesTitle": "Modules conseillés",
+    "modulesNote": "Tous les autres modules restent disponibles dès que vous en avez besoin.",
+    "modules": {
+      "enrollment": "Inscription en ligne",
+      "attendance": "Présences",
+      "billing": "Facturation et reçus",
+      "sessions": "Séances et objectifs",
+      "activities": "Activités et ateliers",
+      "meals": "Repas et sieste",
+      "reports": "Rapports et dossiers",
+      "portal": "Application parents",
+      "staff": "Équipe et horaires"
+    },
+    "types": {
+      "nursery": {
+        "label": "Crèche",
+        "title": "Crèche",
+        "age": "De 3 mois à 3 ans",
+        "line": "Un suivi heure par heure des tout-petits, et un parent qui n'a jamais à se demander comment s'est passée la journée.",
+        "b1": "Suivi des repas, des siestes et des changes",
+        "b2": "Répartition des enfants par éducatrice et par âge",
+        "b3": "Un compte rendu quotidien en photos avant la sortie"
+      },
+      "kindergarten": {
+        "label": "Jardin d'enfants",
+        "title": "Jardin d'enfants",
+        "age": "De 3 à 6 ans",
+        "line": "De la demande d'inscription à la préparatoire : des sections organisées, un programme hebdomadaire et une facturation mensuelle qui ne traîne jamais.",
+        "b1": "Sections par âge avec listes de présence quotidiennes",
+        "b2": "Programme hebdomadaire et activités prêtes à imprimer",
+        "b3": "Factures mensuelles et reçus en dinars en un clic"
+      },
+      "montessori": {
+        "label": "Montessori",
+        "title": "Espace Montessori",
+        "age": "De 2 à 6 ans",
+        "line": "Suivre chaque enfant sur son propre chemin, et non au rythme de tout le groupe.",
+        "b1": "Objectifs et étapes de progression propres à chaque enfant",
+        "b2": "Observations de l'éducatrice avec photos et vidéos",
+        "b3": "Un bilan de progression partagé à chaque étape"
+      },
+      "educational": {
+        "label": "Centre éducatif",
+        "title": "Centre éducatif et soutien scolaire",
+        "age": "De 6 à 15 ans",
+        "line": "Des groupes après l'école, un emploi du temps mouvant, et des présences comme des paiements maîtrisés.",
+        "b1": "Groupes et séances sur un emploi du temps flexible",
+        "b2": "Abonnement mensuel ou paiement à la séance, par groupe",
+        "b3": "Présences par groupe et résultats par élève"
+      },
+      "therapy": {
+        "label": "Prise en charge précoce",
+        "title": "Orthophonie et éducation spécialisée",
+        "age": "Selon chaque enfant",
+        "line": "Des séances individuelles, des objectifs thérapeutiques clairs et un dossier confidentiel par enfant.",
+        "b1": "Rendez-vous individuels avec objectifs notés par séance",
+        "b2": "Un dossier protégé qui conserve bilans et rapports",
+        "b3": "Un bilan de progression exportable pour le parent ou le médecin"
+      },
+      "activity": {
+        "label": "Club d'activités",
+        "title": "Club d'activités et ateliers",
+        "age": "De 4 à 12 ans",
+        "line": "Des ateliers et des groupes qui changent, avec une inscription par simple lien et zéro paperasse.",
+        "b1": "Inscriptions via un lien partagé sur votre page",
+        "b2": "Une liste de présence par atelier et par animateur",
+        "b3": "Paiement à l'atelier ou par abonnement mensuel"
+      },
+      "camps": {
+        "label": "Colonies de vacances",
+        "title": "Colonies et clubs de vacances",
+        "age": "Activité saisonnière",
+        "line": "Ouvrez une période, recevez les inscriptions, et fermez-la automatiquement dès la dernière place prise.",
+        "b1": "Périodes saisonnières à nombre de places limité",
+        "b2": "Inscription et paiement avant le début de la période",
+        "b3": "Archivage de toute la période en un clic à la fin"
+      }
+    }
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "list": {
+    "title": "Activities",
+    "description": "Extra activities, their fees and weekly schedule",
+    "addActivity": "New activity",
+    "empty": "No activities yet",
+    "emptyDescription": "Add a first activity (Quran, art, languages, sport…) so children can be enrolled in it.",
+    "activeToggle": "Activity active",
+    "inactive": "Inactive",
+    "enrolled": "Enrolled",
+    "noCapacity": "Unlimited",
+    "noSchedule": "No schedule set",
+    "free": "Free",
+    "requests": "{count} pending requests",
+    "view": "View activity"
+  },
+  "categories": {
+    "religion": "Islamic studies",
+    "art": "Arts",
+    "language": "Languages",
+    "sport": "Sport",
+    "general": "General"
+  },
+  "periods": {
+    "once": "One-off",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "yearly": "Yearly",
+    "per_session": "Per session"
+  },
+  "days": {
+    "sun": "Sun",
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu"
+  },
+  "daysFull": {
+    "sun": "Sunday",
+    "mon": "Monday",
+    "tue": "Tuesday",
+    "wed": "Wednesday",
+    "thu": "Thursday"
+  },
+  "dialog": {
+    "newTitle": "New activity",
+    "editTitle": "Edit activity",
+    "description": "Set the name, category, fee and weekly schedule (Sunday to Thursday).",
+    "name": "Name",
+    "nameAr": "Arabic name",
+    "category": "Category",
+    "capacity": "Capacity",
+    "capacityHint": "Leave empty for unlimited",
+    "fee": "Fee (DA)",
+    "period": "Billing period",
+    "activityDescription": "Description",
+    "schedule": "Weekly schedule",
+    "addSlot": "Add a session",
+    "day": "Day",
+    "time": "Time",
+    "active": "Activity active"
+  },
+  "addDialog": {
+    "title": "Enrol a child in the activity",
+    "description": "Pick the child you want to enrol in this activity.",
+    "selectChild": "Child",
+    "placeholder": "Select a child",
+    "submit": "Enrol",
+    "noneAvailable": "Every enrolled child is already in this activity."
+  },
+  "detail": {
+    "back": "Back to activities",
+    "notFound": "Activity not found",
+    "notFoundDescription": "This activity does not exist or does not belong to your kindergarten.",
+    "schedule": {
+      "title": "Schedule",
+      "none": "No schedule set"
+    },
+    "stats": {
+      "enrolled": "Enrolled",
+      "capacity": "Capacity",
+      "requests": "Parent requests",
+      "full": "Full"
+    },
+    "enrollments": {
+      "title": "Enrolled children",
+      "addChild": "Enrol a child",
+      "child": "Child",
+      "class": "Class",
+      "startDate": "Start date",
+      "status": "Status",
+      "actions": "Actions",
+      "noClass": "No class",
+      "empty": "No child enrolled in this activity",
+      "emptyDescription": "Enrol children in this activity and they will appear here.",
+      "end": "End",
+      "endTitle": "End this enrolment?",
+      "endDescription": "{name} will stop attending this activity as of today."
+    },
+    "pending": {
+      "title": "Parent requests",
+      "description": "Enrolment requests sent from the parent portal, awaiting approval.",
+      "empty": "No pending requests.",
+      "requestedOn": "Requested on",
+      "approve": "Approve",
+      "decline": "Decline"
+    },
+    "revenue": {
+      "title": "Expected revenue",
+      "line": "{count} enrolled × {fee}",
+      "period": "Per period: {period}",
+      "free": "Free activity — no revenue."
+    }
+  },
+  "status": {
+    "requested": "Requested",
+    "active": "Enrolled",
+    "ended": "Ended",
+    "cancelled": "Cancelled"
+  },
+  "toasts": {
+    "saved": "Saved successfully",
+    "error": "Something went wrong. Please try again.",
+    "forbidden": "You do not have permission to do that.",
+    "activated": "Activity activated",
+    "deactivated": "Activity deactivated",
+    "enrolled": "Child enrolled in the activity",
+    "ended": "Enrolment ended",
+    "approved": "Request approved",
+    "declined": "Request declined"
+  },
+  "error": {
+    "title": "Could not load the activities",
+    "description": "Something went wrong while loading the data. Please try again.",
+    "retry": "Retry"
+  }
+}

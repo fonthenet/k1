@@ -1,0 +1,529 @@
+{
+  "shell": {
+    "navLabel": "Navigation de l'espace parents",
+    "home": "Accueil",
+    "myChildren": "Mes enfants",
+    "messages": "Messages",
+    "payments": "Paiements",
+    "announcements": "Actualités"
+  },
+  "error": {
+    "title": "Impossible d'afficher cette page",
+    "description": "Une erreur inattendue est survenue. Réessayez, et contactez l'administration de la crèche si le problème persiste.",
+    "retry": "Réessayer"
+  },
+  "home": {
+    "greeting": "Bonjour {name}",
+    "childrenTitle": "Mes enfants",
+    "emptyChildren": "Aucun enfant lié à votre compte",
+    "emptyChildrenDescription": "Contactez l'administration de la crèche pour lier le dossier de votre enfant à ce compte.",
+    "lastReport": "Journal du {date}",
+    "details": "Détails",
+    "pinnedTitle": "Annonces épinglées",
+    "seeAll": "Tout voir",
+    "upcomingTitle": "À venir",
+    "upcomingEmpty": "Rien de prévu pour le moment.",
+    "tentative": "À confirmer",
+    "status": {
+      "notYet": "Pas encore arrivé",
+      "arrived": "Arrivé à {time}",
+      "left": "Parti à {time}",
+      "absent": "Absent",
+      "absentReason": "Absent — {reason}",
+      "sickReason": "Maladie"
+    },
+    "incidents": {
+      "title": "Incidents en attente de votre accusé",
+      "actionTaken": "Mesure prise",
+      "ack": "J'ai pris connaissance",
+      "acked": "Votre accusé a bien été enregistré",
+      "severity": {
+        "minor": "Mineur",
+        "moderate": "Modéré",
+        "serious": "Grave"
+      }
+    }
+  },
+  "checkin": {
+    "action": "Pointer l’arrivée",
+    "title": "Montrez ceci à l’entrée",
+    "subtitle": "Le personnel scanne ce code, puis compare votre photo à celle de votre enfant avant de valider l’arrivée ou le départ.",
+    "qrTitle": "QR code de votre badge",
+    "badgeOf": "Badge de {name}",
+    "badgeNumber": "Numéro de badge",
+    "brightnessHint": "Si le lecteur n’arrive pas à lire le code, montez la luminosité de l’écran au maximum.",
+    "childrenTitle": "Vos enfants aujourd’hui",
+    "childrenHint": "Choisissez l’enfant que vous déposez ou que vous récupérez. Ce choix n’est qu’un repère : c’est le personnel qui valide la présence sur l’appareil de la crèche.",
+    "showFor": "Montrez ceci pour {name}",
+    "pickChild": "Choisissez l’enfant",
+    "sameCodeHint": "Le même code vaut pour tous vos enfants. Choisir ici n’est qu’un repère pour l’entrée.",
+    "selectedNote": "Dites au personnel : {name}",
+    "allergy": "Allergie : {list}",
+    "statusError": "Impossible de charger le statut du jour.",
+    "askOffice": "Contacter le bureau",
+    "noBadge": {
+      "title": "Le bureau n’a pas encore émis votre badge",
+      "description": "Le badge d’entrée est créé une seule fois au bureau de la crèche et rattaché à votre nom. Contactez le bureau pour le demander : il apparaîtra ici dès son émission."
+    },
+    "noGuardian": {
+      "title": "Votre compte n’est lié à aucune fiche de responsable",
+      "description": "Aucun badge ne peut être émis tant que votre compte n’est pas lié à votre fiche à la crèche. Contactez le bureau pour finaliser le lien."
+    }
+  },
+  "children": {
+    "title": "Mes enfants",
+    "status": {
+      "pending": "En attente",
+      "waitlist": "Liste d'attente",
+      "withdrawn": "Radié(e)",
+      "alumni": "Ancien(ne)"
+    }
+  },
+  "applications": {
+    "title": "Demandes d'inscription",
+    "description": "Les demandes encore chez l'administration restent ici jusqu'à la réponse du jardin d'enfants.",
+    "sentOn": "Envoyée le {date}",
+    "reviewNote": "Réponse du jardin d'enfants",
+    "status": {
+      "submitted": "En attente d'examen",
+      "under_review": "En cours d'examen",
+      "interview": "Entretien prévu",
+      "offered": "Place proposée",
+      "waitlist": "Liste d'attente",
+      "rejected": "Non retenue"
+    }
+  },
+  "addChild": {
+    "trigger": "Inscrire un autre enfant",
+    "back": "Mes enfants",
+    "title": "Inscrire un autre enfant",
+    "subtitle": "Le jardin d'enfants a déjà vos informations — seules celles de l'enfant sont nécessaires.",
+    "review": {
+      "title": "Vérifiez la demande",
+      "subtitle": "Un dernier coup d'œil avant l'envoi à l'administration.",
+      "submit": "Envoyer la demande",
+      "submitting": "Envoi en cours…",
+      "note": "Le jardin d'enfants examine la demande et vous répond. Vos coordonnées proviennent de votre fiche parent, inutile de les ressaisir."
+    },
+    "success": {
+      "title": "Demande envoyée",
+      "message": "{name} a bien reçu votre demande d'inscription pour {child}. L'équipe l'examinera et vous recontactera très vite.",
+      "hint": "Vous suivez la demande depuis « Mes enfants » jusqu'à la réponse.",
+      "back": "Retour à mes enfants"
+    },
+    "errors": {
+      "required": "Renseignez le prénom, le nom, la date de naissance et le genre.",
+      "allergenRequired": "Nommez l'allergène sur chaque ligne ajoutée, ou supprimez la ligne vide.",
+      "generic": "L'envoi de la demande a échoué. Réessayez dans un instant.",
+      "forbidden": "Votre compte n'est pas rattaché à ce jardin d'enfants. Contactez l'administration.",
+      "noGuardianRecord": "Votre compte n'a pas encore de fiche parent dans ce jardin d'enfants : la demande ne peut pas être envoyée. Contactez l'administration."
+    },
+    "noGuardian": {
+      "title": "Votre compte n'est rattaché à aucune fiche parent",
+      "description": "Pour inscrire un autre enfant, votre compte doit être rattaché à une fiche parent de ce jardin d'enfants. Contactez l'administration pour la rattacher.",
+      "action": "Écrire à l'administration"
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "description": "Vos échanges avec la crèche au sujet de vos enfants.",
+    "empty": "Aucune conversation",
+    "emptyDescription": "Démarrez une conversation avec la crèche : une question, une demande, tout ce qui concerne votre enfant. Les réponses arrivent ici.",
+    "start": "Nouvelle conversation",
+    "noSubject": "Sans objet",
+    "you": "Vous",
+    "yesterday": "Hier",
+    "awaitingYou": "Nouveau message de la crèche",
+    "back": "Retour aux messages",
+    "notFound": "Conversation indisponible",
+    "notFoundDescription": "Cette conversation n'est pas liée à votre compte ou n'existe plus.",
+    "replyLabel": "Votre réponse",
+    "replyPlaceholder": "Écrivez votre réponse…",
+    "send": "Envoyer",
+    "sent": "Votre message a été envoyé",
+    "dialog": {
+      "title": "Nouvelle conversation",
+      "description": "Posez votre question à la crèche. L'administration et l'éducatrice sont notifiées immédiatement.",
+      "child": "Enfant concerné",
+      "childPlaceholder": "Choisissez un enfant",
+      "subject": "Objet",
+      "subjectPlaceholder": "demande de changement d'heure de sortie",
+      "message": "Message",
+      "messagePlaceholder": "Écrivez votre message à la crèche…",
+      "created": "Votre conversation a été envoyée à la crèche"
+    }
+  },
+  "absence": {
+    "trigger": "Signaler une absence",
+    "title": "Signaler une absence",
+    "description": "Prévenez la crèche de l'absence de {name}. L'administration est notifiée immédiatement.",
+    "reason": "Motif de l'absence",
+    "reasonPlaceholder": "maladie, rendez-vous médical, voyage familial…",
+    "success": "Votre signalement a été envoyé à la crèche"
+  },
+  "child": {
+    "back": "Mes enfants",
+    "notFound": "Dossier indisponible",
+    "notFoundDescription": "Cet enfant n'est pas lié à votre compte.",
+    "photo": {
+      "title": "Photo de l'enfant",
+      "description": "L'équipe la compare au visage de votre enfant à la porte avant de vous le confier — une photo nette et récente suffit.",
+      "hint": "Ajoutez une photo de votre enfant : l'équipe la compare à la porte avant de vous le confier.",
+      "take": "Prendre une photo",
+      "choose": "Choisir depuis mon téléphone",
+      "replace": "Changer la photo",
+      "remove": "Supprimer la photo",
+      "removeTitle": "Supprimer la photo de votre enfant ?",
+      "removeDescription": "Sans elle, l'équipe n'a rien à comparer à la porte et le départ risque de vous faire attendre.",
+      "resizing": "Préparation de la photo…",
+      "uploading": "Envoi en cours…",
+      "saving": "Enregistrement…",
+      "saved": "La photo de votre enfant a été enregistrée",
+      "removed": "La photo de votre enfant a été supprimée",
+      "tooLarge": "Image trop volumineuse. Choisissez-en une de moins de 20 Mo.",
+      "forbidden": "Vous n'êtes pas autorisé à modifier la photo de cet enfant. Contactez l'administration.",
+      "error": "La photo n'a pas pu être enregistrée. Réessayez, et contactez l'administration si le problème persiste.",
+      "none": "Aucune photo pour le moment"
+    },
+    "tabsLabel": "Sections du dossier de l'enfant",
+    "tabs": {
+      "journal": "Journal",
+      "attendance": "Présences",
+      "health": "Santé",
+      "activities": "Activités",
+      "permissions": "Autorisations"
+    },
+    "journal": {
+      "title": "Journal quotidien",
+      "empty": "Aucun journal publié",
+      "emptyDescription": "Le journal de votre enfant apparaîtra ici dès sa publication par l'éducatrice.",
+      "meals": "Repas",
+      "nap": "Sieste",
+      "napRange": "de {start} à {end}",
+      "napFrom": "à partir de {time}",
+      "napUntil": "jusqu'à {time}",
+      "activities": "Activités",
+      "notes": "Notes de l'éducatrice"
+    },
+    "attendance": {
+      "title": "Présences du mois",
+      "empty": "Aucune présence enregistrée ce mois-ci.",
+      "in": "Entrée",
+      "out": "Sortie",
+      "droppedOffBy": "Déposé par {name}",
+      "collectedBy": "Récupéré par {name}",
+      "recordedInBy": "Arrivée enregistrée par {name}",
+      "recordedOutBy": "Départ enregistré par {name}",
+      "methods": {
+        "tag": "Badge scanné",
+        "kiosk": "Code au kiosque",
+        "manual": "Saisi par l'équipe",
+        "parent": "Signalé par le parent"
+      },
+      "statuses": {
+        "present": "Présent",
+        "absent": "Absent",
+        "late": "En retard",
+        "excused": "Excusé",
+        "sick": "Malade"
+      }
+    },
+    "health": {
+      "allergiesTitle": "Allergies",
+      "allergiesEmpty": "Aucune allergie enregistrée.",
+      "reaction": "Réaction",
+      "actionPlan": "Conduite à tenir",
+      "severity": {
+        "mild": "Légère",
+        "moderate": "Modérée",
+        "severe": "Sévère"
+      },
+      "summaryTitle": "Dossier de santé",
+      "conditions": "Antécédents médicaux",
+      "medications": "Médicaments",
+      "vaccinations": "Vaccinations",
+      "diet": "Régime alimentaire",
+      "specialNeeds": "Besoins particuliers",
+      "doctor": "Médecin traitant",
+      "doctorPhone": "Téléphone du médecin",
+      "emergencyNotes": "Notes d'urgence",
+      "empty": "Aucune information de santé enregistrée.",
+      "parentEditNotice": "Vous tenez ces informations à jour vous-même. Chaque modification s'applique immédiatement et la crèche en est informée aussitôt.",
+      "addAllergy": "Ajouter une allergie",
+      "allergyAddTitle": "Ajouter une allergie",
+      "allergyEditTitle": "Modifier l'allergie",
+      "allergyDialogDescription": "Dès l'enregistrement, l'équipe et la cuisine la voient.",
+      "allergen": "Allergène",
+      "allergenPlaceholder": "arachide, œuf, lait…",
+      "severityLabel": "Gravité",
+      "reactionPlaceholder": "éruption cutanée, vomissements, gêne respiratoire…",
+      "actionPlanPlaceholder": "EpiPen dans le sac — appeler le 14",
+      "deleteTitle": "Supprimer cette allergie ?",
+      "deleteDescription": "« {allergen} » disparaîtra du dossier et l'équipe ne la verra plus. Ne la supprimez que si l'allergie n'existe plus.",
+      "deleteConfirm": "Oui, supprimer",
+      "savedNotified": "Enregistré — la crèche est informée",
+      "removedNotified": "Supprimé — la crèche est informée",
+      "editRecord": "Modifier le dossier de santé",
+      "recordEditTitle": "Dossier de santé",
+      "recordEditDescription": "Ces informations aident l'équipe à s'occuper de votre enfant au quotidien.",
+      "removeItem": "Retirer {item}",
+      "placeholders": {
+        "conditions": "asthme",
+        "medications": "Ventoline si besoin",
+        "vaccinations": "BCG — 2023",
+        "diet": "sans gluten, sans lait",
+        "specialNeeds": "accompagnement pendant les repas",
+        "doctor": "Dr Benali",
+        "doctorPhone": "0550 12 34 56",
+        "emergencyNotes": "Ce que la crèche doit savoir en cas d'urgence"
+      },
+      "identityNote": "Le nom et la date de naissance proviennent de l'acte de naissance : seule l'administration peut les corriger.",
+      "identityLink": "Écrire à la crèche"
+    },
+    "activities": {
+      "enrolledTitle": "Activités de l'enfant",
+      "enrolledEmpty": "Inscrit à aucune activité pour l'instant.",
+      "availableTitle": "Activités disponibles",
+      "availableEmpty": "Aucune autre activité disponible pour le moment.",
+      "request": "Demander l'inscription",
+      "requestSuccess": "Votre demande d'inscription a été envoyée",
+      "requestDuplicate": "Une demande existe déjà pour cette activité",
+      "fee": "Tarif",
+      "free": "Gratuit",
+      "pending": "Demande en cours",
+      "active": "Inscrit",
+      "schedule": "Horaires",
+      "days": {
+        "sun": "Dimanche",
+        "mon": "Lundi",
+        "tue": "Mardi",
+        "wed": "Mercredi",
+        "thu": "Jeudi",
+        "fri": "Vendredi",
+        "sat": "Samedi"
+      },
+      "periods": {
+        "once": "une fois",
+        "monthly": "par mois",
+        "quarterly": "par trimestre",
+        "yearly": "par an",
+        "per_session": "par séance"
+      },
+      "cancelRequest": "Retirer la demande",
+      "cancelSuccess": "Demande retirée.",
+      "cancelTooLate": "Cette demande a déjà été acceptée. Contactez la direction pour l'annuler."
+    },
+    "pickups": {
+      "title": "Personnes autorisées à récupérer l'enfant",
+      "description": "En dehors de vous, voici les personnes autorisées à venir chercher {name}. Leur pièce d'identité est demandée à la porte.",
+      "legalNote": "Cette liste constitue le registre d'autorisation de récupération exigé par le décret exécutif 19-253 ; elle figure au dossier officiel de l'enfant.",
+      "officeNote": "Chaque ajout, modification ou retrait parvient aussitôt à la direction et prend effet immédiatement.",
+      "askOffice": "Écrire à la direction",
+      "empty": "Aucune autre personne autorisée",
+      "emptyDescription": "Ajoutez la grand-mère, un oncle, le chauffeur — toute personne susceptible de venir chercher votre enfant un jour où vous ne pouvez pas venir vous-même.",
+      "add": "Ajouter une personne",
+      "addTitle": "Personne autorisée",
+      "editTitle": "Modifier cette personne",
+      "dialogDescription": "Cette personne pourra récupérer votre enfant sur présentation de sa pièce d'identité.",
+      "name": "Nom complet",
+      "namePlaceholder": "Fatima Ben Amar",
+      "relationship": "Lien avec l'enfant",
+      "relationshipPlaceholder": "grand-mère, oncle, chauffeur",
+      "phone": "Téléphone",
+      "phonePlaceholder": "0555 12 34 56",
+      "phoneInvalid": "Ce numéro de téléphone semble incorrect.",
+      "nationalId": "N° carte d'identité",
+      "nationalIdPlaceholder": "18 chiffres",
+      "nationalIdHint": "Le numéro permet au personnel de vérifier l'identité à la porte avant de confier votre enfant.",
+      "editAria": "Modifier {name}",
+      "removeAria": "Retirer {name} de la liste",
+      "callAria": "Appeler {name}",
+      "remove": "Retirer",
+      "deleteTitle": "Retirer {name} de la liste ?",
+      "deleteDescription": "{name} ne pourra plus récupérer votre enfant, avec effet immédiat. La direction est informée de ce changement.",
+      "added": "Personne ajoutée à la liste.",
+      "updated": "Informations mises à jour.",
+      "removed": "Personne retirée de la liste.",
+      "forbidden": "Cette modification n'a pas pu être appliquée. Actualisez la page ou écrivez à la direction."
+    },
+    "consents": {
+      "title": "Consentements",
+      "description": "Trois questions auxquelles la crèche a besoin de votre réponse. Vous pouvez modifier chaque réponse à tout moment.",
+      "officeNote": "Votre réponse est enregistrée à votre nom et datée ; la direction la voit dès que vous la choisissez.",
+      "types": {
+        "photos": "Photos et vidéos",
+        "outings": "Sorties",
+        "medical_emergency": "Urgence médicale"
+      },
+      "typeHints": {
+        "photos": "Prendre des photos de votre enfant et les partager avec vous dans le journal.",
+        "outings": "La participation de votre enfant aux sorties organisées hors de la crèche.",
+        "medical_emergency": "Appeler les secours et faire soigner votre enfant si nous ne parvenons pas à vous joindre."
+      },
+      "granted": "J'accepte",
+      "refused": "Je refuse",
+      "unanswered": "Sans réponse",
+      "needsAnswer": "En attente de votre réponse",
+      "decidedAt": "Répondu le {date}",
+      "saved": "Votre réponse a été enregistrée.",
+      "forbidden": "Votre réponse n'a pas pu être enregistrée. Actualisez la page ou écrivez à la direction."
+    }
+  },
+  "payments": {
+    "title": "Paiements",
+    "description": "Les factures de vos enfants et l'historique des règlements.",
+    "totalDue": "Montant dû",
+    "allSettled": "Toutes les factures sont réglées",
+    "due": "Dû",
+    "upToDate": "À jour",
+    "emptyChild": "Aucune facture.",
+    "balanceShort": "Reste",
+    "invoice": "Facture",
+    "total": "Total",
+    "paid": "Payé",
+    "balance": "Reste à payer",
+    "empty": "Aucune facture pour l'instant",
+    "emptyDescription": "Les factures de la crèche apparaîtront ici dès leur émission.",
+    "statuses": {
+      "draft": "Brouillon",
+      "sent": "Envoyée",
+      "unpaid": "Impayée",
+      "partial": "Partiellement payée",
+      "paid": "Payée",
+      "overdue": "En retard",
+      "void": "Annulée"
+    },
+    "detail": {
+      "items": "Détail de la facture",
+      "payments": "Règlements",
+      "noPayments": "Aucun règlement enregistré.",
+      "methods": {
+        "cash": "Espèces",
+        "cib": "Carte CIB",
+        "edahabia": "Edahabia",
+        "bank_transfer": "Virement bancaire",
+        "cheque": "Chèque",
+        "chargily": "Chargily",
+        "other": "Autre"
+      }
+    },
+    "cash": {
+      "title": "Paiement en espèces à la crèche",
+      "body": "Le règlement se fait en espèces auprès de l'administration de la crèche, et un reçu numéroté vous est remis immédiatement. Aucun paiement en ligne n'est nécessaire."
+    },
+    "fees": {
+      "title": "Votre tarif mensuel",
+      "description": "Ce que la crèche facture chaque mois, avant les activités et les extras.",
+      "none": "Aucun tarif enregistré. Demandez à l'administration.",
+      "perMonth": "par mois",
+      "discount": "remise {pct} %",
+      "since": "depuis le {date}",
+      "until": "jusqu'au {date}",
+      "ended": "Terminé"
+    }
+  },
+  "announcements": {
+    "title": "Actualités",
+    "description": "Les annonces de la crèche destinées aux parents et aux classes de vos enfants.",
+    "empty": "Aucune annonce",
+    "emptyDescription": "Les annonces de la crèche qui vous concernent apparaîtront ici.",
+    "pinned": "Épinglée",
+    "audience": {
+      "all": "Tout le monde",
+      "parents": "Parents",
+      "staff": "Équipe",
+      "class": "Classe"
+    }
+  },
+  "profile": {
+    "title": "Mon profil",
+    "phones": {
+      "title": "Numéros de contact",
+      "lead": "C'est le numéro que la crèche appelle en premier si votre enfant tombe malade ou a un accident — un numéro périmé ici coûte les minutes les plus précieuses.",
+      "phone": "Téléphone principal",
+      "phoneInvalid": "Saisissez un numéro de téléphone valide.",
+      "phoneAlt": "Téléphone secondaire",
+      "phoneAltHint": "Appelé si le principal ne répond pas — conjoint, grand-parent, lieu de travail."
+    },
+    "details": {
+      "title": "Mes informations",
+      "description": "Ce que le bureau de la crèche conserve sur vous en tant que parent.",
+      "relationship": "Lien avec l'enfant",
+      "relationshipReadOnly": "Défini par le bureau de la crèche — il ne se modifie pas ici.",
+      "firstName": "Prénom (latin)",
+      "lastName": "Nom (latin)",
+      "firstNameAr": "Prénom en arabe",
+      "lastNameAr": "Nom en arabe",
+      "emailInvalid": "Saisissez une adresse e-mail valide.",
+      "nationalId": "N° carte d'identité",
+      "workplace": "Lieu de travail",
+      "appliesToAll": "Vous avez {count} dossiers d'enfants dans cette crèche — une modification est enregistrée sur tous à la fois.",
+      "save": "Enregistrer mes informations",
+      "saved": "Vos informations ont été mises à jour. Le bureau les voit immédiatement.",
+      "noFile": "Aucun dossier parent",
+      "noFileDescription": "Votre compte n'est pas encore lié à un dossier parent dans cette crèche. Contactez le bureau pour le lier."
+    },
+    "photo": {
+      "title": "Ma photo",
+      "description": "L'équipe la vérifie à la porte avant de vous confier votre enfant — une photo nette de votre visage suffit.",
+      "take": "Prendre une photo",
+      "choose": "Choisir depuis mon téléphone",
+      "replace": "Changer ma photo",
+      "remove": "Supprimer ma photo",
+      "removeTitle": "Supprimer votre photo ?",
+      "removeDescription": "Sans elle, l'équipe ne peut pas vous reconnaître rapidement à la porte et vous risquez d'attendre.",
+      "resizing": "Préparation de la photo…",
+      "uploading": "Envoi en cours…",
+      "saving": "Enregistrement…",
+      "saved": "Votre photo a été enregistrée",
+      "removed": "Votre photo a été supprimée",
+      "tooLarge": "Image trop volumineuse. Choisissez-en une de moins de 20 Mo.",
+      "forbidden": "L'envoi de la photo a échoué. Contactez l'administration.",
+      "error": "La photo n'a pas pu être enregistrée. Réessayez.",
+      "none": "Aucune photo pour le moment"
+    },
+    "relationships": {
+      "father": "Père",
+      "mother": "Mère",
+      "guardian": "Tuteur",
+      "grandparent": "Grand-parent",
+      "sibling": "Frère / sœur",
+      "other": "Autre"
+    },
+    "account": {
+      "title": "Compte et langue",
+      "description": "Votre manière de vous connecter et la langue dans laquelle l'espace vous parle.",
+      "fullName": "Nom affiché",
+      "fullNameHint": "Affiché en haut de l'espace parents et à côté de vos messages.",
+      "phone": "Téléphone du compte",
+      "phoneHint": "Rattaché à votre connexion. Ce n'est pas le numéro appelé en urgence — celui-là est plus haut.",
+      "email": "E-mail de connexion",
+      "emailHint": "Contactez le bureau pour changer l'adresse de connexion.",
+      "language": "Langue",
+      "languageHint": "S'applique à l'espace parents et aux alertes envoyées sur votre téléphone.",
+      "languages": {
+        "ar": "العربية",
+        "en": "English",
+        "fr": "Français"
+      },
+      "saved": "Votre compte a été mis à jour"
+    },
+    "children": {
+      "title": "Mes enfants",
+      "readOnly": "Les noms et dates de naissance proviennent de l'acte de naissance et alimentent les registres officiels — seul le bureau peut les corriger.",
+      "empty": "Aucun enfant lié à votre compte pour l'instant.",
+      "ask": "Écrire au bureau"
+    },
+    "alerts": {
+      "title": "Alertes",
+      "description": "Recevez une notification sur ce téléphone dès que la crèche publie quelque chose au sujet de votre enfant."
+    },
+    "signOut": {
+      "hint": "Il vous faudra votre e-mail et votre mot de passe pour vous reconnecter."
+    },
+    "errors": {
+      "load": "Vos informations n'ont pas pu être chargées. Réessayez dans un instant.",
+      "forbidden": "Vous n'êtes pas autorisé à modifier cette information. Contactez le bureau de la crèche."
+    }
+  }
+}

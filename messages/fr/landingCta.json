@@ -1,0 +1,263 @@
+{
+  "quiz": {
+    "eyebrow": "Consultation gratuite",
+    "title": "Parlez-nous de votre structure, nous vous indiquons par où commencer",
+    "subtitle": "Quatre questions courtes suffisent à comprendre comment votre structure fonctionne aujourd'hui — et à vous proposer la formule et la configuration qui lui conviennent.",
+    "timeBadge": "Moins d'une minute · Sans créer de compte",
+    "cardLabel": "Sélecteur de formule",
+    "trust": {
+      "commitment": {
+        "title": "Sans engagement",
+        "desc": "Pas de carte bancaire, pas de contrat, pas d'e-mails publicitaires."
+      },
+      "consult": {
+        "title": "Accompagnement gratuit",
+        "desc": "Nous configurons avec vous vos classes et vos tarifs, dans votre langue."
+      }
+    },
+    "stepOf": "Étape {current} sur {total}",
+    "goToStep": "Aller à l'étape {n} : {name}",
+    "stepNames": {
+      "centre": "Type de structure",
+      "size": "Nombre d'enfants",
+      "priority": "Priorité",
+      "contact": "Localisation et contact"
+    },
+    "steps": {
+      "centre": {
+        "q": "Quel type de structure gérez-vous ?",
+        "hint": "Choisissez ce qui se rapproche le plus de votre quotidien.",
+        "options": {
+          "nursery": {
+            "label": "Crèche",
+            "hint": "De 3 mois à 3 ans"
+          },
+          "kindergarten": {
+            "label": "Jardin d'enfants",
+            "hint": "De 3 à 6 ans, classe préparatoire comprise"
+          },
+          "therapy": {
+            "label": "Centre spécialisé",
+            "hint": "Orthophonie, éducation spécialisée, soutien psychologique"
+          },
+          "activity": {
+            "label": "Club d'activités",
+            "hint": "Ateliers, soutien scolaire, activités de vacances"
+          }
+        }
+      },
+      "size": {
+        "q": "Combien d'enfants sont inscrits aujourd'hui ?",
+        "hint": "Une estimation suffit largement.",
+        "options": {
+          "under20": {
+            "label": "Moins de 20 enfants",
+            "hint": "Nouveau départ ou petite structure"
+          },
+          "to50": {
+            "label": "De 20 à 50 enfants",
+            "hint": "La taille la plus courante en Algérie"
+          },
+          "to100": {
+            "label": "De 50 à 100 enfants",
+            "hint": "Plusieurs classes et une équipe élargie"
+          },
+          "over100": {
+            "label": "Plus de 100 enfants",
+            "hint": "Grande structure ou plusieurs annexes"
+          }
+        }
+      },
+      "priority": {
+        "q": "Qu'est-ce qui vous préoccupe le plus en ce moment ?",
+        "hint": "C'est précisément par là que nous commencerons la configuration.",
+        "options": {
+          "enrollment": {
+            "label": "Inscriptions et admissions",
+            "hint": "Formulaires, listes d'attente, pièces manquantes"
+          },
+          "attendance": {
+            "label": "Présences et sécurité",
+            "hint": "Arrivées et départs, alertes aux parents, allergies"
+          },
+          "billing": {
+            "label": "Facturation et comptabilité",
+            "hint": "Factures, reçus, impayés et salaires"
+          },
+          "comms": {
+            "label": "Communication avec les parents",
+            "hint": "Annonces, messages et photos de la journée"
+          }
+        }
+      },
+      "contact": {
+        "q": "Où se trouve votre structure ?",
+        "hint": "Pour savoir comment vous accompagner et préparer une configuration prête pour votre wilaya.",
+        "wilayaLabel": "Wilaya",
+        "wilayaPlaceholder": "Choisissez votre wilaya",
+        "phoneLabel": "Numéro de téléphone",
+        "phonePlaceholder": "05 00 00 00 00",
+        "phoneHint": "Nous l'utilisons uniquement pour vous joindre à la création de votre compte.",
+        "phoneError": "Saisissez un numéro algérien valide (au moins 9 chiffres)."
+      }
+    },
+    "wilayas": {
+      "jijel": "Jijel",
+      "alger": "Alger",
+      "oran": "Oran",
+      "constantine": "Constantine",
+      "setif": "Sétif",
+      "annaba": "Annaba",
+      "bejaia": "Béjaïa",
+      "batna": "Batna",
+      "blida": "Blida",
+      "tiziouzou": "Tizi Ouzou",
+      "skikda": "Skikda",
+      "mila": "Mila",
+      "other": "Une autre wilaya"
+    },
+    "back": "Retour",
+    "next": "Suivant",
+    "finish": "Voir la recommandation",
+    "done": {
+      "badge": "Notre recommandation",
+      "title": "La formule « {plan} » est votre meilleur point de départ",
+      "subtitle": "D'après ce que vous nous avez indiqué, voici la configuration que nous conseillons. Vous pourrez changer de formule quand vous le souhaitez, sans frais.",
+      "summaryTitle": "Vos réponses",
+      "labels": {
+        "centre": "Type de structure",
+        "size": "Nombre d'enfants",
+        "priority": "Priorité",
+        "wilaya": "Wilaya",
+        "phone": "Téléphone"
+      },
+      "empty": "Non précisé",
+      "cta": "Créer l'espace de votre structure",
+      "restart": "Recommencer",
+      "note": "Vos réponses n'ont été envoyées nulle part — elles sont restées dans votre navigateur et servent seulement à vous proposer un point de départ.",
+      "noteOffline": "Nous n'avons pas pu enregistrer votre numéro. Créez votre compte directement, ou réessayez plus tard."
+    },
+    "sending": "Envoi…"
+  },
+  "pricing": {
+    "eyebrow": "Tarifs",
+    "title": "Un seul prix par structure, quelle que soit sa taille",
+    "subtitle": "Nous ne facturons ni par enfant ni par employé. Un tarif mensuel fixe, clair dès le premier jour.",
+    "perMonth": "/ mois",
+    "perCentre": "par structure, quel que soit l'effectif",
+    "popular": "Le plus choisi",
+    "cta": "Commencer",
+    "ctaPopular": "Commencer avec cette formule",
+    "footnote": "Sans engagement · Enfants et personnel illimités",
+    "tiers": {
+      "essential": {
+        "name": "Essentiel",
+        "tagline": "Pour une structure qui tourne la page du papier.",
+        "features": [
+          "Inscriptions en ligne et validation des dossiers",
+          "Présences quotidiennes et suivi des absences",
+          "Facturation et reçus en dinars",
+          "Application parents trilingue",
+          "Une structure · Assistance par e-mail"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "Pour une structure qui veut tout automatiser, de l'inscription aux salaires.",
+        "features": [
+          "Tout l'Essentiel",
+          "Comptabilité et fiches de paie",
+          "Borne d'accueil et pointage par badge",
+          "Registres de conformité et export pour l'inspection",
+          "Annonces, messagerie et rapports mensuels"
+        ]
+      },
+      "network": {
+        "name": "Réseau",
+        "tagline": "Pour plusieurs structures sous une même direction.",
+        "features": [
+          "Tout le Pro",
+          "Nombre de structures illimité",
+          "Tableau de bord consolidé du groupe",
+          "Rôles et permissions avancés par équipe",
+          "Accompagnement dédié au démarrage"
+        ]
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "Questions fréquentes",
+    "title": "Ce que les gestionnaires nous demandent avant de se lancer",
+    "subtitle": "Les questions que nous posent le plus souvent les directrices et directeurs de structures en Algérie.",
+    "contact": {
+      "title": "Vous ne trouvez pas votre réponse ?",
+      "desc": "Écrivez-nous, nous répondons le jour même — en arabe, en anglais ou en français.",
+      "email": "contact@rawdati.dz",
+      "cta": "Nous écrire",
+      "hours": "Du dimanche au jeudi · 8h00 – 17h00"
+    },
+    "items": {
+      "security": {
+        "q": "Les données des enfants sont-elles en sécurité ?",
+        "a": "Oui. Tout est stocké chiffré et chaque structure est totalement isolée des autres : un utilisateur ne voit que les enfants de sa propre structure, et uniquement ce que son rôle autorise. Les sauvegardes sont quotidiennes et vous pouvez exporter toutes vos données quand vous le souhaitez."
+      },
+      "cash": {
+        "q": "La plupart de mes parents paient en espèces. Est-ce géré ?",
+        "a": "Le paiement en espèces est le mode par défaut dans Rawdati, parce que c'est la réalité du terrain ici. Vous enregistrez le montant reçu et imprimez le reçu dans la foulée ; les virements bancaires et postaux ainsi que les paiements échelonnés sont également pris en charge."
+      },
+      "arabic": {
+        "q": "La plateforme fonctionne-t-elle vraiment en arabe ?",
+        "a": "Rawdati est pensée en arabe d'abord : l'interface de droite à gauche a été conçue ainsi dès le départ, ce n'est pas une traduction retournée. Les noms des enfants, les reçus et les rapports sont en arabe, et chaque parent ou employé choisit sa langue entre l'arabe, l'anglais et le français."
+      },
+      "multi": {
+        "q": "Je gère plusieurs structures. Puis-je toutes les réunir ?",
+        "a": "Oui, avec la formule Réseau. Vous passez d'une structure à l'autre depuis le même compte en un clic, avec un tableau de bord consolidé et des permissions distinctes pour chaque équipe."
+      },
+      "mobile": {
+        "q": "Faut-il installer une application depuis le store ?",
+        "a": "Non. Rawdati fonctionne directement dans le navigateur du téléphone ou de l'ordinateur, et un parent peut l'ajouter à son écran d'accueil pour qu'elle s'ouvre comme n'importe quelle application — sans mises à jour ni espace de stockage."
+      },
+      "migrate": {
+        "q": "Mes données sont dans des cahiers et des fichiers Excel. Comment les transférer ?",
+        "a": "Nous importons vos listes d'enfants, de parents et de tarifs depuis un fichier Excel — ou même à partir de photos de vos cahiers — et nous les vérifions avec vous avant le démarrage. L'opération prend en général une journée et elle est gratuite à l'ouverture du compte."
+      }
+    }
+  },
+  "final": {
+    "eyebrow": "Commencez aujourd'hui",
+    "title": "Votre structure mérite des outils à sa hauteur",
+    "subtitle": "Créez votre espace en cinq minutes et partagez le lien d'inscription avec les parents dès ce soir.",
+    "primary": "Essayer gratuitement",
+    "secondary": "Parler à un conseiller",
+    "note": "Sans carte bancaire · Résiliable à tout moment · Assistance en arabe"
+  },
+  "footer": {
+    "label": "Pied de page",
+    "blurb": "Une plateforme algérienne pour gérer crèches, jardins d'enfants et centres spécialisés.\nDu premier dossier d'inscription au bilan de fin de mois.",
+    "languageNote": "Disponible en arabe, en anglais et en français",
+    "columns": {
+      "features": "Fonctionnalités",
+      "solutions": "Solutions",
+      "why": "Pourquoi Rawdati"
+    },
+    "links": {
+      "enrollment": "Inscriptions en ligne",
+      "attendance": "Présences et sécurité",
+      "billing": "Facturation en dinars",
+      "accounting": "Comptabilité et salaires",
+      "parents": "Application parents",
+      "nurseries": "Crèches",
+      "kindergartens": "Jardins d'enfants",
+      "therapy": "Centres spécialisés",
+      "activities": "Clubs d'activités",
+      "owners": "Pour les gestionnaires",
+      "educators": "Pour les éducatrices",
+      "families": "Pour les parents"
+    },
+    "contact": "Nous contacter",
+    "email": "contact@rawdati.dz",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "copyright": "© 2026 Rawdati · Jijel, Algérie"
+  }
+}

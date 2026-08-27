@@ -1,0 +1,529 @@
+{
+  "shell": {
+    "navLabel": "Parent portal navigation",
+    "home": "Home",
+    "myChildren": "My children",
+    "messages": "Messages",
+    "payments": "Payments",
+    "announcements": "News"
+  },
+  "error": {
+    "title": "This page could not be displayed",
+    "description": "Something went wrong. Please try again, and contact the kindergarten office if it persists.",
+    "retry": "Try again"
+  },
+  "home": {
+    "greeting": "Hello {name}",
+    "childrenTitle": "My children",
+    "emptyChildren": "No children linked to your account",
+    "emptyChildrenDescription": "Contact the kindergarten office to link your child's file to this account.",
+    "lastReport": "Journal of {date}",
+    "details": "Details",
+    "pinnedTitle": "Pinned announcements",
+    "seeAll": "See all",
+    "upcomingTitle": "Coming up",
+    "upcomingEmpty": "Nothing coming up.",
+    "tentative": "Tentative",
+    "status": {
+      "notYet": "Not arrived yet",
+      "arrived": "Arrived at {time}",
+      "left": "Left at {time}",
+      "absent": "Absent",
+      "absentReason": "Absent — {reason}",
+      "sickReason": "Illness"
+    },
+    "incidents": {
+      "title": "Incidents awaiting your acknowledgement",
+      "actionTaken": "Action taken",
+      "ack": "Acknowledge",
+      "acked": "Acknowledgement recorded",
+      "severity": {
+        "minor": "Minor",
+        "moderate": "Moderate",
+        "serious": "Serious"
+      }
+    }
+  },
+  "checkin": {
+    "action": "Check in",
+    "title": "Show this at the door",
+    "subtitle": "Staff scan this code, then compare your photo with your child’s before confirming the arrival or the pick-up.",
+    "qrTitle": "Your badge QR code",
+    "badgeOf": "{name}’s badge",
+    "badgeNumber": "Badge number",
+    "brightnessHint": "If the scanner does not read the code, turn your screen brightness all the way up.",
+    "childrenTitle": "Your children today",
+    "childrenHint": "Pick the child you are dropping off or collecting. This is only a reminder for you — staff confirm attendance on the kindergarten’s own device.",
+    "showFor": "Show this for {name}",
+    "pickChild": "Choose the child",
+    "sameCodeHint": "The same code covers all your children. Picking one here is only a reminder for the doorway.",
+    "selectedNote": "Tell the staff member: {name}",
+    "allergy": "Allergy: {list}",
+    "statusError": "Today’s status could not be loaded.",
+    "askOffice": "Message the office",
+    "noBadge": {
+      "title": "The office has not issued your badge yet",
+      "description": "The door badge is created once at the kindergarten office and tied to your name. Message the office to ask for it — it appears here as soon as it is issued."
+    },
+    "noGuardian": {
+      "title": "Your account is not linked to a guardian record",
+      "description": "A door badge cannot be issued before your account is linked to your record at the kindergarten. Message the office to finish the link."
+    }
+  },
+  "children": {
+    "title": "My children",
+    "status": {
+      "pending": "Pending",
+      "waitlist": "Waiting list",
+      "withdrawn": "Withdrawn",
+      "alumni": "Alumni"
+    }
+  },
+  "applications": {
+    "title": "Enrolment requests",
+    "description": "Requests still with the office — they stay here until the kindergarten answers.",
+    "sentOn": "Sent on {date}",
+    "reviewNote": "The kindergarten's answer",
+    "status": {
+      "submitted": "Awaiting review",
+      "under_review": "Under review",
+      "interview": "Interview booked",
+      "offered": "Place offered",
+      "waitlist": "On the waiting list",
+      "rejected": "Not accepted"
+    }
+  },
+  "addChild": {
+    "trigger": "Enrol another child",
+    "back": "My children",
+    "title": "Enrol another child",
+    "subtitle": "The kindergarten already has your details — only your child's are needed.",
+    "review": {
+      "title": "Check the request",
+      "subtitle": "One last look before it reaches the office.",
+      "submit": "Send the request",
+      "submitting": "Sending…",
+      "note": "The kindergarten reviews the request and gets back to you. Your own details come from your parent file — no need to type them again."
+    },
+    "success": {
+      "title": "Request sent",
+      "message": "{name} has received your request to enrol {child}. The team will review it and contact you soon.",
+      "hint": "You can follow the request from “My children” until they answer.",
+      "back": "Back to my children"
+    },
+    "errors": {
+      "required": "Please fill in the first name, last name, date of birth and gender.",
+      "allergenRequired": "Please name the allergen on every line you added, or remove the empty one.",
+      "generic": "The request could not be sent. Please try again in a moment.",
+      "forbidden": "Your account is not linked to this kindergarten. Please contact the office.",
+      "noGuardianRecord": "Your account has no parent file at this kindergarten yet, so the request cannot be sent. Please contact the office."
+    },
+    "noGuardian": {
+      "title": "Your account is not linked to a parent file",
+      "description": "To enrol another child, your account must be linked to a parent file at this kindergarten. Contact the office to have it linked.",
+      "action": "Message the office"
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "description": "Your conversations with the kindergarten about your children.",
+    "empty": "No conversations yet",
+    "emptyDescription": "Start a conversation with the kindergarten — a question, a request, anything about your child. Replies land right here.",
+    "start": "New conversation",
+    "noSubject": "No subject",
+    "you": "You",
+    "yesterday": "Yesterday",
+    "awaitingYou": "New message from the kindergarten",
+    "back": "Back to messages",
+    "notFound": "Conversation unavailable",
+    "notFoundDescription": "This conversation is not linked to your account, or it no longer exists.",
+    "replyLabel": "Your reply",
+    "replyPlaceholder": "Write your reply…",
+    "send": "Send",
+    "sent": "Your message was sent",
+    "dialog": {
+      "title": "New conversation",
+      "description": "Ask the kindergarten a question. The office and your child's teacher are notified straight away.",
+      "child": "Child concerned",
+      "childPlaceholder": "Choose a child",
+      "subject": "Subject",
+      "subjectPlaceholder": "Request to change the pick-up time",
+      "message": "Message",
+      "messagePlaceholder": "Write your message to the kindergarten…",
+      "created": "Your conversation was sent to the kindergarten"
+    }
+  },
+  "absence": {
+    "trigger": "Report an absence",
+    "title": "Report an absence",
+    "description": "Let the kindergarten know that {name} will be absent. The office is notified right away.",
+    "reason": "Reason for the absence",
+    "reasonPlaceholder": "illness, doctor's appointment, family trip…",
+    "success": "Your report was sent to the kindergarten"
+  },
+  "child": {
+    "back": "My children",
+    "notFound": "File unavailable",
+    "notFoundDescription": "This child is not linked to your account.",
+    "photo": {
+      "title": "Child's photo",
+      "description": "Staff compare it with your child's face at the door before handing them over — one clear, recent photo is all it takes.",
+      "hint": "Add a photo of your child — staff compare it at the door before handing them over.",
+      "take": "Take a photo",
+      "choose": "Choose from my phone",
+      "replace": "Change the photo",
+      "remove": "Remove the photo",
+      "removeTitle": "Remove your child's photo?",
+      "removeDescription": "Without it staff have nothing to compare at the door, and pick-up may keep you waiting.",
+      "resizing": "Preparing the photo…",
+      "uploading": "Uploading…",
+      "saving": "Saving…",
+      "saved": "Your child's photo has been saved",
+      "removed": "Your child's photo has been removed",
+      "tooLarge": "That image is too large. Choose one under 20 MB.",
+      "forbidden": "You are not allowed to change this child's photo. Please contact the kindergarten office.",
+      "error": "The photo could not be saved. Please try again, and contact the kindergarten office if it keeps failing.",
+      "none": "No photo yet"
+    },
+    "tabsLabel": "Child file sections",
+    "tabs": {
+      "journal": "Journal",
+      "attendance": "Attendance",
+      "health": "Health",
+      "activities": "Activities",
+      "permissions": "Permissions"
+    },
+    "journal": {
+      "title": "Daily journal",
+      "empty": "No published journal yet",
+      "emptyDescription": "Your child's daily journal appears here once the teacher publishes it.",
+      "meals": "Meals",
+      "nap": "Nap",
+      "napRange": "{start} to {end}",
+      "napFrom": "From {time}",
+      "napUntil": "Until {time}",
+      "activities": "Activities",
+      "notes": "Teacher's notes"
+    },
+    "attendance": {
+      "title": "Attendance this month",
+      "empty": "No attendance recorded this month.",
+      "in": "In",
+      "out": "Out",
+      "droppedOffBy": "Dropped off by {name}",
+      "collectedBy": "Collected by {name}",
+      "recordedInBy": "Arrival recorded by {name}",
+      "recordedOutBy": "Departure recorded by {name}",
+      "methods": {
+        "tag": "Tag scan",
+        "kiosk": "Kiosk PIN",
+        "manual": "Entered by staff",
+        "parent": "Reported by parent"
+      },
+      "statuses": {
+        "present": "Present",
+        "absent": "Absent",
+        "late": "Late",
+        "excused": "Excused",
+        "sick": "Sick"
+      }
+    },
+    "health": {
+      "allergiesTitle": "Allergies",
+      "allergiesEmpty": "No allergy recorded.",
+      "reaction": "Reaction",
+      "actionPlan": "Action plan",
+      "severity": {
+        "mild": "Mild",
+        "moderate": "Moderate",
+        "severe": "Severe"
+      },
+      "summaryTitle": "Health file",
+      "conditions": "Medical conditions",
+      "medications": "Medications",
+      "vaccinations": "Vaccinations",
+      "diet": "Dietary restrictions",
+      "specialNeeds": "Special needs",
+      "doctor": "Doctor",
+      "doctorPhone": "Doctor's phone",
+      "emergencyNotes": "Emergency notes",
+      "empty": "No health information recorded.",
+      "parentEditNotice": "You keep this information up to date yourself. Every change applies immediately and the kindergarten is notified right away.",
+      "addAllergy": "Add an allergy",
+      "allergyAddTitle": "Add an allergy",
+      "allergyEditTitle": "Edit allergy",
+      "allergyDialogDescription": "As soon as you save, the team and the kitchen can see it.",
+      "allergen": "Allergen",
+      "allergenPlaceholder": "peanut, egg, milk…",
+      "severityLabel": "Severity",
+      "reactionPlaceholder": "rash, vomiting, difficulty breathing…",
+      "actionPlanPlaceholder": "EpiPen in the bag — call 14",
+      "deleteTitle": "Remove this allergy?",
+      "deleteDescription": "“{allergen}” will disappear from the file and the team will no longer see it. Only remove it if the allergy is gone.",
+      "deleteConfirm": "Yes, remove it",
+      "savedNotified": "Saved — the kindergarten has been notified",
+      "removedNotified": "Removed — the kindergarten has been notified",
+      "editRecord": "Edit health file",
+      "recordEditTitle": "Health file",
+      "recordEditDescription": "This helps the team care for your child day to day.",
+      "removeItem": "Remove {item}",
+      "placeholders": {
+        "conditions": "asthma",
+        "medications": "inhaler when needed",
+        "vaccinations": "BCG — 2023",
+        "diet": "no gluten, no milk",
+        "specialNeeds": "needs help during meals",
+        "doctor": "Dr Benali",
+        "doctorPhone": "0550 12 34 56",
+        "emergencyNotes": "What the kindergarten should know in an emergency"
+      },
+      "identityNote": "Name and date of birth come from the birth certificate — only the office can correct them.",
+      "identityLink": "Message the kindergarten"
+    },
+    "activities": {
+      "enrolledTitle": "Enrolled activities",
+      "enrolledEmpty": "Not enrolled in any activity yet.",
+      "availableTitle": "Available activities",
+      "availableEmpty": "No other activity is available right now.",
+      "request": "Request enrolment",
+      "requestSuccess": "Your enrolment request was sent",
+      "requestDuplicate": "A request already exists for this activity",
+      "fee": "Fee",
+      "free": "Free",
+      "pending": "Request pending",
+      "active": "Enrolled",
+      "schedule": "Schedule",
+      "days": {
+        "sun": "Sunday",
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday"
+      },
+      "periods": {
+        "once": "one-off",
+        "monthly": "per month",
+        "quarterly": "per quarter",
+        "yearly": "per year",
+        "per_session": "per session"
+      },
+      "cancelRequest": "Withdraw request",
+      "cancelSuccess": "Request withdrawn.",
+      "cancelTooLate": "This request has already been approved. Contact the office to cancel it."
+    },
+    "pickups": {
+      "title": "Authorized to collect your child",
+      "description": "Besides you, these are the people allowed to collect {name} from the kindergarten. Each of them is asked for their ID card at the door.",
+      "legalNote": "This list is the pickup-authorisation register required by executive decree 19-253, and it is kept in your child's official file.",
+      "officeNote": "Every addition, change or removal reaches the office straight away and takes effect immediately.",
+      "askOffice": "Message the office",
+      "empty": "No one but you is authorized yet",
+      "emptyDescription": "Add the grandmother, an uncle, the driver — anyone who might come for your child on a day you cannot come yourself.",
+      "add": "Add a person",
+      "addTitle": "Authorized person",
+      "editTitle": "Edit this person",
+      "dialogDescription": "This person may collect your child on presentation of their ID card.",
+      "name": "Full name",
+      "namePlaceholder": "Fatima Ben Amar",
+      "relationship": "Relationship to the child",
+      "relationshipPlaceholder": "grandmother, uncle, driver",
+      "phone": "Phone",
+      "phonePlaceholder": "0555 12 34 56",
+      "phoneInvalid": "This phone number does not look right.",
+      "nationalId": "National ID number",
+      "nationalIdPlaceholder": "18 digits",
+      "nationalIdHint": "The ID number lets staff check who is at the door before handing your child over.",
+      "editAria": "Edit {name}",
+      "removeAria": "Remove {name} from the list",
+      "callAria": "Call {name}",
+      "remove": "Remove",
+      "deleteTitle": "Remove {name} from the list?",
+      "deleteDescription": "{name} will no longer be allowed to collect your child, effective immediately. The office is notified of this change.",
+      "added": "Added to the pickup list.",
+      "updated": "Details updated.",
+      "removed": "Removed from the pickup list.",
+      "forbidden": "This change could not be applied. Refresh the page or message the office."
+    },
+    "consents": {
+      "title": "Consents",
+      "description": "Three questions the kindergarten needs your answer to. You can change any answer whenever you want.",
+      "officeNote": "Your answer is recorded under your name and dated, and the office sees it as soon as you choose.",
+      "types": {
+        "photos": "Photos and videos",
+        "outings": "Outings",
+        "medical_emergency": "Medical emergency"
+      },
+      "typeHints": {
+        "photos": "Taking photos of your child and sharing them with you in the journal.",
+        "outings": "Your child taking part in organized outings away from the kindergarten.",
+        "medical_emergency": "Calling emergency services and getting your child treated if we cannot reach you."
+      },
+      "granted": "I agree",
+      "refused": "I refuse",
+      "unanswered": "No answer",
+      "needsAnswer": "Awaiting your answer",
+      "decidedAt": "You answered on {date}",
+      "saved": "Your answer has been recorded.",
+      "forbidden": "Your answer could not be recorded. Refresh the page or message the office."
+    }
+  },
+  "payments": {
+    "title": "Payments",
+    "description": "Your children's invoices and payment history.",
+    "totalDue": "Amount due",
+    "allSettled": "All invoices settled",
+    "due": "Due",
+    "upToDate": "Up to date",
+    "emptyChild": "No invoice.",
+    "balanceShort": "Balance",
+    "invoice": "Invoice",
+    "total": "Total",
+    "paid": "Paid",
+    "balance": "Balance",
+    "empty": "No invoices yet",
+    "emptyDescription": "Kindergarten invoices appear here once they are issued.",
+    "statuses": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "unpaid": "Unpaid",
+      "partial": "Partially paid",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "void": "Void"
+    },
+    "detail": {
+      "items": "Invoice items",
+      "payments": "Payments",
+      "noPayments": "No payment recorded.",
+      "methods": {
+        "cash": "Cash",
+        "cib": "CIB card",
+        "edahabia": "Edahabia",
+        "bank_transfer": "Bank transfer",
+        "cheque": "Cheque",
+        "chargily": "Chargily",
+        "other": "Other"
+      }
+    },
+    "cash": {
+      "title": "Pay in cash at the office",
+      "body": "Payments are made in cash at the kindergarten office, and you receive a numbered receipt on the spot. No online payment is needed."
+    },
+    "fees": {
+      "title": "Your monthly fee",
+      "description": "What the crèche charges every month, before activities and extras.",
+      "none": "No fee on record. Ask the office.",
+      "perMonth": "a month",
+      "discount": "{pct}% discount",
+      "since": "since {date}",
+      "until": "until {date}",
+      "ended": "Ended"
+    }
+  },
+  "announcements": {
+    "title": "News",
+    "description": "Kindergarten announcements for parents and for your children's classes.",
+    "empty": "No announcements",
+    "emptyDescription": "Kindergarten announcements addressed to you appear here.",
+    "pinned": "Pinned",
+    "audience": {
+      "all": "Everyone",
+      "parents": "Parents",
+      "staff": "Team",
+      "class": "Class"
+    }
+  },
+  "profile": {
+    "title": "My profile",
+    "phones": {
+      "title": "Contact numbers",
+      "lead": "This is the number the kindergarten calls first if your child falls ill or has an accident — a wrong number here costs the minutes that matter most.",
+      "phone": "Main phone",
+      "phoneInvalid": "Enter a valid phone number.",
+      "phoneAlt": "Second phone",
+      "phoneAltHint": "Called when the main number does not answer — a spouse, a grandparent, your workplace."
+    },
+    "details": {
+      "title": "My details",
+      "description": "What the kindergarten office holds about you as a parent.",
+      "relationship": "Relationship to the child",
+      "relationshipReadOnly": "Set by the kindergarten office — it cannot be changed here.",
+      "firstName": "First name (latin)",
+      "lastName": "Last name (latin)",
+      "firstNameAr": "First name in Arabic",
+      "lastNameAr": "Last name in Arabic",
+      "emailInvalid": "Enter a valid email address.",
+      "nationalId": "National ID number",
+      "workplace": "Workplace",
+      "appliesToAll": "You have {count} children's files at this kindergarten — a change is saved to all of them at once.",
+      "save": "Save my details",
+      "saved": "Your details were updated. The office sees the change straight away.",
+      "noFile": "No parent file yet",
+      "noFileDescription": "Your account is not linked to a parent file at this kindergarten yet. Contact the office and they will link it."
+    },
+    "photo": {
+      "title": "My photo",
+      "description": "Staff check this at the door before handing over your child — a clear photo of your face is all it takes.",
+      "take": "Take a photo",
+      "choose": "Choose from my phone",
+      "replace": "Change my photo",
+      "remove": "Remove my photo",
+      "removeTitle": "Remove your photo?",
+      "removeDescription": "Without it staff cannot recognise you quickly at the door, and you may be kept waiting.",
+      "resizing": "Preparing the photo…",
+      "uploading": "Uploading…",
+      "saving": "Saving…",
+      "saved": "Your photo has been saved",
+      "removed": "Your photo has been removed",
+      "tooLarge": "That image is too large. Choose one under 20 MB.",
+      "forbidden": "The photo could not be uploaded. Please contact the kindergarten office.",
+      "error": "The photo could not be saved. Please try again.",
+      "none": "No photo yet"
+    },
+    "relationships": {
+      "father": "Father",
+      "mother": "Mother",
+      "guardian": "Guardian",
+      "grandparent": "Grandparent",
+      "sibling": "Sibling",
+      "other": "Other"
+    },
+    "account": {
+      "title": "Account and language",
+      "description": "How you sign in, and the language the portal speaks to you in.",
+      "fullName": "Display name",
+      "fullNameHint": "Shown at the top of the portal and next to your messages.",
+      "phone": "Account phone",
+      "phoneHint": "Attached to your login. It is not the number called in an emergency — that one is above.",
+      "email": "Sign-in email",
+      "emailHint": "Contact the office to change the address you sign in with.",
+      "language": "Language",
+      "languageHint": "Applies to the portal and to the alerts sent to your phone.",
+      "languages": {
+        "ar": "العربية",
+        "en": "English",
+        "fr": "Français"
+      },
+      "saved": "Your account was updated"
+    },
+    "children": {
+      "title": "My children",
+      "readOnly": "Names and dates of birth come from the birth certificate and feed the official registers — only the office can correct them.",
+      "empty": "No children linked to your account yet.",
+      "ask": "Ask the office"
+    },
+    "alerts": {
+      "title": "Alerts",
+      "description": "Get a notification on this phone when the kindergarten posts something about your child."
+    },
+    "signOut": {
+      "hint": "You will need your email and password to sign back in."
+    },
+    "errors": {
+      "load": "Your details could not be loaded. Please try again in a moment.",
+      "forbidden": "You are not allowed to change this. Contact the kindergarten office."
+    }
+  }
+}

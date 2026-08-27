@@ -1,0 +1,238 @@
+{
+  "audience": {
+    "all": "Tout le monde",
+    "parents": "Parents",
+    "staff": "Équipe",
+    "class": "Classe"
+  },
+  "severity": {
+    "minor": "Mineur",
+    "moderate": "Modéré",
+    "serious": "Grave"
+  },
+  "meals": {
+    "breakfast": "Petit-déjeuner",
+    "lunch": "Déjeuner",
+    "snack": "Goûter"
+  },
+  "allergens": {
+    "gluten": "Gluten",
+    "lactose": "Lactose",
+    "eggs": "Œufs",
+    "peanuts": "Arachides",
+    "nuts": "Fruits à coque",
+    "fish": "Poisson"
+  },
+  "error": {
+    "title": "Une erreur est survenue",
+    "description": "Impossible de charger cette page. Vérifiez votre connexion puis réessayez.",
+    "retry": "Réessayer"
+  },
+  "announcements": {
+    "title": "Annonces",
+    "description": "Informations publiées aux familles et à l'équipe",
+    "new": "Nouvelle annonce",
+    "empty": "Aucune annonce",
+    "emptyDescription": "Publiez votre première annonce pour informer les familles.",
+    "pinned": "Épinglée",
+    "scheduled": "Programmée",
+    "by": "Par {name}",
+    "share": "Partager sur WhatsApp",
+    "form": {
+      "title": "Titre",
+      "body": "Contenu",
+      "audience": "Destinataires",
+      "class": "Classe",
+      "chooseClass": "Choisir une classe",
+      "pin": "Épingler en haut du fil",
+      "publishAt": "Date de publication"
+    },
+    "createDialog": {
+      "title": "Nouvelle annonce",
+      "description": "L'annonce sera visible par les destinataires choisis à partir de la date de publication.",
+      "submit": "Publier"
+    },
+    "editDialog": {
+      "title": "Modifier l'annonce",
+      "submit": "Enregistrer"
+    },
+    "delete": {
+      "title": "Supprimer cette annonce ?",
+      "description": "L'annonce sera supprimée définitivement pour tout le monde."
+    },
+    "toasts": {
+      "created": "Annonce publiée",
+      "updated": "Annonce mise à jour",
+      "deleted": "Annonce supprimée",
+      "error": "Une erreur est survenue. Réessayez."
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "description": "Conversations avec les familles et l'équipe",
+    "new": "Nouveau message",
+    "empty": "Aucune conversation",
+    "emptyDescription": "Démarrez une conversation avec les parents d'un enfant.",
+    "selectThread": "Sélectionnez une conversation",
+    "selectThreadHint": "Choisissez une conversation dans la liste ou démarrez-en une nouvelle.",
+    "noSubject": "Sans objet",
+    "you": "Vous",
+    "replyPlaceholder": "Écrivez votre message…",
+    "send": "Envoyer",
+    "back": "Retour aux messages",
+    "dialog": {
+      "title": "Nouveau message",
+      "description": "Si la conversation concerne un enfant, ses parents pourront la voir et y répondre.",
+      "child": "Enfant concerné",
+      "generalOption": "Conversation générale (équipe)",
+      "subject": "Objet",
+      "message": "Message",
+      "submit": "Envoyer"
+    },
+    "toasts": {
+      "created": "Conversation créée",
+      "sent": "Message envoyé",
+      "error": "Une erreur est survenue. Réessayez."
+    }
+  },
+  "calendar": {
+    "title": "Calendrier",
+    "description": "Événements de la crèche et jours fériés",
+    "newEvent": "Nouvel événement",
+    "tentative": "à confirmer",
+    "holiday": "Férié",
+    "upcoming": "À venir",
+    "upcomingEmpty": "Aucun événement à venir",
+    "form": {
+      "title": "Titre",
+      "description": "Description",
+      "startAt": "Début",
+      "endAt": "Fin",
+      "optional": "facultatif",
+      "audience": "Destinataires",
+      "class": "Classe",
+      "chooseClass": "Choisir une classe",
+      "color": "Couleur"
+    },
+    "createDialog": {
+      "title": "Nouvel événement",
+      "description": "L'événement apparaîtra sur le calendrier des destinataires choisis.",
+      "submit": "Créer"
+    },
+    "editDialog": {
+      "title": "Modifier l'événement",
+      "submit": "Enregistrer"
+    },
+    "deleteEvent": "Supprimer l'événement",
+    "toasts": {
+      "created": "Événement créé",
+      "updated": "Événement mis à jour",
+      "deleted": "Événement supprimé",
+      "error": "Une erreur est survenue. Réessayez."
+    },
+    "prevMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "today": "Aujourd'hui",
+    "addOn": "Ajouter un événement le {date}",
+    "deleteConfirm": "Confirmer la suppression",
+    "monthEmpty": "Aucun événement ce mois-ci"
+  },
+  "menus": {
+    "title": "Menus",
+    "description": "Menus de la semaine, du dimanche au jeudi",
+    "weekOf": "Du {start} au {end}",
+    "copyLastWeek": "Copier la semaine dernière",
+    "published": "Publié",
+    "draft": "Brouillon",
+    "notSet": "Non renseigné",
+    "allergyWarning": "Alerte allergies",
+    "allergyChildren": "Enfants concernés : {names}",
+    "dialog": {
+      "title": "Menu du {date}",
+      "description": "Renseignez les repas du jour et cochez les allergènes présents.",
+      "allergens": "Allergènes présents",
+      "allergensHint": "Utilisés pour alerter en cas d'allergie chez un enfant inscrit.",
+      "published": "Publié aux parents",
+      "publishedHint": "Un menu non publié reste visible uniquement par l'équipe.",
+      "submit": "Enregistrer"
+    },
+    "toasts": {
+      "saved": "Menu enregistré",
+      "copied": "{count, plural, =0 {Aucun menu à copier la semaine dernière} one {1 jour copié} other {# jours copiés}}",
+      "error": "Une erreur est survenue. Réessayez."
+    },
+    "prevWeek": "Semaine précédente",
+    "nextWeek": "Semaine suivante",
+    "thisWeek": "Cette semaine",
+    "editDay": "Modifier le menu du {date}",
+    "allergyWarningDescription": "Le menu de cette semaine contient des allergènes concernant des enfants inscrits."
+  },
+  "incidents": {
+    "title": "Incidents",
+    "description": "Registre des incidents et suivi de la notification des parents",
+    "report": "Signaler un incident",
+    "empty": "Aucun incident signalé",
+    "emptyDescription": "Les incidents signalés apparaîtront ici avec leur suivi parental.",
+    "view": "Voir le détail",
+    "columns": {
+      "date": "Date",
+      "child": "Enfant",
+      "severity": "Gravité",
+      "description": "Description",
+      "parent": "Parent"
+    },
+    "ack": {
+      "acked": "Acquitté",
+      "ackedAt": "le {date}",
+      "pending": "En attente",
+      "pendingSince": "depuis le {date}",
+      "notNotified": "Non notifié"
+    },
+    "form": {
+      "child": "Enfant",
+      "chooseChild": "Choisir un enfant",
+      "severity": "Gravité",
+      "location": "Lieu",
+      "locationPlaceholder": "Cour, salle de classe…",
+      "occurredAt": "Date et heure",
+      "description": "Description",
+      "actionTaken": "Mesures prises",
+      "notify": "Notifier le parent maintenant",
+      "notifyHint": "Enregistre l'heure de notification et démarre le suivi d'acquittement."
+    },
+    "dialog": {
+      "title": "Signaler un incident",
+      "description": "Décrivez ce qui s'est passé et les mesures prises.",
+      "submit": "Signaler"
+    },
+    "detail": {
+      "title": "Incident du {date}",
+      "back": "Retour aux incidents",
+      "child": "Enfant",
+      "class": "Classe",
+      "occurredAt": "Survenu le",
+      "location": "Lieu",
+      "descriptionLabel": "Description",
+      "actionTaken": "Mesures prises",
+      "reportedBy": "Signalé par",
+      "timeline": "Suivi parental",
+      "timelineOccurred": "Incident survenu",
+      "timelineReported": "Incident signalé",
+      "timelineReportedBy": "par {name}",
+      "timelineNotified": "Parent notifié",
+      "timelineAcked": "Acquitté par le parent",
+      "timelineAckedBy": "par {name}",
+      "awaitingAck": "En attente d'acquittement du parent",
+      "notNotifiedYet": "Le parent n'a pas encore été notifié.",
+      "notifyNow": "Notifier le parent",
+      "notFound": "Incident introuvable",
+      "notFoundHint": "Cet incident a peut-être été supprimé, ou le lien est incorrect."
+    },
+    "toasts": {
+      "reported": "Incident signalé",
+      "notified": "Parent notifié",
+      "error": "Une erreur est survenue. Réessayez."
+    },
+    "severityFilter": "Filtrer par gravité"
+  }
+}

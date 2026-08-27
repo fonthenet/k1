@@ -1,0 +1,162 @@
+{
+  "meta": {
+    "title": "Rawdati — gestion de crèches et jardins d'enfants en Algérie",
+    "description": "Une seule plateforme algérienne pour gérer votre crèche : inscription en ligne, présences du jour, facturation en dinars, comptabilité et paie, et un espace parents en arabe, anglais et français."
+  },
+  "brand": {
+    "nameAr": "روضتي",
+    "nameLatin": "Rawdati",
+    "tagline": "La gestion de crèche, en toute simplicité"
+  },
+  "nav": {
+    "primaryLabel": "Navigation principale",
+    "menu": "Menu",
+    "language": "Langue",
+    "login": "Connexion",
+    "signup": "Essai gratuit",
+    "features": "Fonctionnalités",
+    "solutions": "Solutions",
+    "pricing": "Tarifs",
+    "faq": "FAQ",
+    "menuFooter": {
+      "features": "Voir toutes les fonctionnalités",
+      "solutions": "Voir toutes les solutions"
+    },
+    "featuresMenu": {
+      "admissions": {
+        "title": "Inscriptions",
+        "desc": "Les dossiers des parents arrivent triés, prêts à valider."
+      },
+      "attendance": {
+        "title": "Présences et pointage",
+        "desc": "Entrée et sortie par badge, le parent averti dans la seconde."
+      },
+      "billing": {
+        "title": "Facturation en dinars",
+        "desc": "Factures mensuelles automatiques et reçus prêts à imprimer."
+      },
+      "parents": {
+        "title": "Espace parents",
+        "desc": "Photos, annonces et messages au même endroit."
+      }
+    },
+    "solutionsMenu": {
+      "creche": {
+        "title": "Crèche",
+        "desc": "De trois mois à trois ans."
+      },
+      "kindergarten": {
+        "title": "Jardin d'enfants",
+        "desc": "De trois à cinq ans."
+      },
+      "preschool": {
+        "title": "Classe préparatoire",
+        "desc": "Préparer l'entrée à l'école primaire."
+      },
+      "network": {
+        "title": "Réseau d'établissements",
+        "desc": "Plusieurs sites, un seul compte, un seul tableau de bord."
+      }
+    }
+  },
+  "hero": {
+    "eyebrow": "Conçue en Algérie · pensée en arabe d'abord",
+    "headline": "Toute la crèche<br></br>sur <mark>un seul écran</mark>",
+    "subtext": "Inscriptions, présences du jour, factures en dinars et messages aux parents — une seule plateforme faite pour les crèches algériennes, au bureau comme sur votre téléphone.",
+    "ctaPrimary": "Créer ma crèche",
+    "ctaSecondary": "Voir les fonctionnalités",
+    "serves": {
+      "creche": "crèches",
+      "kindergarten": "jardins d'enfants",
+      "preschool": "classes préparatoires"
+    }
+  },
+  "mockup": {
+    "label": "Aperçu du tableau de bord Rawdati",
+    "monogram": "A",
+    "greeting": "Bonjour Amina",
+    "date": "Dimanche 18 octobre 2026",
+    "stats": {
+      "children": {
+        "label": "Enfants inscrits",
+        "value": "92"
+      },
+      "attendance": {
+        "label": "Présence du jour",
+        "value": "94 %"
+      },
+      "sessions": {
+        "label": "Séances aujourd'hui",
+        "value": "6"
+      },
+      "messages": {
+        "label": "Messages non lus",
+        "value": "5"
+      }
+    },
+    "calendar": {
+      "title": "Octobre 2026",
+      "weekdays": {
+        "sun": "D",
+        "mon": "L",
+        "tue": "M",
+        "wed": "M",
+        "thu": "J",
+        "fri": "V",
+        "sat": "S"
+      }
+    },
+    "sessions": {
+      "title": "Séances du jour",
+      "more": "Tout voir",
+      "items": {
+        "one": {
+          "time": "09:00",
+          "title": "Atelier peinture",
+          "room": "Classe des Bourgeons",
+          "count": "12"
+        },
+        "two": {
+          "time": "10:30",
+          "title": "Éveil moteur",
+          "room": "Classe des Fleurs",
+          "count": "15"
+        },
+        "three": {
+          "time": "13:15",
+          "title": "Conte et musique",
+          "room": "Classe des Papillons",
+          "count": "9"
+        }
+      }
+    },
+    "chips": {
+      "enrollment": {
+        "title": "Nouvelle inscription",
+        "sub": "Yasmine Hammadi · 4 ans"
+      },
+      "payment": {
+        "title": "Paiement reçu",
+        "sub": "Famille Ben Amar"
+      }
+    }
+  },
+  "trust": {
+    "designed": {
+      "title": "Pensée pour les crèches algériennes",
+      "desc": "Semaine du dimanche au jeudi, montants en dinars, noms en arabe."
+    },
+    "decree": {
+      "title": "Conforme au décret 19-253",
+      "desc": "Registres et exports prêts pour l'inspection de l'action sociale."
+    },
+    "languages": {
+      "title": "Arabe, anglais et français",
+      "desc": "Chaque parent et chaque employé choisit sa langue d'interface."
+    },
+    "backups": {
+      "title": "Sauvegardes chiffrées quotidiennes",
+      "desc": "Les données de chaque établissement restent isolées et sauvegardées chaque jour."
+    }
+  }
+}

@@ -1,0 +1,267 @@
+{
+  "nav": {
+    "label": "Sections des paramètres",
+    "school": "Établissement",
+    "enrollment": "Liens d'inscription",
+    "holidays": "Jours fériés",
+    "documents": "Documents",
+    "notifications": "Notifications"
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Réessayez.",
+    "forbidden": "Vous n'avez pas la permission d'effectuer cette action.",
+    "invalid": "Certaines informations saisies sont invalides."
+  },
+  "roles": {
+    "owner": "Propriétaire",
+    "admin": "Administrateur",
+    "educator": "Éducateur·rice",
+    "staff": "Personnel",
+    "accountant": "Comptable",
+    "parent": "Parent"
+  },
+  "school": {
+    "title": "Fiche de l'établissement",
+    "description": "Nom, logo et coordonnées visibles par les parents",
+    "infoTitle": "Informations générales",
+    "name": "Nom de l'établissement",
+    "centerType": "Type d'établissement",
+    "centerTypeHint": "Le type de structure que vous gérez.",
+    "wilaya": "Wilaya",
+    "wilayaPlaceholder": "Choisir une wilaya",
+    "commune": "Commune",
+    "logo": "Logo",
+    "uploadLogo": "Changer le logo",
+    "logoUpdated": "Logo mis à jour",
+    "logoHint": "PNG, JPG ou WebP, 10 Mo maximum.",
+    "loadError": "Impossible de charger la fiche de l'établissement.",
+    "map": {
+      "label": "Emplacement sur la carte",
+      "hint": "Collez le lien de partage Google Maps de votre établissement, ou les coordonnées. Les familles y trouveront l'itinéraire.",
+      "placeholder": "Lien Google Maps, ou 36.821, 5.766",
+      "useMyLocation": "Ma position",
+      "locating": "Localisation…",
+      "open": "Ouvrir dans Maps",
+      "remove": "Retirer le repère",
+      "empty": "Aucun repère. L'adresse seule ne suffit pas toujours pour vous trouver.",
+      "invalid": "Impossible de lire ce lien. Collez le lien complet de Google Maps, ou les coordonnées.",
+      "shortLink": "Ce lien est raccourci. Ouvrez-le dans Maps, puis copiez le lien complet depuis la barre d'adresse.",
+      "noGeolocation": "Votre navigateur ne peut pas donner votre position.",
+      "denied": "Position refusée. Autorisez la localisation, ou collez un lien."
+    }
+  },
+  "centerTypes": {
+    "nursery": {
+      "name": "Crèche",
+      "desc": "Accueil des bébés et tout-petits à la journée."
+    },
+    "kindergarten": {
+      "name": "Jardin d'enfants",
+      "desc": "Classes préscolaires de 3 à 6 ans."
+    },
+    "montessori": {
+      "name": "École Montessori",
+      "desc": "Pédagogie Montessori et classes multi-âges."
+    },
+    "edu_center": {
+      "name": "Centre pédagogique",
+      "desc": "Soutien scolaire, remise à niveau et ateliers."
+    },
+    "therapy_center": {
+      "name": "Centre de prise en charge",
+      "desc": "Orthophonie, psychomotricité et suivi individuel."
+    },
+    "activity_center": {
+      "name": "Club d'activités",
+      "desc": "Sports, arts et culture en périscolaire."
+    },
+    "camp": {
+      "name": "Colonie de vacances",
+      "desc": "Séjours et stages de vacances par sessions."
+    }
+  },
+  "enrollment": {
+    "title": "Liens d'inscription",
+    "description": "Partagez un lien pour que les familles déposent elles-mêmes leur dossier",
+    "create": "Nouveau lien",
+    "created": "Lien créé",
+    "createTitle": "Créer un lien d'inscription",
+    "createDescription": "Générez un lien privé à partager sur WhatsApp, Facebook ou une affiche imprimée.",
+    "label": "Libellé",
+    "labelPlaceholder": "Rentrée 2026",
+    "expires": "Date d'expiration",
+    "maxUses": "Utilisations maximum",
+    "activeLabel": "Lien actif",
+    "copy": "Copier le lien",
+    "copied": "Lien copié",
+    "whatsapp": "Partager sur WhatsApp",
+    "poster": "Affiche QR",
+    "shareText": "Bonjour ! Vous pouvez inscrire votre enfant à {name} via ce lien :",
+    "deleteTitle": "Supprimer ce lien ?",
+    "deleteDescription": "Le lien « {label} » cessera définitivement de fonctionner.",
+    "empty": "Aucun lien d'inscription",
+    "emptyHint": "Créez un lien et partagez-le avec les familles pour recevoir les dossiers directement.",
+    "loadError": "Impossible de charger les liens d'inscription.",
+    "columns": {
+      "label": "Libellé",
+      "url": "Lien",
+      "uses": "Utilisations",
+      "expires": "Expiration",
+      "active": "Actif",
+      "actions": "Actions"
+    },
+    "usesOf": "{used} sur {max}",
+    "unlimited": "Illimité",
+    "noExpiry": "Sans expiration",
+    "expired": "Expiré",
+    "full": "Limite atteinte"
+  },
+  "poster": {
+    "title": "Affiche d'inscription",
+    "description": "Imprimez-la pour le hall d'entrée ou partagez-la en ligne",
+    "back": "Retour aux liens",
+    "notFound": "Lien introuvable",
+    "notFoundHint": "Ce lien a peut-être été supprimé.",
+    "inactiveWarning": "Ce lien est inactif : le code ne fonctionnera pas tant que vous ne l'aurez pas réactivé.",
+    "heading": {
+      "ar": "سجّل طفلك عندنا",
+      "en": "Enrol your child with us",
+      "fr": "Inscrivez votre enfant chez nous"
+    },
+    "instruction": {
+      "ar": "امسح الرمز بكاميرا هاتفك",
+      "en": "Scan the code with your phone camera",
+      "fr": "Scannez le code avec l'appareil photo de votre téléphone"
+    },
+    "orVisit": {
+      "ar": "أو ادخل إلى الرابط",
+      "en": "Or go to",
+      "fr": "Ou rendez-vous sur"
+    }
+  },
+  "holidays": {
+    "title": "Jours fériés et fermetures",
+    "description": "Les jours où l'établissement ferme, regroupés par mois",
+    "add": "Ajouter un jour férié",
+    "addTitle": "Ajouter un jour férié",
+    "addDescription": "Ajoutez une fête nationale, une fête religieuse ou une fermeture propre à votre établissement.",
+    "nameFr": "Nom (français)",
+    "nameAr": "Nom en arabe",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "closureLabel": "Établissement fermé",
+    "tentativeLabel": "Date non encore confirmée",
+    "tentativeBadge": "Date approximative",
+    "openBadge": "Établissement ouvert",
+    "confirmed": "Date confirmée",
+    "confirmTitle": "Confirmer la date",
+    "confirmDescription": "Indiquez la date officiellement annoncée pour « {name} ».",
+    "deleteTitle": "Supprimer ce jour férié ?",
+    "deleteDescription": "« {name} » sera retiré du calendrier.",
+    "empty": "Aucun jour férié enregistré",
+    "emptyHint": "Ajoutez les fêtes nationales pour qu'elles apparaissent dans le calendrier.",
+    "loadError": "Impossible de charger les jours fériés.",
+    "dateRange": "du {start} au {end}",
+    "columns": {
+      "holiday": "Jour férié",
+      "date": "Date",
+      "closure": "Fermeture",
+      "actions": "Actions"
+    },
+    "tentativeNotice": "Les dates religieuses restent approximatives jusqu'à l'annonce officielle : confirmez-les le moment venu.",
+    "past": "Passé"
+  },
+  "documents": {
+    "title": "Documents administratifs",
+    "description": "Agrément, assurance et certificats de conformité avec suivi des échéances",
+    "add": "Ajouter un document",
+    "addTitle": "Ajouter un document",
+    "addDescription": "Conservez une copie du document et sa date d'expiration pour ne rien laisser expirer.",
+    "docTitle": "Intitulé du document",
+    "titlePlaceholder": "Agrément de la direction de l'action sociale",
+    "type": "Type de document",
+    "types": {
+      "agrement": "Agrément",
+      "insurance": "Assurance",
+      "conformity": "Certificat de conformité",
+      "other": "Autre"
+    },
+    "issued": "Date de délivrance",
+    "expires": "Date d'expiration",
+    "file": "Fichier",
+    "fileHint": "PDF ou image, 10 Mo maximum.",
+    "view": "Consulter le document",
+    "noFile": "Aucun fichier joint",
+    "issuedOn": "Délivré le {date}",
+    "expiresOn": "Expire le {date}",
+    "deleteTitle": "Supprimer ce document ?",
+    "deleteDescription": "« {title} » et son fichier seront définitivement supprimés.",
+    "empty": "Aucun document enregistré",
+    "emptyHint": "Ajoutez votre agrément et votre police d'assurance pour suivre leurs renouvellements.",
+    "loadError": "Impossible de charger les documents.",
+    "status": {
+      "valid": "Valide",
+      "expiring": "Expire bientôt",
+      "expired": "Expiré",
+      "noExpiry": "Sans expiration"
+    },
+    "alertTitle": "Documents à renouveler",
+    "alertDescription": "{count} document(s) ont expiré ou expirent dans moins de 60 jours."
+  },
+  "profile": {
+    "title": "Mon profil",
+    "description": "Vos informations personnelles, la langue de l'interface et votre mot de passe",
+    "accountTitle": "Informations personnelles",
+    "fullName": "Nom complet",
+    "language": "Langue de l'interface",
+    "languageHint": "S'applique immédiatement à toute l'application.",
+    "languages": {
+      "ar": "العربية",
+      "en": "English",
+      "fr": "Français"
+    },
+    "accessTitle": "Compte et accès",
+    "accessHint": "Ces informations sont gérées par l'administrateur de l'établissement.",
+    "role": "Rôle",
+    "staffCode": "Code personnel",
+    "pinCode": "Code PIN",
+    "pinHint": "Sert à pointer sur la borne d'accueil.",
+    "notSet": "Non défini",
+    "passwordTitle": "Mot de passe",
+    "passwordDescription": "Choisissez un nouveau mot de passe d'au moins 8 caractères.",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "updatePassword": "Mettre à jour le mot de passe",
+    "passwordUpdated": "Mot de passe mis à jour",
+    "passwordMismatch": "Les deux mots de passe ne correspondent pas",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+    "passwordError": "Impossible de mettre à jour le mot de passe. Reconnectez-vous, puis réessayez."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Choisissez ce qui vous alerte, sur téléphone comme au bureau, dès qu'un événement demande l'attention de l'équipe.",
+    "deviceTitle": "Alertes sur cet appareil",
+    "deviceDescription": "L'autorisation vaut pour un navigateur et un appareil à la fois. Activez-la sur votre téléphone et sur l'ordinateur du bureau pour être joignable des deux côtés.",
+    "deviceHint": "Vous pouvez la désactiver quand vous voulez — les notifications restent visibles dans l'application.",
+    "eventsTitle": "Ce qui alerte l'équipe",
+    "eventsDescription": "Ces événements envoient une alerte dès qu'ils se produisent.",
+    "events": {
+      "application": {
+        "title": "Nouvelle demande d'inscription",
+        "description": "Une famille envoie une demande via le lien d'inscription. Va à la direction."
+      },
+      "message": {
+        "title": "Message d'un parent",
+        "description": "Un parent écrit dans une conversation, signalement d'absence compris. Va à la direction et aux éducatrices."
+      },
+      "activity_request": {
+        "title": "Demande d'activité",
+        "description": "Une famille demande à inscrire son enfant à une activité. Va à la direction."
+      },
+      "task": {
+        "title": "Tâche qui vous est assignée",
+        "description": "Une tâche du tableau vous est attribuée. Va à cette personne uniquement."
+      }
+    }
+  }
+}

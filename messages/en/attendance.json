@@ -1,0 +1,87 @@
+{
+  "title": "Attendance register",
+  "description": "Daily attendance tracking — arrivals, departures and absences",
+  "nav": {
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "today": "Today",
+    "history": "History",
+    "register": "Today's register",
+    "weekendNotice": "Weekend (Friday / Saturday) — the kindergarten is normally closed."
+  },
+  "tabs": {
+    "all": "All classes"
+  },
+  "counters": {
+    "present": "{count, plural, =0 {0 present} one {# present} other {# present}}",
+    "absent": "{count, plural, =0 {0 absent} one {# absent} other {# absent}}",
+    "notMarked": "{count, plural, =0 {0 not marked} one {# not marked} other {# not marked}}",
+    "checkedOut": "{count, plural, =0 {0 checked out} one {# checked out} other {# checked out}}"
+  },
+  "status": {
+    "present": "Present",
+    "late": "Late",
+    "absent": "Absent",
+    "sick": "Sick",
+    "excused": "Excused",
+    "notMarked": "Not marked"
+  },
+  "table": {
+    "child": "Child",
+    "status": "Status",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "details": "Details",
+    "actions": "Actions"
+  },
+  "actions": {
+    "markAllPresent": "Mark all present",
+    "checkOutNow": "Check out now",
+    "editTimes": "Edit times"
+  },
+  "timeDialog": {
+    "title": "Times — {name}",
+    "description": "Manually set the check-in and check-out times for {date}.",
+    "checkIn": "Check-in time",
+    "checkOut": "Check-out time",
+    "hint": "Leave a field empty to clear the corresponding time."
+  },
+  "fields": {
+    "pickedUpBy": "Picked up by",
+    "pickedUpByPlaceholder": "Person's name",
+    "absenceReason": "Absence reason",
+    "absenceReasonPlaceholder": "Reason…"
+  },
+  "allergy": {
+    "badge": "Allergy",
+    "list": "Allergies: {list}"
+  },
+  "toasts": {
+    "saved": "Attendance saved",
+    "timesSaved": "Times updated",
+    "checkedOut": "Check-out recorded",
+    "bulkDone": "{count, plural, one {# child marked present} other {# children marked present}}",
+    "bulkNone": "All children are already marked",
+    "error": "Something went wrong. Please try again."
+  },
+  "empty": {
+    "title": "No children",
+    "description": "No enrolled children in this class yet."
+  },
+  "error": {
+    "title": "Could not load attendance",
+    "description": "An error occurred while loading the data.",
+    "retry": "Retry"
+  },
+  "history": {
+    "title": "Attendance history",
+    "description": "Weekly grid (Sunday – Thursday) by class",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "legend": "Legend",
+    "noStatus": "Not marked",
+    "total": "Total",
+    "totalTitle": "Days present in the month",
+    "empty": "No attendance data for this month."
+  }
+}

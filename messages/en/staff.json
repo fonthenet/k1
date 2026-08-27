@@ -1,0 +1,237 @@
+{
+  "team": {
+    "title": "Team",
+    "description": "Staff members, roles and today's check-ins",
+    "leavesLink": "Leave",
+    "invitesLink": "Invitations",
+    "empty": "No team members yet",
+    "emptyHint": "Invite your first team member to get started.",
+    "loadError": "We couldn't load the team. Please try again.",
+    "columns": {
+      "member": "Member",
+      "role": "Role",
+      "code": "Code",
+      "phone": "Phone",
+      "hireDate": "Hired",
+      "status": "Status",
+      "today": "Today"
+    }
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Administrator",
+    "educator": "Educator",
+    "staff": "Staff",
+    "accountant": "Accountant"
+  },
+  "roleDescriptions": {
+    "owner": "Full access: manages everything, including settings and the team.",
+    "admin": "Runs day-to-day operations: children, team, attendance and finances.",
+    "educator": "Manages their class: attendance, activities and child follow-up.",
+    "staff": "Limited access: their own check-ins and basic information.",
+    "accountant": "Finances only: invoices, payments, expenses and payroll."
+  },
+  "memberStatus": {
+    "active": "Active",
+    "invited": "Invited",
+    "disabled": "Disabled"
+  },
+  "clock": {
+    "in": "Clock in",
+    "out": "Clock out",
+    "clockedIn": "Clocked in at {time}",
+    "clockedOut": "Clocked out at {time}",
+    "presentSince": "Present since {time}",
+    "leftAt": "Left at {time}",
+    "notIn": "Not clocked in"
+  },
+  "invite": {
+    "button": "Invite a member",
+    "title": "Invite a member",
+    "description": "Create an invitation link for a new team member.",
+    "email": "Email",
+    "role": "Role",
+    "jobTitle": "Job title",
+    "jobTitlePlaceholder": "Preschool educator",
+    "create": "Create invitation",
+    "linkTitle": "Invitation created",
+    "linkHelp": "Share this link with {email}. It expires in 14 days.",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "modeInvite": "Invite by email",
+    "modeLocal": "Create directly",
+    "addButton": "Add a member",
+    "addTitle": "Add a team member"
+  },
+  "edit": {
+    "title": "Edit member",
+    "description": "Role, job title, salary and codes for {name}.",
+    "role": "Role",
+    "jobTitle": "Job title",
+    "baseSalary": "Base salary (DA)",
+    "staffCode": "Badge code",
+    "pinCode": "PIN code",
+    "status": "Status",
+    "saved": "Member updated",
+    "payType": "Pay type",
+    "hourlyRate": "Hourly rate",
+    "monthlyHint": "Fixed monthly salary, independent of clocked hours.",
+    "hourlyHint": "Pay is computed from the hours recorded on the timesheet each month."
+  },
+  "detail": {
+    "backToTeam": "Team",
+    "notFound": "Member not found",
+    "notFoundHint": "This member doesn't exist or has been removed.",
+    "hiredOn": "Hired on {date}",
+    "tabs": {
+      "timesheets": "Timesheets",
+      "leaves": "Leave",
+      "salary": "Salary"
+    }
+  },
+  "timesheets": {
+    "monthTotal": "Month total: {total}",
+    "columns": {
+      "date": "Date",
+      "in": "In",
+      "out": "Out",
+      "duration": "Duration",
+      "approved": "Approved"
+    },
+    "empty": "No entries this month.",
+    "add": "Add an entry",
+    "addTitle": "Add an entry",
+    "editTitle": "Edit entry",
+    "dialogDescription": "Manual entries are recorded in the audit log.",
+    "date": "Date",
+    "clockIn": "Clock-in time",
+    "clockOut": "Clock-out time",
+    "notes": "Notes",
+    "saved": "Entry saved",
+    "approvedToast": "Entry approved",
+    "unapprovedToast": "Approval removed",
+    "inProgress": "In progress",
+    "duration": "{hours} h {minutes} min",
+    "breakMinutes": "Break minutes (unpaid)"
+  },
+  "leaves": {
+    "title": "Leave",
+    "description": "Leave requests from the team",
+    "request": "Request leave",
+    "requestTitle": "New leave request",
+    "requestDescription": "Your request will be sent to management for a decision.",
+    "type": "Leave type",
+    "types": {
+      "vacation": "Annual leave",
+      "sick": "Sick leave",
+      "personal": "Personal reason"
+    },
+    "startDate": "From",
+    "endDate": "To",
+    "reason": "Reason",
+    "reasonPlaceholder": "Add a reason (optional)",
+    "submitted": "Request sent",
+    "myRequests": "My requests",
+    "pendingTitle": "Awaiting decision",
+    "allTitle": "All requests",
+    "upcomingTitle": "Upcoming approved leave",
+    "upcomingEmpty": "No upcoming approved leave.",
+    "columns": {
+      "member": "Member",
+      "type": "Type",
+      "period": "Period",
+      "reason": "Reason",
+      "status": "Status",
+      "requestedOn": "Requested on"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel request",
+    "approvedToast": "Leave approved",
+    "rejectedToast": "Leave rejected",
+    "cancelledToast": "Request cancelled",
+    "empty": "No leave requests.",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "dateError": "The end date must be after the start date."
+  },
+  "salary": {
+    "baseSalary": "Base salary",
+    "notSet": "Not set",
+    "advancesTitle": "Salary advances",
+    "advancesEmpty": "No advances recorded.",
+    "advanceColumns": {
+      "date": "Date",
+      "amount": "Amount",
+      "repaid": "Repaid",
+      "note": "Note"
+    },
+    "payrollTitle": "Payroll history",
+    "payrollEmpty": "No payslips yet.",
+    "payrollColumns": {
+      "month": "Month",
+      "base": "Base",
+      "bonuses": "Bonuses",
+      "deductions": "Deductions",
+      "advances": "Advances",
+      "net": "Net",
+      "paidAt": "Paid on"
+    },
+    "unpaid": "Unpaid",
+    "perHour": "{amount} / hour",
+    "hours": "{hours} h"
+  },
+  "invites": {
+    "title": "Invitations",
+    "description": "Invitations waiting to be accepted",
+    "empty": "No pending invitations",
+    "emptyHint": "Create an invitation from the Team page.",
+    "columns": {
+      "email": "Email",
+      "role": "Role",
+      "jobTitle": "Job title",
+      "expires": "Expires on"
+    },
+    "expired": "Expired",
+    "copyLink": "Copy link",
+    "copied": "Link copied",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke this invitation?",
+    "revokeDescription": "The link sent to {email} will stop working.",
+    "revoked": "Invitation revoked"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "forbidden": "You're not allowed to do that.",
+    "invalid": "Invalid data.",
+    "notClockedIn": "No clock-in recorded today."
+  },
+  "payType": {
+    "monthly": "Monthly",
+    "hourly": "Hourly"
+  },
+  "badge": {
+    "title": "Staff badge",
+    "back": "Back to profile",
+    "scanHint": "Scan this at the kiosk to clock in and out.",
+    "noCodeTitle": "No staff code",
+    "noCodeBody": "Add a code on the member's profile before printing a badge.",
+    "print": "Print badge"
+  },
+  "local": {
+    "description": "For a team member with no email. They are created here and handed a code and PIN for the kiosk.",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Fatiha Belkacem",
+    "create": "Create member",
+    "created": "Member added",
+    "handOver": "Hand these to {name} now.",
+    "staffCode": "Staff code",
+    "pinCode": "PIN",
+    "pinOnce": "The PIN is shown once. Write it down now — it is never displayed again."
+  }
+}

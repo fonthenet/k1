@@ -1,0 +1,127 @@
+{
+  "title": "Door kiosk",
+  "presentCount": "{count, plural, =0 {No children present} one {# child present} other {# children present}}",
+  "exit": "Exit kiosk",
+  "modes": {
+    "children": "Children",
+    "staff": "Staff"
+  },
+  "input": {
+    "keypad": "Keypad",
+    "scan": "Scan"
+  },
+  "children": {
+    "prompt": "Enter the child's code or the parent's PIN",
+    "hint": "K-001",
+    "chooseChild": "Which child?",
+    "checkedIn": "Check-in recorded {time}",
+    "checkedOut": "Check-out recorded {time}",
+    "pickedUpBy": "Picked up by",
+    "pickedUpByPlaceholder": "Person's name",
+    "allergyWarning": "WARNING — ALLERGIES",
+    "class": "Class"
+  },
+  "scan": {
+    "prompt": "Hold the QR code up to the camera",
+    "starting": "Starting the camera…",
+    "paused": "Scanning paused",
+    "useKeypad": "Use the keypad",
+    "videoLabel": "Camera viewfinder",
+    "errors": {
+      "denied": "Camera access was refused. Allow the camera for this site, or use the keypad.",
+      "noCamera": "No camera was found on this device. Use the keypad.",
+      "insecure": "The camera needs a secure connection (HTTPS). Use the keypad.",
+      "generic": "The camera could not start. Try again or use the keypad."
+    }
+  },
+  "verify": {
+    "adultLabel": "Adult at the door",
+    "subtitle": "Check that the photo matches the person in front of you before recording.",
+    "noPhoto": "No photo on file — check an ID before releasing a child.",
+    "chooseChildren": "Which children?",
+    "selectAll": "Select all",
+    "clearAll": "Clear",
+    "willCheckIn": "Arrival",
+    "arrivedAt": "Departure · arrived {time}",
+    "confirmCount": "{count, plural, =0 {Choose a child} one {Record # child} other {Record # children}}",
+    "noPickup": "Not authorized for pickup"
+  },
+  "duplicate": {
+    "title": "Check before recording",
+    "arrivedAt": "Arrived at {time}",
+    "leftAt": "Left at {time}",
+    "reasons": {
+      "already_in": "{name} is already checked in and still here. Nothing has been recorded.",
+      "already_out": "{name} was already checked out today. Nothing has been recorded.",
+      "just_arrived": "{name} arrived less than two minutes ago. Did you mean to record a departure?",
+      "returned": "{name} left today and is now back at the door. Record their return?"
+    },
+    "cancel": "No, cancel",
+    "forceOut": "Record departure anyway",
+    "forceIn": "Record arrival anyway",
+    "partial": "{recorded} of {total} recorded. This child is waiting on your decision.",
+    "remaining": "{count, plural, one {# more child to check} other {# more children to check}}",
+    "forceReturn": "Record return — the earlier departure will be replaced"
+  },
+  "result": {
+    "adult": "Adult",
+    "child": "Child",
+    "recordedWith": "Recorded with {name}",
+    "noGuardian": "No adult was identified for this scan.",
+    "partialFailure": "{count, plural, one {# child could not be recorded} other {# children could not be recorded}}"
+  },
+  "relationships": {
+    "father": "Father",
+    "mother": "Mother",
+    "guardian": "Guardian",
+    "grandparent": "Grandparent",
+    "sibling": "Sibling",
+    "other": "Other"
+  },
+  "staff": {
+    "prompt": "Enter your staff code or PIN",
+    "in": "Clock in",
+    "out": "Clock out",
+    "clockedIn": "Clock-in recorded {time}",
+    "clockedOut": "Clock-out recorded {time}",
+    "breakStart": "Lunch break",
+    "breakEnd": "Back from break",
+    "endDay": "End of day",
+    "onClockSince": "On the clock since {time}",
+    "onBreakSince": "On break since {time}",
+    "offToday": "Not clocked in today",
+    "breakSoFar": "Breaks today: {minutes} min",
+    "whatNow": "What are you recording?",
+    "breakStarted": "Break started {time}",
+    "breakEnded": "Break ended {time} — {minutes} min",
+    "unpaidNote": "Breaks are not counted as paid hours.",
+    "allowanceNote": "Lunch is paid up to {minutes} min. Anything beyond that is unpaid.",
+    "breakDeducted": "Breaks: {total} min — {unpaid} min unpaid",
+    "breakCovered": "Breaks: {minutes} min — fully paid"
+  },
+  "keypad": {
+    "validate": "Confirm",
+    "clear": "Clear",
+    "backspace": "Backspace"
+  },
+  "actions": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "close": "Close",
+    "retry": "Retry"
+  },
+  "errors": {
+    "unknownCode": "Unknown code. Check the code and try again.",
+    "ambiguousCode": "This code matches more than one person. Ask the office.",
+    "noChildren": "No enrolled child is linked to this code.",
+    "notClockedIn": "No clock-in recorded today.",
+    "generic": "Something went wrong. Please try again.",
+    "loadTitle": "The kiosk could not load",
+    "loadDescription": "An error occurred. Check the connection and try again.",
+    "pickupNotAllowed": "This adult is not authorized to pick up this child. Nothing was recorded — see the director.",
+    "alreadyClockedIn": "You are already clocked in today.",
+    "alreadyOnBreak": "You are already on a break.",
+    "notOnBreak": "No break is running.",
+    "staffCodeHere": "That is a staff badge. Use the Personnel tab."
+  }
+}

@@ -1,0 +1,238 @@
+{
+  "audience": {
+    "all": "الجميع",
+    "parents": "الأولياء",
+    "staff": "الفريق",
+    "class": "القسم"
+  },
+  "severity": {
+    "minor": "بسيط",
+    "moderate": "متوسط",
+    "serious": "خطير"
+  },
+  "meals": {
+    "breakfast": "الفطور",
+    "lunch": "الغداء",
+    "snack": "اللمجة"
+  },
+  "allergens": {
+    "gluten": "الغلوتين",
+    "lactose": "اللاكتوز",
+    "eggs": "البيض",
+    "peanuts": "الفول السوداني",
+    "nuts": "المكسرات",
+    "fish": "السمك"
+  },
+  "error": {
+    "title": "حدث خطأ",
+    "description": "تعذّر تحميل هذه الصفحة. تحقّق من الاتصال ثم أعد المحاولة.",
+    "retry": "إعادة المحاولة"
+  },
+  "announcements": {
+    "title": "الإعلانات",
+    "description": "معلومات تُنشر للعائلات والفريق",
+    "new": "إعلان جديد",
+    "empty": "لا توجد إعلانات",
+    "emptyDescription": "انشر أول إعلان لإعلام العائلات.",
+    "pinned": "مثبَّت",
+    "scheduled": "مبرمَج",
+    "by": "بواسطة {name}",
+    "share": "مشاركة عبر واتساب",
+    "form": {
+      "title": "العنوان",
+      "body": "المحتوى",
+      "audience": "الموجَّه إليهم",
+      "class": "القسم",
+      "chooseClass": "اختر قسمًا",
+      "pin": "تثبيت في أعلى القائمة",
+      "publishAt": "تاريخ النشر"
+    },
+    "createDialog": {
+      "title": "إعلان جديد",
+      "description": "سيظهر الإعلان للمعنيين ابتداءً من تاريخ النشر.",
+      "submit": "نشر"
+    },
+    "editDialog": {
+      "title": "تعديل الإعلان",
+      "submit": "حفظ"
+    },
+    "delete": {
+      "title": "حذف هذا الإعلان؟",
+      "description": "سيُحذف الإعلان نهائيًا لدى الجميع."
+    },
+    "toasts": {
+      "created": "تم نشر الإعلان",
+      "updated": "تم تحديث الإعلان",
+      "deleted": "تم حذف الإعلان",
+      "error": "حدث خطأ. أعد المحاولة."
+    }
+  },
+  "messages": {
+    "title": "الرسائل",
+    "description": "محادثات مع العائلات والفريق",
+    "new": "رسالة جديدة",
+    "empty": "لا توجد محادثات",
+    "emptyDescription": "ابدأ محادثة مع أولياء أحد الأطفال.",
+    "selectThread": "اختر محادثة",
+    "selectThreadHint": "اختر محادثة من القائمة أو ابدأ محادثة جديدة.",
+    "noSubject": "بدون موضوع",
+    "you": "أنت",
+    "replyPlaceholder": "اكتب رسالتك…",
+    "send": "إرسال",
+    "back": "العودة إلى الرسائل",
+    "dialog": {
+      "title": "رسالة جديدة",
+      "description": "إذا كانت المحادثة تخص طفلًا، سيتمكّن أولياؤه من رؤيتها والرد عليها.",
+      "child": "الطفل المعني",
+      "generalOption": "محادثة عامة (الفريق)",
+      "subject": "الموضوع",
+      "message": "الرسالة",
+      "submit": "إرسال"
+    },
+    "toasts": {
+      "created": "تم إنشاء المحادثة",
+      "sent": "تم إرسال الرسالة",
+      "error": "حدث خطأ. أعد المحاولة."
+    }
+  },
+  "calendar": {
+    "title": "التقويم",
+    "description": "فعاليات الروضة والعطل الرسمية",
+    "newEvent": "فعالية جديدة",
+    "tentative": "بانتظار التأكيد",
+    "holiday": "عطلة",
+    "upcoming": "القادمة",
+    "upcomingEmpty": "لا توجد فعاليات قادمة",
+    "form": {
+      "title": "العنوان",
+      "description": "الوصف",
+      "startAt": "البداية",
+      "endAt": "النهاية",
+      "optional": "اختياري",
+      "audience": "الموجَّه إليهم",
+      "class": "القسم",
+      "chooseClass": "اختر قسمًا",
+      "color": "اللون"
+    },
+    "createDialog": {
+      "title": "فعالية جديدة",
+      "description": "ستظهر الفعالية في تقويم المعنيين بها.",
+      "submit": "إنشاء"
+    },
+    "editDialog": {
+      "title": "تعديل الفعالية",
+      "submit": "حفظ"
+    },
+    "deleteEvent": "حذف الفعالية",
+    "toasts": {
+      "created": "تم إنشاء الفعالية",
+      "updated": "تم تحديث الفعالية",
+      "deleted": "تم حذف الفعالية",
+      "error": "حدث خطأ. أعد المحاولة."
+    },
+    "prevMonth": "الشهر السابق",
+    "nextMonth": "الشهر التالي",
+    "today": "اليوم",
+    "addOn": "إضافة فعالية يوم {date}",
+    "deleteConfirm": "تأكيد الحذف",
+    "monthEmpty": "لا توجد فعاليات هذا الشهر"
+  },
+  "menus": {
+    "title": "قوائم الطعام",
+    "description": "قوائم الأسبوع، من الأحد إلى الخميس",
+    "weekOf": "من {start} إلى {end}",
+    "copyLastWeek": "نسخ الأسبوع الماضي",
+    "published": "منشور",
+    "draft": "مسودة",
+    "notSet": "غير محدد",
+    "allergyWarning": "تنبيه حساسية",
+    "allergyChildren": "الأطفال المعنيون: {names}",
+    "dialog": {
+      "title": "قائمة يوم {date}",
+      "description": "أدخل وجبات اليوم وحدّد مسببات الحساسية الموجودة.",
+      "allergens": "مسببات الحساسية الموجودة",
+      "allergensHint": "تُستعمل للتنبيه إذا كان طفل مسجَّل يعاني من حساسية.",
+      "published": "منشورة للأولياء",
+      "publishedHint": "القائمة غير المنشورة تبقى مرئية للفريق فقط.",
+      "submit": "حفظ"
+    },
+    "toasts": {
+      "saved": "تم حفظ القائمة",
+      "copied": "{count, plural, =0 {لا توجد قوائم للنسخ من الأسبوع الماضي} one {تم نسخ يوم واحد} two {تم نسخ يومين} few {تم نسخ # أيام} many {تم نسخ # يومًا} other {تم نسخ # يوم}}",
+      "error": "حدث خطأ. أعد المحاولة."
+    },
+    "prevWeek": "الأسبوع السابق",
+    "nextWeek": "الأسبوع التالي",
+    "thisWeek": "هذا الأسبوع",
+    "editDay": "تعديل قائمة يوم {date}",
+    "allergyWarningDescription": "تحتوي قائمة هذا الأسبوع على مسبّبات حساسية تخصّ أطفالًا مسجَّلين."
+  },
+  "incidents": {
+    "title": "الحوادث",
+    "description": "سجل الحوادث ومتابعة إشعار الأولياء",
+    "report": "التبليغ عن حادث",
+    "empty": "لا توجد حوادث مسجَّلة",
+    "emptyDescription": "ستظهر الحوادث المبلَّغ عنها هنا مع متابعة الأولياء.",
+    "view": "عرض التفاصيل",
+    "columns": {
+      "date": "التاريخ",
+      "child": "الطفل",
+      "severity": "الخطورة",
+      "description": "الوصف",
+      "parent": "الولي"
+    },
+    "ack": {
+      "acked": "تم الاطلاع",
+      "ackedAt": "بتاريخ {date}",
+      "pending": "في الانتظار",
+      "pendingSince": "منذ {date}",
+      "notNotified": "لم يُشعَر بعد"
+    },
+    "form": {
+      "child": "الطفل",
+      "chooseChild": "اختر طفلًا",
+      "severity": "الخطورة",
+      "location": "المكان",
+      "locationPlaceholder": "الساحة، قاعة القسم…",
+      "occurredAt": "التاريخ والوقت",
+      "description": "الوصف",
+      "actionTaken": "الإجراءات المتخذة",
+      "notify": "إشعار الولي الآن",
+      "notifyHint": "يسجّل وقت الإشعار ويبدأ متابعة الاطلاع."
+    },
+    "dialog": {
+      "title": "التبليغ عن حادث",
+      "description": "صف ما حدث والإجراءات التي اتُّخذت.",
+      "submit": "تبليغ"
+    },
+    "detail": {
+      "title": "حادث يوم {date}",
+      "back": "العودة إلى الحوادث",
+      "child": "الطفل",
+      "class": "القسم",
+      "occurredAt": "وقع بتاريخ",
+      "location": "المكان",
+      "descriptionLabel": "الوصف",
+      "actionTaken": "الإجراءات المتخذة",
+      "reportedBy": "بلّغ عنه",
+      "timeline": "متابعة الولي",
+      "timelineOccurred": "وقوع الحادث",
+      "timelineReported": "تسجيل التبليغ",
+      "timelineReportedBy": "بواسطة {name}",
+      "timelineNotified": "إشعار الولي",
+      "timelineAcked": "اطّلع الولي",
+      "timelineAckedBy": "بواسطة {name}",
+      "awaitingAck": "في انتظار اطلاع الولي",
+      "notNotifiedYet": "لم يُشعَر الولي بعد.",
+      "notifyNow": "إشعار الولي",
+      "notFound": "الحادث غير موجود",
+      "notFoundHint": "ربما حُذف هذا الحادث أو أنّ الرابط غير صحيح."
+    },
+    "toasts": {
+      "reported": "تم تسجيل التبليغ",
+      "notified": "تم إشعار الولي",
+      "error": "حدث خطأ. أعد المحاولة."
+    },
+    "severityFilter": "التصفية حسب الخطورة"
+  }
+}

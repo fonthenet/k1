@@ -1,0 +1,205 @@
+{
+  "title": "الإشعارات",
+  "description": "كل ما يجري في الروضة، من الأحدث إلى الأقدم.",
+  "empty": "لا توجد إشعارات",
+  "emptyUnread": "اطّلعتم على كل شيء",
+  "emptyHint": "ستصلكم هنا آخر أخبار الروضة.",
+  "markAllRead": "تعليم الكل كمقروء",
+  "unreadCount": "{count, plural, =0 {لا جديد} one {إشعار جديد} two {إشعاران جديدان} few {# إشعارات جديدة} other {# إشعاراً جديداً}}",
+  "seeAll": "عرض كل الإشعارات",
+  "justNow": "الآن",
+  "unreadOnly": "غير المقروءة",
+  "today": "اليوم",
+  "yesterday": "أمس",
+  "types": {
+    "message": {
+      "title": "رسالة جديدة",
+      "body": "{name}: {text}"
+    },
+    "incident": {
+      "title": "تقرير حادث — {child}",
+      "body": "{text}"
+    },
+    "announcement": {
+      "title": "إعلان جديد",
+      "body": "{text}"
+    },
+    "application": {
+      "title": "طلب تسجيل جديد",
+      "body": "{child}"
+    },
+    "checkin": {
+      "title": "وصل {child}",
+      "body": "تم تسجيل الدخول على الساعة {time}"
+    },
+    "checkout": {
+      "title": "غادر {child}",
+      "body": "تم تسجيل الخروج على الساعة {time}"
+    },
+    "daily_report": {
+      "title": "يوميات {child}",
+      "body": "نُشرت يوميات اليوم."
+    },
+    "task": {
+      "title": "مهمة جديدة",
+      "body": "{text}"
+    },
+    "activity_request": {
+      "title": "طلب نشاط",
+      "body": "{child} — {activity}"
+    },
+    "parent_update": {
+      "title": "تحديث من وليّ الأمر — {child}",
+      "body": "{text}"
+    },
+    "payment_overdue": {
+      "title": "مستحقات غير مدفوعة لدى {count} من العائلات",
+      "body": "المجموع المستحق: {amount}. اطّلعوا على قائمة المستحقات للمتابعة."
+    },
+    "consent_changed": {
+      "title": "تغيّرت موافقة — {child}",
+      "body": "‏{consent} — {state}. راجعها إن لم تكن على علم."
+    },
+    "pickup_changed": {
+      "title": "المخوّلون بالاصطحاب — {child}",
+      "body": "{person}: {action}. راجع قائمة من يحقّ لهم اصطحاب طفلك."
+    },
+    "guardian_access_changed": {
+      "title": "وصول العائلة — {child}",
+      "body": "{person}: {action}."
+    },
+    "allergy_changed": {
+      "title": "تغيّرت حساسية — {child}",
+      "body": "{allergen} ({severity}): {action}. تأكّد أنّ هذا تمّ بالاتفاق معك."
+    },
+    "health_changed": {
+      "title": "الملف الصحي — {child}",
+      "body": "عدّلته الروضة: {fields}."
+    },
+    "incident_updated": {
+      "title": "تعديل تقرير حادث — {child}",
+      "body": "{fields} — يُرجى إعادة قراءته وتأكيده."
+    },
+    "enrollment_changed": {
+      "title": "التسجيل — {child}",
+      "body": "الحالة: {status}، ابتداءً من {date}."
+    },
+    "invoice_issued": {
+      "title": "فاتورة جديدة — {child}",
+      "body": "{invoiceNo} — {amount}، تُسدَّد قبل {date}."
+    },
+    "payment_recorded": {
+      "title": "تمّ استلام دفعة — {amount}",
+      "body": "{child} — وصل {receipt} ({method}) على الساعة {time}."
+    },
+    "payment_reversed": {
+      "title": "تعديل دفعة — {child}",
+      "body": "{previousAmount} ← {amount} (وصل {receipt})."
+    },
+    "fee_changed": {
+      "title": "تغيّر الرسم — {child}",
+      "body": "{plan} — {amount} شهريًا، ابتداءً من {date}."
+    },
+    "attendance_flagged": {
+      "title": "{child} — {status}",
+      "body": "يوم {date}. {reason}"
+    },
+    "activity_decision": {
+      "title": "{activity} — {status}",
+      "body": "{child} — {amount}، ابتداءً من {date}."
+    },
+    "session_published": {
+      "title": "حصة {child}",
+      "body": "{text}"
+    }
+  },
+  "push": {
+    "enable": "تفعيل الإشعارات",
+    "enabled": "الإشعارات مفعّلة",
+    "disable": "إيقاف الإشعارات",
+    "blocked": "الإشعارات محظورة في المتصفح. فعّلوها من إعدادات الموقع.",
+    "unsupported": "متصفحكم لا يدعم الإشعارات.",
+    "enableHint": "استقبلوا إشعاراً فور وصول طفلكم أو ورود رسالة من الروضة.",
+    "enableHintStaff": "استقبلوا إشعاراً عند ورود طلب تسجيل أو رسالة من الأولياء.",
+    "success": "تم تفعيل الإشعارات على هذا الجهاز.",
+    "removed": "تم إيقاف الإشعارات على هذا الجهاز.",
+    "error": "تعذّر تفعيل الإشعارات. حاولوا مرة أخرى."
+  },
+  "consentTypes": {
+    "photos": "الصور والفيديو",
+    "outings": "الخرجات المدرسية",
+    "medical_emergency": "الطوارئ الطبية"
+  },
+  "consentStates": {
+    "granted": "ممنوحة",
+    "refused": "مرفوضة",
+    "pending": "في الانتظار",
+    "withdrawn": "مسحوبة"
+  },
+  "actions": {
+    "added": "أُضيف",
+    "updated": "عُدِّل",
+    "removed": "حُذف",
+    "linked": "رُبط",
+    "unlinked": "فُكّ الربط",
+    "pickup_granted": "صار مخوّلًا بالاصطحاب",
+    "pickup_revoked": "لم يعد مخوّلًا بالاصطحاب",
+    "access_removed": "سُحب الوصول",
+    "assigned": "أُسند",
+    "changed": "تغيّر",
+    "ended": "انتهى",
+    "amended": "صُحِّح",
+    "updated_link": "عُدِّل"
+  },
+  "allergySeverities": {
+    "mild": "خفيفة",
+    "moderate": "متوسطة",
+    "severe": "شديدة"
+  },
+  "healthFields": {
+    "medical_conditions": "الحالات الصحية",
+    "medications": "الأدوية",
+    "vaccinations": "التلقيحات",
+    "dietary_restrictions": "النظام الغذائي",
+    "special_needs": "الاحتياجات الخاصة",
+    "doctor_name": "الطبيب",
+    "doctor_phone": "هاتف الطبيب",
+    "emergency_notes": "تعليمات الطوارئ"
+  },
+  "incidentFields": {
+    "severity": "درجة الخطورة",
+    "description": "الوصف",
+    "action_taken": "الإجراء المتّخذ",
+    "location": "المكان",
+    "occurred_at": "الوقت"
+  },
+  "enrollmentStates": {
+    "pending": "قيد الدراسة",
+    "enrolled": "مسجَّل",
+    "waitlist": "قائمة الانتظار",
+    "withdrawn": "مشطوب",
+    "alumni": "متخرّج"
+  },
+  "attendanceStatuses": {
+    "absent": "غائب",
+    "late": "متأخّر",
+    "excused": "غياب مبرَّر",
+    "sick": "مريض",
+    "present": "حاضر"
+  },
+  "activityStates": {
+    "requested": "مطلوبة",
+    "active": "مقبولة",
+    "ended": "منتهية",
+    "cancelled": "مرفوضة"
+  },
+  "paymentMethods": {
+    "cash": "نقدًا",
+    "cib": "CIB",
+    "edahabia": "الذهبية",
+    "bank_transfer": "تحويل بنكي",
+    "cheque": "شيك",
+    "chargily": "Chargily",
+    "other": "أخرى"
+  }
+}

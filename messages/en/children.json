@@ -1,0 +1,361 @@
+{
+  "roster": {
+    "title": "Children",
+    "description": "Child records, families and health information",
+    "searchPlaceholder": "Search for a child (Latin or Arabic)…",
+    "filterClass": "Class",
+    "filterStatus": "Status",
+    "allClasses": "All classes",
+    "allStatuses": "All statuses",
+    "noClass": "No class",
+    "count": "{count, plural, =0 {No children} one {# child} other {# children}}",
+    "empty": "No children yet",
+    "emptyDescription": "Add your first child manually, or approve an enrollment application.",
+    "noMatch": "No children match these criteria",
+    "noMatchDescription": "Try adjusting your search or filters.",
+    "addChild": "Add a child",
+    "columns": {
+      "child": "Child",
+      "age": "Age",
+      "class": "Class",
+      "allergies": "Allergies",
+      "tag": "Badge code",
+      "status": "Status"
+    }
+  },
+  "status": {
+    "pending": "Pending",
+    "enrolled": "Enrolled",
+    "waitlist": "Waitlist",
+    "withdrawn": "Withdrawn",
+    "alumni": "Alumni"
+  },
+  "gender": {
+    "male": "Boy",
+    "female": "Girl"
+  },
+  "severity": {
+    "mild": "Mild",
+    "moderate": "Moderate",
+    "severe": "Severe"
+  },
+  "allergyBadge": "{count, plural, one {# allergy} other {# allergies}}",
+  "form": {
+    "firstName": "First name (Latin)",
+    "lastName": "Last name (Latin)",
+    "firstNameAr": "First name (Arabic)",
+    "lastNameAr": "Last name (Arabic)",
+    "dob": "Date of birth",
+    "gender": "Sex",
+    "class": "Class",
+    "noClass": "No class",
+    "tagCode": "Badge code",
+    "tagCodeHint": "K-013",
+    "bloodType": "Blood type",
+    "notes": "Notes",
+    "enrollmentDate": "Enrollment date",
+    "photo": "Photo",
+    "photoHint": "JPEG, PNG or WebP — 10 MB max",
+    "tagCodeOverride": "Assigned automatically. Change it only if you already have badges printed with your own numbering."
+  },
+  "addDialog": {
+    "title": "Add a child",
+    "description": "Quickly create a child record. You can fill in the rest afterwards.",
+    "submit": "Create record",
+    "tagAuto": "The badge code and QR are generated automatically when the record is saved."
+  },
+  "editDialog": {
+    "title": "Edit record",
+    "description": "The child's personal details."
+  },
+  "statusActions": {
+    "withdraw": "Withdraw child",
+    "withdrawTitle": "Withdraw this child?",
+    "withdrawDescription": "The child will move to \"Withdrawn\" status with today's date as the withdrawal date. Their record and history are kept.",
+    "reenroll": "Re-enroll",
+    "reenrollTitle": "Re-enroll this child?",
+    "reenrollDescription": "The child will return to \"Enrolled\" status and the withdrawal date will be cleared."
+  },
+  "profile": {
+    "back": "All children",
+    "badgeCard": "Badge card",
+    "tabs": {
+      "profile": "Profile",
+      "health": "Health",
+      "attendance": "Attendance",
+      "billing": "Billing",
+      "documents": "Documents",
+      "consents": "Consents"
+    },
+    "info": {
+      "title": "Details",
+      "dob": "Date of birth",
+      "age": "Age",
+      "gender": "Sex",
+      "bloodType": "Blood type",
+      "enrolledOn": "Enrolled on",
+      "withdrawnOn": "Withdrawn on",
+      "tagCode": "Badge code",
+      "notes": "Notes",
+      "none": "—"
+    }
+  },
+  "guardians": {
+    "title": "Guardians / parents",
+    "empty": "No guardian linked to this record",
+    "add": "Add a guardian",
+    "addTitle": "Add a guardian",
+    "addDescription": "Create a new guardian or link one who is already registered.",
+    "modeNew": "New guardian",
+    "modeExisting": "Existing guardian",
+    "selectGuardian": "Guardian",
+    "selectPlaceholder": "Choose a guardian…",
+    "noneAvailable": "No other guardians registered",
+    "relationship": "Relationship",
+    "relationships": {
+      "father": "Father",
+      "mother": "Mother",
+      "guardian": "Guardian",
+      "grandparent": "Grandparent",
+      "sibling": "Sibling",
+      "other": "Other"
+    },
+    "phone": "Phone",
+    "phoneAlt": "Secondary phone",
+    "email": "Email",
+    "nationalId": "National ID number",
+    "address": "Address",
+    "workplace": "Workplace",
+    "canPickup": "Authorized to collect the child",
+    "isFinancial": "Financially responsible",
+    "isPrimary": "Primary contact",
+    "primaryBadge": "Primary",
+    "canPickupBadge": "Pickup",
+    "financialBadge": "Financial",
+    "unlink": "Remove",
+    "unlinkTitle": "Remove this guardian?",
+    "unlinkDescription": "The link to this child will be removed. The guardian's own record is kept.",
+    "credentials": {
+      "label": "Door badge",
+      "issue": "Issue a badge",
+      "printBadge": "Print badge",
+      "revoke": "Revoke",
+      "revokeTitle": "Revoke this badge?",
+      "revokeDescription": "The printed card and the QR code on the parent's phone stop working immediately. You can issue a new badge afterwards.",
+      "issuedTitle": "Badge issued",
+      "issuedDescription": "A PIN and a badge code have been created for {name}.",
+      "pinLabel": "PIN code",
+      "pinWarning": "Write this PIN down now — it will never be shown in full again. If it is lost, issue a new badge.",
+      "pinMaskedLabel": "PIN code hidden",
+      "copyPin": "Copy the PIN",
+      "pinCopied": "PIN copied",
+      "tagLabel": "Badge code",
+      "toastIssued": "Guardian badge issued",
+      "toastRevoked": "Guardian badge revoked"
+    }
+  },
+  "photo": {
+    "childTitle": "Child's photo",
+    "childDescription": "Shown at the kiosk on check-in and check-out, beside the guardian's photo at pick-up.",
+    "guardianTitle": "Guardian's photo",
+    "guardianDescription": "Staff compare it with the adult at the door before handing the child over. Without it there is only the QR code, and a QR code can be photographed.",
+    "take": "Take a photo",
+    "choose": "Choose a file",
+    "replace": "Change photo",
+    "remove": "Remove photo",
+    "removeTitle": "Remove this photo?",
+    "removeDescription": "The kiosk will show no photo until a new one is added.",
+    "resizing": "Preparing the photo…",
+    "uploading": "Uploading…",
+    "saving": "Saving…",
+    "saved": "Photo saved",
+    "removed": "Photo removed",
+    "tooLarge": "That image is too large. Choose one under 20 MB.",
+    "forbidden": "You do not have permission to change this photo.",
+    "error": "The photo could not be saved. Please try again.",
+    "none": "No photo yet"
+  },
+  "guardianCard": {
+    "title": "Guardian badge",
+    "backToChild": "Back to the child's record",
+    "childrenLabel": "May collect",
+    "noChildren": "No child authorised",
+    "footer": "Present this at the door",
+    "noTag": "No badge issued yet",
+    "noTagDescription": "Issue a badge for this guardian from the child's record first.",
+    "notLinked": "This guardian is not linked to this child",
+    "notLinkedDescription": "Check the child's record — this guardian is not listed among their guardians."
+  },
+  "pickups": {
+    "title": "Authorized pickup contacts",
+    "description": "Other people allowed to collect the child, with ID details.",
+    "empty": "No additional pickup contacts",
+    "add": "Add a person",
+    "addTitle": "Authorized person",
+    "addDescription": "This person may collect the child on presentation of their ID.",
+    "name": "Full name",
+    "relationship": "Relationship to the child",
+    "phone": "Phone",
+    "nationalId": "National ID number",
+    "deleteTitle": "Delete this person?",
+    "deleteDescription": "They will no longer be authorized to collect the child."
+  },
+  "health": {
+    "title": "Health record",
+    "editTitle": "Health record",
+    "editDescription": "Enter one item per line for list fields.",
+    "conditions": "Medical history",
+    "medications": "Medications",
+    "vaccinations": "Vaccinations",
+    "listHint": "One item per line",
+    "dietary": "Dietary restrictions",
+    "specialNeeds": "Special needs",
+    "doctor": "Primary doctor",
+    "doctorName": "Doctor's name",
+    "doctorPhone": "Doctor's phone",
+    "emergencyNotes": "Emergency instructions",
+    "empty": "No health information recorded",
+    "none": "—"
+  },
+  "allergies": {
+    "title": "Allergies",
+    "alert": "Allergy alert — make sure the whole team knows",
+    "empty": "No known allergies",
+    "add": "Add an allergy",
+    "addTitle": "New allergy",
+    "editTitle": "Edit allergy",
+    "allergen": "Allergen",
+    "severity": "Severity",
+    "reaction": "Reaction",
+    "actionPlan": "Action plan",
+    "deleteTitle": "Delete this allergy?",
+    "deleteDescription": "The allergy will be removed from the child's record."
+  },
+  "attendance": {
+    "title": "Attendance history",
+    "empty": "No attendance recorded for this month",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "columns": {
+      "date": "Date",
+      "status": "Status",
+      "in": "In",
+      "out": "Out",
+      "pickedUpBy": "Collected by"
+    },
+    "statuses": {
+      "present": "Present",
+      "absent": "Absent",
+      "late": "Late",
+      "excused": "Excused",
+      "sick": "Sick"
+    },
+    "summary": {
+      "present": "Present",
+      "absent": "Absences",
+      "late": "Late arrivals",
+      "sick": "Sick days"
+    }
+  },
+  "billing": {
+    "feesTitle": "Assigned fees",
+    "feesEmpty": "No fee plan assigned to this child",
+    "invoicesTitle": "Invoices",
+    "invoicesEmpty": "No invoices for this child",
+    "goToBilling": "Open billing",
+    "restricted": "This section is limited to finance roles (owner, admin, accountant).",
+    "columns": {
+      "plan": "Plan",
+      "amount": "Amount",
+      "period": "Frequency",
+      "discount": "Discount",
+      "start": "Start",
+      "end": "End",
+      "number": "No.",
+      "month": "Month",
+      "issued": "Issued on",
+      "due": "Due",
+      "status": "Status",
+      "total": "Total",
+      "paid": "Paid"
+    },
+    "periods": {
+      "once": "One-off",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly",
+      "per_session": "Per session"
+    },
+    "invoiceStatus": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "unpaid": "Unpaid",
+      "partial": "Partial",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "void": "Void"
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "empty": "No documents",
+    "emptyDescription": "Add the birth certificate, vaccination record or other paperwork.",
+    "upload": "Add a document",
+    "uploadTitle": "New document",
+    "docTitle": "Document title",
+    "type": "Type",
+    "types": {
+      "birth_certificate": "Birth certificate",
+      "vaccination_record": "Vaccination record",
+      "medical": "Medical document",
+      "photo": "Photo",
+      "other": "Other"
+    },
+    "file": "File",
+    "fileHint": "PDF or image — 10 MB max",
+    "view": "Open",
+    "addedOn": "Added on {date}",
+    "deleteTitle": "Delete this document?",
+    "deleteDescription": "The file will be permanently removed from the record."
+  },
+  "consents": {
+    "title": "Consents",
+    "description": "Permissions given by the parents for this child.",
+    "types": {
+      "photos": "Photos and videos",
+      "outings": "School outings",
+      "medical_emergency": "Medical emergency"
+    },
+    "typeHints": {
+      "photos": "Taking and sharing photos of the child",
+      "outings": "Taking part in organized outings",
+      "medical_emergency": "Emergency care if needed"
+    },
+    "granted": "Granted",
+    "refused": "Refused",
+    "pending": "Pending",
+    "decidedAt": "Decided on {date}"
+  },
+  "card": {
+    "title": "Badge card",
+    "backToProfile": "Back to record",
+    "scanHint": "Scan this code at check-in and check-out",
+    "noTag": "No badge code",
+    "noTagDescription": "Assign a badge code to the child first, from their record (Edit)."
+  },
+  "toasts": {
+    "created": "Child record created",
+    "updated": "Record updated",
+    "saved": "Saved",
+    "deleted": "Deleted",
+    "uploaded": "Document added",
+    "linked": "Guardian linked to the record",
+    "unlinked": "Guardian removed from the record",
+    "withdrawn": "Child withdrawn",
+    "reenrolled": "Child re-enrolled",
+    "tagTaken": "This badge code is already used by another child",
+    "duplicate": "This item already exists",
+    "forbidden": "You don't have permission to do that",
+    "error": "Something went wrong. Please try again."
+  }
+}

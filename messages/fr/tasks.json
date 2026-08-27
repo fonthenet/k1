@@ -1,0 +1,85 @@
+{
+  "title": "Tâches",
+  "description": "Qui fait quoi, et pour quand. Ce tableau est réservé à l'équipe.",
+  "newTask": "Nouvelle tâche",
+  "stats": {
+    "open": "Tâches ouvertes",
+    "dueToday": "À faire aujourd'hui",
+    "overdue": "En retard",
+    "doneThisWeek": "Terminées cette semaine"
+  },
+  "filters": {
+    "scope": "Portée",
+    "mine": "Mes tâches",
+    "all": "Toute l'équipe",
+    "status": "Statut",
+    "board": "Tableau complet"
+  },
+  "status": {
+    "todo": "À faire",
+    "in_progress": "En cours",
+    "done": "Terminées",
+    "cancelled": "Annulées"
+  },
+  "laneEmpty": {
+    "todo": "Rien en attente.",
+    "in_progress": "Rien en cours.",
+    "done": "Rien de terminé pour l'instant."
+  },
+  "priority": {
+    "urgent": "Urgente",
+    "high": "Haute",
+    "normal": "Normale",
+    "low": "Basse"
+  },
+  "form": {
+    "newTitle": "Nouvelle tâche",
+    "editTitle": "Modifier la tâche",
+    "description": "Confiez la tâche à un membre de l'équipe et fixez son échéance et sa priorité.",
+    "title": "Intitulé de la tâche",
+    "titlePlaceholder": "Appeler les parents de Yasmine",
+    "notes": "Détails",
+    "notesPlaceholder": "Ce qui aide à la réaliser…",
+    "assignee": "Assignée à",
+    "unassigned": "Non assignée",
+    "unnamedMember": "Membre de l'équipe",
+    "dueDate": "Échéance",
+    "priority": "Priorité",
+    "child": "Enfant concerné",
+    "noChild": "Aucun enfant",
+    "save": "Enregistrer",
+    "create": "Créer la tâche"
+  },
+  "card": {
+    "markDone": "Marquer comme terminée",
+    "reopen": "Rouvrir",
+    "more": "Autres options",
+    "moveTo": "Déplacer vers",
+    "overdueOn": "Échéance dépassée : {date}",
+    "deleteTitle": "Supprimer cette tâche ?",
+    "deleteDesc": "« {title} » sera supprimée définitivement. Cette action est irréversible."
+  },
+  "empty": {
+    "title": "Aucune tâche pour l'instant",
+    "description": "Créez la première tâche pour organiser le quotidien de l'équipe.",
+    "filteredTitle": "Aucune tâche correspondante",
+    "filteredDescription": "Modifiez les filtres ou créez une nouvelle tâche."
+  },
+  "error": {
+    "title": "Tâches indisponibles",
+    "description": "Une erreur est survenue pendant le chargement du tableau.",
+    "retry": "Réessayer",
+    "load": "Impossible de charger les tâches. Rechargez la page."
+  },
+  "toasts": {
+    "created": "Tâche créée",
+    "updated": "Tâche mise à jour",
+    "done": "Tâche terminée",
+    "moved": "Statut mis à jour",
+    "deleted": "Tâche supprimée",
+    "error": "Action impossible. Réessayez."
+  },
+  "board": {
+    "moreDone": "{count, plural, one {Voir 1 autre tâche terminée} other {Voir # autres tâches terminées}}"
+  }
+}

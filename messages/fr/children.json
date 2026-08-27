@@ -1,0 +1,361 @@
+{
+  "roster": {
+    "title": "Enfants",
+    "description": "Dossiers des enfants, familles et santé",
+    "searchPlaceholder": "Rechercher un enfant (français ou arabe)…",
+    "filterClass": "Classe",
+    "filterStatus": "Statut",
+    "allClasses": "Toutes les classes",
+    "allStatuses": "Tous les statuts",
+    "noClass": "Sans classe",
+    "count": "{count, plural, =0 {Aucun enfant} one {# enfant} other {# enfants}}",
+    "empty": "Aucun enfant pour le moment",
+    "emptyDescription": "Ajoutez votre premier enfant manuellement ou approuvez une demande d'inscription.",
+    "noMatch": "Aucun enfant ne correspond à ces critères",
+    "noMatchDescription": "Essayez de modifier la recherche ou les filtres.",
+    "addChild": "Ajouter un enfant",
+    "columns": {
+      "child": "Enfant",
+      "age": "Âge",
+      "class": "Classe",
+      "allergies": "Allergies",
+      "tag": "Code badge",
+      "status": "Statut"
+    }
+  },
+  "status": {
+    "pending": "En attente",
+    "enrolled": "Inscrit",
+    "waitlist": "Liste d'attente",
+    "withdrawn": "Retiré",
+    "alumni": "Ancien"
+  },
+  "gender": {
+    "male": "Garçon",
+    "female": "Fille"
+  },
+  "severity": {
+    "mild": "Légère",
+    "moderate": "Modérée",
+    "severe": "Sévère"
+  },
+  "allergyBadge": "{count, plural, one {# allergie} other {# allergies}}",
+  "form": {
+    "firstName": "Prénom (français)",
+    "lastName": "Nom (français)",
+    "firstNameAr": "Prénom (arabe)",
+    "lastNameAr": "Nom (arabe)",
+    "dob": "Date de naissance",
+    "gender": "Sexe",
+    "class": "Classe",
+    "noClass": "Sans classe",
+    "tagCode": "Code badge",
+    "tagCodeHint": "K-013",
+    "bloodType": "Groupe sanguin",
+    "notes": "Notes",
+    "enrollmentDate": "Date d'inscription",
+    "photo": "Photo",
+    "photoHint": "JPEG, PNG ou WebP — 10 Mo max",
+    "tagCodeOverride": "Attribué automatiquement. Ne le modifiez que si vous avez déjà des badges imprimés avec votre propre numérotation."
+  },
+  "addDialog": {
+    "title": "Ajouter un enfant",
+    "description": "Création rapide d'un dossier enfant. Vous pourrez compléter la fiche ensuite.",
+    "submit": "Créer le dossier",
+    "tagAuto": "Le code badge et le QR sont générés automatiquement à l'enregistrement."
+  },
+  "editDialog": {
+    "title": "Modifier la fiche",
+    "description": "Informations personnelles de l'enfant."
+  },
+  "statusActions": {
+    "withdraw": "Retirer l'enfant",
+    "withdrawTitle": "Retirer cet enfant ?",
+    "withdrawDescription": "L'enfant passera au statut « Retiré » avec la date de retrait du jour. Son dossier et son historique sont conservés.",
+    "reenroll": "Réinscrire",
+    "reenrollTitle": "Réinscrire cet enfant ?",
+    "reenrollDescription": "L'enfant repassera au statut « Inscrit » et la date de retrait sera effacée."
+  },
+  "profile": {
+    "back": "Tous les enfants",
+    "badgeCard": "Carte badge",
+    "tabs": {
+      "profile": "Profil",
+      "health": "Santé",
+      "attendance": "Présences",
+      "billing": "Facturation",
+      "documents": "Documents",
+      "consents": "Consentements"
+    },
+    "info": {
+      "title": "Informations",
+      "dob": "Date de naissance",
+      "age": "Âge",
+      "gender": "Sexe",
+      "bloodType": "Groupe sanguin",
+      "enrolledOn": "Inscrit le",
+      "withdrawnOn": "Retiré le",
+      "tagCode": "Code badge",
+      "notes": "Notes",
+      "none": "—"
+    }
+  },
+  "guardians": {
+    "title": "Tuteurs / parents",
+    "empty": "Aucun tuteur lié à ce dossier",
+    "add": "Ajouter un tuteur",
+    "addTitle": "Ajouter un tuteur",
+    "addDescription": "Créez un nouveau tuteur ou liez un tuteur déjà enregistré.",
+    "modeNew": "Nouveau tuteur",
+    "modeExisting": "Tuteur existant",
+    "selectGuardian": "Tuteur",
+    "selectPlaceholder": "Choisir un tuteur…",
+    "noneAvailable": "Aucun autre tuteur enregistré",
+    "relationship": "Lien de parenté",
+    "relationships": {
+      "father": "Père",
+      "mother": "Mère",
+      "guardian": "Tuteur",
+      "grandparent": "Grand-parent",
+      "sibling": "Frère / sœur",
+      "other": "Autre"
+    },
+    "phone": "Téléphone",
+    "phoneAlt": "Téléphone secondaire",
+    "email": "E-mail",
+    "nationalId": "N° carte d'identité",
+    "address": "Adresse",
+    "workplace": "Lieu de travail",
+    "canPickup": "Autorisé à récupérer l'enfant",
+    "isFinancial": "Responsable financier",
+    "isPrimary": "Contact principal",
+    "primaryBadge": "Principal",
+    "canPickupBadge": "Récupération",
+    "financialBadge": "Financier",
+    "unlink": "Retirer",
+    "unlinkTitle": "Retirer ce tuteur ?",
+    "unlinkDescription": "Le lien avec cet enfant sera supprimé. La fiche du tuteur reste conservée.",
+    "credentials": {
+      "label": "Badge d'accès",
+      "issue": "Émettre un badge",
+      "printBadge": "Imprimer le badge",
+      "revoke": "Révoquer",
+      "revokeTitle": "Révoquer ce badge ?",
+      "revokeDescription": "La carte imprimée et le QR code sur le téléphone du parent cessent de fonctionner immédiatement. Vous pourrez émettre un nouveau badge ensuite.",
+      "issuedTitle": "Badge émis",
+      "issuedDescription": "Un code PIN et un code badge ont été créés pour {name}.",
+      "pinLabel": "Code PIN",
+      "pinWarning": "Notez ce code maintenant : il ne sera plus jamais affiché en entier. S'il est perdu, émettez un nouveau badge.",
+      "pinMaskedLabel": "Code PIN masqué",
+      "copyPin": "Copier le code",
+      "pinCopied": "Code PIN copié",
+      "tagLabel": "Code badge",
+      "toastIssued": "Badge du tuteur émis",
+      "toastRevoked": "Badge du tuteur révoqué"
+    }
+  },
+  "photo": {
+    "childTitle": "Photo de l'enfant",
+    "childDescription": "Affichée à la borne à l'arrivée et au départ, à côté de la photo du parent au moment du retrait.",
+    "guardianTitle": "Photo du parent",
+    "guardianDescription": "L'équipe la compare avec l'adulte présent à la porte avant de confier l'enfant. Sans elle, il ne reste que le QR code, et un QR code peut être photographié.",
+    "take": "Prendre une photo",
+    "choose": "Choisir un fichier",
+    "replace": "Changer la photo",
+    "remove": "Supprimer la photo",
+    "removeTitle": "Supprimer cette photo ?",
+    "removeDescription": "La borne n'affichera plus aucune photo jusqu'à l'ajout d'une nouvelle.",
+    "resizing": "Préparation de la photo…",
+    "uploading": "Envoi en cours…",
+    "saving": "Enregistrement…",
+    "saved": "Photo enregistrée",
+    "removed": "Photo supprimée",
+    "tooLarge": "Image trop volumineuse. Choisissez-en une de moins de 20 Mo.",
+    "forbidden": "Vous n'avez pas l'autorisation de modifier cette photo.",
+    "error": "La photo n'a pas pu être enregistrée. Réessayez.",
+    "none": "Aucune photo pour le moment"
+  },
+  "guardianCard": {
+    "title": "Badge tuteur",
+    "backToChild": "Retour à la fiche de l'enfant",
+    "childrenLabel": "Autorisé à récupérer",
+    "noChildren": "Aucun enfant autorisé",
+    "footer": "Présentez ce badge à la porte",
+    "noTag": "Aucun badge émis",
+    "noTagDescription": "Émettez d'abord un badge pour ce tuteur depuis la fiche de l'enfant.",
+    "notLinked": "Ce tuteur n'est pas lié à cet enfant",
+    "notLinkedDescription": "Vérifiez la fiche de l'enfant : ce tuteur ne figure pas parmi ses tuteurs."
+  },
+  "pickups": {
+    "title": "Personnes autorisées (récupération)",
+    "description": "Autres personnes autorisées à venir chercher l'enfant, avec pièce d'identité.",
+    "empty": "Aucune personne autorisée supplémentaire",
+    "add": "Ajouter une personne",
+    "addTitle": "Personne autorisée",
+    "addDescription": "Cette personne pourra récupérer l'enfant sur présentation de sa pièce d'identité.",
+    "name": "Nom complet",
+    "relationship": "Lien avec l'enfant",
+    "phone": "Téléphone",
+    "nationalId": "N° carte d'identité",
+    "deleteTitle": "Supprimer cette personne ?",
+    "deleteDescription": "Elle ne sera plus autorisée à récupérer l'enfant."
+  },
+  "health": {
+    "title": "Dossier santé",
+    "editTitle": "Dossier santé",
+    "editDescription": "Renseignez une entrée par ligne pour les listes.",
+    "conditions": "Antécédents médicaux",
+    "medications": "Médicaments",
+    "vaccinations": "Vaccins",
+    "listHint": "Une entrée par ligne",
+    "dietary": "Restrictions alimentaires",
+    "specialNeeds": "Besoins particuliers",
+    "doctor": "Médecin traitant",
+    "doctorName": "Nom du médecin",
+    "doctorPhone": "Téléphone du médecin",
+    "emergencyNotes": "Consignes d'urgence",
+    "empty": "Aucune information de santé renseignée",
+    "none": "—"
+  },
+  "allergies": {
+    "title": "Allergies",
+    "alert": "Vigilance allergies — informez toute l'équipe",
+    "empty": "Aucune allergie connue",
+    "add": "Ajouter une allergie",
+    "addTitle": "Nouvelle allergie",
+    "editTitle": "Modifier l'allergie",
+    "allergen": "Allergène",
+    "severity": "Gravité",
+    "reaction": "Réaction",
+    "actionPlan": "Conduite à tenir",
+    "deleteTitle": "Supprimer cette allergie ?",
+    "deleteDescription": "L'allergie sera retirée du dossier de l'enfant."
+  },
+  "attendance": {
+    "title": "Historique des présences",
+    "empty": "Aucune présence enregistrée pour ce mois",
+    "prevMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "columns": {
+      "date": "Date",
+      "status": "Statut",
+      "in": "Arrivée",
+      "out": "Départ",
+      "pickedUpBy": "Récupéré par"
+    },
+    "statuses": {
+      "present": "Présent",
+      "absent": "Absent",
+      "late": "En retard",
+      "excused": "Excusé",
+      "sick": "Malade"
+    },
+    "summary": {
+      "present": "Présences",
+      "absent": "Absences",
+      "late": "Retards",
+      "sick": "Maladies"
+    }
+  },
+  "billing": {
+    "feesTitle": "Frais assignés",
+    "feesEmpty": "Aucun plan de frais assigné à cet enfant",
+    "invoicesTitle": "Factures",
+    "invoicesEmpty": "Aucune facture pour cet enfant",
+    "goToBilling": "Ouvrir la facturation",
+    "restricted": "Section réservée aux rôles finance (propriétaire, admin, comptable).",
+    "columns": {
+      "plan": "Plan",
+      "amount": "Montant",
+      "period": "Périodicité",
+      "discount": "Remise",
+      "start": "Début",
+      "end": "Fin",
+      "number": "N°",
+      "month": "Mois",
+      "issued": "Émise le",
+      "due": "Échéance",
+      "status": "Statut",
+      "total": "Total",
+      "paid": "Payé"
+    },
+    "periods": {
+      "once": "Unique",
+      "monthly": "Mensuel",
+      "quarterly": "Trimestriel",
+      "yearly": "Annuel",
+      "per_session": "Par séance"
+    },
+    "invoiceStatus": {
+      "draft": "Brouillon",
+      "sent": "Envoyée",
+      "unpaid": "Impayée",
+      "partial": "Partielle",
+      "paid": "Payée",
+      "overdue": "En retard",
+      "void": "Annulée"
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "empty": "Aucun document",
+    "emptyDescription": "Ajoutez l'acte de naissance, le carnet de vaccination ou d'autres pièces.",
+    "upload": "Ajouter un document",
+    "uploadTitle": "Nouveau document",
+    "docTitle": "Titre du document",
+    "type": "Type",
+    "types": {
+      "birth_certificate": "Acte de naissance",
+      "vaccination_record": "Carnet de vaccination",
+      "medical": "Document médical",
+      "photo": "Photo",
+      "other": "Autre"
+    },
+    "file": "Fichier",
+    "fileHint": "PDF ou image — 10 Mo max",
+    "view": "Ouvrir",
+    "addedOn": "Ajouté le {date}",
+    "deleteTitle": "Supprimer ce document ?",
+    "deleteDescription": "Le fichier sera définitivement supprimé du dossier."
+  },
+  "consents": {
+    "title": "Consentements",
+    "description": "Autorisations données par les parents pour cet enfant.",
+    "types": {
+      "photos": "Photos et vidéos",
+      "outings": "Sorties scolaires",
+      "medical_emergency": "Urgence médicale"
+    },
+    "typeHints": {
+      "photos": "Prise et partage de photos de l'enfant",
+      "outings": "Participation aux sorties organisées",
+      "medical_emergency": "Soins d'urgence en cas de besoin"
+    },
+    "granted": "Accordé",
+    "refused": "Refusé",
+    "pending": "En attente",
+    "decidedAt": "Décidé le {date}"
+  },
+  "card": {
+    "title": "Carte badge",
+    "backToProfile": "Retour à la fiche",
+    "scanHint": "Scannez ce code à l'arrivée et au départ",
+    "noTag": "Aucun code badge",
+    "noTagDescription": "Attribuez d'abord un code badge à l'enfant depuis sa fiche (Modifier)."
+  },
+  "toasts": {
+    "created": "Dossier enfant créé",
+    "updated": "Fiche mise à jour",
+    "saved": "Enregistré",
+    "deleted": "Supprimé",
+    "uploaded": "Document ajouté",
+    "linked": "Tuteur lié au dossier",
+    "unlinked": "Tuteur retiré du dossier",
+    "withdrawn": "Enfant retiré",
+    "reenrolled": "Enfant réinscrit",
+    "tagTaken": "Ce code badge est déjà utilisé par un autre enfant",
+    "duplicate": "Cet élément existe déjà",
+    "forbidden": "Vous n'avez pas les droits pour cette action",
+    "error": "Une erreur est survenue. Réessayez."
+  }
+}

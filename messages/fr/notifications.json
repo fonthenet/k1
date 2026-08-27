@@ -1,0 +1,205 @@
+{
+  "title": "Notifications",
+  "description": "Tout ce qui se passe dans la crèche, du plus récent au plus ancien.",
+  "empty": "Aucune notification",
+  "emptyUnread": "Vous êtes à jour",
+  "emptyHint": "Les nouvelles de la crèche apparaîtront ici.",
+  "markAllRead": "Tout marquer comme lu",
+  "unreadCount": "{count, plural, =0 {Rien de nouveau} one {# nouvelle notification} other {# nouvelles notifications}}",
+  "seeAll": "Voir toutes les notifications",
+  "justNow": "À l'instant",
+  "unreadOnly": "Non lues",
+  "today": "Aujourd'hui",
+  "yesterday": "Hier",
+  "types": {
+    "message": {
+      "title": "Nouveau message",
+      "body": "{name} : {text}"
+    },
+    "incident": {
+      "title": "Rapport d'incident — {child}",
+      "body": "{text}"
+    },
+    "announcement": {
+      "title": "Nouvelle annonce",
+      "body": "{text}"
+    },
+    "application": {
+      "title": "Nouvelle demande d'inscription",
+      "body": "{child}"
+    },
+    "checkin": {
+      "title": "{child} est arrivé(e)",
+      "body": "Arrivée enregistrée à {time}"
+    },
+    "checkout": {
+      "title": "{child} est parti(e)",
+      "body": "Départ enregistré à {time}"
+    },
+    "daily_report": {
+      "title": "Journal de {child}",
+      "body": "Le journal du jour a été publié."
+    },
+    "task": {
+      "title": "Nouvelle tâche",
+      "body": "{text}"
+    },
+    "activity_request": {
+      "title": "Demande d'activité",
+      "body": "{child} — {activity}"
+    },
+    "parent_update": {
+      "title": "Mise à jour parent — {child}",
+      "body": "{text}"
+    },
+    "payment_overdue": {
+      "title": "Impayés chez {count} de vos familles",
+      "body": "Total à encaisser : {amount}. Consultez la liste des impayés."
+    },
+    "consent_changed": {
+      "title": "Une autorisation a changé — {child}",
+      "body": "{consent} — {state}. Vérifiez si cela n'a pas été convenu avec vous."
+    },
+    "pickup_changed": {
+      "title": "Personne autorisée — {child}",
+      "body": "{person} : {action}. Vérifiez la liste des personnes qui peuvent récupérer votre enfant."
+    },
+    "guardian_access_changed": {
+      "title": "Accès famille — {child}",
+      "body": "{person} : {action}."
+    },
+    "allergy_changed": {
+      "title": "Allergie modifiée — {child}",
+      "body": "{allergen} ({severity}) : {action}. Vérifiez si cela n'a pas été convenu avec vous."
+    },
+    "health_changed": {
+      "title": "Dossier de santé — {child}",
+      "body": "Modifié par la crèche : {fields}."
+    },
+    "incident_updated": {
+      "title": "Rapport d'incident corrigé — {child}",
+      "body": "{fields} — merci de relire et de confirmer."
+    },
+    "enrollment_changed": {
+      "title": "Inscription — {child}",
+      "body": "Statut : {status}, à compter du {date}."
+    },
+    "invoice_issued": {
+      "title": "Nouvelle facture — {child}",
+      "body": "{invoiceNo} — {amount}, à régler avant le {date}."
+    },
+    "payment_recorded": {
+      "title": "Paiement reçu — {amount}",
+      "body": "{child} — reçu {receipt} ({method}) à {time}."
+    },
+    "payment_reversed": {
+      "title": "Paiement modifié — {child}",
+      "body": "{previousAmount} → {amount} (reçu {receipt})."
+    },
+    "fee_changed": {
+      "title": "Tarif modifié — {child}",
+      "body": "{plan} — {amount} par mois, à compter du {date}."
+    },
+    "attendance_flagged": {
+      "title": "{child} — {status}",
+      "body": "Le {date}. {reason}"
+    },
+    "activity_decision": {
+      "title": "{activity} — {status}",
+      "body": "{child} — {amount}, à partir du {date}."
+    },
+    "session_published": {
+      "title": "Séance de {child}",
+      "body": "{text}"
+    }
+  },
+  "push": {
+    "enable": "Activer les notifications",
+    "enabled": "Notifications activées",
+    "disable": "Désactiver les notifications",
+    "blocked": "Les notifications sont bloquées dans votre navigateur. Activez-les dans les paramètres du site.",
+    "unsupported": "Votre navigateur ne prend pas en charge les notifications.",
+    "enableHint": "Soyez prévenu dès l'arrivée de votre enfant ou d'un message de la crèche.",
+    "enableHintStaff": "Soyez prévenu dès qu'une demande d'inscription ou un message parent arrive.",
+    "success": "Notifications activées sur cet appareil.",
+    "removed": "Notifications désactivées sur cet appareil.",
+    "error": "Impossible d'activer les notifications. Réessayez."
+  },
+  "consentTypes": {
+    "photos": "Photos et vidéos",
+    "outings": "Sorties scolaires",
+    "medical_emergency": "Urgence médicale"
+  },
+  "consentStates": {
+    "granted": "accordée",
+    "refused": "refusée",
+    "pending": "en attente",
+    "withdrawn": "retirée"
+  },
+  "actions": {
+    "added": "ajoutée",
+    "updated": "modifiée",
+    "removed": "retirée",
+    "linked": "rattaché",
+    "unlinked": "détaché",
+    "pickup_granted": "autorisé à récupérer",
+    "pickup_revoked": "n'est plus autorisé à récupérer",
+    "access_removed": "accès retiré",
+    "assigned": "attribué",
+    "changed": "modifié",
+    "ended": "terminé",
+    "amended": "corrigé",
+    "updated_link": "modifié"
+  },
+  "allergySeverities": {
+    "mild": "légère",
+    "moderate": "modérée",
+    "severe": "sévère"
+  },
+  "healthFields": {
+    "medical_conditions": "les problèmes de santé",
+    "medications": "les traitements",
+    "vaccinations": "les vaccins",
+    "dietary_restrictions": "le régime alimentaire",
+    "special_needs": "les besoins particuliers",
+    "doctor_name": "le médecin",
+    "doctor_phone": "le téléphone du médecin",
+    "emergency_notes": "les consignes d'urgence"
+  },
+  "incidentFields": {
+    "severity": "la gravité",
+    "description": "la description",
+    "action_taken": "les mesures prises",
+    "location": "le lieu",
+    "occurred_at": "l'heure"
+  },
+  "enrollmentStates": {
+    "pending": "en attente",
+    "enrolled": "inscrit(e)",
+    "waitlist": "liste d'attente",
+    "withdrawn": "radié(e)",
+    "alumni": "ancien(ne)"
+  },
+  "attendanceStatuses": {
+    "absent": "absent(e)",
+    "late": "en retard",
+    "excused": "absence excusée",
+    "sick": "malade",
+    "present": "présent(e)"
+  },
+  "activityStates": {
+    "requested": "demandée",
+    "active": "acceptée",
+    "ended": "terminée",
+    "cancelled": "refusée"
+  },
+  "paymentMethods": {
+    "cash": "espèces",
+    "cib": "CIB",
+    "edahabia": "Edahabia",
+    "bank_transfer": "virement",
+    "cheque": "chèque",
+    "chargily": "Chargily",
+    "other": "autre"
+  }
+}

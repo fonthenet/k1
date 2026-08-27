@@ -1,0 +1,267 @@
+{
+  "nav": {
+    "label": "Settings sections",
+    "school": "Kindergarten",
+    "enrollment": "Enrolment links",
+    "holidays": "Holidays",
+    "documents": "Documents",
+    "notifications": "Notifications"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "forbidden": "You do not have permission to do this.",
+    "invalid": "Some of the information entered is invalid."
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Administrator",
+    "educator": "Educator",
+    "staff": "Staff",
+    "accountant": "Accountant",
+    "parent": "Parent"
+  },
+  "school": {
+    "title": "Kindergarten profile",
+    "description": "Name, logo and contact details that parents see",
+    "infoTitle": "General information",
+    "name": "Kindergarten name",
+    "centerType": "Type of centre",
+    "centerTypeHint": "The kind of centre you run.",
+    "wilaya": "Wilaya",
+    "wilayaPlaceholder": "Select a wilaya",
+    "commune": "Commune",
+    "logo": "Logo",
+    "uploadLogo": "Change logo",
+    "logoUpdated": "Logo updated",
+    "logoHint": "PNG, JPG or WebP, 10 MB maximum.",
+    "loadError": "The kindergarten profile could not be loaded.",
+    "map": {
+      "label": "Location on the map",
+      "hint": "Paste your establishment's Google Maps share link, or its coordinates. Families use it to find their way.",
+      "placeholder": "Google Maps link, or 36.821, 5.766",
+      "useMyLocation": "My location",
+      "locating": "Locating…",
+      "open": "Open in Maps",
+      "remove": "Remove pin",
+      "empty": "No pin set. An address on its own is not always enough to find you.",
+      "invalid": "Could not read that link. Paste the full Google Maps link, or the coordinates.",
+      "shortLink": "That link is shortened. Open it in Maps, then copy the full link from the address bar.",
+      "noGeolocation": "Your browser cannot provide your location.",
+      "denied": "Location refused. Allow location access, or paste a link."
+    }
+  },
+  "centerTypes": {
+    "nursery": {
+      "name": "Nursery",
+      "desc": "Full-day care for babies and toddlers."
+    },
+    "kindergarten": {
+      "name": "Kindergarten",
+      "desc": "Preschool classes for ages 3 to 6."
+    },
+    "montessori": {
+      "name": "Montessori school",
+      "desc": "Montessori pedagogy with mixed-age classes."
+    },
+    "edu_center": {
+      "name": "Learning centre",
+      "desc": "Tutoring, catch-up lessons and workshops."
+    },
+    "therapy_center": {
+      "name": "Therapy centre",
+      "desc": "Speech, psychomotor and one-to-one support."
+    },
+    "activity_center": {
+      "name": "Activity club",
+      "desc": "After-school sports, arts and culture."
+    },
+    "camp": {
+      "name": "Holiday camp",
+      "desc": "Seasonal camps run in short sessions."
+    }
+  },
+  "enrollment": {
+    "title": "Enrolment links",
+    "description": "Share a link so families can submit their application themselves",
+    "create": "New link",
+    "created": "Link created",
+    "createTitle": "Create an enrolment link",
+    "createDescription": "Generate a private link you can share on WhatsApp, Facebook or a printed poster.",
+    "label": "Label",
+    "labelPlaceholder": "2026 intake",
+    "expires": "Expiry date",
+    "maxUses": "Maximum uses",
+    "activeLabel": "Link active",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "whatsapp": "Share on WhatsApp",
+    "poster": "QR poster",
+    "shareText": "Hello! You can enrol your child at {name} using this link:",
+    "deleteTitle": "Delete this link?",
+    "deleteDescription": "The link “{label}” will stop working permanently.",
+    "empty": "No enrolment link yet",
+    "emptyHint": "Create a link and share it with families so applications reach you directly.",
+    "loadError": "Enrolment links could not be loaded.",
+    "columns": {
+      "label": "Label",
+      "url": "Link",
+      "uses": "Uses",
+      "expires": "Expiry",
+      "active": "Active",
+      "actions": "Actions"
+    },
+    "usesOf": "{used} of {max}",
+    "unlimited": "Unlimited",
+    "noExpiry": "No expiry",
+    "expired": "Expired",
+    "full": "Limit reached"
+  },
+  "poster": {
+    "title": "Enrolment poster",
+    "description": "Print it for the entrance hall or share it online",
+    "back": "Back to links",
+    "notFound": "Link not found",
+    "notFoundHint": "This link may have been deleted.",
+    "inactiveWarning": "This link is inactive: the code will not work until you switch it back on.",
+    "heading": {
+      "ar": "سجّل طفلك عندنا",
+      "en": "Enrol your child with us",
+      "fr": "Inscrivez votre enfant chez nous"
+    },
+    "instruction": {
+      "ar": "امسح الرمز بكاميرا هاتفك",
+      "en": "Scan the code with your phone camera",
+      "fr": "Scannez le code avec l'appareil photo de votre téléphone"
+    },
+    "orVisit": {
+      "ar": "أو ادخل إلى الرابط",
+      "en": "Or go to",
+      "fr": "Ou rendez-vous sur"
+    }
+  },
+  "holidays": {
+    "title": "Holidays and closures",
+    "description": "The days the kindergarten closes, grouped by month",
+    "add": "Add a holiday",
+    "addTitle": "Add a holiday",
+    "addDescription": "Add a public holiday, a religious feast or a closure specific to your kindergarten.",
+    "nameFr": "Name (French)",
+    "nameAr": "Name in Arabic",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "closureLabel": "Kindergarten closed",
+    "tentativeLabel": "Date not yet confirmed",
+    "tentativeBadge": "Approximate date",
+    "openBadge": "Kindergarten open",
+    "confirmed": "Date confirmed",
+    "confirmTitle": "Confirm the date",
+    "confirmDescription": "Set the officially announced date for “{name}”.",
+    "deleteTitle": "Delete this holiday?",
+    "deleteDescription": "“{name}” will be removed from the calendar.",
+    "empty": "No holidays recorded",
+    "emptyHint": "Add the public holidays so they appear in the kindergarten calendar.",
+    "loadError": "Holidays could not be loaded.",
+    "dateRange": "{start} to {end}",
+    "columns": {
+      "holiday": "Holiday",
+      "date": "Date",
+      "closure": "Closure",
+      "actions": "Actions"
+    },
+    "tentativeNotice": "Religious dates stay approximate until the official announcement: confirm them when it comes.",
+    "past": "Past"
+  },
+  "documents": {
+    "title": "Compliance documents",
+    "description": "Agrément, insurance and conformity certificates with expiry tracking",
+    "add": "Add a document",
+    "addTitle": "Add a document",
+    "addDescription": "Store a copy of the document and its expiry date so nothing lapses unnoticed.",
+    "docTitle": "Document title",
+    "titlePlaceholder": "Agrément from the social affairs directorate",
+    "type": "Document type",
+    "types": {
+      "agrement": "Agrément",
+      "insurance": "Insurance",
+      "conformity": "Conformity certificate",
+      "other": "Other"
+    },
+    "issued": "Issue date",
+    "expires": "Expiry date",
+    "file": "File",
+    "fileHint": "PDF or image, 10 MB maximum.",
+    "view": "View document",
+    "noFile": "No file attached",
+    "issuedOn": "Issued on {date}",
+    "expiresOn": "Expires on {date}",
+    "deleteTitle": "Delete this document?",
+    "deleteDescription": "“{title}” and its file will be permanently deleted.",
+    "empty": "No documents recorded",
+    "emptyHint": "Add your agrément and insurance policy to keep track of their renewal dates.",
+    "loadError": "Documents could not be loaded.",
+    "status": {
+      "valid": "Valid",
+      "expiring": "Expiring soon",
+      "expired": "Expired",
+      "noExpiry": "No expiry"
+    },
+    "alertTitle": "Documents need renewing",
+    "alertDescription": "{count} document(s) have expired or expire within 60 days."
+  },
+  "profile": {
+    "title": "My profile",
+    "description": "Your personal details, interface language and password",
+    "accountTitle": "Personal details",
+    "fullName": "Full name",
+    "language": "Interface language",
+    "languageHint": "Applies immediately across the whole app.",
+    "languages": {
+      "ar": "العربية",
+      "en": "English",
+      "fr": "Français"
+    },
+    "accessTitle": "Account and access",
+    "accessHint": "These details are managed by your kindergarten administrator.",
+    "role": "Role",
+    "staffCode": "Staff code",
+    "pinCode": "PIN code",
+    "pinHint": "Used to clock in and out on the reception kiosk.",
+    "notSet": "Not set",
+    "passwordTitle": "Password",
+    "passwordDescription": "Choose a new password of at least 8 characters.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "updatePassword": "Update password",
+    "passwordUpdated": "Password updated",
+    "passwordMismatch": "The two passwords do not match",
+    "passwordTooShort": "The password must be at least 8 characters long",
+    "passwordError": "The password could not be updated. Sign in again, then retry."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Choose what reaches your phone and your desk the moment something needs the office's attention.",
+    "deviceTitle": "Alerts on this device",
+    "deviceDescription": "Permission is granted per browser and per device. Turn it on for your phone and for the office computer so you are reachable in both places.",
+    "deviceHint": "You can switch it off whenever you like — notifications still appear inside the app.",
+    "eventsTitle": "What alerts staff",
+    "eventsDescription": "These events send an alert the moment they happen.",
+    "events": {
+      "application": {
+        "title": "New enrolment application",
+        "description": "A family submits an application through the enrolment link. Goes to the office."
+      },
+      "message": {
+        "title": "Message from a parent",
+        "description": "A parent writes in a conversation, absence reports included. Goes to the office and to educators."
+      },
+      "activity_request": {
+        "title": "Activity request",
+        "description": "A family asks to enrol their child in an activity. Goes to the office."
+      },
+      "task": {
+        "title": "Task assigned to you",
+        "description": "A task on the board is assigned to you. Goes to that person alone."
+      }
+    }
+  }
+}

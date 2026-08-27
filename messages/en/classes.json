@@ -1,0 +1,115 @@
+{
+  "list": {
+    "title": "Classes",
+    "description": "Class groups, capacity and teacher assignments",
+    "addClass": "New class",
+    "empty": "No classes yet",
+    "emptyDescription": "Create a first class to group children by age range.",
+    "occupancy": "Occupancy",
+    "full": "Full",
+    "room": "Room {room}",
+    "mainTeacher": "Main teacher:",
+    "noTeacher": "No teacher assigned"
+  },
+  "ageRange": {
+    "between": "{min} to {max} years",
+    "from": "From {min} years",
+    "upTo": "Up to {max} years",
+    "none": "All ages"
+  },
+  "dialog": {
+    "newTitle": "New class",
+    "editTitle": "Edit class",
+    "description": "Set the class name, age range and capacity.",
+    "name": "Name",
+    "nameAr": "Arabic name",
+    "ageMin": "Minimum age (months)",
+    "ageMax": "Maximum age (months)",
+    "capacity": "Capacity",
+    "room": "Room",
+    "roomHint": "Room A",
+    "color": "Colour"
+  },
+  "delete": {
+    "title": "Delete this class?",
+    "description": "This class will be permanently deleted. This cannot be undone.",
+    "blocked": "Cannot delete: {count} children are still assigned to this class. Remove them first."
+  },
+  "assignDialog": {
+    "title": "Assign children to the class",
+    "description": "Pick the children you want to move into this class.",
+    "empty": "Every enrolled child is already in this class.",
+    "noClass": "No class",
+    "overCapacity": "Warning: this selection exceeds the class capacity.",
+    "submit": "Assign ({count})"
+  },
+  "detail": {
+    "back": "Back to classes",
+    "notFound": "Class not found",
+    "notFoundDescription": "This class does not exist or does not belong to your kindergarten.",
+    "children": {
+      "title": "Children ({count})",
+      "empty": "No children in this class",
+      "emptyDescription": "Assign children to this class and they will appear here.",
+      "assign": "Assign children",
+      "unassign": "Remove from class",
+      "unassignTitle": "Remove from class?",
+      "unassignDescription": "{name} will be removed from this class. You can reassign them later."
+    },
+    "occupancy": {
+      "title": "Occupancy"
+    },
+    "attendance": {
+      "title": "Today's attendance",
+      "present": "Present",
+      "absent": "Absent",
+      "late": "Late",
+      "excused": "Excused",
+      "sick": "Sick",
+      "notMarked": "Not marked",
+      "noChildren": "No children in this class."
+    },
+    "staff": {
+      "title": "Teaching team",
+      "empty": "No staff assigned to this class.",
+      "main": "Main",
+      "makeMain": "Set as main",
+      "remove": "Remove",
+      "add": "Add",
+      "selectPlaceholder": "Pick a staff member",
+      "noneAvailable": "No staff available"
+    }
+  },
+  "childStatus": {
+    "pending": "Pending",
+    "enrolled": "Enrolled",
+    "waitlist": "Waitlist",
+    "withdrawn": "Withdrawn",
+    "alumni": "Alumni"
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Administrator",
+    "educator": "Teacher",
+    "staff": "Staff",
+    "accountant": "Accountant",
+    "parent": "Parent"
+  },
+  "toasts": {
+    "saved": "Saved successfully",
+    "deleted": "Class deleted",
+    "error": "Something went wrong. Please try again.",
+    "forbidden": "You do not have permission to do that.",
+    "inUse": "Cannot delete: the class still has children.",
+    "assigned": "{count} children assigned to the class",
+    "unassigned": "Child removed from the class",
+    "staffAdded": "Staff member added to the class",
+    "staffRemoved": "Staff member removed from the class",
+    "mainSet": "Main teacher set"
+  },
+  "error": {
+    "title": "Could not load the classes",
+    "description": "Something went wrong while loading the data. Please try again.",
+    "retry": "Retry"
+  }
+}

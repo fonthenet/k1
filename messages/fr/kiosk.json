@@ -1,0 +1,127 @@
+{
+  "title": "Kiosque d'entrée",
+  "presentCount": "{count, plural, =0 {Aucun enfant présent} one {# enfant présent} other {# enfants présents}}",
+  "exit": "Quitter le kiosque",
+  "modes": {
+    "children": "Enfants",
+    "staff": "Personnel"
+  },
+  "input": {
+    "keypad": "Clavier",
+    "scan": "Scanner"
+  },
+  "children": {
+    "prompt": "Entrez le code de l'enfant ou le code PIN du parent",
+    "hint": "K-001",
+    "chooseChild": "Quel enfant ?",
+    "checkedIn": "Arrivée enregistrée {time}",
+    "checkedOut": "Sortie enregistrée {time}",
+    "pickedUpBy": "Récupéré par",
+    "pickedUpByPlaceholder": "Nom de la personne",
+    "allergyWarning": "ATTENTION — ALLERGIES",
+    "class": "Classe"
+  },
+  "scan": {
+    "prompt": "Présentez le code QR devant la caméra",
+    "starting": "Démarrage de la caméra…",
+    "paused": "Lecture en pause",
+    "useKeypad": "Utiliser le clavier",
+    "videoLabel": "Viseur de la caméra",
+    "errors": {
+      "denied": "Accès à la caméra refusé. Autorisez la caméra pour ce site ou utilisez le clavier.",
+      "noCamera": "Aucune caméra détectée sur cet appareil. Utilisez le clavier.",
+      "insecure": "La caméra exige une connexion sécurisée (HTTPS). Utilisez le clavier.",
+      "generic": "La caméra n'a pas pu démarrer. Réessayez ou utilisez le clavier."
+    }
+  },
+  "verify": {
+    "adultLabel": "Adulte à la porte",
+    "subtitle": "Vérifiez que la photo correspond à la personne devant vous avant d'enregistrer.",
+    "noPhoto": "Aucune photo enregistrée — vérifiez une pièce d'identité avant de confier l'enfant.",
+    "chooseChildren": "Quels enfants ?",
+    "selectAll": "Tout sélectionner",
+    "clearAll": "Tout désélectionner",
+    "willCheckIn": "Arrivée",
+    "arrivedAt": "Sortie · arrivé à {time}",
+    "confirmCount": "{count, plural, =0 {Choisissez un enfant} one {Enregistrer # enfant} other {Enregistrer # enfants}}",
+    "noPickup": "Non autorisé à récupérer"
+  },
+  "duplicate": {
+    "title": "Vérifiez avant d'enregistrer",
+    "arrivedAt": "Arrivée à {time}",
+    "leftAt": "Sortie à {time}",
+    "reasons": {
+      "already_in": "L'arrivée de {name} est déjà enregistrée : l'enfant est présent. Rien n'a été enregistré.",
+      "already_out": "La sortie de {name} est déjà enregistrée aujourd'hui. Rien n'a été enregistré.",
+      "just_arrived": "L'arrivée de {name} a été enregistrée il y a moins de deux minutes. Vouliez-vous vraiment enregistrer une sortie ?",
+      "returned": "{name} est parti(e) aujourd'hui et se présente de nouveau. Enregistrer son retour ?"
+    },
+    "cancel": "Non, annuler",
+    "forceOut": "Enregistrer quand même la sortie",
+    "forceIn": "Enregistrer quand même l'arrivée",
+    "partial": "{recorded} sur {total} enregistrés. Cet enfant attend votre décision.",
+    "remaining": "{count, plural, one {# autre enfant à vérifier} other {# autres enfants à vérifier}}",
+    "forceReturn": "Enregistrer le retour — le départ précédent sera remplacé"
+  },
+  "result": {
+    "adult": "Adulte",
+    "child": "Enfant",
+    "recordedWith": "Enregistré avec {name}",
+    "noGuardian": "Aucun adulte identifié pour ce scan.",
+    "partialFailure": "{count, plural, one {# enfant n'a pas pu être enregistré} other {# enfants n'ont pas pu être enregistrés}}"
+  },
+  "relationships": {
+    "father": "Père",
+    "mother": "Mère",
+    "guardian": "Tuteur",
+    "grandparent": "Grand-parent",
+    "sibling": "Frère / sœur",
+    "other": "Autre"
+  },
+  "staff": {
+    "prompt": "Entrez votre code personnel ou votre PIN",
+    "in": "Arrivée",
+    "out": "Sortie",
+    "clockedIn": "Arrivée enregistrée {time}",
+    "clockedOut": "Sortie enregistrée {time}",
+    "breakStart": "Pause déjeuner",
+    "breakEnd": "Retour de pause",
+    "endDay": "Fin de journée",
+    "onClockSince": "En poste depuis {time}",
+    "onBreakSince": "En pause depuis {time}",
+    "offToday": "Aucune arrivée aujourd'hui",
+    "breakSoFar": "Pauses aujourd'hui : {minutes} min",
+    "whatNow": "Que souhaitez-vous enregistrer ?",
+    "breakStarted": "Pause commencée {time}",
+    "breakEnded": "Pause terminée {time} — {minutes} min",
+    "unpaidNote": "Les pauses ne comptent pas dans les heures payées.",
+    "allowanceNote": "La pause déjeuner est payée jusqu'à {minutes} min. Au-delà, le temps n'est pas payé.",
+    "breakDeducted": "Pauses : {total} min — dont {unpaid} min non payées",
+    "breakCovered": "Pauses : {minutes} min — entièrement payées"
+  },
+  "keypad": {
+    "validate": "Valider",
+    "clear": "Effacer",
+    "backspace": "Corriger"
+  },
+  "actions": {
+    "ok": "OK",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "retry": "Réessayer"
+  },
+  "errors": {
+    "unknownCode": "Code inconnu. Vérifiez le code et réessayez.",
+    "ambiguousCode": "Ce code correspond à plusieurs personnes. Voyez avec le bureau.",
+    "noChildren": "Aucun enfant inscrit n'est lié à ce code.",
+    "notClockedIn": "Aucune arrivée enregistrée aujourd'hui.",
+    "generic": "Une erreur est survenue. Réessayez.",
+    "loadTitle": "Le kiosque n'a pas pu se charger",
+    "loadDescription": "Une erreur est survenue. Vérifiez la connexion puis réessayez.",
+    "pickupNotAllowed": "Cet adulte n'est pas autorisé à récupérer cet enfant. Rien n'a été enregistré — voir la direction.",
+    "alreadyClockedIn": "Votre arrivée est déjà enregistrée aujourd'hui.",
+    "alreadyOnBreak": "Vous êtes déjà en pause.",
+    "notOnBreak": "Aucune pause en cours.",
+    "staffCodeHere": "Ceci est un badge du personnel. Utilisez l'onglet Personnel."
+  }
+}
