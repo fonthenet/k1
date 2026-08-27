@@ -58,6 +58,8 @@ export type HeaderLabels = {
   menu: string;
   login: string;
   signup: string;
+  /** Parents sign in through the same door; the label is what tells them so. */
+  parents: string;
 };
 
 type Glyph = React.ComponentType<{ className?: string }>;
@@ -102,7 +104,7 @@ function MenuTile({ id, index }: { id: string; index: number }) {
 
 export function HeaderNav({ entries, label }: { entries: NavEntry[]; label: string }) {
   return (
-    <nav aria-label={label} className="hidden items-center gap-0.5 lg:flex">
+    <nav aria-label={label} className="hidden items-center gap-0.5 xl:flex">
       {entries.map((entry) =>
         entry.kind === "link" ? (
           <a key={entry.id} href={entry.href} className={NAV_LINK}>
@@ -169,7 +171,7 @@ export function HeaderMobileNav({
     <Sheet>
       <SheetTrigger
         aria-label={labels.menu}
-        className="grid size-10 shrink-0 place-items-center rounded-full text-foreground/70 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 lg:hidden"
+        className="grid size-10 shrink-0 place-items-center rounded-full text-foreground/70 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 xl:hidden"
       >
         <MenuIcon className="size-5" aria-hidden />
       </SheetTrigger>
@@ -238,6 +240,18 @@ export function HeaderMobileNav({
               className="inline-flex h-11 items-center justify-center rounded-full border border-border px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
             >
               {labels.login}
+            </a>
+          </SheetClose>
+          {/* Same destination as the login above — /login routes by role once
+              you are in. Two labelled doors rather than one unlabelled one,
+              because a parent reading "Connexion / Essai gratuit" on a page
+              selling software to crèches has no reason to think it means them. */}
+          <SheetClose asChild>
+            <a
+              href="/login"
+              className="inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-semibold text-primary transition-colors hover:bg-primary/8"
+            >
+              {labels.parents}
             </a>
           </SheetClose>
         </SheetFooter>

@@ -27,6 +27,7 @@ import {
   TONE_PILL,
   type FinanceTone,
 } from "@/components/modules/billing/finance-ui";
+import { StaffLink } from "@/components/shared/entity-link";
 import type { MemberOption } from "@/components/modules/accounting/types";
 
 interface RawMember {
@@ -49,6 +50,7 @@ interface RawAdvance {
 
 interface AdvanceRow {
   id: string;
+  membershipId: string;
   memberName: string;
   jobTitle: string | null;
   amount: number;
@@ -112,6 +114,7 @@ export default async function AdvancesPage() {
     const member = memberById.get(a.membership_id);
     return {
       id: a.id,
+      membershipId: a.membership_id,
       memberName: member?.name ?? "—",
       jobTitle: member?.jobTitle ?? null,
       amount: Number(a.amount),
@@ -279,7 +282,9 @@ function AdvancesTable({
                   {rows.map((row) => (
                     <TableRow key={row.id} className="h-14">
                       <TableCell className="ps-4">
-                        <div className="font-medium">{row.memberName}</div>
+                        <div className="font-medium">
+                          <StaffLink id={row.membershipId}>{row.memberName}</StaffLink>
+                        </div>
                         {row.jobTitle && (
                           <div className="text-xs text-muted-foreground">{row.jobTitle}</div>
                         )}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Camera, Check, Images, Loader2, RefreshCw } from "lucide-react";
+import { Camera, Check, Images, Loader2, RefreshCw, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -100,7 +100,7 @@ export function StepPhoto({
 
   return (
     <div>
-      <StepHeader emoji="📷" title={t("photo.title")} subtitle={t("photo.subtitle")} />
+      <StepHeader icon={Camera} title={t("photo.title")} subtitle={t("photo.subtitle")} />
 
       <input
         ref={cameraRef}
@@ -129,9 +129,7 @@ export function StepPhoto({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="" className="size-full object-cover" />
           ) : (
-            <span className="text-5xl" aria-hidden>
-              🙂
-            </span>
+            <UserRound className="size-12 text-muted-foreground/40" aria-hidden />
           )}
         </div>
 

@@ -3,6 +3,7 @@ import { Baby, Banknote, ReceiptText, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { PortalChildLink } from "@/components/shared/entity-link";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/tenant";
 import { childDisplayName, formatDZD } from "@/lib/format";
@@ -248,7 +249,9 @@ export default async function PortalPaymentsPage() {
                 key={child.id}
                 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl bg-muted/50 px-3.5 py-2.5"
               >
-                <span className="text-sm font-medium">{childDisplayName(child, locale)}</span>
+                <span className="text-sm font-medium">
+                  <PortalChildLink id={child.id}>{childDisplayName(child, locale)}</PortalChildLink>
+                </span>
                 {row ? (
                   <>
                     <span className="text-xs text-muted-foreground">

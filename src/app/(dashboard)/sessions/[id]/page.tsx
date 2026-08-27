@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { StaffLink } from "@/components/shared/entity-link";
 import { SessionOutcomeForm } from "@/components/modules/sessions/session-outcome-form";
 import {
   MeterRow,
@@ -123,6 +124,7 @@ export default async function SessionDetailPage({
     : t("schedule.noClass");
 
   let therapistName = t("schedule.noTherapist");
+  let therapistLinkId: string | null = null;
   if (session.therapist_id) {
     const { data: membership } = await supabase
       .from("kg_memberships")
@@ -136,7 +138,10 @@ export default async function SessionDetailPage({
         .select("full_name")
         .eq("id", membership.user_id)
         .maybeSingle();
-      if (profile?.full_name) therapistName = profile.full_name;
+      if (profile?.full_name) {
+        therapistName = profile.full_name;
+        therapistLinkId = session.therapist_id;
+      }
     }
   }
 
@@ -223,7 +228,13 @@ export default async function SessionDetailPage({
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
                   <dt className="text-xs text-muted-foreground">{t("detail.therapist")}</dt>
-                  <dd className="truncate text-end font-medium">{therapistName}</dd>
+                  <dd className="truncate text-end font-medium">
+                    {therapistLinkId ? (
+                      <StaffLink id={therapistLinkId}>{therapistName}</StaffLink>
+                    ) : (
+                      therapistName
+                    )}
+                  </dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
                   <dt className="text-xs text-muted-foreground">{t("detail.scheduled")}</dt>

@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { PortalChildLink } from "@/components/shared/entity-link";
 import {
   Sheet,
   SheetContent,
@@ -35,7 +36,9 @@ export function InvoicesList({ groups }: { groups: PortalChildInvoices[] }) {
       {groups.map((group) => (
         <Card key={group.childId} className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base font-semibold">{group.childName}</CardTitle>
+            <CardTitle className="text-base font-semibold">
+              <PortalChildLink id={group.childId}>{group.childName}</PortalChildLink>
+            </CardTitle>
             {group.balance > 0 ? (
               <span className="text-end text-sm font-bold text-destructive tabular-nums">
                 {t("due")} : {formatDZD(group.balance, locale)}

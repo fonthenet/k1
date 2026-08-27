@@ -33,6 +33,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { AllergySeverity } from "@/lib/types";
+import { allergenLabel } from "@/lib/allergens";
+import { AllergenPicker } from "@/components/shared/allergen-picker";
 import { deleteAllergy, saveAllergy } from "./actions";
 import { severityClasses } from "./portal-types";
 import { ALLERGY_SEVERITIES, type PortalAllergy } from "./health-edit-shared";
@@ -127,14 +129,11 @@ function AllergyDialog({
         </DialogHeader>
         <div className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor={`${fieldId}-allergen`}>{t("allergen")}</Label>
-            <Input
+            <Label id={`${fieldId}-allergen`}>{t("allergen")}</Label>
+            <AllergenPicker
               id={`${fieldId}-allergen`}
-              className="h-11"
               value={form.allergen}
-              onChange={(e) => setForm((f) => ({ ...f, allergen: e.target.value }))}
-              placeholder={t("allergenPlaceholder")}
-              autoComplete="off"
+              onChange={(allergen) => setForm((f) => ({ ...f, allergen }))}
             />
           </div>
 
@@ -259,7 +258,7 @@ function DeleteAllergyButton({ childId, allergy }: { childId: string; allergy: P
         <AlertDialogHeader>
           <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t("deleteDescription", { allergen: allergy.allergen })}
+            {t("deleteDescription", { allergen: allergenLabel(allergy.allergen, tc) })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -304,7 +303,7 @@ export function HealthEditAllergies({
         allergies.map((a) => (
           <div key={a.id} className="rounded-xl border border-destructive/25 bg-destructive/5 p-3.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">{a.allergen}</span>
+              <span className="font-semibold">{allergenLabel(a.allergen, tc)}</span>
               <Badge className={severityClasses(a.severity)}>{t(`severity.${a.severity}`)}</Badge>
             </div>
             {a.reaction && (

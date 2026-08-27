@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ValueRange } from "@/components/shared/value-range";
+import { PortalChildLink } from "@/components/shared/entity-link";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, signedMediaUrl } from "@/lib/tenant";
 import { EstablishmentCard } from "@/components/shared/establishment-card";
@@ -298,7 +299,7 @@ export default async function PortalHomePage() {
                 className="grid gap-2 rounded-xl bg-card p-3.5 ring-1 ring-destructive/15"
               >
                 <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-semibold">{childName(incident.child_id)}</span>
+                  <span className="font-semibold"><PortalChildLink id={incident.child_id}>{childName(incident.child_id)}</PortalChildLink></span>
                   <Badge className={severityClasses(incident.severity)}>
                     {t(`home.incidents.severity.${incident.severity}`)}
                   </Badge>

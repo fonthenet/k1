@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { DatePicker, toISODate } from "@/components/shared/date-picker";
 import { BLOOD_TYPES, type WizardChild } from "./types";
+import { Baby } from "lucide-react";
 import { BigChoice, Field, StepHeader } from "./wizard-ui";
 
 export function StepChild({
@@ -26,11 +27,11 @@ export function StepChild({
 
   return (
     <div>
-      <StepHeader emoji="🧒" title={t("child.title")} subtitle={t("child.subtitle")} />
+      <StepHeader icon={Baby} title={t("child.title")} subtitle={t("child.subtitle")} />
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         {/* Latin-script names */}
-        <fieldset className="rounded-2xl border bg-card p-4">
+        <fieldset className="rounded-2xl border bg-card p-3.5">
           <legend className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {t("child.latin")}
           </legend>
@@ -57,7 +58,7 @@ export function StepChild({
         </fieldset>
 
         {/* Arabic-script names */}
-        <fieldset className="rounded-2xl border bg-card p-4">
+        <fieldset className="rounded-2xl border bg-card p-3.5">
           <legend className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {t("child.arabic")} <span className="normal-case">({tc("labels.optional")})</span>
           </legend>
@@ -102,16 +103,10 @@ export function StepChild({
           </span>
           <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label={t("child.gender")}>
             <BigChoice selected={child.gender === "male"} onClick={() => onChange({ gender: "male" })}>
-              <div className="text-center">
-                <div className="text-3xl" aria-hidden>👦</div>
-                <div className="mt-1 font-medium">{t("child.male")}</div>
-              </div>
+              <span className="block py-1 text-center font-medium">{t("child.male")}</span>
             </BigChoice>
             <BigChoice selected={child.gender === "female"} onClick={() => onChange({ gender: "female" })}>
-              <div className="text-center">
-                <div className="text-3xl" aria-hidden>👧</div>
-                <div className="mt-1 font-medium">{t("child.female")}</div>
-              </div>
+              <span className="block py-1 text-center font-medium">{t("child.female")}</span>
             </BigChoice>
           </div>
         </div>

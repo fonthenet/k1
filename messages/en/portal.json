@@ -83,21 +83,13 @@
     "title": "Enrolment requests",
     "description": "Requests still with the office — they stay here until the kindergarten answers.",
     "sentOn": "Sent on {date}",
-    "reviewNote": "The kindergarten's answer",
-    "status": {
-      "submitted": "Awaiting review",
-      "under_review": "Under review",
-      "interview": "Interview booked",
-      "offered": "Place offered",
-      "waitlist": "On the waiting list",
-      "rejected": "Not accepted"
-    }
+    "processing": "File received — being processed. The crèche will contact you.",
+    "closed": "File handled — contact the crèche about the next step."
   },
   "addChild": {
     "trigger": "Enrol another child",
     "back": "My children",
     "title": "Enrol another child",
-    "subtitle": "The kindergarten already has your details — only your child's are needed.",
     "review": {
       "title": "Check the request",
       "subtitle": "One last look before it reaches the office.",

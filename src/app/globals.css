@@ -16,6 +16,7 @@
   --color-tile-3: var(--tile-3);
   --color-tile-4: var(--tile-4);
   --color-destructive-solid: var(--destructive-solid);
+  --color-gold-solid: var(--gold-solid);
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
   --color-gold-muted: var(--gold-muted);
@@ -109,6 +110,11 @@
   --gold-foreground: oklch(0.995 0.005 90);  /* on SOLID gold                 */
   --gold-ink: oklch(0.505 0.105 72);         /* text on gold TINTS — ~5:1     */
   --gold-muted: oklch(0.963 0.048 86);       /* #FEF3C7                       */
+  /* Solid fill for a small chip carrying light text — the same problem
+     --destructive-solid was created for. Plain --gold behind white reaches
+     about 2.1:1, so an 11px numeral on the parent's notification bell read as
+     a gold blob with a smudge in it. */
+  --gold-solid: oklch(0.588 0.126 68);       /* 5.2:1 on white                */
 
   --success: oklch(0.545 0.132 152);         /* #15803D                       */
   --success-foreground: oklch(0.995 0.005 155);
@@ -188,6 +194,7 @@
   --gold-foreground: oklch(0.225 0.050 60);
   --gold-ink: oklch(0.845 0.132 86);          /* light ink on dark surfaces   */
   --gold-muted: oklch(0.340 0.058 74);
+  --gold-solid: oklch(0.700 0.140 72);
 
   --success: oklch(0.742 0.145 152);
   --success-foreground: oklch(0.198 0.030 160);

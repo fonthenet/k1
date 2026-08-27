@@ -16,15 +16,38 @@ export interface EnrollActivity {
   description: string | null;
 }
 
+/** A monthly tariff offered on the public form (0057). */
+export interface EnrollFeePlan {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  amount: number;
+  description: string | null;
+}
+
+/** A one-off admission fee, shown so the family sees the true first bill. */
+export interface EnrollAdmissionFee {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  amount: number;
+}
+
 export interface EnrollLinkData {
   tenant_id: string;
   tenant_name: string;
   logo_url: string | null;
   wilaya: string | null;
   commune: string | null;
+  address: string | null;
+  /** Map pin (0050). Both set or both null. */
+  latitude: number | null;
+  longitude: number | null;
   link_id: string;
   label: string;
   activities: EnrollActivity[];
+  fee_plans: EnrollFeePlan[];
+  admission_fees: EnrollAdmissionFee[];
 }
 
 // ----- Wizard state (persisted to localStorage for resume) -----
@@ -86,6 +109,13 @@ export interface WizardState {
   pickupNote: string;
   health: WizardHealth;
   activityIds: string[];
+  /**
+   * The schedule the FAMILY wants — the one thing that decides their monthly
+   * bill, and the one thing the old form never asked. "" = not answered yet;
+   * "undecided" = a deliberate "I'll decide with the crèche"; otherwise a
+   * kg_fee_plans id. Approval pre-selects it so staff confirm, not guess.
+   */
+  feePlanId: string;
 }
 
 export const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
@@ -142,6 +172,7 @@ export function initialWizardState(): WizardState {
       dietary_restrictions: "",
     },
     activityIds: [],
+    feePlanId: "",
   };
 }
 
@@ -242,6 +273,8 @@ export interface ApplicationRecord {
   tenant_id: string;
   link_id: string | null;
   applicant_user_id: string | null;
+  /** Joined from the family's requested tariff (0057); null when undecided. */
+  kg_fee_plans?: { name: string; name_ar: string | null; amount: number } | null;
   status: PipelineStatus;
   child: AppChildPayload;
   guardians: AppGuardianPayload[];

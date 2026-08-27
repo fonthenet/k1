@@ -234,7 +234,6 @@
   },
   "allergies": {
     "title": "الحساسيات",
-    "alert": "تنبيه حساسية — أعلِم كل الفريق",
     "empty": "لا توجد حساسيات معروفة",
     "add": "إضافة حساسية",
     "addTitle": "حساسية جديدة",
@@ -273,43 +272,29 @@
     }
   },
   "billing": {
-    "feesTitle": "الرسوم المخصَّصة",
-    "feesEmpty": "لا توجد خطة رسوم مخصَّصة لهذا الطفل",
-    "invoicesTitle": "الفواتير",
-    "invoicesEmpty": "لا توجد فواتير لهذا الطفل",
-    "goToBilling": "فتح الفوترة",
-    "restricted": "قسم مخصَّص لأدوار المالية (المالك، المدير، المحاسب).",
+    "owes": "مستحق {amount}",
+    "settled": "مسدَّد",
     "columns": {
-      "plan": "الخطة",
+      "plan": "الصيغة",
       "amount": "المبلغ",
       "period": "الدورية",
-      "discount": "التخفيض",
+      "discount": "تخفيض",
       "start": "البداية",
       "end": "النهاية",
-      "number": "الرقم",
+      "number": "رقم",
       "month": "الشهر",
       "issued": "تاريخ الإصدار",
       "due": "الاستحقاق",
       "status": "الحالة",
-      "total": "المجموع",
+      "total": "الإجمالي",
       "paid": "المدفوع"
     },
-    "periods": {
-      "once": "مرة واحدة",
-      "monthly": "شهري",
-      "quarterly": "فصلي",
-      "yearly": "سنوي",
-      "per_session": "لكل حصة"
-    },
-    "invoiceStatus": {
-      "draft": "مسودة",
-      "sent": "مُرسلة",
-      "unpaid": "غير مدفوعة",
-      "partial": "مدفوعة جزئيًا",
-      "paid": "مدفوعة",
-      "overdue": "متأخرة",
-      "void": "ملغاة"
-    }
+    "feesTitle": "الصيغ المُسندة",
+    "feesEmpty": "لا توجد صيغة رسوم مُسندة لهذا الطفل",
+    "invoicesTitle": "الفواتير",
+    "invoicesEmpty": "لا توجد فواتير لهذا الطفل",
+    "goToBilling": "فتح الفوترة",
+    "restricted": "مخصَّص للمالك والإدارة."
   },
   "documents": {
     "title": "الوثائق",

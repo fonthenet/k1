@@ -31,7 +31,12 @@
     },
     "view": "Voir la facture",
     "empty": "Aucune facture pour ce mois",
-    "emptyHint": "Générez les factures du mois à partir des formules assignées aux enfants, ou créez une facture manuelle."
+    "emptyHint": "Générez les factures du mois à partir des formules assignées aux enfants, ou créez une facture manuelle.",
+    "noFeePlan": {
+      "title": "{count, plural, one {1 enfant inscrit sans formule tarifaire} other {# enfants inscrits sans formule tarifaire}}",
+      "body": "Ils ne seront jamais facturés automatiquement.",
+      "action": "Attribuer une formule"
+    }
   },
   "status": {
     "draft": "Brouillon",

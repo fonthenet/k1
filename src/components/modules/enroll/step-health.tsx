@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Stethoscope, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,7 @@ import {
 import type { AllergySeverity } from "@/lib/types";
 import type { WizardAllergy, WizardHealth } from "./types";
 import { Field, StepHeader } from "./wizard-ui";
+import { AllergenPicker } from "@/components/shared/allergen-picker";
 
 const SEVERITIES: AllergySeverity[] = ["mild", "moderate", "severe"];
 
@@ -49,36 +50,44 @@ export function StepHealth({
 
   return (
     <div>
-      <StepHeader emoji="🩺" title={t("health.title")} subtitle={t("health.subtitle")} />
+      <StepHeader icon={Stethoscope} title={t("health.title")} subtitle={t("health.subtitle")} />
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         {/* Allergies repeater */}
-        <div className="rounded-2xl border bg-card p-4">
-          <p className="mb-1 font-semibold">⚠️ {t("health.allergies")}</p>
+        <div className="rounded-2xl border bg-card p-3.5">
+          <p className="mb-1 flex items-center gap-1.5 font-semibold">
+            <TriangleAlert className="size-4 shrink-0 text-destructive" aria-hidden />
+            {t("health.allergies")}
+          </p>
           {health.allergies.length === 0 && (
             <p className="mb-3 text-sm text-muted-foreground">{t("health.noAllergies")}</p>
           )}
           <div className="space-y-4">
             {health.allergies.map((a, i) => (
               <div key={i} className="rounded-xl border bg-background p-3">
-                <div className="mb-3 flex items-end gap-2">
-                  <Field label={t("health.allergen")} required className="flex-1">
-                    <Input
-                      className="h-11 text-base"
-                      value={a.allergen}
-                      placeholder={t("health.allergenPlaceholder")}
-                      onChange={(e) => updateAllergy(i, { allergen: e.target.value })}
-                    />
-                  </Field>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="mb-0.5 shrink-0"
-                    onClick={() => removeAllergy(i)}
-                    aria-label={tc("actions.delete")}
-                  >
-                    <Trash2 className="size-4 text-destructive" />
-                  </Button>
+                {/* Not a <Field>: that renders a <label>, and a label may not
+                    wrap a group of buttons. */}
+                <div className="mb-3">
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">
+                      {t("health.allergen")}
+                      <span className="text-destructive"> *</span>
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="mb-0.5 shrink-0"
+                      onClick={() => removeAllergy(i)}
+                      aria-label={tc("actions.delete")}
+                    >
+                      <Trash2 className="size-4 text-destructive" />
+                    </Button>
+                  </div>
+                  <AllergenPicker
+                    id={`allergen-${i}`}
+                    value={a.allergen}
+                    onChange={(allergen) => updateAllergy(i, { allergen })}
+                  />
                 </div>
                 <div className="space-y-3">
                   <Field label={t("health.severity")}>

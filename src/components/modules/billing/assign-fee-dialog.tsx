@@ -118,8 +118,12 @@ export function AssignFeeDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
+          {/* Subgrid: only one of these two fields carries a hint, so on a plain
+              two-column grid the labels sat at different heights and the inputs
+              never lined up. Sharing the parent's rows pins label to label and
+              input to input, whatever the hint does in any of the languages. */}
+          <div className="grid gap-3 sm:grid-cols-2 sm:grid-rows-[auto_auto_auto]">
+            <div className="grid gap-1.5 sm:row-span-3 sm:grid-rows-subgrid">
               <Label htmlFor={`fee-custom-${childId}`}>{t("plans.assignDialog.customAmount")}</Label>
               <Input
                 id={`fee-custom-${childId}`}
@@ -135,7 +139,7 @@ export function AssignFeeDialog({
                 {t("plans.assignDialog.customAmountHint")}
               </p>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-1.5 sm:row-span-3 sm:grid-rows-subgrid">
               <Label htmlFor={`fee-pct-${childId}`}>{t("plans.assignDialog.discountPct")}</Label>
               <Input
                 id={`fee-pct-${childId}`}

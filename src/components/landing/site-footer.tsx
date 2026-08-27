@@ -1,4 +1,5 @@
-import { MailIcon } from "lucide-react";
+import Link from "next/link";
+import { MailIcon, UsersRound } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { SECTION } from "./styles";
 import { Wordmark } from "./wordmark";
@@ -53,6 +54,20 @@ export async function SiteFooter() {
             </p>
             <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground shadow-xs">
               {t("languageNote")}
+            </p>
+
+            {/* The parents' way in. This whole page sells software to crèches,
+                so a parent reading "Connexion / Essai gratuit" has no reason to
+                think any of it is for them — and the header has no room left to
+                say so. Same /login; it routes by role once you are through. */}
+            <p className="mt-5">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-full bg-primary/8 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/12"
+              >
+                <UsersRound className="size-4" aria-hidden />
+                {t("parentsCta")}
+              </Link>
             </p>
           </div>
 

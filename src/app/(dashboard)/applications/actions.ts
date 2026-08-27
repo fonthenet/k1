@@ -18,12 +18,28 @@ const approveSchema = z.object({
     .max(20)
     .nullable()
     .transform((v) => (v ? v.toUpperCase() : v)),
+  feePlanId: z.union([z.uuid(), z.literal(""), z.null()]).optional(),
+  discountPct: z.number().min(0).max(100).optional(),
+  billFirstMonth: z.boolean().optional(),
 });
 
 export async function approveApplication(input: {
   appId: string;
   classId: string | null;
   tagCode: string | null;
+  /**
+   * Billing, decided at the moment of approval. Approval used to set up the
+   * child completely and the money not at all, so an approved child attended
+   * and was invoiced nothing — silently, because the monthly run bills from
+   * kg_child_fees and simply skips a child who has no row there.
+   *
+   * There is no registration amount here on purpose: admission fees are the
+   * fee plans with period 'once', applied automatically from the tariff list
+   * (0056). Nobody retypes a number the crèche has already set.
+   */
+  feePlanId?: string | null;
+  discountPct?: number;
+  billFirstMonth?: boolean;
 }): Promise<{ childId?: string; error?: string }> {
   const ctx = await requireStaff();
   if (!ctx.isAdmin) return { error: "forbidden" };
@@ -32,10 +48,17 @@ export async function approveApplication(input: {
   if (!parsed.success) return { error: "invalid" };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("kg_approve_application", {
+  // One RPC, therefore one transaction. Calling approve and then bill as two
+  // round trips would leave a child enrolled-but-unbilled every time the second
+  // failed — which is the exact bug being closed here.
+  const { data, error } = await supabase.rpc("kg_approve_and_bill", {
     p_app: parsed.data.appId,
     p_class: parsed.data.classId,
     p_tag_code: parsed.data.tagCode || null,
+    p_fee_plan: parsed.data.feePlanId || null,
+    p_discount_pct: parsed.data.discountPct ?? 0,
+    p_custom_amount: null,
+    p_bill_first_month: parsed.data.billFirstMonth ?? true,
   });
   if (error) return { error: error.message };
 

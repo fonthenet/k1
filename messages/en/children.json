@@ -234,7 +234,6 @@
   },
   "allergies": {
     "title": "Allergies",
-    "alert": "Allergy alert — make sure the whole team knows",
     "empty": "No known allergies",
     "add": "Add an allergy",
     "addTitle": "New allergy",
@@ -273,12 +272,8 @@
     }
   },
   "billing": {
-    "feesTitle": "Assigned fees",
-    "feesEmpty": "No fee plan assigned to this child",
-    "invoicesTitle": "Invoices",
-    "invoicesEmpty": "No invoices for this child",
-    "goToBilling": "Open billing",
-    "restricted": "This section is limited to finance roles (owner, admin, accountant).",
+    "owes": "Owes {amount}",
+    "settled": "Settled",
     "columns": {
       "plan": "Plan",
       "amount": "Amount",
@@ -288,28 +283,18 @@
       "end": "End",
       "number": "No.",
       "month": "Month",
-      "issued": "Issued on",
+      "issued": "Issued",
       "due": "Due",
       "status": "Status",
       "total": "Total",
       "paid": "Paid"
     },
-    "periods": {
-      "once": "One-off",
-      "monthly": "Monthly",
-      "quarterly": "Quarterly",
-      "yearly": "Yearly",
-      "per_session": "Per session"
-    },
-    "invoiceStatus": {
-      "draft": "Draft",
-      "sent": "Sent",
-      "unpaid": "Unpaid",
-      "partial": "Partial",
-      "paid": "Paid",
-      "overdue": "Overdue",
-      "void": "Void"
-    }
+    "feesTitle": "Assigned plans",
+    "feesEmpty": "No fee plan assigned to this child",
+    "invoicesTitle": "Invoices",
+    "invoicesEmpty": "No invoices for this child",
+    "goToBilling": "Open billing",
+    "restricted": "Restricted to owners and administrators."
   },
   "documents": {
     "title": "Documents",

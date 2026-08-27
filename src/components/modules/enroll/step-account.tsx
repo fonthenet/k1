@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Loader2, LogOut, UserCheck } from "lucide-react";
+import { Loader2, LogOut, UserCheck, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeAlgerianPhone, signInIdentity } from "@/lib/auth-identifier";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -40,16 +41,31 @@ export function StepAccount({
     setInfo(null);
     setBusy(true);
     try {
+      // The same door as the main sign-up: an email address or an Algerian
+      // phone number, detected from what they typed. Parents — this form's
+      // whole audience — are exactly the population that has a phone and no
+      // email they check; see lib/auth-identifier.ts for how a number signs in.
+      const identity = signInIdentity(email);
+      if (!identity) {
+        setError(t("account.badIdentifier"));
+        setBusy(false);
+        return;
+      }
       if (mode === "signup") {
         const { data, error: err } = await supabase.auth.signUp({
-          email: email.trim(),
+          email: identity.email,
           password,
-          options: { data: { full_name: fullName.trim() } },
+          options: {
+            data: {
+              full_name: fullName.trim(),
+              phone: identity.kind === "phone" ? normalizeAlgerianPhone(email) : null,
+            },
+          },
         });
         if (err) {
           setError(t("account.signupError"));
         } else if (data.session && data.user) {
-          onAuthed({ id: data.user.id, email: data.user.email ?? email.trim(), fullName: fullName.trim() });
+          onAuthed({ id: data.user.id, email: data.user.email ?? identity.email, fullName: fullName.trim() });
           onNext();
         } else {
           // Email confirmation required by the project settings.
@@ -58,7 +74,7 @@ export function StepAccount({
         }
       } else {
         const { data, error: err } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: identity.email,
           password,
         });
         if (err || !data.user) {
@@ -92,7 +108,7 @@ export function StepAccount({
   if (user) {
     return (
       <div>
-        <StepHeader emoji="👤" title={t("account.title")} subtitle={t("account.subtitle")} />
+        <StepHeader icon={UserRound} title={t("account.title")} subtitle={t("account.subtitle")} />
         <div className="rounded-2xl border bg-card p-5 text-center">
           <UserCheck className="mx-auto mb-2 size-8 text-primary" />
           <p className="text-sm text-muted-foreground">{t("account.signedInAs")}</p>
@@ -121,7 +137,7 @@ export function StepAccount({
 
   return (
     <div>
-      <StepHeader emoji="👤" title={t("account.title")} subtitle={t("account.subtitle")} />
+      <StepHeader icon={UserRound} title={t("account.title")} subtitle={t("account.subtitle")} />
 
       <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
         {(["signup", "login"] as const).map((m) => (
@@ -155,14 +171,14 @@ export function StepAccount({
             />
           </Field>
         )}
-        <Field label={t("account.email")} required>
+        <Field label={t("account.identifier")} required>
           <Input
             className="h-11 text-base"
-            type="email"
+            type="text"
             dir="ltr"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
+            autoComplete="username"
             inputMode="email"
             required
           />

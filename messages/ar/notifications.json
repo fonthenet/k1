@@ -111,6 +111,10 @@
     "session_published": {
       "title": "حصة {child}",
       "body": "{text}"
+    },
+    "application_status": {
+      "title": "ملف {child}",
+      "body": "{status}"
     }
   },
   "push": {
@@ -201,5 +205,8 @@
     "cheque": "شيك",
     "chargily": "Chargily",
     "other": "أخرى"
+  },
+  "applicationStatuses": {
+    "approved": "قُبل التسجيل 🎉"
   }
 }

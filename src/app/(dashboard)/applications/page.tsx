@@ -37,7 +37,7 @@ export default async function ApplicationsPage({
 
   const { data, error } = await supabase
     .from("kg_applications")
-    .select("*")
+    .select("*, kg_fee_plans(name, name_ar, amount)")
     .eq("tenant_id", ctx.tenant.id)
     .order("created_at", { ascending: false });
 
@@ -134,38 +134,43 @@ export default async function ApplicationsPage({
       )}
 
       {view === "pipeline" && apps.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="space-y-6">
+          {/* Stages stacked, not side by side. Five fixed columns gave each
+              card ~180px — every name truncated to "Was…", and two empty
+              lanes spent 40% of the screen saying "aucun dossier". A crèche
+              handles a handful of files at a time; the stage reads better as
+              a full-width section, and an empty stage as one quiet line. */}
           {PIPELINE_STAGES.map((stage) => {
             const lane = byStage.get(stage) ?? [];
+            const header = (
+              <header className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className={cn("size-2 shrink-0 rounded-full", STAGE_DOT[stage])}
+                />
+                <h3 className="text-sm font-semibold text-foreground">
+                  {t(`pipeline.stages.${stage}`)}
+                </h3>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
+                  {lane.length}
+                </span>
+              </header>
+            );
+            if (lane.length === 0) {
+              return (
+                <section key={stage} aria-label={t(`pipeline.stages.${stage}`)} className="opacity-60">
+                  {header}
+                </section>
+              );
+            }
             return (
-              <section
-                key={stage}
-                aria-label={t(`pipeline.stages.${stage}`)}
-                className="rounded-2xl border border-border/70 bg-muted/40 p-3"
-              >
-                <header className="mb-3 flex items-center gap-2 px-1">
-                  <span
-                    aria-hidden
-                    className={cn("size-2 shrink-0 rounded-full", STAGE_DOT[stage])}
-                  />
-                  <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-                    {t(`pipeline.stages.${stage}`)}
-                  </h3>
-                  <span className="rounded-full bg-card px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
-                    {lane.length}
-                  </span>
-                </header>
-                {lane.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-                    {t("pipeline.laneEmpty")}
-                  </p>
-                ) : (
-                  <div className="space-y-2.5">
-                    {lane.map((app) => (
-                      <ApplicationCard key={app.id} app={app} canManage={canManage} />
-                    ))}
-                  </div>
-                )}
+              <section key={stage} aria-label={t(`pipeline.stages.${stage}`)} className="space-y-3">
+                {header}
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {lane.map((app) => (
+                    <ApplicationCard key={app.id} app={app} canManage={canManage} />
+                  ))}
+                </div>
               </section>
             );
           })}

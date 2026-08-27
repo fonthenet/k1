@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { isSessionOnly, REMEMBER_COOKIE } from "./session-preference";
+import { requireSupabaseEnv } from "@/lib/env";
 
 function readCookie(name: string): string | undefined {
   if (typeof document === "undefined") return undefined;
@@ -19,9 +20,10 @@ export function setRememberPreference(remember: boolean) {
 }
 
 export function createClient() {
+  const { url, anonKey } = requireSupabaseEnv();
   return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     // Supabase defaults to a ~400-day cookie. When the user has said this is a
     // shared device, drop the lifetime so the session ends with the browser.
     isSessionOnly(readCookie)

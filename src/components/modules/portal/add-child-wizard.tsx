@@ -22,10 +22,14 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { StepChild } from "@/components/modules/enroll/step-child";
 import { StepPhoto } from "@/components/modules/enroll/step-photo";
-import { initialWizardState, type WizardAllergy } from "@/components/modules/enroll/types";
+import {
+  initialWizardState,
+  type WizardAllergy,
+} from "@/components/modules/enroll/types";
 import { submitSiblingApplication } from "./actions";
 import { AddChildStepHealth } from "./add-child-step-health";
 import { AddChildStepReview } from "./add-child-step-review";
+import { CompactStepHeaders } from "@/components/modules/enroll/wizard-ui";
 import { AddChildSuccess } from "./add-child-success";
 
 /**
@@ -78,7 +82,12 @@ export function AddChildWizard({
   /** Blocks the step the parent is leaving, never a later one. */
   const problemWith = (current: number): string | null => {
     if (current === 0) {
-      if (!child.first_name.trim() || !child.last_name.trim() || !child.dob || !child.gender) {
+      if (
+        !child.first_name.trim() ||
+        !child.last_name.trim() ||
+        !child.dob ||
+        !child.gender
+      ) {
         return t("errors.required");
       }
     }
@@ -160,50 +169,70 @@ export function AddChildWizard({
 
   return (
     <div ref={topRef} className="scroll-mt-20">
-      <Button asChild variant="ghost" size="sm" className="-ms-2 mb-2 h-11 px-3">
-        <Link href="/portal/children">
-          <ArrowLeft className="size-4 rtl:rotate-180" data-icon="inline-start" />
-          {t("back")}
-        </Link>
-      </Button>
-
-      <div className="mb-5">
-        <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
-      </div>
-
-      <div className="mb-6">
-        <p className="mb-2 text-xs font-medium text-muted-foreground tabular-nums">
+      {/* This is a phone form, and the first field used to sit 412px down —
+          past half the screen — behind a back button, a title, a description,
+          a step counter, a bar, and then the step's own medallion, title and
+          description. The counter now shares the back button's row, and the
+          reassurance ("we already have your details") is worth its space on
+          the first step only, which is the one place it answers a question the
+          parent is actually asking. */}
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <Button asChild variant="ghost" size="sm" className="-ms-2 h-11 px-3">
+          <Link href="/portal/children">
+            <ArrowLeft
+              className="size-4 rtl:rotate-180"
+              data-icon="inline-start"
+            />
+            {t("back")}
+          </Link>
+        </Button>
+        <p className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">
           {te("progress", { current: step + 1, total: TOTAL_STEPS })}
         </p>
-        <Progress value={((step + 1) / TOTAL_STEPS) * 100} className="h-2" />
       </div>
 
-      {step === 0 ? (
-        <StepChild child={child} onChange={(patch) => setChild((c) => ({ ...c, ...patch }))} />
-      ) : step === 1 ? (
-        <StepPhoto
-          // StepPhoto only needs the id: it uploads to u/{userId}/enroll/{uuid}.jpg,
-          // the one prefix storage policy lets this parent write to.
-          user={{ id: userId, email: null, fullName: null }}
-          photoPath={child.photo_path}
-          onUploaded={(path) => setChild((c) => ({ ...c, photo_path: path }))}
-        />
-      ) : step === 2 ? (
-        <AddChildStepHealth
-          health={health}
-          onChange={(patch) => setHealth((h) => ({ ...h, ...patch }))}
-        />
-      ) : (
-        <AddChildStepReview
-          child={child}
-          health={health}
-          submitting={pending}
-          error={error}
-          goTo={goTo}
-          onSubmit={submit}
-        />
-      )}
+      <Progress
+        value={((step + 1) / TOTAL_STEPS) * 100}
+        className="mb-4 h-1.5"
+      />
+
+      {/* Title only. The reassurance that used to sit here ("the crèche
+          already has your details") stacked a second description directly
+          above the step's own instruction, and on a phone that pushed the
+          first field past half the screen. The step counter and the four-step
+          bar already say this is short. */}
+      <h2 className="mb-3 text-lg font-bold tracking-tight">{t("title")}</h2>
+
+      <CompactStepHeaders>
+        {step === 0 ? (
+          <StepChild
+            child={child}
+            onChange={(patch) => setChild((c) => ({ ...c, ...patch }))}
+          />
+        ) : step === 1 ? (
+          <StepPhoto
+            // StepPhoto only needs the id: it uploads to u/{userId}/enroll/{uuid}.jpg,
+            // the one prefix storage policy lets this parent write to.
+            user={{ id: userId, email: null, fullName: null }}
+            photoPath={child.photo_path}
+            onUploaded={(path) => setChild((c) => ({ ...c, photo_path: path }))}
+          />
+        ) : step === 2 ? (
+          <AddChildStepHealth
+            health={health}
+            onChange={(patch) => setHealth((h) => ({ ...h, ...patch }))}
+          />
+        ) : (
+          <AddChildStepReview
+            child={child}
+            health={health}
+            submitting={pending}
+            error={error}
+            goTo={goTo}
+            onSubmit={submit}
+          />
+        )}
+      </CompactStepHeaders>
 
       {error && step !== 3 && (
         <Alert variant="destructive" className="mt-4">
@@ -215,7 +244,10 @@ export function AddChildWizard({
         <div className="mt-6 flex items-center gap-3">
           {step > 0 && (
             <Button variant="outline" size="lg" className="h-12" onClick={back}>
-              <ArrowLeft className="size-4 rtl:rotate-180" data-icon="inline-start" />
+              <ArrowLeft
+                className="size-4 rtl:rotate-180"
+                data-icon="inline-start"
+              />
               {te("nav.back")}
             </Button>
           )}
@@ -232,7 +264,10 @@ export function AddChildWizard({
             onClick={back}
             disabled={pending}
           >
-            <ArrowLeft className="size-4 rtl:rotate-180" data-icon="inline-start" />
+            <ArrowLeft
+              className="size-4 rtl:rotate-180"
+              data-icon="inline-start"
+            />
             {te("nav.back")}
           </Button>
         </div>

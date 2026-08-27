@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ChildLink, ClassLink } from "@/components/shared/entity-link";
 import {
   ATTENDANCE_STATUSES,
   STATUS_STYLES,
@@ -105,7 +106,7 @@ export default async function AttendanceHistoryPage({
   };
 
   // Group children by class for the "all" view; single group otherwise.
-  const groups: { label: string | null; children: ChildRecord[] }[] = [];
+  const groups: { label: string | null; classId: string | null; children: ChildRecord[] }[] = [];
   if (activeClass === "all") {
     const byClass = new Map<string, ChildRecord[]>();
     for (const c of children) {
@@ -115,11 +116,12 @@ export default async function AttendanceHistoryPage({
       byClass.set(key, list);
     }
     for (const [key, list] of byClass) {
-      groups.push({ label: className(key === "none" ? null : key), children: list });
+      const classId = key === "none" ? null : key;
+      groups.push({ label: className(classId), classId, children: list });
     }
     groups.sort((a, b) => (a.label ?? "").localeCompare(b.label ?? ""));
   } else {
-    groups.push({ label: null, children });
+    groups.push({ label: null, classId: null, children });
   }
 
   const monthLabel = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
@@ -251,6 +253,7 @@ export default async function AttendanceHistoryPage({
                   <ContentGroup
                     key={group.label ?? gi}
                     label={group.label}
+                    classId={group.classId}
                     colSpan={days.length + 2}
                   >
                     {group.children.map((child) => {
@@ -266,7 +269,7 @@ export default async function AttendanceHistoryPage({
                           className="group/row border-b border-border transition-colors last:border-b-0 hover:bg-muted"
                         >
                           <td className="sticky start-0 z-10 max-w-44 truncate bg-card px-3 py-2 font-medium group-hover/row:bg-muted">
-                            {childDisplayName(child, locale)}
+                            <ChildLink id={child.id}>{childDisplayName(child, locale)}</ChildLink>
                           </td>
                           {days.map((d) => {
                             const status = statusByKey.get(`${child.id}|${d}`);
@@ -348,10 +351,12 @@ export default async function AttendanceHistoryPage({
 
 function ContentGroup({
   label,
+  classId,
   colSpan,
   children,
 }: {
   label: string | null;
+  classId: string | null;
   colSpan: number;
   children: React.ReactNode;
 }) {
@@ -363,7 +368,7 @@ function ContentGroup({
             colSpan={colSpan}
             className="sticky start-0 px-3 py-2 text-xs font-semibold tracking-wide text-secondary-foreground uppercase"
           >
-            {label}
+            {classId ? <ClassLink id={classId}>{label}</ClassLink> : label}
           </td>
         </tr>
       )}

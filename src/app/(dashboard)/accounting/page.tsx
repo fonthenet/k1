@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
   ArrowRight,
-  PiggyBank,
+  Vault,
   Scale,
   TrendingDown,
   TrendingUp,
@@ -188,7 +188,12 @@ export default async function AccountingOverviewPage({
           label={t("overview.cash")}
           value={formatDZD(cashBalance, locale)}
           hint={t("overview.cashHint")}
-          icon={<PiggyBank />}
+          // A strongbox, not a piggy bank: "solde de caisse" is the cash the
+          // crèche is holding, and a pig is the wrong image entirely for an
+          // Algerian product — haram, and jarring on a screen a director looks
+          // at daily. Vault also stays distinct from the arrows and the scale
+          // on the three stats beside it.
+          icon={<Vault />}
           tone="primary"
         />
       </div>

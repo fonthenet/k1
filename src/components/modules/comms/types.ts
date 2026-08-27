@@ -92,6 +92,8 @@ export const EVENT_COLORS = [
 
 // ===== Menus =====
 
+import { MENU_ALLERGEN_DEFS } from "@/lib/allergens";
+
 export interface MenuDayRow {
   date: string;
   breakfast: string | null;
@@ -102,22 +104,13 @@ export interface MenuDayRow {
 }
 
 /**
- * Canonical allergen tokens stored in kg_menus.allergens (French, matching the
- * free-text allergens recorded in kg_child_allergies). Keys of comms.allergens.*
+ * Allergen chips on the menu form. Derived from the shared vocabulary so the
+ * checkbox list, the text detection and the child-allergy matching can never
+ * drift apart — there is one vocabulary, not three.
  */
-export const MENU_ALLERGENS = [
-  { key: "gluten", value: "gluten" },
-  { key: "lactose", value: "lactose" },
-  { key: "eggs", value: "œufs" },
-  { key: "peanuts", value: "arachides" },
-  { key: "nuts", value: "fruits à coque" },
-  { key: "fish", value: "poisson" },
-] as const;
+export const MENU_ALLERGENS = MENU_ALLERGEN_DEFS.map((a) => ({ key: a.key, value: a.value }));
 
-export function allergenKeyFor(value: string): string | null {
-  const found = MENU_ALLERGENS.find((a) => a.value === value.toLowerCase().trim());
-  return found ? found.key : null;
-}
+export { allergenKeyFor } from "@/lib/allergens";
 
 // ===== Incidents =====
 

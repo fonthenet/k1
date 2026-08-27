@@ -15,6 +15,7 @@ import { childDisplayName, formatDZD, formatDate, formatPhone, formatTime, isDzW
 import type { AttendanceStatus, Gender } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ChildLink, ClassLink, InvoiceLink, StaffLink } from "@/components/shared/entity-link";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -377,6 +378,7 @@ export default async function ReportsPage({
         daysLate: Math.max(daysLate, 0),
         bucket,
         balance: Number(inv.total) - Number(inv.paid_amount),
+        childId: inv.kg_children?.id ?? null,
         childName: inv.kg_children ? childDisplayName(inv.kg_children, locale) : "—",
         guardianName: guardian ? childDisplayName(guardian, locale) : "—",
         phone: guardian?.phone ?? null,
@@ -585,7 +587,9 @@ export default async function ReportsPage({
                   <TableBody>
                     {classRows.map((r) => (
                       <TableRow key={r.key}>
-                        <TableCell className="font-medium">{r.label}</TableCell>
+                        <TableCell className="font-medium">
+                          {r.classId ? <ClassLink id={r.classId}>{r.label}</ClassLink> : r.label}
+                        </TableCell>
                         <TableCell className="text-end tabular-nums">{r.enrolled}</TableCell>
                         <TableCell className="text-end tabular-nums">{r.records}</TableCell>
                         <TableCell className="text-end font-medium tabular-nums text-success">
@@ -810,8 +814,12 @@ export default async function ReportsPage({
                   <TableBody>
                     {arrearRows.map((r) => (
                       <TableRow key={r.id}>
-                        <TableCell className="tabular-nums">#{r.number}</TableCell>
-                        <TableCell className="font-medium">{r.childName}</TableCell>
+                        <TableCell className="tabular-nums">
+                          <InvoiceLink id={r.id}>#{r.number}</InvoiceLink>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {r.childId ? <ChildLink id={r.childId}>{r.childName}</ChildLink> : r.childName}
+                        </TableCell>
                         <TableCell>{r.guardianName}</TableCell>
                         <TableCell>
                           {r.phone ? (
@@ -890,7 +898,9 @@ export default async function ReportsPage({
                   <TableBody>
                     {teamRows.map((r) => (
                       <TableRow key={r.id} className={r.delta > 0.05 ? "bg-gold/6" : undefined}>
-                        <TableCell className="font-medium">{r.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <StaffLink id={r.id}>{r.name}</StaffLink>
+                        </TableCell>
                         <TableCell className="text-muted-foreground">{r.role}</TableCell>
                         <TableCell className="text-end tabular-nums">{r.days}</TableCell>
                         <TableCell className="text-end font-medium tabular-nums">

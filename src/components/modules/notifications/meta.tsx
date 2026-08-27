@@ -53,6 +53,7 @@ const ICONS: Record<string, LucideIcon> = {
   payment_reversed: Undo2,
   fee_changed: Wallet,
   attendance_flagged: CalendarX2,
+  application_status: ClipboardList,
   activity_decision: Sparkles,
   session_published: NotebookPen,
 };
@@ -86,6 +87,8 @@ const TONES: Record<string, string> = {
   payment_reversed: "bg-destructive/10 text-destructive",
   fee_changed: "bg-gold-muted text-gold-ink",
   attendance_flagged: "bg-destructive/10 text-destructive",
+  // The family's admissions result — big news, warm tone.
+  application_status: "bg-gold-muted text-gold-ink",
   activity_decision: "bg-primary/10 text-primary",
   session_published: "bg-primary/10 text-primary",
 };

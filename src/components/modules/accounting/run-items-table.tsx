@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StaffLink } from "@/components/shared/entity-link";
 import {
   Table,
   TableBody,
@@ -130,7 +131,9 @@ export function RunItemsTable({
           {items.map((item) => (
             <TableRow key={item.id} className="h-14">
               <TableCell className="ps-4">
-                <div className="font-medium">{item.name}</div>
+                <div className="font-medium">
+                  <StaffLink id={item.membershipId}>{item.name}</StaffLink>
+                </div>
                 {item.jobTitle && (
                   <div className="text-xs text-muted-foreground">{item.jobTitle}</div>
                 )}

@@ -108,10 +108,16 @@ export function sortSchedule(slots: ScheduleSlot[]): ScheduleSlot[] {
   });
 }
 
-/** Months → localized years figure ("2", "2,5"). Western digits — Algeria standard. */
-export function yearsLabel(months: number, locale: string): string {
+/**
+ * Months → a years figure ("2", "2,5"). Latin digits, as Algeria writes them.
+ *
+ * No longer takes a locale: grouping and the decimal mark are fr-DZ in every
+ * language now, for the same reason money is — see formatDZD in lib/format.
+ */
+export function yearsLabel(months: number): string {
   const years = Math.round((months / 12) * 10) / 10;
-  return new Intl.NumberFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  // Grouping is fr-DZ in both languages — see formatDZD in lib/format.
+  return new Intl.NumberFormat("fr-DZ", {
     maximumFractionDigits: 1,
   }).format(years);
 }

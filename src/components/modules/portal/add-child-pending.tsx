@@ -1,44 +1,34 @@
-// The family's own side of the admissions pipeline.
+// The family's own side of the admissions pipeline — deliberately opaque.
 //
-// A sibling request is an ordinary kg_applications row, so the parent has to
-// be able to see it somewhere — otherwise they send a request and it vanishes
-// until a phone call. Policy `app_sel` already lets a parent read the rows
-// where `applicant_user_id = auth.uid()`, so no new grant is involved: this is
-// simply that row, rendered.
+// Owner's decision (0058): the pipeline stages are the crèche's kitchen. A
+// parent sees that their dossier was received and is being processed, and
+// nothing else — no "en examen", no "entretien", no waitlist position. The
+// outcome arrives as its own event: approval makes the child appear (with a
+// notification), and a refusal is delivered by a person, in words the crèche
+// chooses, shown here only as "this file is closed, contact us".
 //
-// Approved requests are deliberately absent. Approval creates the child, so
-// the family sees a real child card above instead of a stale request card.
+// The data comes from kg_my_applications(), an RPC that returns only what the
+// family may see. The kg_applications row itself is staff-only under RLS, so
+// nothing more is readable even with devtools open.
 import "server-only";
 
 import { getLocale, getTranslations } from "next-intl/server";
-import { FileX2, Hourglass } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { FileCheck2, Hourglass } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { createClient } from "@/lib/supabase/server";
 import type { TenantContext } from "@/lib/tenant";
 import { formatDate } from "@/lib/format";
-import { APPLICATION_STATUS_BADGE } from "@/components/modules/enroll/types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-/** Every stage where the family is still waiting on the kindergarten. */
-const OPEN_STATUSES = [
-  "submitted",
-  "under_review",
-  "interview",
-  "offered",
-  "waitlist",
-  "rejected",
-] as const;
-
-export type OpenApplicationStatus = (typeof OPEN_STATUSES)[number];
-
 export interface PortalApplicationRow {
   id: string;
-  status: OpenApplicationStatus;
-  child: unknown;
-  review_note: string | null;
+  tenant_name: string;
+  child_first_name: string | null;
+  child_last_name: string | null;
   created_at: string;
+  /** The file stopped moving. The outcome itself is the crèche's to deliver. */
+  closed: boolean;
 }
 
 /** The signed-in parent's requests that have not turned into a child yet. */
@@ -46,30 +36,9 @@ export async function getMyOpenApplications(
   supabase: Supabase,
   ctx: TenantContext
 ): Promise<PortalApplicationRow[]> {
-  const { data } = await supabase
-    .from("kg_applications")
-    .select("id, status, child, review_note, created_at")
-    .eq("tenant_id", ctx.tenant.id)
-    .eq("applicant_user_id", ctx.user.id)
-    .in("status", [...OPEN_STATUSES])
-    .order("created_at", { ascending: false });
-
-  return (data ?? []) as unknown as PortalApplicationRow[];
-}
-
-/**
- * `child` is jsonb written by an RPC, so it is read defensively rather than
- * cast: a row with a surprising shape must degrade to a dash, never crash the
- * page a parent opens to check on their family.
- */
-function applicantChildName(raw: unknown, locale: string): string {
-  if (!raw || typeof raw !== "object") return "—";
-  const c = raw as Record<string, unknown>;
-  const str = (key: string) => (typeof c[key] === "string" ? (c[key] as string).trim() : "");
-  const ar = `${str("first_name_ar")} ${str("last_name_ar")}`.trim();
-  const latin = `${str("first_name")} ${str("last_name")}`.trim();
-  if (locale === "ar" && ar) return ar;
-  return latin || ar || "—";
+  void ctx; // the RPC scopes to auth.uid() itself, across every crèche
+  const { data } = await supabase.rpc("kg_my_applications");
+  return (data ?? []) as PortalApplicationRow[];
 }
 
 export async function PendingApplications({ rows }: { rows: PortalApplicationRow[] }) {
@@ -89,40 +58,29 @@ export async function PendingApplications({ rows }: { rows: PortalApplicationRow
 
       <div className="grid gap-3">
         {rows.map((row) => {
-          const rejected = row.status === "rejected";
-          const Icon = rejected ? FileX2 : Hourglass;
+          const name =
+            `${row.child_first_name ?? ""} ${row.child_last_name ?? ""}`.trim() || "—";
+          const Icon = row.closed ? FileCheck2 : Hourglass;
           return (
             <Card key={row.id} className="border-dashed bg-muted/30 shadow-none">
               <CardContent className="flex items-start gap-3.5">
                 <span
-                  className={`flex size-11 shrink-0 items-center justify-center rounded-full bg-background ring-1 ring-border ${
-                    rejected ? "text-destructive" : "text-muted-foreground"
-                  }`}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-border"
                   aria-hidden
                 >
                   <Icon className="size-5" />
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                    <span className="font-semibold" dir="auto">
-                      {applicantChildName(row.child, locale)}
-                    </span>
-                    <Badge className={APPLICATION_STATUS_BADGE[row.status]}>
-                      {t(`status.${row.status}`)}
-                    </Badge>
-                  </div>
-
+                  <span className="font-semibold" dir="auto">
+                    {name}
+                  </span>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {t("sentOn", { date: formatDate(row.created_at, locale) })}
                   </p>
-
-                  {rejected && row.review_note && (
-                    <p className="mt-2.5 rounded-lg bg-destructive/10 px-2.5 py-2 text-xs leading-relaxed text-destructive">
-                      <span className="font-semibold">{t("reviewNote")} : </span>
-                      {row.review_note}
-                    </p>
-                  )}
+                  <p className="mt-1.5 text-sm leading-relaxed text-pretty text-muted-foreground">
+                    {row.closed ? t("closed") : t("processing")}
+                  </p>
                 </div>
               </CardContent>
             </Card>

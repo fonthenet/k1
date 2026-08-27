@@ -76,5 +76,28 @@
     "title": "L'établissement",
     "mapTitle": "Carte — {name}",
     "directions": "Itinéraire"
+  },
+  "allergens": {
+    "gluten": "Gluten",
+    "lactose": "Lait",
+    "eggs": "Œufs",
+    "peanuts": "Arachides",
+    "nuts": "Fruits à coque",
+    "fish": "Poisson",
+    "shellfish": "Crustacés",
+    "soy": "Soja",
+    "sesame": "Sésame",
+    "strawberry": "Fraise",
+    "honey": "Miel",
+    "pollen": "Pollen",
+    "dust": "Acariens",
+    "animals": "Poils d'animaux",
+    "insects": "Piqûres d'insectes",
+    "medication": "Médicaments",
+    "latex": "Latex",
+    "groupFood": "Aliments",
+    "groupOther": "Autres",
+    "other": "Autre",
+    "otherPlaceholder": "Précisez l'allergène"
   }
 }

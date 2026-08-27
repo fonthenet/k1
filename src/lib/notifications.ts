@@ -12,6 +12,8 @@ export const NOTIFICATION_TYPES = [
   "incident_updated", "enrollment_changed",
   "invoice_issued", "payment_recorded", "payment_reversed", "fee_changed",
   "attendance_flagged", "activity_decision", "session_published",
+  // 0057 — the applicant hears every admissions decision.
+  "application_status",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -82,6 +84,10 @@ export function notificationHref(n: Pick<KgNotification, "type" | "data">, isPar
       return isParent ? "/portal" : s("incidentId") ? `/incidents/${s("incidentId")}` : "/incidents";
     case "enrollment_changed":
       return "/portal/children";
+    case "application_status":
+      // The pending-requests list lives on the children page; an approved
+      // application has become a real child card on the same page.
+      return "/portal/children";
     case "invoice_issued":
     case "payment_recorded":
     case "payment_reversed":
@@ -117,6 +123,7 @@ export function renderNotification(
     healthFields?: Record<string, string>;
     incidentFields?: Record<string, string>;
     enrollmentStates?: Record<string, string>;
+    applicationStatuses?: Record<string, string>;
     attendanceStatuses?: Record<string, string>;
     activityStates?: Record<string, string>;
     paymentMethods?: Record<string, string>;
@@ -191,7 +198,9 @@ export function renderNotification(
     allergen: str("allergen"),
     severity: m.allergySeverities?.[str("severity")] ?? str("severity"),
     status:
-      n.type === "enrollment_changed"
+      n.type === "application_status"
+        ? (m.applicationStatuses?.[str("status")] ?? str("status"))
+        : n.type === "enrollment_changed"
         ? (m.enrollmentStates?.[str("status")] ?? str("status"))
         : n.type === "attendance_flagged"
           ? (m.attendanceStatuses?.[str("status")] ?? str("status"))

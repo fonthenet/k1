@@ -4,8 +4,10 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { signedMediaUrl } from "@/lib/tenant";
 import { EnrollWizard } from "@/components/modules/enroll/enroll-wizard";
 import type { EnrollLinkData, WizardUser } from "@/components/modules/enroll/types";
+import { SoftWash } from "@/components/shared/soft-wash";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("enroll");
@@ -15,8 +17,9 @@ export async function generateMetadata(): Promise<Metadata> {
 async function InvalidLink() {
   const t = await getTranslations("enroll");
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background bg-gradient-to-b from-gold-muted/60 via-background to-background px-4">
-      <div className="w-full max-w-md rounded-3xl border bg-card p-8 text-center shadow-sm">
+    <div className="flex min-h-dvh items-center justify-center bg-background relative overflow-hidden px-4">
+      <SoftWash />
+      <div className="relative w-full max-w-md rounded-3xl border bg-card p-8 text-center shadow-sm">
         <div className="mb-4 text-5xl" aria-hidden>
           🌱
         </div>
@@ -41,6 +44,8 @@ export default async function EnrollPage({
     return <InvalidLink />;
   }
   const link = data as unknown as EnrollLinkData;
+  // Readable without a session since 0059; null for a crèche with no logo yet.
+  const logoUrl = await signedMediaUrl(link.logo_url);
 
   const {
     data: { user },
@@ -64,5 +69,5 @@ export default async function EnrollPage({
     initialUser = { id: user.id, email: user.email ?? null, fullName };
   }
 
-  return <EnrollWizard token={token} link={link} initialUser={initialUser} />;
+  return <EnrollWizard token={token} link={link} logoUrl={logoUrl} initialUser={initialUser} />;
 }

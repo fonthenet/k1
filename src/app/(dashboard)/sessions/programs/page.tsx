@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { StaffLink } from "@/components/shared/entity-link";
 import { ProgramDialog } from "@/components/modules/sessions/program-dialog";
 import { SessionsTabs } from "@/components/modules/sessions/sessions-tabs";
 import {
@@ -221,6 +222,9 @@ export default async function ProgramsPage({
                       const childName = p.kg_children
                         ? childDisplayName(p.kg_children, locale)
                         : "—";
+                      const therapistName = p.therapist_id
+                        ? therapistById.get(p.therapist_id)
+                        : undefined;
                       const done = doneByProgram.get(p.id) ?? 0;
                       const planned = p.sessions_planned;
                       const pct = planned && planned > 0 ? (done / planned) * 100 : 0;
@@ -251,8 +255,11 @@ export default async function ProgramsPage({
                             </Link>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {(p.therapist_id && therapistById.get(p.therapist_id)) ||
-                              t("schedule.noTherapist")}
+                            {p.therapist_id && therapistName ? (
+                              <StaffLink id={p.therapist_id}>{therapistName}</StaffLink>
+                            ) : (
+                              t("schedule.noTherapist")
+                            )}
                           </TableCell>
                           <TableCell>
                             <MeterRow

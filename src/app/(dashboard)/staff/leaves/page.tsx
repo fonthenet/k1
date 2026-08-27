@@ -9,6 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StaffLink } from "@/components/shared/entity-link";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
@@ -105,7 +106,7 @@ export default async function StaffLeavesPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-foreground">
-                          {nameByMembership.get(lr.membership_id) ?? "—"}
+                          <StaffLink id={lr.membership_id}>{nameByMembership.get(lr.membership_id) ?? "—"}</StaffLink>
                         </span>
                         <Badge className="border-transparent bg-primary/10 font-medium text-primary">
                           {typeLabel(lr.leave_type)}
@@ -151,7 +152,7 @@ export default async function StaffLeavesPage() {
                     >
                       <span aria-hidden className="h-6 w-1 shrink-0 rounded-full bg-success/60" />
                       <span className="font-semibold text-foreground">
-                        {nameByMembership.get(lr.membership_id) ?? "—"}
+                        <StaffLink id={lr.membership_id}>{nameByMembership.get(lr.membership_id) ?? "—"}</StaffLink>
                       </span>
                       <Badge className="border-transparent bg-primary/10 font-medium text-primary">
                         {typeLabel(lr.leave_type)}
@@ -204,7 +205,7 @@ export default async function StaffLeavesPage() {
                     {all.map((lr) => (
                       <TableRow key={lr.id} className="transition-colors hover:bg-muted/40">
                         <TableCell className="font-semibold text-foreground">
-                          {nameByMembership.get(lr.membership_id) ?? "—"}
+                          <StaffLink id={lr.membership_id}>{nameByMembership.get(lr.membership_id) ?? "—"}</StaffLink>
                         </TableCell>
                         <TableCell>{typeLabel(lr.leave_type)}</TableCell>
                         <TableCell>

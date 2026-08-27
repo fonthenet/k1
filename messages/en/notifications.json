@@ -111,6 +111,10 @@
     "session_published": {
       "title": "{child}'s session",
       "body": "{text}"
+    },
+    "application_status": {
+      "title": "{child}'s application",
+      "body": "{status}"
     }
   },
   "push": {
@@ -201,5 +205,8 @@
     "cheque": "cheque",
     "chargily": "Chargily",
     "other": "other"
+  },
+  "applicationStatuses": {
+    "approved": "Enrolment accepted 🎉"
   }
 }

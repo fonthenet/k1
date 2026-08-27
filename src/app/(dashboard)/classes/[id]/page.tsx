@@ -17,6 +17,7 @@ import { ClassDialog } from "@/components/modules/classes/class-dialog";
 import { ClassStaffCard } from "@/components/modules/classes/class-staff-card";
 import { DeleteClassButton } from "@/components/modules/classes/delete-class-button";
 import { UnassignChildButton } from "@/components/modules/classes/unassign-child-button";
+import { allergenLabel } from "@/lib/allergens";
 import {
   algiersToday,
   yearsLabel,
@@ -98,6 +99,7 @@ export default async function ClassDetailPage({
   const { id } = await params;
   const ctx = await requireStaff();
   const t = await getTranslations("classes");
+  const tc = await getTranslations("common");
   const locale = await getLocale();
   const supabase = await createClient();
 
@@ -207,7 +209,7 @@ export default async function ClassDetailPage({
   const allergensByChild = new Map<string, string[]>();
   for (const a of allergyRows ?? []) {
     const arr = allergensByChild.get(a.child_id) ?? [];
-    arr.push(a.allergen);
+    arr.push(allergenLabel(a.allergen, tc));
     allergensByChild.set(a.child_id, arr);
   }
 
@@ -265,13 +267,13 @@ export default async function ClassDetailPage({
   const ageRange =
     klass.age_min_months != null && klass.age_max_months != null
       ? t("ageRange.between", {
-          min: yearsLabel(klass.age_min_months, locale),
-          max: yearsLabel(klass.age_max_months, locale),
+          min: yearsLabel(klass.age_min_months),
+          max: yearsLabel(klass.age_max_months),
         })
       : klass.age_min_months != null
-        ? t("ageRange.from", { min: yearsLabel(klass.age_min_months, locale) })
+        ? t("ageRange.from", { min: yearsLabel(klass.age_min_months) })
         : klass.age_max_months != null
-          ? t("ageRange.upTo", { max: yearsLabel(klass.age_max_months, locale) })
+          ? t("ageRange.upTo", { max: yearsLabel(klass.age_max_months) })
           : t("ageRange.none");
 
   const description = [ageRange, klass.room ? t("list.room", { room: klass.room }) : null]

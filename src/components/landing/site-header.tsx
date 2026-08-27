@@ -19,7 +19,7 @@ const HEADER_CTA = cn(
 );
 
 const GHOST_LINK =
-  "hidden rounded-full px-3.5 py-2 text-sm font-semibold text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 md:inline-flex";
+  "hidden whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 xl:inline-flex";
 
 export async function SiteHeader() {
   const t = await getTranslations("landing");
@@ -86,6 +86,7 @@ export async function SiteHeader() {
               menu: t("nav.menu"),
               login: t("nav.login"),
               signup: t("nav.signup"),
+              parents: t("nav.parents"),
             }}
           />
         </div>

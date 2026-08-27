@@ -26,6 +26,7 @@ import { KioskKeypad } from "./kiosk-keypad";
 import { KioskScanner } from "./kiosk-scanner";
 import { toDateStr } from "./dates";
 import { flushPush } from "@/app/actions/push";
+import { allergenLabel } from "@/lib/allergens";
 
 type Mode = "children" | "staff";
 type Entry = "keypad" | "scan";
@@ -235,6 +236,7 @@ export function KioskClient({
   tenantName: string;
 }) {
   const t = useTranslations("kiosk");
+  const tc = useTranslations("common");
   const locale = useLocale();
   const supabase = useMemo(() => createClient(), []);
 
@@ -527,7 +529,7 @@ export function KioskClient({
 
       const allergyMap: Record<string, string[]> = {};
       for (const row of (allergyRes.data ?? []) as { child_id: string; allergen: string }[]) {
-        (allergyMap[row.child_id] ??= []).push(row.allergen);
+        (allergyMap[row.child_id] ??= []).push(allergenLabel(row.allergen, tc));
       }
 
       const entries: CheckedEntry[] = done.map((d) => ({
@@ -547,7 +549,7 @@ export function KioskClient({
       setChildResult({ date, entries, failedCount, guardian });
       refreshPresent();
     },
-    [supabase, tenantId, signPhotos, refreshPresent]
+    [supabase, tenantId, signPhotos, refreshPresent, tc]
   );
 
   /**

@@ -1,39 +1,25 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import {
-  ArrowLeft,
-  ArrowRight,
-  CircleCheck,
-  Hourglass,
-  MessageCircle,
-  Phone,
-  TriangleAlert,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleCheck, Hourglass, TriangleAlert, Users } from "lucide-react";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { childDisplayName, formatDZD, formatDate, formatPhone, telHref } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { childDisplayName, formatDZD } from "@/lib/format";
 import { algiersToday, daysSince } from "@/components/modules/billing/dates";
-import { waPhone } from "@/components/modules/billing/maps";
 import { EmptyIcon, MoneyStat } from "@/components/modules/billing/finance-ui";
 import { fetchArrears, type ArrearsFamily } from "@/components/modules/dashboard/arrears-data";
 import { ArrearsRefresh } from "@/components/modules/dashboard/arrears-refresh";
+import {
+  ArrearsAgingTable,
+  ArrearsFamiliesTable,
+  type ArrearsAgingRow,
+  type ArrearsFamilyRow,
+} from "@/components/modules/billing/arrears-tables";
 
 type ArrearRow = {
   id: string;
@@ -58,23 +44,6 @@ interface ChildArrears {
   className: string | null;
   buckets: [number, number, number, number]; // current, 30d, 60d, 90d+
   total: number;
-}
-
-/** Aging escalates: current is quiet, 60 days turns gold, 90+ turns red. */
-const BUCKET_TEXT = [
-  "text-muted-foreground",
-  "text-foreground",
-  "font-medium text-warning",
-  "font-semibold text-destructive",
-] as const;
-
-const BUCKET_CELL = ["", "", "bg-warning/5", "bg-destructive/5"] as const;
-
-/** Lateness badge: a week is a reminder, a month is a problem. */
-function daysBadge(days: number): { variant: "destructive" | "outline"; className?: string } {
-  if (days > 30) return { variant: "destructive" };
-  if (days > 7) return { variant: "outline", className: "border-warning/40 bg-warning/15 text-foreground" };
-  return { variant: "outline", className: "text-muted-foreground" };
 }
 
 export default async function ArrearsPage() {
@@ -142,8 +111,32 @@ export default async function ArrearsPage() {
     if (f.guardianPhone) phoneByChild.set(f.childId, f.guardianPhone);
   }
 
+  // Also used by the stat cards above the tabs, which report the whole debt
+  // regardless of how either table happens to be sorted.
   const grandTotal = aging.reduce((s, a) => s + a.total, 0);
   const bucketTotals = [0, 1, 2, 3].map((i) => aging.reduce((s, a) => s + a.buckets[i], 0));
+
+  const familyRows: ArrearsFamilyRow[] = arrears.rows.map((f) => ({
+    childId: f.childId,
+    name: familyName(f),
+    className: f.className,
+    invoiceCount: f.invoiceCount,
+    outstanding: f.outstanding,
+    oldestDue: f.oldestDue,
+    daysOverdue: f.daysOverdue,
+    guardianName: f.guardianName,
+    guardianPhone: f.guardianPhone,
+  }));
+
+  const agingRows: ArrearsAgingRow[] = aging.map((a) => ({
+    childId: a.childId,
+    name: a.name,
+    className: a.className,
+    buckets: [...a.buckets],
+    total: a.total,
+    phone: phoneByChild.get(a.childId) ?? null,
+  }));
+
   const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
   const bucketLabels = [
     t("arrears.columns.current"),
@@ -152,17 +145,6 @@ export default async function ArrearsPage() {
     t("arrears.columns.d90"),
   ];
   const nothingOwed = aging.length === 0 && arrears.rows.length === 0;
-
-  /** The reminder the office sends. Latin digits on purpose: it leaves the app
-   *  for WhatsApp, where a Western-Arabic amount is read by everyone. */
-  const reminderLink = (f: ArrearsFamily, phone: string) =>
-    `https://wa.me/${waPhone(phone)}?text=${encodeURIComponent(
-      t("arrears.waMessage", {
-        kindergarten: ctx.tenant.name,
-        child: familyName(f),
-        amount: formatDZD(f.outstanding, "fr"),
-      })
-    )}`;
 
   return (
     <div>
@@ -247,133 +229,7 @@ export default async function ArrearsPage() {
             ) : (
               <Card className="gap-0 overflow-hidden py-0 shadow-sm">
                 <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold">
-                      <TableRow>
-                        <TableHead className="ps-4 text-muted-foreground">
-                          {t("arrears.columns.child")}
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          {t("arrears.columns.class")}
-                        </TableHead>
-                        <TableHead className="text-end text-muted-foreground">
-                          {t("arrears.columns.months")}
-                        </TableHead>
-                        <TableHead className="text-end text-foreground">
-                          {t("arrears.columns.total")}
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          {t("arrears.columns.days")}
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          {t("arrears.columns.guardian")}
-                        </TableHead>
-                        <TableHead className="pe-4 text-end text-muted-foreground">
-                          {t("arrears.columns.actions")}
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {arrears.rows.map((f) => {
-                        const badge = daysBadge(f.daysOverdue);
-                        const phone = f.guardianPhone;
-                        return (
-                          <TableRow key={f.childId} className="h-14">
-                            <TableCell className="ps-4 font-medium">{familyName(f)}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {f.className ?? "—"}
-                            </TableCell>
-                            <TableCell className="text-end tabular-nums">
-                              {t("arrears.monthsOwed", { count: f.invoiceCount })}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "text-end font-bold tabular-nums",
-                                f.daysOverdue > 30 && "text-destructive"
-                              )}
-                            >
-                              {formatDZD(f.outstanding, locale)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={badge.variant} className={badge.className}>
-                                {t("arrears.daysBadge", { count: f.daysOverdue })}
-                              </Badge>
-                              {f.oldestDue && (
-                                <div className="mt-0.5 text-xs text-muted-foreground">
-                                  {t("arrears.dueSince", { date: formatDate(f.oldestDue, locale) })}
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {phone ? (
-                                <>
-                                  {f.guardianName && (
-                                    <div className="truncate font-medium">{f.guardianName}</div>
-                                  )}
-                                  <a
-                                    href={telHref(phone)}
-                                    className="text-xs tabular-nums text-muted-foreground hover:text-primary hover:underline"
-                                    dir="ltr"
-                                  >
-                                    {formatPhone(phone)}
-                                  </a>
-                                </>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">
-                                  {f.guardianName ?? t("arrears.noGuardian")}
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell className="pe-4">
-                              <div className="flex items-center justify-end gap-1">
-                                {phone && (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      asChild
-                                      aria-label={t("arrears.call")}
-                                    >
-                                      <a href={telHref(phone)}>
-                                        <Phone />
-                                      </a>
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      asChild
-                                      aria-label={t("arrears.whatsapp")}
-                                      className="text-success hover:bg-success/10 hover:text-success"
-                                    >
-                                      <a
-                                        href={reminderLink(f, phone)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                      >
-                                        <MessageCircle />
-                                      </a>
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                      <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableCell colSpan={3} className="ps-4 font-semibold">
-                          {t("arrears.totalRow")}
-                        </TableCell>
-                        <TableCell className="text-end text-base font-bold tabular-nums">
-                          {formatDZD(
-                            arrears.rows.reduce((s, f) => s + f.outstanding, 0),
-                            locale
-                          )}
-                        </TableCell>
-                        <TableCell colSpan={3} className="pe-4" />
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                  <ArrearsFamiliesTable rows={familyRows} tenantName={ctx.tenant.name} />
                 </div>
               </Card>
             )}
@@ -383,88 +239,7 @@ export default async function ArrearsPage() {
           <TabsContent value="aging" className="mt-4">
             <Card className="gap-0 overflow-hidden py-0 shadow-sm">
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold">
-                    <TableRow>
-                      <TableHead className="ps-4 text-muted-foreground">
-                        {t("arrears.columns.child")}
-                      </TableHead>
-                      <TableHead className="text-muted-foreground">
-                        {t("arrears.columns.phone")}
-                      </TableHead>
-                      {bucketLabels.map((label, i) => (
-                        <TableHead key={i} className={cn("text-end", BUCKET_TEXT[i])}>
-                          {label}
-                        </TableHead>
-                      ))}
-                      <TableHead className="pe-4 text-end text-foreground">
-                        {t("arrears.columns.total")}
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {aging.map((a) => {
-                      const phone = phoneByChild.get(a.childId);
-                      return (
-                        <TableRow key={a.childId} className="h-14">
-                          <TableCell className="ps-4">
-                            <div className="font-medium">{a.name}</div>
-                            {a.className && (
-                              <div className="text-xs text-muted-foreground">{a.className}</div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {phone ? (
-                              <a
-                                href={telHref(phone)}
-                                className="tabular-nums hover:text-primary hover:underline"
-                                dir="ltr"
-                              >
-                                {formatPhone(phone)}
-                              </a>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          {a.buckets.map((amount, i) => (
-                            <TableCell
-                              key={i}
-                              className={cn(
-                                "text-end tabular-nums",
-                                amount === 0 ? "text-muted-foreground" : BUCKET_TEXT[i],
-                                amount > 0 && BUCKET_CELL[i]
-                              )}
-                            >
-                              {amount > 0 ? formatDZD(amount, locale) : "—"}
-                            </TableCell>
-                          ))}
-                          <TableCell className="pe-4 text-end font-bold tabular-nums">
-                            {formatDZD(a.total, locale)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                      <TableCell colSpan={2} className="ps-4 font-semibold">
-                        {t("arrears.totalRow")}
-                      </TableCell>
-                      {bucketTotals.map((amount, i) => (
-                        <TableCell
-                          key={i}
-                          className={cn(
-                            "text-end font-medium tabular-nums",
-                            amount === 0 ? "text-muted-foreground" : BUCKET_TEXT[i]
-                          )}
-                        >
-                          {amount > 0 ? formatDZD(amount, locale) : "—"}
-                        </TableCell>
-                      ))}
-                      <TableCell className="pe-4 text-end text-base font-bold tabular-nums">
-                        {formatDZD(grandTotal, locale)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                <ArrearsAgingTable rows={agingRows} bucketLabels={bucketLabels} />
               </div>
             </Card>
           </TabsContent>

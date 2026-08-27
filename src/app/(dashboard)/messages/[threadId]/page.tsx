@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
+import { ChildLink } from "@/components/shared/entity-link";
 import { NewThreadDialog } from "@/components/modules/comms/new-thread-dialog";
 import { ReplyForm } from "@/components/modules/comms/reply-form";
 import { ThreadsList } from "@/components/modules/comms/threads-list";
@@ -115,7 +116,11 @@ export default async function ThreadPage({
             {childName && (
               <Badge className="ms-auto shrink-0 border-transparent bg-primary/10 font-medium text-primary">
                 <Baby data-icon="inline-start" />
-                {childName}
+                {thread.child_id ? (
+                  <ChildLink id={thread.child_id}>{childName}</ChildLink>
+                ) : (
+                  childName
+                )}
               </Badge>
             )}
           </div>

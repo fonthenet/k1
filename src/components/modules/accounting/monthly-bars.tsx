@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatDZD } from "@/lib/format";
+import { ChartCursor } from "@/components/shared/chart-cursor";
 
 export interface MonthPoint {
   month: string;
@@ -30,7 +31,8 @@ export function MonthlyBars({
   expenseLabel: string;
   locale: string;
 }) {
-  const compact = new Intl.NumberFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  const compact = // Grouping is fr-DZ in both languages — see formatDZD in lib/format.
+  new Intl.NumberFormat("fr-DZ", {
     notation: "compact",
     maximumFractionDigits: 1,
   });
@@ -54,7 +56,7 @@ export function MonthlyBars({
             tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
           />
           <Tooltip
-            cursor={{ fill: "var(--muted)", fillOpacity: 0.6 }}
+            cursor={<ChartCursor />}
             formatter={(value) => formatDZD(Number(value), locale)}
             contentStyle={{
               background: "var(--popover)",

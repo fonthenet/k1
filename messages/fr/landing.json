@@ -57,7 +57,8 @@
         "title": "Réseau d'établissements",
         "desc": "Plusieurs sites, un seul compte, un seul tableau de bord."
       }
-    }
+    },
+    "parents": "Espace parents"
   },
   "hero": {
     "eyebrow": "Conçue en Algérie · pensée en arabe d'abord",

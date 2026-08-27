@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { StaffLink } from "@/components/shared/entity-link";
 import { ProgramGoalsEditor } from "@/components/modules/sessions/program-goals-editor";
 import { ProgramStatusSelect } from "@/components/modules/sessions/program-status-select";
 import {
@@ -124,6 +125,8 @@ export default async function ProgramDetailPage({
   const history = (historyRes.data ?? []) as HistorySession[];
 
   let therapistName = t("schedule.noTherapist");
+  // Only set once a real name resolves — it is what gates the link below.
+  let therapistLinkId: string | null = null;
   if (program.therapist_id) {
     const { data: membership } = await supabase
       .from("kg_memberships")
@@ -137,7 +140,10 @@ export default async function ProgramDetailPage({
         .select("full_name")
         .eq("id", membership.user_id)
         .maybeSingle();
-      if (profile?.full_name) therapistName = profile.full_name;
+      if (profile?.full_name) {
+        therapistName = profile.full_name;
+        therapistLinkId = program.therapist_id;
+      }
     }
   }
 
@@ -276,7 +282,11 @@ export default async function ProgramDetailPage({
                   {childName}
                 </Link>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {therapistName}
+                  {therapistLinkId ? (
+                    <StaffLink id={therapistLinkId}>{therapistName}</StaffLink>
+                  ) : (
+                    therapistName
+                  )}
                 </span>
               </div>
             </div>

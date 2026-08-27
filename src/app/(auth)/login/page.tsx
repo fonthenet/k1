@@ -17,7 +17,8 @@ export default async function LoginPage({
   const sp = await searchParams;
   const rawNext = typeof sp.next === "string" ? sp.next : undefined;
   // Only allow internal paths — avoid open redirects.
-  const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
+  const next =
+    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/after-login";
 
   return (
     <div>

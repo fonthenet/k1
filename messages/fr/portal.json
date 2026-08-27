@@ -83,21 +83,13 @@
     "title": "Demandes d'inscription",
     "description": "Les demandes encore chez l'administration restent ici jusqu'à la réponse du jardin d'enfants.",
     "sentOn": "Envoyée le {date}",
-    "reviewNote": "Réponse du jardin d'enfants",
-    "status": {
-      "submitted": "En attente d'examen",
-      "under_review": "En cours d'examen",
-      "interview": "Entretien prévu",
-      "offered": "Place proposée",
-      "waitlist": "Liste d'attente",
-      "rejected": "Non retenue"
-    }
+    "processing": "Dossier reçu — en cours de traitement. La crèche vous contactera.",
+    "closed": "Dossier traité — contactez la crèche pour la suite."
   },
   "addChild": {
     "trigger": "Inscrire un autre enfant",
     "back": "Mes enfants",
     "title": "Inscrire un autre enfant",
-    "subtitle": "Le jardin d'enfants a déjà vos informations — seules celles de l'enfant sont nécessaires.",
     "review": {
       "title": "Vérifiez la demande",
       "subtitle": "Un dernier coup d'œil avant l'envoi à l'administration.",

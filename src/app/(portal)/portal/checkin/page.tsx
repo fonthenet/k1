@@ -14,6 +14,7 @@ import {
   type CheckinChildRow,
 } from "@/components/modules/portal/checkin-client";
 import { CheckinBadgeMissing } from "@/components/modules/portal/checkin-qr-card";
+import { allergenLabel } from "@/lib/allergens";
 
 type AttendanceRow = {
   child_id: string;
@@ -76,12 +77,13 @@ export default async function PortalCheckinPage() {
     allergies = (allergyRes.data ?? []) as AllergyRow[];
   }
 
+  const tc = await getTranslations("common");
   const attendanceByChild = new Map(attendance.map((row) => [row.child_id, row]));
   const allergensByChild = new Map<string, string[]>();
   for (const row of allergies) {
     allergensByChild.set(row.child_id, [
       ...(allergensByChild.get(row.child_id) ?? []),
-      row.allergen,
+      allergenLabel(row.allergen, tc),
     ]);
   }
 

@@ -4,6 +4,7 @@ import { Baby, ChevronLeft, ChevronRight, MessagesSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
+import { PortalChildLink } from "@/components/shared/entity-link";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/tenant";
 import { childDisplayName, formatDate, formatTime } from "@/lib/format";
@@ -137,7 +138,11 @@ export default async function PortalThreadPage({
           {childName && (
             <Badge className="mt-1.5 border-transparent bg-primary/10 font-medium text-primary">
               <Baby data-icon="inline-start" />
-              {childName}
+              {thread.child_id ? (
+                <PortalChildLink id={thread.child_id}>{childName}</PortalChildLink>
+              ) : (
+                childName
+              )}
             </Badge>
           )}
         </div>

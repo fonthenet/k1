@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, CalendarDays, IdCard, Receipt, UserX, Wallet } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BanknoteX,
+  CalendarDays,
+  CheckCircle2,
+  IdCard,
+  Receipt,
+  UserX,
+  Wallet,
+} from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ClassLink, InvoiceLink } from "@/components/shared/entity-link";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, signedMediaUrl } from "@/lib/tenant";
@@ -145,6 +156,7 @@ export default async function ChildProfilePage({
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const ctx = await requireStaff();
   const t = await getTranslations("children");
+  const tb = await getTranslations("billing");
   const tCred = await getTranslations("credentials");
   const locale = await getLocale();
   const supabase = await createClient();
@@ -370,6 +382,17 @@ export default async function ChildProfilePage({
   const fees = ((feesRes.data ?? []) as unknown as FeeJoinRow[]).filter((f) => f.kg_fee_plans);
   const invoices = (invoicesRes.data ?? []) as InvoiceRow[];
 
+  // What this child owes, right now. Computed from kg_child_balance rather than
+  // the 36 invoices loaded above: a long-overdue invoice that has fallen off
+  // the end of that list still has to count, because it is exactly the one
+  // somebody needs to be told about. Finance roles only — an educator opening a
+  // child's record must not be shown the family's money.
+  const balance = ctx.isFinance
+    ? Number(
+        (await supabase.rpc("kg_child_balance", { p_child: id })).data ?? 0
+      )
+    : 0;
+
   const documents: ChildDocumentRow[] = await Promise.all(
     (documentRows ?? []).map(async (d) => ({
       id: d.id,
@@ -478,6 +501,23 @@ export default async function ChildProfilePage({
               <Badge className={childStatusClasses(child.status)}>
                 {t(`status.${child.status}`)}
               </Badge>
+              {/* The answer to "where does it say unpaid". This record showed
+                  nothing about money at all, so an approved child with an
+                  outstanding invoice looked identical to one paid up. */}
+              {balance > 0 && (
+                <Badge asChild variant="destructive">
+                  <Link href={`/billing?child=${child.id}`}>
+                    <BanknoteX className="size-3.5" aria-hidden />
+                    {t("billing.owes", { amount: formatDZD(balance, locale) })}
+                  </Link>
+                </Badge>
+              )}
+              {ctx.isFinance && balance === 0 && invoices.length > 0 && (
+                <Badge variant="secondary" className="gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-success" aria-hidden />
+                  {t("billing.settled")}
+                </Badge>
+              )}
               {allergies.length > 0 && (
                 <Badge
                   className={severityClasses(
@@ -506,7 +546,11 @@ export default async function ChildProfilePage({
                     style={{ backgroundColor: child.kg_classes?.color ?? "var(--primary)" }}
                     aria-hidden
                   />
-                  {className}
+                  {child.kg_classes ? (
+                    <ClassLink id={child.kg_classes.id}>{className}</ClassLink>
+                  ) : (
+                    className
+                  )}
                 </span>
               )}
               {child.tag_code && (
@@ -769,7 +813,7 @@ export default async function ChildProfilePage({
                                 <TableCell className="text-end font-semibold tabular-nums">
                                   {formatDZD(f.custom_amount ?? plan.amount, locale)}
                                 </TableCell>
-                                <TableCell>{t(`billing.periods.${plan.period}`)}</TableCell>
+                                <TableCell>{tb(`periods.${plan.period}`)}</TableCell>
                                 <TableCell className="text-end tabular-nums">
                                   {f.discount_pct > 0 ? (
                                     <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
@@ -825,7 +869,7 @@ export default async function ChildProfilePage({
                           {invoices.map((inv) => (
                             <TableRow key={inv.id}>
                               <TableCell className="font-mono" dir="ltr">
-                                #{inv.number}
+                                <InvoiceLink id={inv.id}>#{inv.number}</InvoiceLink>
                               </TableCell>
                               <TableCell>
                                 {inv.period_month
@@ -838,7 +882,7 @@ export default async function ChildProfilePage({
                               </TableCell>
                               <TableCell>
                                 <Badge className={invoiceStatusClasses(inv.status)}>
-                                  {t(`billing.invoiceStatus.${inv.status}`)}
+                                  {tb(`status.${inv.status}`)}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-end font-semibold tabular-nums">

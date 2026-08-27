@@ -76,5 +76,28 @@
     "title": "The establishment",
     "mapTitle": "Map — {name}",
     "directions": "Directions"
+  },
+  "allergens": {
+    "gluten": "Gluten",
+    "lactose": "Milk",
+    "eggs": "Eggs",
+    "peanuts": "Peanuts",
+    "nuts": "Tree nuts",
+    "fish": "Fish",
+    "shellfish": "Shellfish",
+    "soy": "Soy",
+    "sesame": "Sesame",
+    "strawberry": "Strawberry",
+    "honey": "Honey",
+    "pollen": "Pollen",
+    "dust": "Dust mites",
+    "animals": "Animal fur",
+    "insects": "Insect stings",
+    "medication": "Medication",
+    "latex": "Latex",
+    "groupFood": "Food",
+    "groupOther": "Other",
+    "other": "Other",
+    "otherPlaceholder": "Name the allergen"
   }
 }

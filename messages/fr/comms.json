@@ -15,14 +15,6 @@
     "lunch": "Déjeuner",
     "snack": "Goûter"
   },
-  "allergens": {
-    "gluten": "Gluten",
-    "lactose": "Lactose",
-    "eggs": "Œufs",
-    "peanuts": "Arachides",
-    "nuts": "Fruits à coque",
-    "fish": "Poisson"
-  },
   "error": {
     "title": "Une erreur est survenue",
     "description": "Impossible de charger cette page. Vérifiez votre connexion puis réessayez.",
@@ -146,7 +138,6 @@
     "draft": "Brouillon",
     "notSet": "Non renseigné",
     "allergyWarning": "Alerte allergies",
-    "allergyChildren": "Enfants concernés : {names}",
     "dialog": {
       "title": "Menu du {date}",
       "description": "Renseignez les repas du jour et cochez les allergènes présents.",
@@ -154,7 +145,9 @@
       "allergensHint": "Utilisés pour alerter en cas d'allergie chez un enfant inscrit.",
       "published": "Publié aux parents",
       "publishedHint": "Un menu non publié reste visible uniquement par l'équipe.",
-      "submit": "Enregistrer"
+      "submit": "Enregistrer",
+      "detected": "Détecté dans le menu, non coché : {list}",
+      "addDetected": "Ajouter"
     },
     "toasts": {
       "saved": "Menu enregistré",
@@ -165,7 +158,7 @@
     "nextWeek": "Semaine suivante",
     "thisWeek": "Cette semaine",
     "editDay": "Modifier le menu du {date}",
-    "allergyWarningDescription": "Le menu de cette semaine contient des allergènes concernant des enfants inscrits."
+    "allergyChildrenLabel": "Enfants concernés :"
   },
   "incidents": {
     "title": "Incidents",

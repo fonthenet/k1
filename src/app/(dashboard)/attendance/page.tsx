@@ -9,6 +9,7 @@ import {
   type RegisterClassTab,
   type RegisterRow,
 } from "@/components/modules/attendance/register-client";
+import { allergenLabel } from "@/lib/allergens";
 import {
   isValidDateStr,
   parseDateStr,
@@ -43,6 +44,7 @@ export default async function AttendancePage({
 }) {
   const ctx = await requireStaff();
   const t = await getTranslations("attendance");
+  const tc = await getTranslations("common");
   const locale = await getLocale();
   const sp = await searchParams;
 
@@ -90,7 +92,7 @@ export default async function AttendancePage({
   const allergiesByChild = new Map<string, string[]>();
   for (const a of allergiesRes.data ?? []) {
     const list = allergiesByChild.get(a.child_id) ?? [];
-    list.push(a.allergen);
+    list.push(allergenLabel(a.allergen, tc));
     allergiesByChild.set(a.child_id, list);
   }
   const classById = new Map(classes.map((c) => [c.id, c]));

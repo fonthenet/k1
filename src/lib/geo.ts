@@ -145,3 +145,13 @@ export function osmEmbedUrl({ lat, lng }: LatLng, span = 0.004): string {
 export function directionsUrl({ lat, lng }: LatLng): string {
   return `https://www.google.com/maps/search/?api=1&query=${lat.toFixed(6)},${lng.toFixed(6)}`;
 }
+
+/**
+ * Directions to a place we know only by name — a crèche that has not dropped
+ * a pin yet. Google resolves the text the same way a person typing it would,
+ * which is worse than a coordinate and far better than plain text nobody can
+ * tap.
+ */
+export function mapSearchUrl(query: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}

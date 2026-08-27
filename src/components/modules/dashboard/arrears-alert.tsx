@@ -25,17 +25,16 @@ export async function ArrearsAlert({ rows }: { rows: ArrearsFamily[] }) {
   const oldestFamily = late.find((r) => r.daysOverdue === oldestDays) ?? late[0];
 
   return (
-    <Card className="@container/arrears bg-destructive/5 py-3 shadow-sm ring-2 ring-destructive/30">
+    /* A plain card. The alert used to be a pink field inside a red ring with
+       a red icon tile and a red button — five reds for one number, which
+       makes the number itself no louder than its frame. The amount owed is
+       the only thing here that is actually red. */
+    <Card className="@container/arrears py-3 shadow-sm">
       {/* One line on a wide screen. The two figures sit beside the headline
           rather than under it — this is a glance-at-it alert, and a paragraph
           of advice is read once and then costs vertical space every day after. */}
       <CardContent className="flex flex-col gap-3 px-4 @2xl/arrears:flex-row @2xl/arrears:items-center @2xl/arrears:gap-5">
-        <span
-          aria-hidden
-          className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive"
-        >
-          <BanknoteX className="size-4.5" />
-        </span>
+        <BanknoteX className="size-5 shrink-0 text-destructive" aria-hidden />
 
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-5 gap-y-1">
           <h2 className="text-sm font-semibold text-foreground">
@@ -59,7 +58,7 @@ export async function ArrearsAlert({ rows }: { rows: ArrearsFamily[] }) {
           </p>
         </div>
 
-        <Button asChild variant="destructive" className="w-full @2xl/arrears:w-auto">
+        <Button asChild variant="outline" size="sm" className="w-full @2xl/arrears:w-auto">
           <Link href="/billing/arrears">
             {t("arrears.cta")}
             <ChevronRight data-icon="inline-end" className="rtl:-scale-x-100" />

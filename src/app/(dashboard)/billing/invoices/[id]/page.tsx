@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ChildLink } from "@/components/shared/entity-link";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
@@ -357,7 +358,13 @@ export default async function InvoiceDetailPage({
             </CardHeader>
             <CardContent className="space-y-4 p-5 text-sm">
               <div>
-                <div className="font-semibold">{childName}</div>
+                <div className="font-semibold">
+                  {inv.kg_children ? (
+                    <ChildLink id={inv.child_id}>{childName}</ChildLink>
+                  ) : (
+                    childName
+                  )}
+                </div>
                 {cls && (
                   <div className="text-muted-foreground">
                     {locale === "ar" && cls.name_ar ? cls.name_ar : cls.name}

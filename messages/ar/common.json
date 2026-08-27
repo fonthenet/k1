@@ -76,5 +76,28 @@
     "title": "المؤسسة",
     "mapTitle": "خريطة — {name}",
     "directions": "الاتجاهات"
+  },
+  "allergens": {
+    "gluten": "الغلوتين",
+    "lactose": "الحليب",
+    "eggs": "البيض",
+    "peanuts": "الفول السوداني",
+    "nuts": "المكسرات",
+    "fish": "السمك",
+    "shellfish": "القشريات",
+    "soy": "الصويا",
+    "sesame": "السمسم",
+    "strawberry": "الفراولة",
+    "honey": "العسل",
+    "pollen": "غبار الطلع",
+    "dust": "عث الغبار",
+    "animals": "وبر الحيوانات",
+    "insects": "لسعات الحشرات",
+    "medication": "الأدوية",
+    "latex": "اللاتكس",
+    "groupFood": "أغذية",
+    "groupOther": "أخرى",
+    "other": "أخرى",
+    "otherPlaceholder": "حدِّد نوع الحساسية"
   }
 }

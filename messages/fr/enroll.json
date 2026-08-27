@@ -17,7 +17,8 @@
     "guardianRequired": "Merci d'indiquer au moins le prénom, le nom et le téléphone du parent.",
     "allergenRequired": "Merci de préciser l'allergène pour chaque allergie ajoutée, ou supprimez la ligne vide.",
     "notSignedIn": "Votre session a expiré. Merci de vous reconnecter.",
-    "generic": "Une erreur est survenue. Réessayez."
+    "generic": "Une erreur est survenue. Réessayez.",
+    "scheduleRequired": "Choisissez une formule — ou « Je déciderai avec la crèche »."
   },
   "welcome": {
     "badge": "Inscription en ligne",
@@ -49,7 +50,9 @@
     "signOut": "Changer de compte",
     "confirmEmail": "Vérifiez votre boîte mail pour confirmer votre compte, puis connectez-vous.",
     "invalidCredentials": "E-mail ou mot de passe incorrect.",
-    "signupError": "Impossible de créer le compte. Vérifiez l'e-mail et réessayez."
+    "signupError": "Impossible de créer le compte. Vérifiez l'e-mail et réessayez.",
+    "identifier": "E-mail ou numéro de téléphone",
+    "badIdentifier": "Saisissez une adresse e-mail ou un numéro de téléphone algérien."
   },
   "child": {
     "title": "Votre enfant",
@@ -157,7 +160,14 @@
     "edit": "Modifier",
     "submit": "Envoyer la demande d'inscription",
     "submitting": "Envoi en cours…",
-    "note": "En envoyant ce dossier, vous acceptez d'être contacté(e) par le jardin d'enfants."
+    "note": "En envoyant ce dossier, vous acceptez d'être contacté(e) par le jardin d'enfants.",
+    "schedule": "Formule",
+    "scheduleUndecided": "À décider avec la crèche",
+    "firstMonth": {
+      "title": "Estimation du premier mois",
+      "total": "Total",
+      "hint": "Montant indicatif : la facture exacte est établie par la crèche à l'admission. Les activités par séance sont facturées à l'usage."
+    }
   },
   "success": {
     "title": "Demande envoyée !",
@@ -216,7 +226,8 @@
       "financial": "Responsable financier",
       "pickup": "Récupération autorisée",
       "noPickup": "Récupération non autorisée"
-    }
+    },
+    "knownFamily": "Famille déjà connue — voir sa fiche"
   },
   "reviewActions": {
     "approve": "Approuver",
@@ -239,7 +250,14 @@
     "updated": "Statut mis à jour",
     "error": "Action impossible. Réessayez.",
     "siblingLinkNamed": "Cet enfant sera rattaché à la famille {name} existante — aucune fiche parent en double n'est créée.",
-    "siblingNoFamily": "Aucune fiche parent trouvée pour ce demandeur : l'approbation créera une nouvelle famille au lieu d'en compléter une."
+    "siblingNoFamily": "Aucune fiche parent trouvée pour ce demandeur : l'approbation créera une nouvelle famille au lieu d'en compléter une.",
+    "feePlan": "Formule tarifaire",
+    "noFeePlan": "Aucune — facturer plus tard",
+    "noFeePlanWarning": "Sans formule, cet enfant ne sera jamais facturé automatiquement. À définir dans sa fiche.",
+    "billNow": "Facturer ce mois-ci maintenant",
+    "billNowHint": "Émet la facture du mois immédiatement. Sinon elle sera générée le 1er du mois prochain.",
+    "admissionFees": "Frais d'admission (appliqués automatiquement)",
+    "familyChose": "Formule choisie par la famille sur le formulaire d'inscription."
   },
   "source": {
     "online": "Formulaire en ligne",
@@ -303,5 +321,12 @@
     "noGuardianTitle": "Aucune fiche parent pour ce demandeur",
     "noGuardianDesc": "Aucune fiche parent n'est liée à ce compte. L'approbation créera une NOUVELLE famille au lieu d'ajouter l'enfant à une famille existante.",
     "error": "Impossible de charger la fiche famille. Rechargez la page."
+  },
+  "schedule": {
+    "title": "Quelle formule vous convient ?",
+    "subtitle": "C'est ce qui détermine votre mensualité — modifiable ensuite avec la crèche.",
+    "perMonth": "/ mois",
+    "undecided": "Je déciderai avec la crèche",
+    "undecidedHint": "Le bureau vous conseillera lors de la validation du dossier."
   }
 }

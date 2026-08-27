@@ -3,7 +3,7 @@
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Check } from "lucide-react";
+import { Check, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { saveMenuDay } from "./actions";
+import { detectAllergens } from "@/lib/allergens";
 import { MENU_ALLERGENS, type MenuDayRow } from "./types";
 
 /** Edit one day's breakfast / lunch / snack + allergens + published flag. */
@@ -49,6 +50,20 @@ export function MenuDayDialog({
 
   const known = MENU_ALLERGENS.map((a) => a.value) as readonly string[];
   const extras = allergens.filter((a) => !known.includes(a));
+
+  // Allergens plainly present in what the cook just typed.
+  //
+  // Suggested, never applied silently. Ticking a box for somebody would make
+  // the list look reviewed when it was not, and un-ticking would be
+  // indistinguishable from a deliberate choice. What this DOES do is make the
+  // gap loud: a menu saying "Lait + biscuits" with Lactose unticked used to
+  // disable the allergy alert for that day in total silence.
+  const detected = detectAllergens(breakfast, lunch, snack);
+  const missing = detected.filter((d) => !allergens.includes(d));
+  const labelFor = (value: string) => {
+    const found = MENU_ALLERGENS.find((a) => a.value === value);
+    return found ? tc(`allergens.${found.key}`) : value;
+  };
 
   function toggle(value: string) {
     setAllergens((prev) =>
@@ -117,6 +132,28 @@ export function MenuDayDialog({
 
           <div className="grid gap-1.5">
             <Label>{t("menus.dialog.allergens")}</Label>
+
+            {/* Detected but not ticked. Deliberately styled as a warning and
+                placed ABOVE the chips: this is the one thing on the form that
+                can quietly hurt a child. */}
+            {missing.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl bg-warning/10 p-2.5 ring-1 ring-warning/30">
+                <TriangleAlert className="size-4 shrink-0 text-warning-ink" aria-hidden />
+                <p className="min-w-0 flex-1 text-xs leading-relaxed text-warning-ink">
+                  {t("menus.dialog.detected", { list: missing.map(labelFor).join(", ") })}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => setAllergens((prev) => [...new Set([...prev, ...missing])])}
+                >
+                  {t("menus.dialog.addDetected")}
+                </Button>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-1.5">
               {MENU_ALLERGENS.map((a) => {
                 const active = allergens.includes(a.value);
@@ -135,7 +172,7 @@ export function MenuDayDialog({
                     )}
                   >
                     {active && <Check className="size-3" />}
-                    {t(`allergens.${a.key}`)}
+                    {tc(`allergens.${a.key}`)}
                   </button>
                 );
               })}

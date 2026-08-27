@@ -13,7 +13,6 @@ import {
   MapPin,
   Phone,
   ShieldAlert,
-  Sparkles,
   Stethoscope,
   TriangleAlert,
   Users,
@@ -22,20 +21,29 @@ import { requireStaff, signedMediaUrl } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { ageFromDob, childDisplayName, formatDZD, formatDate, formatPhone, formatTime, initials, telHref } from "@/lib/format";
 import type { Activity, Guardian, KgClass } from "@/lib/types";
+import { CategoryIcon } from "@/components/modules/classes/category-icon";
+import { normalizeAlgerianPhone } from "@/lib/auth-identifier";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ActivityLink } from "@/components/shared/entity-link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ReviewActions, type ClassOption } from "@/components/modules/enroll/review-actions";
+import {
+  ReviewActions,
+  type AdmissionFee,
+  type ClassOption,
+  type FeePlanOption,
+} from "@/components/modules/enroll/review-actions";
 import { SIBLING_SOURCE, SiblingBadge } from "@/components/modules/enroll/application-card";
 import {
   APPLICATION_STATUS_BADGE,
   type ApplicationRecord,
 } from "@/components/modules/enroll/types";
 import { severityClasses } from "@/components/modules/children/types";
+import { allergenLabel } from "@/lib/allergens";
 
 function InfoRow({
   icon,
@@ -50,10 +58,17 @@ function InfoRow({
 }) {
   if (!value) return null;
   return (
-    <div className="flex items-start gap-2 text-sm">
-      {icon && <span className="mt-0.5 text-muted-foreground [&>svg]:size-4">{icon}</span>}
+    // Label and value sit together. `ms-auto` used to fling the value to the
+    // far edge, so in a wide card "Téléphone" was stranded on one side and the
+    // number on the other with a lake of white between them — the eye has to
+    // travel to pair two things that belong to each other. A colon and a gap
+    // do the same job in the space of two characters.
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+      {icon && (
+        <span className="self-start pt-0.5 text-muted-foreground [&>svg]:size-4">{icon}</span>
+      )}
       <span className="text-muted-foreground">{label}</span>
-      <span className="ms-auto text-end font-medium" dir={ltr ? "ltr" : undefined}>
+      <span className="min-w-0 font-medium" dir={ltr ? "ltr" : undefined}>
         {value}
       </span>
     </div>
@@ -87,6 +102,7 @@ export default async function ApplicationDetailPage({
   const { id } = await params;
   const ctx = await requireStaff();
   const t = await getTranslations("enroll");
+  const tc = await getTranslations("common");
   const locale = await getLocale();
   const supabase = await createClient();
 
@@ -124,7 +140,8 @@ export default async function ApplicationDetailPage({
 
   // Parallel: photo signed URL (may fail RLS for staff on u/ paths → fallback avatar),
   // classes with enrolled counts, requested activities.
-  const [photoUrl, classesRes, childrenRes, activitiesRes] = await Promise.all([
+  const [photoUrl, classesRes, childrenRes, feePlansRes, admissionRes, activitiesRes] =
+    await Promise.all([
     signedMediaUrl(child.photo_path),
     supabase.from("kg_classes").select("*").eq("tenant_id", ctx.tenant.id).order("name"),
     supabase
@@ -132,6 +149,24 @@ export default async function ApplicationDetailPage({
       .select("class_id")
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled"),
+    // Fee plans, so approval can start billing in the same transaction. Only a
+    // finance role may read kg_fee_plans, and only they should be choosing a
+    // tariff — an educator reviewing an application gets an empty list and the
+    // billing block simply does not render.
+    ctx.isFinance
+      ? supabase
+          .from("kg_fee_plans")
+          .select("id, name, name_ar, amount")
+          .eq("tenant_id", ctx.tenant.id)
+          .eq("active", true)
+          .eq("period", "monthly")
+          .order("amount")
+      : Promise.resolve({ data: [] }),
+    // Admission fees (period 'once') are applied automatically; fetched only to
+    // show the reviewer what the family will be charged.
+    ctx.isFinance
+      ? supabase.rpc("kg_admission_fees", { p_tenant: ctx.tenant.id })
+      : Promise.resolve({ data: [] }),
     activityIds.length > 0
       ? supabase
           .from("kg_activities")
@@ -204,6 +239,60 @@ export default async function ApplicationDetailPage({
 
   const familyName = family?.guardian ? childDisplayName(family.guardian, locale) : null;
 
+  // Which of these guardians the crèche ALREADY holds a record for.
+  //
+  // `guardians` above is the application's jsonb — on a pending file these
+  // people do not exist as rows yet, so their names are not links to anything.
+  // But a family enrolling a second child is already here, and the phone is
+  // what identifies them: the same rule kg_approve_application uses to adopt
+  // an existing guardian (0017). Matched names become links to the child whose
+  // record that guardian lives on; unmatched names stay plain text, because
+  // inventing a link that 404s is worse than no link.
+  // TWO keys per number, and a match on either counts.
+  //
+  // normalizeAlgerianPhone is the right primary key: a parent typing
+  // "+213 661 98 76 54" and a record holding "0661 98 76 54" are the same
+  // person, and a bare digit strip leaves 213661987654 vs 0661987654 — a
+  // silent miss. But it validates as well as normalises, so it returns null
+  // for a malformed number, and a crèche's older records are full of those.
+  // Falling back to raw digits keeps those matching instead of quietly
+  // dropping every family whose phone was typed badly years ago.
+  const phoneKeys = (v: unknown): string[] => {
+    if (typeof v !== "string") return [];
+    const raw = v.replace(/\D/g, "");
+    const normal = normalizeAlgerianPhone(v);
+    return [...new Set([normal, raw.length >= 6 ? raw : null].filter(Boolean) as string[])];
+  };
+  const appPhoneKeys = new Set(guardians.flatMap((g) => phoneKeys(g.phone)));
+
+  const guardianLinkByPhone = new Map<string, { childId: string; guardianId: string }>();
+  if (appPhoneKeys.size > 0) {
+    const { data: known } = await supabase
+      .from("kg_guardians")
+      .select("id, phone, kg_child_guardians(child_id)")
+      .eq("tenant_id", ctx.tenant.id);
+
+    for (const row of (known ?? []) as {
+      id: string;
+      phone: string | null;
+      kg_child_guardians: { child_id: string }[] | null;
+    }[]) {
+      const keys = phoneKeys(row.phone);
+      if (!keys.some((k) => appPhoneKeys.has(k))) continue;
+      // Prefer a child OTHER than the one this application created — for a
+      // sibling enrolment that is the genuinely new information, "here is the
+      // family you already have". But fall back to the created child rather
+      // than rendering the name as dead text: on an approved file the guardian
+      // is a real record now, and their record lives on that child's page.
+      const linked = (row.kg_child_guardians ?? []).map((l) => l.child_id);
+      const childId =
+        linked.find((id) => id !== app.created_child_id) ?? linked[0] ?? null;
+      if (childId) {
+        for (const k of keys) guardianLinkByPhone.set(k, { childId, guardianId: row.id });
+      }
+    }
+  }
+
   const activities = (activitiesRes.data ?? []) as Activity[];
   const displayName = childDisplayName(
     {
@@ -249,6 +338,9 @@ export default async function ApplicationDetailPage({
               status={app.status}
               interviewAt={app.interview_at}
               classes={classes}
+              feePlans={(feePlansRes.data ?? []) as FeePlanOption[]}
+              admissionFees={(admissionRes.data ?? []) as AdmissionFee[]}
+              requestedFeePlanId={(app as { fee_plan_id?: string | null }).fee_plan_id ?? null}
               createdChildId={app.created_child_id}
               isSibling={isSibling}
               familyName={familyName}
@@ -457,9 +549,23 @@ export default async function ApplicationDetailPage({
             {guardians.map((g, i) => (
               <div key={i} className="rounded-xl border p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <p className="font-semibold">
-                    {g.first_name} {g.last_name}
-                  </p>
+                  {(() => {
+                    const hit = phoneKeys(g.phone)
+                      .map((k) => guardianLinkByPhone.get(k))
+                      .find(Boolean);
+                    const name = `${g.first_name ?? ""} ${g.last_name ?? ""}`.trim();
+                    return hit ? (
+                      <Link
+                        href={`/children/${hit.childId}`}
+                        className="font-semibold underline-offset-4 hover:text-primary hover:underline"
+                        title={t("detail.knownFamily")}
+                      >
+                        {name}
+                      </Link>
+                    ) : (
+                      <p className="font-semibold">{name}</p>
+                    );
+                  })()}
                   <Badge variant="outline">{t(`guardians.relationships.${g.relationship}`)}</Badge>
                   {g.is_applicant && <Badge variant="secondary">{t("detail.badges.applicant")}</Badge>}
                   {g.is_primary && <Badge variant="secondary">{t("detail.badges.primary")}</Badge>}
@@ -510,7 +616,7 @@ export default async function ApplicationDetailPage({
                   {allergies.map((a, i) => (
                     <div key={i} className="rounded-lg border p-2.5 text-sm">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium">{a.allergen}</span>
+                        <span className="font-medium">{allergenLabel(a.allergen, tc)}</span>
                         <Badge className={severityClasses(a.severity ?? "mild")}>
                           {t(`health.severities.${a.severity ?? "mild"}`)}
                         </Badge>
@@ -571,9 +677,21 @@ export default async function ApplicationDetailPage({
                     key={a.id}
                     className="flex items-center justify-between gap-3 rounded-lg border p-2.5 text-sm"
                   >
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <Sparkles className="size-4 text-primary" />
-                      {locale === "ar" && a.name_ar ? a.name_ar : a.name}
+                    {/* The category's own icon, not a generic sparkle on every
+                        row: every activity carries art / sport / language /
+                        religion, and CategoryIcon already renders exactly that
+                        on the activities page. Same tile, half the size, so the
+                        two screens agree about what an activity looks like. */}
+                    <span className="flex min-w-0 items-center gap-2.5 font-medium">
+                      <CategoryIcon
+                        category={a.category}
+                        className="size-8 [&>svg]:size-4"
+                      />
+                      <span className="min-w-0 truncate">
+                        <ActivityLink id={a.id}>
+                          {locale === "ar" && a.name_ar ? a.name_ar : a.name}
+                        </ActivityLink>
+                      </span>
                     </span>
                     <span className="text-end tabular-nums">
                       {formatDZD(a.fee_amount, locale)}

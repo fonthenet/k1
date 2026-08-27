@@ -35,6 +35,7 @@ import { Separator } from "@/components/ui/separator";
 import { FinanceChart } from "@/components/modules/dashboard/finance-chart";
 import { ArrearsAlert } from "@/components/modules/dashboard/arrears-alert";
 import { fetchArrears, type ArrearsFamily } from "@/components/modules/dashboard/arrears-data";
+import { ChildLink } from "@/components/shared/entity-link";
 
 interface ChildLite {
   id: string;
@@ -349,7 +350,9 @@ export default async function DashboardPage() {
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
                                 <span className="truncate text-sm font-medium">
-                                  {childDisplayName(child, locale)}
+                                  <ChildLink id={child.id}>
+                                    {childDisplayName(child, locale)}
+                                  </ChildLink>
                                 </span>
                                 {allergic.has(child.id) && (
                                   <Badge variant="destructive">
@@ -418,7 +421,9 @@ export default async function DashboardPage() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
                               <span className="truncate text-sm font-medium">
-                                {childDisplayName(child, locale)}
+                                <ChildLink id={child.id}>
+                                  {childDisplayName(child, locale)}
+                                </ChildLink>
                               </span>
                               {allergic.has(child.id) && (
                                 <Badge variant="destructive">

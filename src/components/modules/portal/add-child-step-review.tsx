@@ -6,29 +6,36 @@
 // family's existing kg_guardians row, so there is nothing here to check.
 
 import { useLocale, useTranslations } from "next-intl";
-import { Loader2, Pencil, Send } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Baby, Camera, ClipboardCheck, Loader2, Pencil, Send, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatDate } from "@/lib/format";
 import { StepHeader } from "@/components/modules/enroll/wizard-ui";
 import type { WizardChild } from "@/components/modules/enroll/types";
 import type { AddChildHealth } from "./add-child-wizard";
+import { allergenLabel } from "@/lib/allergens";
 
 function Section({
+  icon: Icon,
   title,
   onEdit,
   editLabel,
   children,
 }: {
+  icon: LucideIcon;
   title: string;
   onEdit: () => void;
   editLabel: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border bg-card p-4">
+    <div className="rounded-2xl border bg-card p-3.5">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="font-semibold">{title}</p>
+        <p className="flex items-center gap-2 font-semibold">
+          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          {title}
+        </p>
         <Button variant="ghost" size="sm" className="h-11 px-3" onClick={onEdit}>
           <Pencil className="size-3.5" data-icon="inline-start" />
           {editLabel}
@@ -66,16 +73,17 @@ export function AddChildStepReview({
 }) {
   const t = useTranslations("portal.addChild");
   const te = useTranslations("enroll");
+  const tc = useTranslations("common");
   const locale = useLocale();
   const edit = te("review.edit");
   const namedAllergies = health.allergies.filter((a) => a.allergen.trim());
 
   return (
     <div>
-      <StepHeader emoji="🔍" title={t("review.title")} subtitle={t("review.subtitle")} />
+      <StepHeader icon={ClipboardCheck} title={t("review.title")} subtitle={t("review.subtitle")} />
 
       <div className="space-y-4">
-        <Section title={`🧒 ${te("review.child")}`} onEdit={() => goTo(0)} editLabel={edit}>
+        <Section icon={Baby} title={te("review.child")} onEdit={() => goTo(0)} editLabel={edit}>
           <Row
             label={te("child.firstName")}
             value={
@@ -92,20 +100,20 @@ export function AddChildStepReview({
           <Row label={te("child.bloodType")} value={child.blood_type || null} />
         </Section>
 
-        <Section title={`📷 ${te("review.photo")}`} onEdit={() => goTo(1)} editLabel={edit}>
+        <Section icon={Camera} title={te("review.photo")} onEdit={() => goTo(1)} editLabel={edit}>
           <p className={child.photo_path ? "font-medium text-primary" : "text-muted-foreground"}>
             {child.photo_path ? `✓ ${te("photo.uploaded")}` : te("review.noPhoto")}
           </p>
         </Section>
 
-        <Section title={`🩺 ${te("review.health")}`} onEdit={() => goTo(2)} editLabel={edit}>
+        <Section icon={Stethoscope} title={te("review.health")} onEdit={() => goTo(2)} editLabel={edit}>
           <p className="font-medium">
             {te("review.allergiesCount", { count: namedAllergies.length })}
           </p>
           {namedAllergies.length > 0 && (
             <p className="text-muted-foreground">
               {namedAllergies
-                .map((a) => `${a.allergen} (${te(`health.severities.${a.severity}`)})`)
+                .map((a) => `${allergenLabel(a.allergen, tc)} (${te(`health.severities.${a.severity}`)})`)
                 // Arabic separates a list with ‏،‏ , not a Latin comma.
                 .join(locale === "ar" ? "، " : ", ")}
             </p>

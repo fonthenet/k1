@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { CalendarClock, CalendarDays, Phone, Sparkles, Users } from "lucide-react";
-import { ageFromDob, childDisplayName, formatDate, formatPhone, formatTime, initials, telHref } from "@/lib/format";
+import { ageFromDob, childDisplayName, formatDate, formatDZD, formatPhone, formatTime, initials, telHref } from "@/lib/format";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +57,10 @@ export async function ApplicationCard({
   const sourceKey = app.source ? `source.${app.source}` : null;
   const sourceLabel = sourceKey ? (t.has(sourceKey) ? t(sourceKey) : app.source) : null;
   const hasInterviewSlot = app.status === "interview" && Boolean(app.interview_at);
-  const hasChips = hasInterviewSlot || isSibling || Boolean(sourceLabel) || activityCount > 0;
+  const plan = app.kg_fee_plans ?? null;
+  const planName = plan ? (locale === "ar" && plan.name_ar ? plan.name_ar : plan.name) : null;
+  const hasChips =
+    hasInterviewSlot || isSibling || Boolean(sourceLabel) || activityCount > 0 || Boolean(plan);
 
   return (
     <Card size="sm" className="transition-shadow hover:shadow-md">
@@ -133,6 +136,13 @@ export async function ApplicationCard({
 
         {hasChips && (
           <div className="flex flex-wrap items-center gap-1.5">
+            {/* What the family asked to pay for — the first thing approval
+                will confirm, so the first chip the reviewer sees. */}
+            {plan && (
+              <Badge className="border-transparent bg-primary/10 font-medium text-primary">
+                {planName} · {formatDZD(plan.amount, locale)}
+              </Badge>
+            )}
             {isSibling && <SiblingBadge />}
             {hasInterviewSlot && app.interview_at && (
               <Badge className="border-transparent bg-secondary font-medium text-secondary-foreground">

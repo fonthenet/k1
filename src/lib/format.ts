@@ -1,12 +1,41 @@
 // Locale-aware formatting. Algeria: DZD, Sunday–Thursday work week, fr/ar locales.
 
+/**
+ * Money, grouped with a space in every language.
+ *
+ * CLDR groups ar-DZ with a FULL STOP — "101.900" is genuinely the correct
+ * Arabic-Algeria rendering of 101 900. It is also unreadable on a billing
+ * screen: a French reader sees 101.9, and French is the language of Algerian
+ * invoices, banks and administration. The comma is worse still, because in
+ * French convention "2,500" IS two and a half.
+ *
+ * A space is the one separator no convention reads as a decimal mark, it is
+ * what fr-DZ already produces, and it makes the same invoice look the same in
+ * Arabic and in French — which matters when the two are read by the same
+ * family. So the grouping is deliberately NOT locale-derived; only the currency
+ * suffix is.
+ *
+ * U+202F NARROW NO-BREAK SPACE, not a plain space: the amount must never wrap
+ * between the thousands and the hundreds.
+ */
 export function formatDZD(amount: number | string, locale = "fr"): string {
   const n = typeof amount === "string" ? parseFloat(amount) : amount;
-  const formatted = new Intl.NumberFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
-    style: "decimal",
-    maximumFractionDigits: 0,
-  }).format(n);
+  if (!Number.isFinite(n)) return locale === "ar" ? "0 دج" : "0 DA";
+  const formatted = groupWithSpace(n, 0);
   return locale === "ar" ? `${formatted} دج` : `${formatted} DA`;
+}
+
+/** Digits grouped in threes by a narrow no-break space. Latin digits always —
+ *  Algeria writes numbers in Latin script, not Arabic-Indic. */
+export function groupWithSpace(n: number, maximumFractionDigits = 0): string {
+  return new Intl.NumberFormat("fr-DZ", {
+    style: "decimal",
+    maximumFractionDigits,
+  })
+    .format(n)
+    // fr-DZ already uses U+202F, but normalise every space variant so the
+    // output cannot depend on the host ICU build.
+    .replace(/[\u00A0\u2009\u202F ]/g, "\u202F");
 }
 
 export function formatDate(date: string | Date, locale = "fr", opts?: Intl.DateTimeFormatOptions): string {

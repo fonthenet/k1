@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
   AlertTriangleIcon,
+  BabyIcon,
   ArrowLeftIcon,
   MapPinIcon,
   PlusIcon,
@@ -30,6 +31,10 @@ import {
   centerTypeOption,
 } from "@/components/modules/settings/center-types";
 import { ClaimCard } from "./_components/claim-card";
+import {
+  getMyPendingApplications,
+  PendingApplicationsNotice,
+} from "./_components/pending-applications";
 import { CreateWizard } from "./_components/create-wizard";
 import { OpenWorkspaceButton } from "./_components/open-workspace-button";
 import { chooseWorkspace } from "./actions";
@@ -74,6 +79,13 @@ export default async function OnboardingPage({
     .eq("status", "active");
 
   const memberships = ((data ?? []) as MembershipRow[]).filter((m) => m.kg_tenants);
+
+  // A parent who has asked to enrol a child has no membership either — one only
+  // appears when staff approve. Without this, "no membership" meant exactly one
+  // thing, "you must be opening a nursery", and a family that had just
+  // submitted a request was shown the founder wizard.
+  const pending = memberships.length === 0 ? await getMyPendingApplications(user.id) : [];
+
   const showWizard = forceCreate || memberships.length === 0;
 
   return (
@@ -104,10 +116,15 @@ export default async function OnboardingPage({
           </Alert>
         ) : showWizard ? (
           <div className="mx-auto max-w-3xl">
-            {/* A parent holding a code from their crèche comes first. Having no
-                membership used to mean one thing only — "you must be opening a
-                nursery" — which is the wrong guess for the commoner case. Only
-                shown when they did not explicitly ask to create a business. */}
+            {/* Order matters: a request already in flight explains the empty
+                screen better than anything else, so it goes first. Then the
+                claim code. The create-a-business wizard is last because it is
+                the least likely reason a person with no membership is here. */}
+            {!forceCreate && pending.length > 0 && (
+              <div className="mb-5">
+                <PendingApplicationsNotice rows={pending} />
+              </div>
+            )}
             {!forceCreate && (
               <div className="mb-5">
                 <ClaimCard />
@@ -123,9 +140,59 @@ export default async function OnboardingPage({
                 {t("onboarding.backToWorkspaces")}
               </Link>
             )}
-            {/* The header sits on the same tinted ground as the sidebar brand
-                block and the dashboard topbar, so the first screen of the
-                product already looks like the product. */}
+            {/* A brand-new account with no context is far more often a parent
+                than a founder — so the founder wizard only renders when they
+                explicitly walk through the "I run an establishment" door.
+                Before this gate, generic signup landed every confused parent
+                on a CREATE-A-KINDERGARTEN form. */}
+            {!forceCreate && (
+              <div className="grid gap-5">
+                <Card className="border border-border shadow-sm ring-0">
+                  <CardContent className="flex items-start gap-3.5">
+                    <span
+                      aria-hidden
+                      className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary"
+                    >
+                      <BabyIcon className="size-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-foreground">
+                        {t("onboarding.parentPath.title")}
+                      </div>
+                      <p className="mt-0.5 text-sm leading-relaxed text-pretty text-muted-foreground">
+                        {t("onboarding.parentPath.body")}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Link
+                  href="/onboarding?create=1"
+                  className="group flex items-center gap-3.5 rounded-xl border border-dashed border-border p-4 transition-colors hover:border-primary/40 hover:bg-primary/5"
+                >
+                  <span
+                    aria-hidden
+                    className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gold-muted text-gold-ink"
+                  >
+                    <SchoolIcon className="size-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-foreground">
+                      {t("onboarding.ownerPath.title")}
+                    </span>
+                    <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
+                      {t("onboarding.ownerPath.body")}
+                    </span>
+                  </span>
+                  <ArrowLeftIcon
+                    className="size-4 shrink-0 rotate-180 text-muted-foreground transition-transform group-hover:translate-x-0.5 rtl:rotate-0"
+                    aria-hidden
+                  />
+                </Link>
+              </div>
+            )}
+
+            {forceCreate && (
             <Card className="gap-0 overflow-hidden py-0 shadow-sm ring-border">
               <CardHeader className="border-b border-border/60 bg-shell/45 py-5">
                 <div className="flex items-start gap-3.5">
@@ -150,6 +217,7 @@ export default async function OnboardingPage({
                 <CreateWizard />
               </CardContent>
             </Card>
+            )}
             <p className="mt-6 flex justify-center">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
                 <SchoolIcon className="size-3.5 text-primary" aria-hidden />

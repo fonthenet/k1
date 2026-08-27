@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ function GuardianForm({
   const tc = useTranslations("common");
 
   return (
-    <div className="rounded-2xl border bg-card p-4">
+    <div className="rounded-2xl border bg-card p-3.5">
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="font-semibold">{title}</span>
@@ -163,9 +163,9 @@ export function StepGuardians({
 
   return (
     <div>
-      <StepHeader emoji="👨‍👩‍👧" title={t("guardians.title")} subtitle={t("guardians.subtitle")} />
+      <StepHeader icon={Users} title={t("guardians.title")} subtitle={t("guardians.subtitle")} />
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         <GuardianForm
           title={t("guardians.guardian1")}
           isApplicant

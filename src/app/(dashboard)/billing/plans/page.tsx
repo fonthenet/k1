@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ChildLink } from "@/components/shared/entity-link";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
@@ -254,7 +255,9 @@ export default async function PlansPage() {
                     return (
                       <TableRow key={c.id} className="h-14">
                         <TableCell className="ps-4">
-                          <div className="font-medium">{name}</div>
+                          <div className="font-medium">
+                            <ChildLink id={c.id}>{name}</ChildLink>
+                          </div>
                           {c.kg_classes && (
                             <div className="text-xs text-muted-foreground">
                               {locale === "ar" && c.kg_classes.name_ar

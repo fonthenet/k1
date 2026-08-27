@@ -20,6 +20,7 @@ import {
   type WizardState,
   type WizardUser,
 } from "./types";
+import { SoftWash } from "@/components/shared/soft-wash";
 import { StepWelcome } from "./step-welcome";
 import { StepAccount } from "./step-account";
 import { StepChild } from "./step-child";
@@ -39,10 +40,26 @@ function storageKey(token: string) {
   return `kg-enroll-${token}`;
 }
 
+/**
+ * Splits "Mohamed Amine Boudjemaa" into a given name and a surname.
+ *
+ * The LAST word is the surname and everything before it is the given name —
+ * not the other way round. Compound given names are the norm in Algeria
+ * (Mohamed Amine, Sid Ahmed, Abdel Kader, Mohamed Lamine), and taking the
+ * first word as the given name made the surname swallow half of it: "Sid
+ * Ahmed Benali" arrived at the guardian step as first "Sid", last "Ahmed
+ * Benali". Compound *surnames* exist too (Ait Ali, Ben Ali), so no rule gets
+ * every name right — but this one is correct for the common case instead of
+ * wrong for it, and the parent can edit either field.
+ */
 function splitFullName(fullName: string | null): { first: string; last: string } {
   if (!fullName) return { first: "", last: "" };
-  const parts = fullName.trim().split(/\s+/);
-  return { first: parts[0] ?? "", last: parts.slice(1).join(" ") };
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { first: "", last: "" };
+  // One word is all we were given; it is a given name, and there is no
+  // surname to invent.
+  if (parts.length === 1) return { first: parts[0], last: "" };
+  return { first: parts.slice(0, -1).join(" "), last: parts[parts.length - 1] };
 }
 
 function guardianPayload(g: WizardGuardian, isApplicant: boolean): AppGuardianPayload {
@@ -75,10 +92,13 @@ function lines(text: string): string[] {
 export function EnrollWizard({
   token,
   link,
+  logoUrl,
   initialUser,
 }: {
   token: string;
   link: EnrollLinkData;
+  /** Signed URL for link.logo_url, resolved on the server. */
+  logoUrl: string | null;
   initialUser: WizardUser | null;
 }) {
   const t = useTranslations("enroll");
@@ -185,6 +205,12 @@ export function EnrollWizard({
       if (state.health.allergies.some((a) => !a.allergen.trim()))
         return t("errors.allergenRequired");
     }
+    if (step === 6) {
+      // The schedule is the family's monthly bill — the one question this form
+      // exists to carry. "Undecided" is an allowed answer; silence is not.
+      if ((link.fee_plans ?? []).length > 0 && !state.feePlanId)
+        return t("errors.scheduleRequired");
+    }
     return null;
   };
 
@@ -253,6 +279,8 @@ export function EnrollWizard({
 
     try {
       const { error: err } = await supabase.rpc("kg_submit_application", {
+        p_fee_plan_id:
+          state.feePlanId && state.feePlanId !== "undecided" ? state.feePlanId : null,
         p_token: token,
         p_child: child,
         p_guardians: guardians,
@@ -287,8 +315,9 @@ export function EnrollWizard({
   const showFooterNav = !submitted && step >= 2 && step <= 6;
 
   return (
-    <div className="min-h-dvh bg-background bg-gradient-to-b from-gold-muted/60 via-background to-background">
-      <div ref={scrollRef} className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pt-5 pb-8">
+    <div className="relative min-h-dvh overflow-hidden bg-background">
+      <SoftWash />
+      <div ref={scrollRef} className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pt-5 pb-8">
         {showProgress && (
           <div className="mb-6">
             <div className="mb-2 flex items-center justify-between gap-2">
@@ -305,7 +334,7 @@ export function EnrollWizard({
           {submitted ? (
             <StepSuccess tenantName={link.tenant_name} />
           ) : step === 0 ? (
-            <StepWelcome link={link} resumed={resumed} onStart={next} />
+            <StepWelcome link={link} logoUrl={logoUrl} resumed={resumed} onStart={next} />
           ) : step === 1 ? (
             <StepAccount
               user={user}
@@ -346,6 +375,9 @@ export function EnrollWizard({
           ) : step === 6 ? (
             <StepActivities
               activities={link.activities}
+              feePlans={link.fee_plans ?? []}
+              feePlanId={state.feePlanId}
+              onPlanChange={(id) => update({ feePlanId: id })}
               selectedIds={state.activityIds}
               onToggle={(id) =>
                 update({

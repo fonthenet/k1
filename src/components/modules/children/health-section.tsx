@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { AllergySeverity } from "@/lib/types";
+import { allergenLabel } from "@/lib/allergens";
+import { AllergenPicker } from "@/components/shared/allergen-picker";
 import { deleteAllergy, saveAllergy, saveHealth } from "./actions";
 import { severityClasses, type AllergyRow, type ChildHealthRow } from "./types";
 
@@ -257,38 +259,36 @@ function AllergyDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{allergy ? t("allergies.editTitle") : t("allergies.addTitle")}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="a-allergen">{t("allergies.allergen")}</Label>
-              <Input
-                id="a-allergen"
-                value={form.allergen}
-                onChange={(e) => setForm((f) => ({ ...f, allergen: e.target.value }))}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>{t("allergies.severity")}</Label>
-              <Select
-                value={form.severity}
-                onValueChange={(v) => setForm((f) => ({ ...f, severity: v as AllergySeverity }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(["mild", "moderate", "severe"] as const).map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {t(`severity.${s}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid gap-1.5">
+            <Label id="a-allergen">{t("allergies.allergen")}</Label>
+            <AllergenPicker
+              id="a-allergen"
+              value={form.allergen}
+              onChange={(allergen) => setForm((f) => ({ ...f, allergen }))}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>{t("allergies.severity")}</Label>
+            <Select
+              value={form.severity}
+              onValueChange={(v) => setForm((f) => ({ ...f, severity: v as AllergySeverity }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(["mild", "moderate", "severe"] as const).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {t(`severity.${s}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="a-reaction">{t("allergies.reaction")}</Label>
@@ -359,13 +359,15 @@ export function HealthSection({
 
   return (
     <div className="grid gap-4">
-      {/* Allergies — prominent red cards */}
-      <Card className="shadow-sm ring-destructive/25">
+      {/* Allergies.
+          Red used to run five deep here — icon tile, title, banner, card tint,
+          card border — for a fact the severity badge already states. Colour
+          that is everywhere marks nothing, so it now sits on the one word that
+          decides what staff do: the severity. */}
+      <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2.5 text-base text-destructive">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-destructive/10">
-              <AlertTriangle className="size-4" />
-            </span>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <AlertTriangle className="size-4 shrink-0 text-destructive" aria-hidden />
             {t("allergies.title")}
           </CardTitle>
           <AllergyDialog
@@ -381,26 +383,17 @@ export function HealthSection({
         </CardHeader>
         <CardContent className="grid gap-3">
           {allergies.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-6 text-center">
-              <span className="flex size-12 items-center justify-center rounded-2xl bg-success/10 text-success">
-                <HeartPulse className="size-6" />
-              </span>
-              <p className="text-sm text-muted-foreground">{t("allergies.empty")}</p>
-            </div>
+            <p className="py-2 text-sm text-muted-foreground">{t("allergies.empty")}</p>
           ) : (
             <>
-              <div className="flex items-center gap-2 rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2.5 text-sm font-semibold text-destructive">
-                <AlertTriangle className="size-4 shrink-0" />
-                {t("allergies.alert")}
-              </div>
               {allergies.map((a) => (
                 <div
                   key={a.id}
-                  className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-destructive/25 bg-destructive/5 p-3.5"
+                  className="flex flex-wrap items-start justify-between gap-3 rounded-xl border p-3.5"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-base font-semibold">{a.allergen}</span>
+                      <span className="text-base font-semibold">{allergenLabel(a.allergen, tc)}</span>
                       <Badge className={severityClasses(a.severity)}>
                         {t(`severity.${a.severity}`)}
                       </Badge>
@@ -464,22 +457,15 @@ export function HealthSection({
       {/* Health record */}
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2.5 text-base">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <HeartPulse className="size-4" />
-            </span>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <HeartPulse className="size-4 shrink-0 text-primary" aria-hidden />
             {t("health.title")}
           </CardTitle>
           <HealthEditDialog childId={childId} health={health} />
         </CardHeader>
         <CardContent>
           {!hasHealthInfo ? (
-            <div className="flex flex-col items-center gap-2 py-6 text-center">
-              <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <HeartPulse className="size-6" />
-              </span>
-              <p className="text-sm text-muted-foreground">{t("health.empty")}</p>
-            </div>
+            <p className="py-2 text-sm text-muted-foreground">{t("health.empty")}</p>
           ) : (
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>

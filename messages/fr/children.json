@@ -234,7 +234,6 @@
   },
   "allergies": {
     "title": "Allergies",
-    "alert": "Vigilance allergies — informez toute l'équipe",
     "empty": "Aucune allergie connue",
     "add": "Ajouter une allergie",
     "addTitle": "Nouvelle allergie",
@@ -273,14 +272,10 @@
     }
   },
   "billing": {
-    "feesTitle": "Frais assignés",
-    "feesEmpty": "Aucun plan de frais assigné à cet enfant",
-    "invoicesTitle": "Factures",
-    "invoicesEmpty": "Aucune facture pour cet enfant",
-    "goToBilling": "Ouvrir la facturation",
-    "restricted": "Section réservée aux rôles finance (propriétaire, admin, comptable).",
+    "owes": "Doit {amount}",
+    "settled": "À jour",
     "columns": {
-      "plan": "Plan",
+      "plan": "Formule",
       "amount": "Montant",
       "period": "Périodicité",
       "discount": "Remise",
@@ -294,22 +289,12 @@
       "total": "Total",
       "paid": "Payé"
     },
-    "periods": {
-      "once": "Unique",
-      "monthly": "Mensuel",
-      "quarterly": "Trimestriel",
-      "yearly": "Annuel",
-      "per_session": "Par séance"
-    },
-    "invoiceStatus": {
-      "draft": "Brouillon",
-      "sent": "Envoyée",
-      "unpaid": "Impayée",
-      "partial": "Partielle",
-      "paid": "Payée",
-      "overdue": "En retard",
-      "void": "Annulée"
-    }
+    "feesTitle": "Formules assignées",
+    "feesEmpty": "Aucune formule assignée à cet enfant",
+    "invoicesTitle": "Factures",
+    "invoicesEmpty": "Aucune facture pour cet enfant",
+    "goToBilling": "Ouvrir la facturation",
+    "restricted": "Réservé à la direction et à l'administration."
   },
   "documents": {
     "title": "Documents",

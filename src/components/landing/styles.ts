@@ -15,13 +15,13 @@ export const SKY_BAND = "bg-sky";
 
 /** Pill buttons — the page uses fully-rounded, never square. */
 export const CTA_PRIMARY =
-  "inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 sm:text-base";
+  "inline-flex whitespace-nowrap h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 sm:text-base";
 
 export const CTA_SECONDARY =
-  "inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-card px-7 text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:bg-secondary hover:shadow-md sm:text-base";
+  "inline-flex whitespace-nowrap h-12 items-center justify-center gap-2 rounded-full border border-border bg-card px-7 text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:bg-secondary hover:shadow-md sm:text-base";
 
 export const CTA_ON_BRAND =
-  "inline-flex h-12 items-center justify-center gap-2 rounded-full bg-card px-7 text-sm font-semibold text-primary shadow-lg transition-all hover:bg-card/90 sm:text-base";
+  "inline-flex whitespace-nowrap h-12 items-center justify-center gap-2 rounded-full bg-card px-7 text-sm font-semibold text-primary shadow-lg transition-all hover:bg-card/90 sm:text-base";
 
 export const EYEBROW =
   "inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-xs font-bold tracking-wide text-primary uppercase";

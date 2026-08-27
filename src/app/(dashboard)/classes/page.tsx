@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { StaffLink } from "@/components/shared/entity-link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
@@ -55,8 +56,10 @@ export default async function ClassesPage() {
   // profile lookup only covers the ones who do.
   const mainUserByClass = new Map<string, string>();
   const mainLocalNameByClass = new Map<string, string>();
+  const mainMembershipByClass = new Map<string, string>();
   for (const row of mains) {
     if (!row.kg_memberships) continue;
+    mainMembershipByClass.set(row.class_id, row.kg_memberships.id);
     if (row.kg_memberships.user_id) {
       mainUserByClass.set(row.class_id, row.kg_memberships.user_id);
     } else if (row.kg_memberships.full_name) {
@@ -72,13 +75,13 @@ export default async function ClassesPage() {
   function ageRange(c: KgClass): string {
     if (c.age_min_months != null && c.age_max_months != null)
       return t("ageRange.between", {
-        min: yearsLabel(c.age_min_months, locale),
-        max: yearsLabel(c.age_max_months, locale),
+        min: yearsLabel(c.age_min_months),
+        max: yearsLabel(c.age_max_months),
       });
     if (c.age_min_months != null)
-      return t("ageRange.from", { min: yearsLabel(c.age_min_months, locale) });
+      return t("ageRange.from", { min: yearsLabel(c.age_min_months) });
     if (c.age_max_months != null)
-      return t("ageRange.upTo", { max: yearsLabel(c.age_max_months, locale) });
+      return t("ageRange.upTo", { max: yearsLabel(c.age_max_months) });
     return t("ageRange.none");
   }
 
@@ -108,6 +111,7 @@ export default async function ClassesPage() {
             // Emerald while there's room, gold once it's nearly full, red when full.
             const nearlyFull = !full && pct >= 80;
             const mainUserId = mainUserByClass.get(c.id);
+            const mainMembershipId = mainMembershipByClass.get(c.id);
             const teacher = mainUserId
               ? nameByUser.get(mainUserId)
               : mainLocalNameByClass.get(c.id);
@@ -203,7 +207,13 @@ export default async function ClassesPage() {
                             name — which is the one part worth reading. */}
                         <span className="min-w-0 text-pretty">
                           <span className="text-muted-foreground">{t("list.mainTeacher")}</span>{" "}
-                          <span className="font-semibold">{teacher}</span>
+                          <span className="font-semibold">
+                            {mainMembershipId ? (
+                              <StaffLink id={mainMembershipId}>{teacher}</StaffLink>
+                            ) : (
+                              teacher
+                            )}
+                          </span>
                         </span>
                       </>
                     ) : (

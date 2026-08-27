@@ -1,6 +1,11 @@
 // Allergy cross-check between a day's menu allergens and enrolled children's
-// recorded allergies (kg_child_allergies.allergen is free text, so matching is
-// accent-insensitive, case-insensitive "contains" in both directions).
+// recorded allergies.
+//
+// Matching goes through the shared vocabulary in src/lib/allergens.ts, which
+// knows the French, Arabic and English names for each allergen. It has to:
+// allergies picked from the list match exactly, but everything recorded as
+// free text before the picker existed still has to be understood, and a child
+// recorded as "Milk" must meet a menu that says lait.
 
 export interface ChildAllergy {
   childId: string;
@@ -11,25 +16,13 @@ export interface ChildAllergy {
 export interface AllergyConflict {
   /** Menu allergen token, e.g. "arachides". */
   allergen: string;
-  /** Distinct display names of affected children. */
-  children: string[];
+  /** Distinct affected children — the id so the warning can link to the child. */
+  children: { id: string; name: string }[];
 }
 
-export function normalizeAllergen(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
+import { allergenMatches } from "@/lib/allergens";
 
-/** True when a child's free-text allergy and a menu allergen refer to each other. */
-export function allergenMatches(childAllergen: string, menuAllergen: string): boolean {
-  const a = normalizeAllergen(childAllergen);
-  const b = normalizeAllergen(menuAllergen);
-  if (!a || !b) return false;
-  return a.includes(b) || b.includes(a);
-}
+export { normalizeAllergen, allergenMatches } from "@/lib/allergens";
 
 /** Conflicts for one day's menu allergens, in menu order, empty when none. */
 export function conflictsFor(
@@ -38,11 +31,20 @@ export function conflictsFor(
 ): AllergyConflict[] {
   const out: AllergyConflict[] = [];
   for (const allergen of menuAllergens) {
-    const names = new Set<string>();
+    // Keyed by child id: one child with two spellings of the same allergy is
+    // one child, and two children can share a name.
+    const hit = new Map<string, string>();
     for (const a of allergies) {
-      if (allergenMatches(a.allergen, allergen)) names.add(a.childName);
+      if (allergenMatches(a.allergen, allergen)) hit.set(a.childId, a.childName);
     }
-    if (names.size > 0) out.push({ allergen, children: [...names].sort() });
+    if (hit.size > 0) {
+      out.push({
+        allergen,
+        children: [...hit].map(([id, name]) => ({ id, name })).sort((x, y) =>
+          x.name.localeCompare(y.name)
+        ),
+      });
+    }
   }
   return out;
 }

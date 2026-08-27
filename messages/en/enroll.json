@@ -17,7 +17,8 @@
     "guardianRequired": "Please provide at least the parent's first name, last name and phone number.",
     "allergenRequired": "Please name the allergen for each allergy you added, or remove the empty row.",
     "notSignedIn": "Your session has expired. Please sign in again.",
-    "generic": "Something went wrong. Please try again."
+    "generic": "Something went wrong. Please try again.",
+    "scheduleRequired": "Pick a schedule — or \"I'll decide with the crèche\"."
   },
   "welcome": {
     "badge": "Online enrollment",
@@ -49,7 +50,9 @@
     "signOut": "Switch account",
     "confirmEmail": "Check your inbox to confirm your account, then sign in.",
     "invalidCredentials": "Incorrect email or password.",
-    "signupError": "Could not create the account. Check the email and try again."
+    "signupError": "Could not create the account. Check the email and try again.",
+    "identifier": "Email or phone number",
+    "badIdentifier": "Enter an email address or an Algerian phone number."
   },
   "child": {
     "title": "Your child",
@@ -157,7 +160,14 @@
     "edit": "Edit",
     "submit": "Send the enrollment application",
     "submitting": "Sending…",
-    "note": "By sending this application you agree to be contacted by the kindergarten."
+    "note": "By sending this application you agree to be contacted by the kindergarten.",
+    "schedule": "Schedule",
+    "scheduleUndecided": "To decide with the crèche",
+    "firstMonth": {
+      "title": "First-month estimate",
+      "total": "Total",
+      "hint": "Indicative only: the exact invoice is drawn up by the crèche at admission. Per-session activities are billed as used."
+    }
   },
   "success": {
     "title": "Application sent!",
@@ -216,7 +226,8 @@
       "financial": "Financially responsible",
       "pickup": "Pick-up allowed",
       "noPickup": "Pick-up not allowed"
-    }
+    },
+    "knownFamily": "Family already on file — open their record"
   },
   "reviewActions": {
     "approve": "Approve",
@@ -239,7 +250,14 @@
     "updated": "Status updated",
     "error": "Action failed. Please try again.",
     "siblingLinkNamed": "This child will be linked to the existing {name} family — no duplicate parent record is created.",
-    "siblingNoFamily": "No guardian record was found for this applicant: approving will start a new family instead of extending one."
+    "siblingNoFamily": "No guardian record was found for this applicant: approving will start a new family instead of extending one.",
+    "feePlan": "Fee plan",
+    "noFeePlan": "None — bill later",
+    "noFeePlanWarning": "Without a plan this child is never billed automatically. Set one on their record.",
+    "billNow": "Invoice this month now",
+    "billNowHint": "Raises this month's invoice straight away. Otherwise it is generated on the 1st of next month.",
+    "admissionFees": "Admission fees (applied automatically)",
+    "familyChose": "Schedule chosen by the family on the enrolment form."
   },
   "source": {
     "online": "Online form",
@@ -303,5 +321,12 @@
     "noGuardianTitle": "No guardian record for this applicant",
     "noGuardianDesc": "We found no guardian record linked to this account. Approving will create a NEW family instead of adding the child to an existing one.",
     "error": "Couldn't load the family record. Reload the page."
+  },
+  "schedule": {
+    "title": "Which schedule suits you?",
+    "subtitle": "This sets your monthly fee — you can change it with the crèche later.",
+    "perMonth": "/ month",
+    "undecided": "I'll decide with the crèche",
+    "undecidedHint": "The office will advise you when your file is reviewed."
   }
 }

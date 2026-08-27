@@ -57,7 +57,8 @@
         "title": "Multi-site network",
         "desc": "Several centres, one account, one dashboard."
       }
-    }
+    },
+    "parents": "Parent portal"
   },
   "hero": {
     "eyebrow": "Built in Algeria · Arabic-first, right to left",

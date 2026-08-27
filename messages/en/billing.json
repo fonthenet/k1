@@ -31,7 +31,12 @@
     },
     "view": "View invoice",
     "empty": "No invoices for this month",
-    "emptyHint": "Generate the month's invoices from the fee plans assigned to children, or create a manual invoice."
+    "emptyHint": "Generate the month's invoices from the fee plans assigned to children, or create a manual invoice.",
+    "noFeePlan": {
+      "title": "{count, plural, one {1 enrolled child has no fee plan} other {# enrolled children have no fee plan}}",
+      "body": "They will never be invoiced automatically.",
+      "action": "Assign a plan"
+    }
   },
   "status": {
     "draft": "Draft",

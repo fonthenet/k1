@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -86,7 +86,8 @@ export default async function BillingPage({
   const { start, end } = monthRange(month);
   const today = algiersToday();
 
-  const [{ data: invRows, error }, { data: payRows }, { data: childRows }] = await Promise.all([
+  const [{ data: invRows, error }, { data: payRows }, { data: childRows }, { data: feeRows }] =
+    await Promise.all([
     supabase
       .from("kg_invoices")
       .select(
@@ -109,11 +110,26 @@ export default async function BillingPage({
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled")
       .order("first_name"),
+    // Enrolled children with a live fee row. Anyone enrolled and NOT in here is
+    // invisible to the monthly run: kg_generate_monthly_invoices bills from
+    // kg_child_fees, so a child without one is skipped silently every month and
+    // attends all year for free without anybody noticing.
+    supabase
+      .from("kg_child_fees")
+      .select("child_id, end_date")
+      .eq("tenant_id", ctx.tenant.id),
   ]);
   if (error) throw new Error(error.message);
 
   const invoices = (invRows ?? []) as unknown as HubRow[];
   const childOptions: ChildOption[] = childRows ?? [];
+
+  const billedChildIds = new Set(
+    ((feeRows ?? []) as { child_id: string; end_date: string | null }[])
+      .filter((f) => f.end_date === null || f.end_date >= today)
+      .map((f) => f.child_id)
+  );
+  const unbilled = childOptions.filter((c) => !billedChildIds.has(c.id));
 
   const withEffective = invoices.map((inv) => ({ inv, shown: effectiveStatus(inv, today) }));
   const invoiced = invoices
@@ -148,6 +164,33 @@ export default async function BillingPage({
         <NewInvoiceDialog childOptions={childOptions} />
         <GenerateInvoicesButton month={month} monthLabel={currentMonthLabel} />
       </PageHeader>
+
+      {/* Enrolled and unbillable. The monthly run reads kg_child_fees, so a child
+          without a fee row is skipped every month in silence — no error, no run
+          exception a human would read as a problem, just a family who never
+          receives an invoice. Approval now sets the fee (0054); this catches the
+          ones approved before it did, and anyone whose plan is later ended. */}
+      {unbilled.length > 0 && (
+        <Card className="mb-6 bg-warning/5 py-3 shadow-sm ring-2 ring-warning/30">
+          <CardContent className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/15 text-warning-ink">
+              <TriangleAlert className="size-4.5" />
+            </span>
+            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-5 gap-y-1">
+              <h2 className="text-sm font-semibold text-foreground">
+                {t("hub.noFeePlan.title", { count: unbilled.length })}
+              </h2>
+              <p className="text-sm text-muted-foreground">{t("hub.noFeePlan.body")}</p>
+              <p className="min-w-0 basis-full truncate text-xs text-muted-foreground">
+                {unbilled.map((c) => childDisplayName(c, locale)).join(" · ")}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild className="shrink-0">
+              <Link href={`/children/${unbilled[0].id}`}>{t("hub.noFeePlan.action")}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <MoneyStat

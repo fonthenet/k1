@@ -28,9 +28,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { formatDZD } from "@/lib/format";
 import { approveApplication, updateApplicationStatus } from "@/app/(dashboard)/applications/actions";
 import { StageMenu } from "./stage-menu";
 import type { PipelineStatus } from "./types";
+
+/** A tariff with period 'once' — charged automatically on admission (0056). */
+export interface AdmissionFee {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  amount: number;
+}
+
+export interface FeePlanOption {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  amount: number;
+}
 
 export interface ClassOption {
   id: string;
@@ -45,6 +62,9 @@ export function ReviewActions({
   status,
   interviewAt,
   classes,
+  feePlans,
+  admissionFees,
+  requestedFeePlanId,
   createdChildId,
   isSibling = false,
   familyName = null,
@@ -53,6 +73,12 @@ export function ReviewActions({
   status: PipelineStatus;
   interviewAt: string | null;
   classes: ClassOption[];
+  /** Empty for a non-finance reviewer; the billing block hides itself then. */
+  feePlans: FeePlanOption[];
+  /** Applied automatically at approval; shown so the reviewer knows the total. */
+  admissionFees: AdmissionFee[];
+  /** The tariff the FAMILY picked on the enrolment form (0057), if any. */
+  requestedFeePlanId?: string | null;
   createdChildId: string | null;
   /** `source = 'sibling'`: an existing parent enrolling another child. */
   isSibling?: boolean;
@@ -68,6 +94,19 @@ export function ReviewActions({
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [classId, setClassId] = useState<string>("none");
+  // The family's own request wins the default: they said which schedule they
+  // need on the enrolment form, so the reviewer confirms rather than guesses.
+  // Failing that, the only plan when there is only one.
+  const requestedIsOffered =
+    !!requestedFeePlanId && feePlans.some((f) => f.id === requestedFeePlanId);
+  const [feePlanId, setFeePlanId] = useState<string>(
+    requestedIsOffered
+      ? (requestedFeePlanId as string)
+      : feePlans.length === 1
+        ? feePlans[0].id
+        : "none"
+  );
+  const [billFirstMonth, setBillFirstMonth] = useState(true);
   const [rejectNote, setRejectNote] = useState("");
 
   if (status === "approved") {
@@ -84,6 +123,8 @@ export function ReviewActions({
         appId,
         classId: classId === "none" ? null : classId,
         tagCode: null,
+        feePlanId: feePlanId === "none" ? null : feePlanId,
+        billFirstMonth,
       });
       if (res.error || !res.childId) {
         toast.error(t("reviewActions.error"));
@@ -169,6 +210,85 @@ export function ReviewActions({
                 kg_children_auto_tag (0025) allocates it inside the insert, so it
                 cannot collide. */}
             <p className="text-xs text-muted-foreground">{t("reviewActions.tagHint")}</p>
+
+            {/* Billing. Approval used to set the child up completely and the
+                money not at all, so an approved child attended and was invoiced
+                nothing. The monthly run bills from kg_child_fees and skips a
+                child with no row there, so this is the only moment it reliably
+                gets set. */}
+            {feePlans.length > 0 && (
+              <div className="space-y-3 rounded-xl border border-border p-3">
+                <div className="space-y-1.5">
+                  <Label>{t("reviewActions.feePlan")}</Label>
+                  <Select value={feePlanId} onValueChange={setFeePlanId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{t("reviewActions.noFeePlan")}</SelectItem>
+                      {feePlans.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {locale === "ar" && f.name_ar ? f.name_ar : f.name}
+                          <span className="text-muted-foreground tabular-nums" dir="ltr">
+                            {" "}
+                            {formatDZD(f.amount, locale)}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {requestedIsOffered && feePlanId === requestedFeePlanId && (
+                    <p className="text-xs text-success">
+                      {t("reviewActions.familyChose")}
+                    </p>
+                  )}
+                  {feePlanId === "none" && (
+                    <p className="text-xs text-warning-ink">
+                      {t("reviewActions.noFeePlanWarning")}
+                    </p>
+                  )}
+                </div>
+
+                {feePlanId !== "none" && (
+                  <>
+                    {/* Not an input. Admission fees are the tariffs with period
+                        'once' and they are applied automatically — showing the
+                        figure is honest; asking somebody to retype it is how it
+                        ends up wrong. */}
+                    {admissionFees.length > 0 && (
+                      <div className="rounded-lg bg-muted/60 px-3 py-2 text-sm">
+                        <span className="font-medium">{t("reviewActions.admissionFees")}</span>
+                        <ul className="mt-1 grid gap-0.5">
+                          {admissionFees.map((f) => (
+                            <li key={f.id} className="flex justify-between gap-3">
+                              <span className="min-w-0 truncate text-muted-foreground">
+                                {locale === "ar" && f.name_ar ? f.name_ar : f.name}
+                              </span>
+                              <span className="shrink-0 tabular-nums">
+                                {formatDZD(f.amount, locale)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <label className="flex items-start gap-2.5 text-sm">
+                      <Checkbox
+                        checked={billFirstMonth}
+                        onCheckedChange={(v) => setBillFirstMonth(v === true)}
+                        className="mt-0.5"
+                      />
+                      <span className="min-w-0">
+                        <span className="font-medium">{t("reviewActions.billNow")}</span>
+                        <span className="block text-xs leading-relaxed text-muted-foreground">
+                          {t("reviewActions.billNowHint")}
+                        </span>
+                      </span>
+                    </label>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button onClick={doApprove} disabled={pending}>

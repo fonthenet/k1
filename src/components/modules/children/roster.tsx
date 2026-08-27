@@ -1,6 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  compareValues,
+  nextSort,
+  SortableHeader,
+  type SortState,
+} from "@/components/shared/sortable-header";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { AlertTriangle, Search } from "lucide-react";
@@ -18,7 +24,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -85,6 +90,8 @@ function DualName({ child, locale }: { child: RosterChild; locale: string }) {
   );
 }
 
+type SortKey = "child" | "age" | "klass" | "allergies" | "tag" | "status";
+
 export function ChildrenRoster({
   rows,
   classes,
@@ -97,6 +104,11 @@ export function ChildrenRoster({
   const [query, setQuery] = useState("");
   const [classFilter, setClassFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  // Name ascending is the roster people expect to land on; every other order is
+  // something they went looking for.
+  const [sort, setSort] = useState<SortState<SortKey>>({ key: "child", dir: "asc" });
+
+  const onSort = (key: SortKey) => setSort((cur) => nextSort(cur, key));
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -118,6 +130,29 @@ export function ChildrenRoster({
       return haystack.includes(q);
     });
   }, [rows, query, classFilter, statusFilter]);
+
+  const sorted = useMemo(() => {
+    // Sorting reads what the ROW SHOWS, not what the database stores: the roster
+    // displays Arabic names to an Arabic reader and a computed age rather than a
+    // date of birth, so sorting the raw columns would order the list by values
+    // nobody can see. Age is the exception that must not be sorted as text —
+    // dob descending IS age ascending, and comparing "4 ans 5 mois" as a string
+    // would put 10 before 2.
+    const collated = filtered.map((c) => {
+      const ar = locale === "ar" && c.first_name_ar && c.last_name_ar;
+      return {
+        row: c,
+        child: ar ? `${c.first_name_ar} ${c.last_name_ar}` : `${c.first_name} ${c.last_name}`,
+        age: -new Date(c.dob).getTime(),
+        klass: (locale === "ar" && c.classNameAr ? c.classNameAr : c.className) ?? null,
+        allergies: c.allergyCount,
+        tag: c.tag_code,
+        status: t(`status.${c.status}`),
+      };
+    });
+    collated.sort((a, b) => compareValues(a[sort.key], b[sort.key], sort.dir, locale));
+    return collated.map((x) => x.row);
+  }, [filtered, sort, locale, t]);
 
   return (
     <div className="space-y-4">
@@ -160,11 +195,11 @@ export function ChildrenRoster({
           </SelectContent>
         </Select>
         <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
-          {t("roster.count", { count: filtered.length })}
+          {t("roster.count", { count: sorted.length })}
         </span>
       </div>
 
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <EmptyState
           icon={
             <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary [&>svg]:size-7">
@@ -182,16 +217,28 @@ export function ChildrenRoster({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40 [&>th]:font-semibold">
-                    <TableHead>{t("roster.columns.child")}</TableHead>
-                    <TableHead>{t("roster.columns.age")}</TableHead>
-                    <TableHead>{t("roster.columns.class")}</TableHead>
-                    <TableHead>{t("roster.columns.allergies")}</TableHead>
-                    <TableHead>{t("roster.columns.tag")}</TableHead>
-                    <TableHead>{t("roster.columns.status")}</TableHead>
+                    <SortableHeader columnKey="child" sort={sort} onSort={onSort}>
+                      {t("roster.columns.child")}
+                    </SortableHeader>
+                    <SortableHeader columnKey="age" sort={sort} onSort={onSort}>
+                      {t("roster.columns.age")}
+                    </SortableHeader>
+                    <SortableHeader columnKey="klass" sort={sort} onSort={onSort}>
+                      {t("roster.columns.class")}
+                    </SortableHeader>
+                    <SortableHeader columnKey="allergies" sort={sort} onSort={onSort}>
+                      {t("roster.columns.allergies")}
+                    </SortableHeader>
+                    <SortableHeader columnKey="tag" sort={sort} onSort={onSort}>
+                      {t("roster.columns.tag")}
+                    </SortableHeader>
+                    <SortableHeader columnKey="status" sort={sort} onSort={onSort}>
+                      {t("roster.columns.status")}
+                    </SortableHeader>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((c) => (
+                  {sorted.map((c) => (
                     <TableRow key={c.id} className="relative transition-colors hover:bg-primary/5">
                       <TableCell>
                         <Link
@@ -242,7 +289,7 @@ export function ChildrenRoster({
 
           {/* Mobile cards */}
           <div className="grid gap-3 md:hidden">
-            {filtered.map((c) => (
+            {sorted.map((c) => (
               <Card
                 key={c.id}
                 className="relative py-0 shadow-sm transition-shadow hover:shadow-md"

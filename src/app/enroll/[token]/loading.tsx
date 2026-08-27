@@ -1,9 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { SoftWash } from "@/components/shared/soft-wash";
 
 export default function EnrollLoading() {
   return (
-    <div className="min-h-dvh bg-background bg-gradient-to-b from-gold-muted/60 via-background to-background">
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center px-4 pt-16">
+    <div className="min-h-dvh bg-background relative overflow-hidden">
+      <SoftWash />
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col items-center px-4 pt-16">
         <Skeleton className="mb-6 size-20 rounded-3xl" />
         <Skeleton className="mb-3 h-7 w-56" />
         <Skeleton className="mb-8 h-4 w-40" />
