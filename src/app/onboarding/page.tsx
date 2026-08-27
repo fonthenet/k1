@@ -5,7 +5,6 @@ import { getTranslations } from "next-intl/server";
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
-  BabyIcon,
   MapPinIcon,
   PlusIcon,
   SchoolIcon,
@@ -24,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Wordmark } from "@/components/landing/wordmark";
 import { LocaleToggle } from "@/app/(auth)/_components/locale-toggle";
 import {
   centerTypeLabel,
@@ -87,12 +87,7 @@ export default async function OnboardingPage({
       />
 
       <header className="relative mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-from to-brand-to text-white shadow-sm">
-            <BabyIcon className="size-5" aria-hidden />
-          </div>
-          <span className="font-bold tracking-tight">{t("brand.name")}</span>
-        </div>
+        <Wordmark />
         <LocaleToggle />
       </header>
 

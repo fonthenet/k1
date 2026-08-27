@@ -1,6 +1,5 @@
 import { getTranslations } from "next-intl/server";
 import {
-  BabyIcon,
   CalendarCheckIcon,
   ClipboardListIcon,
   HeartHandshakeIcon,
@@ -9,6 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 import { LocaleToggle } from "./_components/locale-toggle";
 import { Zellige } from "./_components/zellige";
+import { Wordmark } from "@/components/landing/wordmark";
 
 /**
  * One surface, not two.
@@ -55,27 +55,11 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
       {/* ── Content ──────────────────────────────────────────────────────── */}
       <div className="relative flex min-h-dvh flex-col">
         <header className="flex items-center justify-between gap-3 px-5 py-5 sm:px-8">
-          {/* min-w-0 on BOTH levels: without it on this wrapper the truncate
-              below can never fire, the tagline pushes at full width, and the
-              locale toggle gets shoved off the right edge on a phone. */}
-          <div className="flex min-w-0 items-center gap-3">
-            <span
-              className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-from via-brand-via to-brand-to text-white shadow-sm ring-1 ring-white/20"
-              aria-hidden
-            >
-              <BabyIcon className="size-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-base font-bold tracking-tight text-foreground">
-                {t("brand.name")}
-              </div>
-              {/* Hidden on the narrowest screens — at 375px it is a second
-                  line of small print competing with the form. */}
-              <div className="hidden truncate text-xs text-muted-foreground sm:block">
-                {t("brand.trust")}
-              </div>
-            </div>
-          </div>
+          {/* The landing page's own lockup — seedling mark, Arabic name, Latin
+              transliteration beneath. Sign-in used to fall back to a stock baby
+              icon and the Latin name, so the first screen after the marketing
+              site showed a different brand than the one that sold it. */}
+          <Wordmark className="min-w-0" />
           <LocaleToggle />
         </header>
 
