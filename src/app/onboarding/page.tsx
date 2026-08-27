@@ -29,6 +29,7 @@ import {
   centerTypeLabel,
   centerTypeOption,
 } from "@/components/modules/settings/center-types";
+import { ClaimCard } from "./_components/claim-card";
 import { CreateWizard } from "./_components/create-wizard";
 import { OpenWorkspaceButton } from "./_components/open-workspace-button";
 import { chooseWorkspace } from "./actions";
@@ -103,6 +104,16 @@ export default async function OnboardingPage({
           </Alert>
         ) : showWizard ? (
           <div className="mx-auto max-w-3xl">
+            {/* A parent holding a code from their crèche comes first. Having no
+                membership used to mean one thing only — "you must be opening a
+                nursery" — which is the wrong guess for the commoner case. Only
+                shown when they did not explicitly ask to create a business. */}
+            {!forceCreate && (
+              <div className="mb-5">
+                <ClaimCard />
+              </div>
+            )}
+
             {memberships.length > 0 && (
               <Link
                 href="/onboarding"

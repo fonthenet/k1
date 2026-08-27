@@ -90,3 +90,38 @@ export async function chooseWorkspace(tenantId: string, formData?: FormData): Pr
   await setActiveTenant(tenantId);
   redirect(membership.role === "parent" ? "/portal" : "/dashboard");
 }
+
+/**
+ * Redeems a claim code issued by a crèche (0053) and connects this account to
+ * the guardian record they already hold.
+ *
+ * Setting `kg_guardians.user_id` is all this does — the 0008 trigger turns that
+ * single write into a parent membership and a profile, so there is exactly one
+ * definition of what makes someone a parent and this is not a second copy of it.
+ */
+export async function redeemClaimCode(
+  code: string
+): Promise<{ error: "invalidCode" | "alreadyLinked" | "generic" } | void> {
+  const trimmed = code.trim();
+  if (trimmed.length < 4 || trimmed.length > 24) return { error: "invalidCode" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?next=/onboarding");
+
+  const { data: tenantId, error } = await supabase.rpc("kg_redeem_guardian_claim", {
+    p_code: trimmed,
+  });
+
+  if (error || !tenantId) {
+    const m = error?.message?.toLowerCase() ?? "";
+    if (m.includes("already_linked")) return { error: "alreadyLinked" };
+    if (m.includes("invalid_code")) return { error: "invalidCode" };
+    return { error: "generic" };
+  }
+
+  await setActiveTenant(tenantId as string);
+  redirect("/portal");
+}

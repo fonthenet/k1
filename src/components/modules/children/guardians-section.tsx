@@ -48,6 +48,7 @@ import {
   type GuardianCredentialState,
 } from "./guardian-credentials-control";
 import { CredentialCards } from "@/components/modules/credentials/credential-cards";
+import { GuardianPortalAccess } from "./guardian-portal-access";
 import type { CredentialRow } from "@/components/modules/credentials/types";
 import { badgeTone, RELATIONSHIPS, type GuardianLink, type GuardianOption } from "./types";
 
@@ -481,6 +482,19 @@ export function GuardiansSection({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+
+              {/* Portal access sits with the door credentials because it is the
+                  same question in a different place: how does this adult prove
+                  who they are. The door has a PIN and a badge; the portal has
+                  an account, and this is the only way to connect one. */}
+              {canManageCredentials && (
+                <div className="flex basis-full flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3">
+                  <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    {t("guardians.portal.label")}
+                  </span>
+                  <GuardianPortalAccess guardianId={g.guardian_id} hasAccount={g.hasAccount} />
+                </div>
+              )}
 
               {/* Door credentials: admin-only, and on their own line so the
                   contact details above stay the first thing you read. */}

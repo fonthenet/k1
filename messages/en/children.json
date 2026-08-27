@@ -152,6 +152,21 @@
       "tagLabel": "Badge code",
       "toastIssued": "Guardian badge issued",
       "toastRevoked": "Guardian badge revoked"
+    },
+    "portal": {
+      "label": "Parent portal",
+      "connected": "Account connected",
+      "invite": "Invite to the portal",
+      "copy": "Copy",
+      "copied": "Code copied",
+      "copyFailed": "Could not copy — write the code down.",
+      "hint": "Give this code to the parent. They enter it after creating their account. Valid 14 days, single use.",
+      "errors": {
+        "invalid": "That parent could not be found.",
+        "forbidden": "You cannot invite parents.",
+        "alreadyLinked": "That parent already has an account.",
+        "error": "Something went wrong. Try again."
+      }
     }
   },
   "photo": {

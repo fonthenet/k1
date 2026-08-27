@@ -729,3 +729,36 @@ export async function setConsent(
   revalidateChild(childId);
   return { ok: true };
 }
+
+// ── Portal claim codes (0053) ────────────────────────────────────────────
+// The one route by which a guardian record the crèche typed in by hand gets
+// connected to an account the parent created themselves. Deliberately not a
+// phone-number match: a phone number is knowable, and matching on it would
+// hand a stranger a child's medical file.
+
+export type ClaimResult =
+  | { ok: true; code: string }
+  | { ok: false; error: "invalid" | "forbidden" | "alreadyLinked" | "error" };
+
+/** Mints a single-use code for one guardian. Admin-only, enforced in SQL too. */
+export async function issueGuardianClaim(guardianId: string): Promise<ClaimResult> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(guardianId).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kg_issue_guardian_claim", {
+    p_tenant: ctx.tenant.id,
+    p_guardian: guardianId,
+  });
+
+  if (error) {
+    const m = error.message.toLowerCase();
+    if (m.includes("already_linked")) return { ok: false, error: "alreadyLinked" };
+    if (m.includes("forbidden")) return { ok: false, error: "forbidden" };
+    if (m.includes("unknown_guardian")) return { ok: false, error: "invalid" };
+    return { ok: false, error: "error" };
+  }
+  if (typeof data !== "string") return { ok: false, error: "error" };
+  return { ok: true, code: data };
+}

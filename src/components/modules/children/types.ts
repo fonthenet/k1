@@ -60,6 +60,12 @@ export interface GuardianLink {
   photo_path: string | null;
   /** Signed URL for `photo_path`, resolved on the server. */
   photoUrl: string | null;
+  /**
+   * Whether a portal account is attached to this record. The user id itself
+   * never crosses to the client — staff only need to know whether this parent
+   * can sign in, so that is all that is sent.
+   */
+  hasAccount: boolean;
 }
 
 export interface GuardianOption {

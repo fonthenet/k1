@@ -152,6 +152,21 @@
       "tagLabel": "Code badge",
       "toastIssued": "Badge du tuteur émis",
       "toastRevoked": "Badge du tuteur révoqué"
+    },
+    "portal": {
+      "label": "Espace parent",
+      "connected": "Compte connecté",
+      "invite": "Inviter à l'espace parent",
+      "copy": "Copier",
+      "copied": "Code copié",
+      "copyFailed": "Copie impossible — notez le code.",
+      "hint": "Communiquez ce code au parent. Il le saisira après avoir créé son compte. Valable 14 jours, utilisable une seule fois.",
+      "errors": {
+        "invalid": "Ce parent est introuvable.",
+        "forbidden": "Vous ne pouvez pas inviter des parents.",
+        "alreadyLinked": "Ce parent a déjà un compte.",
+        "error": "Une erreur est survenue. Réessayez."
+      }
     }
   },
   "photo": {

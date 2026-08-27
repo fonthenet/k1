@@ -105,9 +105,11 @@ type GuardianJoinRow = {
   is_financial: boolean;
   kg_guardians: Omit<
     GuardianLink,
-    "guardian_id" | "is_primary" | "can_pickup" | "is_financial" | "photoUrl"
+    "guardian_id" | "is_primary" | "can_pickup" | "is_financial" | "photoUrl" | "hasAccount"
   > & {
     id: string;
+    /** Null until a parent redeems a claim code (0053) or an enrolment is approved. */
+    user_id: string | null;
     // Door credentials. The PIN itself never leaves the server — only whether
     // one exists — so a screenshot of the profile can't leak it.
     pin_code: string | null;
@@ -199,7 +201,7 @@ export default async function ChildProfilePage({
     supabase
       .from("kg_child_guardians")
       .select(
-        "guardian_id, is_primary, can_pickup, is_financial, kg_guardians(id, first_name, last_name, first_name_ar, last_name_ar, relationship, phone, phone_alt, email, national_id, address, workplace, photo_path, pin_code, tag_code)"
+        "guardian_id, is_primary, can_pickup, is_financial, kg_guardians(id, user_id, first_name, last_name, first_name_ar, last_name_ar, relationship, phone, phone_alt, email, national_id, address, workplace, photo_path, pin_code, tag_code)"
       )
       .eq("child_id", id),
     supabase
@@ -291,6 +293,7 @@ export default async function ChildProfilePage({
       workplace: r.kg_guardians.workplace,
       photo_path: r.kg_guardians.photo_path,
       photoUrl: guardianPhotoUrls[i],
+      hasAccount: r.kg_guardians.user_id !== null,
     }));
 
   // Only the *presence* of a PIN crosses to the client; the digits are shown
