@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireStaff, signedMediaUrl } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
-import { isDzWeekend } from "@/lib/format";
+import { isOpenDay, toOpeningHours } from "@/lib/week";
 import type { AttendanceStatus } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -129,6 +129,9 @@ export default async function AttendancePage({
   });
 
   const dateObj = parseDateStr(date);
+  const openingHours = toOpeningHours(
+    (ctx.tenant as { opening_hours?: unknown }).opening_hours
+  );
   const dateLabel = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
     weekday: "long",
     day: "numeric",
@@ -141,7 +144,10 @@ export default async function AttendancePage({
       <PageHeader title={t("title")} description={`${t("description")} — ${dateLabel}`} />
       <RegisterClient
         date={date}
-        isWeekend={isDzWeekend(dateObj)}
+        isClosedDay={!isOpenDay(openingHours, dateObj)}
+        dayLabel={new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+          weekday: "long",
+        }).format(dateObj)}
         classes={classes}
         activeClass={activeClass}
         rows={rows}

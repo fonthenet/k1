@@ -19,7 +19,10 @@
     "unpaidTotal": "Outstanding",
     "unpaidHint": "{count, plural, =0 {no invoices} one {# invoice} other {# invoices}}",
     "pendingApplications": "Pending applications",
-    "applicationsHint": "enrollments to review"
+    "applicationsHint": "enrollments to review",
+    "goneHome": "Gone home",
+    "goneHomeHint": "checked out today",
+    "staffPresent2": "Staff on duty"
   },
   "today": {
     "title": "Today",
@@ -36,7 +39,11 @@
       "absent": "Absent",
       "sick": "Sick",
       "excused": "Excused"
-    }
+    },
+    "arrived": "Arrived ({count})",
+    "nobodyYet": "{count, plural, one {Nobody has arrived yet — # child expected today} other {Nobody has arrived yet — # children expected today}}",
+    "absentWithReason": "Reported absences ({count})",
+    "notArrivedYet": "{count, plural, one {# child has not arrived yet} other {# children have not arrived yet}}"
   },
   "finance": {
     "title": "Finances",
@@ -59,7 +66,7 @@
     "emptyHint": "Nothing pending right now."
   },
   "announcements": {
-    "title": "Recent announcements",
+    "title": "Announcements",
     "empty": "No announcements published.",
     "pinned": "Pinned",
     "audience": {

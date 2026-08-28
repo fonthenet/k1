@@ -263,5 +263,25 @@
         "description": "A task on the board is assigned to you. Goes to that person alone."
       }
     }
+  },
+  "hours": {
+    "title": "Opening days and hours",
+    "description": "The days the kindergarten takes children. One-off closures are handled under Holidays.",
+    "days": {
+      "sun": "Sunday",
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday"
+    },
+    "closed": "Closed",
+    "opensAt": "Opens",
+    "closesAt": "Closes",
+    "badRange": "Closing time must be after opening.",
+    "summary": "{count, plural, one {# open day per week} other {# open days per week}}",
+    "noneOpen": "Pick at least one open day.",
+    "saved": "Opening hours saved"
   }
 }

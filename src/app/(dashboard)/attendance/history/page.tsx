@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { CalendarDays, ChevronLeft, ChevronRight, Star, Users } from "lucide-react";
 import { requireStaff } from "@/lib/tenant";
+import { toOpeningHours } from "@/lib/week";
 import { createClient } from "@/lib/supabase/server";
 import { childDisplayName } from "@/lib/format";
 import type { AttendanceStatus } from "@/lib/types";
@@ -54,7 +55,12 @@ export default async function AttendanceHistoryPage({
   const month = isValidMonthStr(sp.month) ? sp.month : monthOf(toDateStr(new Date()));
   const activeClass = sp.class && sp.class !== "all" ? sp.class : "all";
 
-  const days = workingDaysOfMonth(month);
+  // Only the days this crèche actually opens. It also drives the grid's
+  // columns, so a Saturday-opening crèche gets a Saturday column.
+  const openingHours = toOpeningHours(
+    (ctx.tenant as { opening_hours?: unknown }).opening_hours
+  );
+  const days = workingDaysOfMonth(month, openingHours);
   const firstDay = days[0];
   const lastDay = days[days.length - 1];
   const today = toDateStr(new Date());

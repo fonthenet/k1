@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Plus, Stethoscope, Trash2, TriangleAlert } from "lucide-react";
+import { Stethoscope, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,8 @@ import {
 import type { AllergySeverity } from "@/lib/types";
 import type { WizardAllergy, WizardHealth } from "./types";
 import { Field, StepHeader } from "./wizard-ui";
-import { AllergenPicker } from "@/components/shared/allergen-picker";
+import { AllergenMultiPicker } from "@/components/shared/allergen-picker";
+import { allergenKeyFor, allergenLabel } from "@/lib/allergens";
 
 const SEVERITIES: AllergySeverity[] = ["mild", "moderate", "severe"];
 
@@ -44,6 +45,23 @@ export function StepHealth({
     });
   };
 
+  /** Tick adds an entry, untick removes it — severity and notes go with it. */
+  const toggleAllergen = (value: string) => {
+    const at = health.allergies.findIndex(
+      (a) => a.allergen.toLowerCase().trim() === value.toLowerCase()
+    );
+    if (at >= 0) {
+      onChange({ allergies: health.allergies.filter((_, i) => i !== at) });
+      return;
+    }
+    onChange({
+      allergies: [
+        ...health.allergies,
+        { allergen: value, severity: "mild", reaction: "", action_plan: "" },
+      ],
+    });
+  };
+
   const removeAllergy = (index: number) => {
     onChange({ allergies: health.allergies.filter((_, i) => i !== index) });
   };
@@ -53,86 +71,95 @@ export function StepHealth({
       <StepHeader icon={Stethoscope} title={t("health.title")} subtitle={t("health.subtitle")} />
 
       <div className="space-y-4">
-        {/* Allergies repeater */}
+        {/* Allergies.
+            One grid, ticked as many times as it needs to be. Each tick is its
+            own entry because each allergen carries its own severity — the
+            EpiPen one and the mild one are not the same emergency. This used
+            to render the whole grid once per allergy, so three allergies meant
+            walking 17 chips three times. */}
         <div className="rounded-2xl border bg-card p-3.5">
           <p className="mb-1 flex items-center gap-1.5 font-semibold">
             <TriangleAlert className="size-4 shrink-0 text-destructive" aria-hidden />
             {t("health.allergies")}
           </p>
-          {health.allergies.length === 0 && (
-            <p className="mb-3 text-sm text-muted-foreground">{t("health.noAllergies")}</p>
-          )}
-          <div className="space-y-4">
-            {health.allergies.map((a, i) => (
-              <div key={i} className="rounded-xl border bg-background p-3">
-                {/* Not a <Field>: that renders a <label>, and a label may not
-                    wrap a group of buttons. */}
-                <div className="mb-3">
-                  <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">
-                      {t("health.allergen")}
-                      <span className="text-destructive"> *</span>
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mb-0.5 shrink-0"
-                      onClick={() => removeAllergy(i)}
-                      aria-label={tc("actions.delete")}
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
+          <p className="mb-3 text-sm text-muted-foreground">{t("health.noAllergies")}</p>
+
+          <AllergenMultiPicker
+            id="allergens"
+            values={health.allergies.map((a) => a.allergen)}
+            onToggle={toggleAllergen}
+            onAddOther={addAllergy}
+          />
+
+          {health.allergies.length > 0 && (
+            <div className="mt-4 space-y-3">
+              {health.allergies.map((a, i) => {
+                const listed = allergenKeyFor(a.allergen);
+                return (
+                  <div key={i} className="rounded-xl border bg-background p-3">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      {listed ? (
+                        <p className="mt-1.5 font-semibold text-destructive">
+                          {allergenLabel(a.allergen, tc)}
+                        </p>
+                      ) : (
+                        <Input
+                          className="h-11 text-base"
+                          value={a.allergen}
+                          placeholder={tc("allergens.otherPlaceholder")}
+                          aria-label={t("health.allergen")}
+                          onChange={(e) => updateAllergy(i, { allergen: e.target.value })}
+                          autoComplete="off"
+                        />
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => removeAllergy(i)}
+                        aria-label={tc("actions.delete")}
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </div>
+                    <div className="space-y-3">
+                      <Field label={t("health.severity")}>
+                        <Select
+                          value={a.severity}
+                          onValueChange={(v) => updateAllergy(i, { severity: v as AllergySeverity })}
+                        >
+                          <SelectTrigger className="h-11 w-full text-base">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SEVERITIES.map((sev) => (
+                              <SelectItem key={sev} value={sev}>
+                                {t(`health.severities.${sev}`)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label={`${t("health.reaction")} (${tc("labels.optional")})`}>
+                        <Input
+                          className="h-11 text-base"
+                          value={a.reaction}
+                          onChange={(e) => updateAllergy(i, { reaction: e.target.value })}
+                        />
+                      </Field>
+                      <Field label={`${t("health.actionPlan")} (${tc("labels.optional")})`}>
+                        <Input
+                          className="h-11 text-base"
+                          value={a.action_plan}
+                          onChange={(e) => updateAllergy(i, { action_plan: e.target.value })}
+                        />
+                      </Field>
+                    </div>
                   </div>
-                  <AllergenPicker
-                    id={`allergen-${i}`}
-                    value={a.allergen}
-                    onChange={(allergen) => updateAllergy(i, { allergen })}
-                  />
-                </div>
-                <div className="space-y-3">
-                  <Field label={t("health.severity")}>
-                    <Select
-                      value={a.severity}
-                      onValueChange={(v) => updateAllergy(i, { severity: v as AllergySeverity })}
-                    >
-                      <SelectTrigger className="h-11 w-full text-base">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SEVERITIES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {t(`health.severities.${s}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label={`${t("health.reaction")} (${tc("labels.optional")})`}>
-                    <Input
-                      className="h-11 text-base"
-                      value={a.reaction}
-                      onChange={(e) => updateAllergy(i, { reaction: e.target.value })}
-                    />
-                  </Field>
-                  <Field label={`${t("health.actionPlan")} (${tc("labels.optional")})`}>
-                    <Input
-                      className="h-11 text-base"
-                      value={a.action_plan}
-                      onChange={(e) => updateAllergy(i, { action_plan: e.target.value })}
-                    />
-                  </Field>
-                </div>
-              </div>
-            ))}
-          </div>
-          <Button
-            variant="outline"
-            className="mt-3 h-11 w-full border-dashed"
-            onClick={addAllergy}
-          >
-            <Plus className="size-4" data-icon="inline-start" />
-            {t("health.addAllergy")}
-          </Button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <Field label={`${t("health.conditions")} (${tc("labels.optional")})`} hint={t("health.conditionsHint")}>

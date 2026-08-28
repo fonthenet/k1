@@ -94,10 +94,14 @@ export function invoiceStatusClasses(status: InvoiceStatus): string {
       return `${PILL} border-success/25 bg-success/10 text-success`;
     case "partial":
       return `${PILL} border-warning/40 bg-warning/15 text-foreground`;
+    // Unpaid and overdue both read red to a family: the difference between
+    // them is the due date, which the row already prints. Teal said "fine".
+    case "unpaid":
     case "overdue":
       return `${PILL} border-destructive/25 bg-destructive/10 text-destructive`;
     case "void":
       return `${PILL} border-border bg-muted text-muted-foreground line-through`;
+    // draft / sent — issued, nothing owed yet from the family's side.
     default:
       return `${PILL} border-primary/25 bg-primary/10 text-primary`;
   }

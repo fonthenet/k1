@@ -40,11 +40,19 @@ export function AssignFeeDialog({
   childName,
   plans,
   current,
+  trigger,
 }: {
   childId: string;
   childName: string;
   plans: PlanOption[];
   current?: CurrentAssignment;
+  /**
+   * Something else to open it with. The "Sans mensualité" badge on a child's
+   * header is the place somebody actually notices the problem, so that badge
+   * opens this directly rather than navigating to a tab and making them hunt
+   * for the button.
+   */
+  trigger?: React.ReactNode;
 }) {
   const t = useTranslations("billing");
   const tc = useTranslations("common");
@@ -80,7 +88,19 @@ export function AssignFeeDialog({
         discountNote: note || undefined,
       });
       if (res.ok) {
-        toast.success(t("plans.assignDialog.success"));
+        // Say what it cost. Choosing a tariff mid-month tops up that month's
+        // invoice, and a bill that grows without a word is how a parent gets a
+        // figure nobody in the office can explain.
+        const billed = res.billed ?? 0;
+        if (res.billingFailed) {
+          toast.warning(t("plans.assignDialog.successNotBilled"));
+        } else {
+          toast.success(
+            billed > 0
+              ? t("plans.assignDialog.successBilled", { amount: formatDZD(billed, locale) })
+              : t("plans.assignDialog.success")
+          );
+        }
         setOpen(false);
         router.refresh();
       } else {
@@ -92,9 +112,11 @@ export function AssignFeeDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          {current ? t("plans.assignments.change") : t("plans.assignments.assign")}
-        </Button>
+        {trigger ?? (
+          <Button variant="outline" size="sm">
+            {current ? t("plans.assignments.change") : t("plans.assignments.assign")}
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

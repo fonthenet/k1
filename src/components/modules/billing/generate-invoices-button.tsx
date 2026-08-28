@@ -36,6 +36,15 @@ export function GenerateInvoicesButton({
       if (res.ok) {
         setOpen(false);
         toast.success(t("generate.success", { count: res.count }));
+        // Said separately, and not as a success: these children were charged
+        // no tuition. A run that reports only what it managed to bill is how a
+        // child stays unbilled for months without anyone noticing.
+        if (res.unbilled > 0) {
+          toast.warning(t("generate.unbilled", { count: res.unbilled }), {
+            description: res.unbilledNames.join(" · "),
+            duration: 12000,
+          });
+        }
       } else {
         toast.error(t("toasts.error"));
       }

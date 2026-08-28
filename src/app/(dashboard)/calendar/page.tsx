@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
+import { DAY_KEYS, toOpeningHours } from "@/lib/week";
 import { formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -40,17 +41,17 @@ interface HolidayRow {
   closure: boolean;
 }
 
-/** Friday + Saturday are the Algerian weekend (Sunday-first columns 5 and 6). */
-function isWeekendCol(col: number): boolean {
-  return col === 5 || col === 6;
-}
-
 export default async function CalendarPage({
   searchParams,
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
   const ctx = await requireStaff();
+  // Columns are Sunday-first, and so is DAY_KEYS — column index IS the day key.
+  const openingHours = toOpeningHours(
+    (ctx.tenant as { opening_hours?: unknown }).opening_hours,
+  );
+  const isClosedCol = (col: number) => openingHours[DAY_KEYS[col]] === null;
   const t = await getTranslations("comms");
   const locale = await getLocale();
   const sp = await searchParams;
@@ -68,7 +69,9 @@ export default async function CalendarPage({
   const [eventsRes, holidaysRes, classesRes, upcomingRes] = await Promise.all([
     supabase
       .from("kg_events")
-      .select("id, title, description, start_at, end_at, audience, class_id, color")
+      .select(
+        "id, title, description, start_at, end_at, audience, class_id, color",
+      )
       .eq("tenant_id", ctx.tenant.id)
       // 1-day padding so Algiers-local bucketing never drops an edge event.
       .gte("start_at", `${addDaysStr(gridStart, -1)}T00:00:00Z`)
@@ -88,7 +91,9 @@ export default async function CalendarPage({
       .order("name"),
     supabase
       .from("kg_events")
-      .select("id, title, description, start_at, end_at, audience, class_id, color")
+      .select(
+        "id, title, description, start_at, end_at, audience, class_id, color",
+      )
       .eq("tenant_id", ctx.tenant.id)
       .gte("start_at", nowIso)
       .order("start_at")
@@ -96,7 +101,10 @@ export default async function CalendarPage({
   ]);
 
   const firstError =
-    eventsRes.error ?? holidaysRes.error ?? classesRes.error ?? upcomingRes.error;
+    eventsRes.error ??
+    holidaysRes.error ??
+    classesRes.error ??
+    upcomingRes.error;
   if (firstError) throw new Error(firstError.message);
 
   const events = (eventsRes.data ?? []) as EventRow[];
@@ -122,24 +130,36 @@ export default async function CalendarPage({
     }
   }
 
-  const holidayName = (h: HolidayRow) => (locale === "ar" && h.name_ar ? h.name_ar : h.name);
+  const holidayName = (h: HolidayRow) =>
+    locale === "ar" && h.name_ar ? h.name_ar : h.name;
   const className = (id: string | null) => {
     const c = classes.find((k) => k.id === id);
     if (!c) return null;
     return locale === "ar" && c.name_ar ? c.name_ar : c.name;
   };
   const audienceLabel = (ev: EventRow) =>
-    ev.audience === "class" ? (className(ev.class_id) ?? t("audience.class")) : t(`audience.${ev.audience}`);
+    ev.audience === "class"
+      ? (className(ev.class_id) ?? t("audience.class"))
+      : t(`audience.${ev.audience}`);
 
   const href = (m: string) => `/calendar?month=${m}`;
   const fullDayLabel = (d: string) =>
-    formatDate(`${d}T12:00:00Z`, locale, { weekday: "long", day: "numeric", month: "long" });
+    formatDate(`${d}T12:00:00Z`, locale, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
 
-  const monthHasEvents = days.some((d) => (eventsByDay.get(d)?.length ?? 0) > 0);
+  const monthHasEvents = days.some(
+    (d) => (eventsByDay.get(d)?.length ?? 0) > 0,
+  );
 
   return (
     <div>
-      <PageHeader title={t("calendar.title")} description={t("calendar.description")}>
+      <PageHeader
+        title={t("calendar.title")}
+        description={t("calendar.description")}
+      >
         <EventDialog event={null} classes={classes} defaultDate={today} />
       </PageHeader>
 
@@ -187,7 +207,9 @@ export default async function CalendarPage({
                 key={col}
                 className={cn(
                   "px-2 py-2 text-center text-xs font-semibold tracking-wide capitalize",
-                  isWeekendCol(col) ? "text-muted-foreground/70" : "text-muted-foreground"
+                  isClosedCol(col)
+                    ? "text-muted-foreground/70"
+                    : "text-muted-foreground",
                 )}
               >
                 {weekdayName(col, locale)}
@@ -198,7 +220,7 @@ export default async function CalendarPage({
           <div className="grid grid-cols-7 gap-px bg-border">
             {days.map((d) => {
               const col = dayOfWeek(d);
-              const weekend = isWeekendCol(col);
+              const weekend = isClosedCol(col);
               const inMonth = monthOf(d) === month;
               const isToday = d === today;
               const dayEvents = eventsByDay.get(d) ?? [];
@@ -211,7 +233,7 @@ export default async function CalendarPage({
                     "group/day relative min-h-28 p-1.5 transition-colors",
                     // Friday + Saturday are the Algerian weekend.
                     weekend ? "bg-muted" : "bg-card hover:bg-muted/30",
-                    !inMonth && "opacity-50"
+                    !inMonth && "opacity-50",
                   )}
                 >
                   <div className="mb-1 flex items-center justify-between">
@@ -220,7 +242,7 @@ export default async function CalendarPage({
                         "inline-flex size-6 items-center justify-center rounded-full text-xs tabular-nums",
                         isToday
                           ? "bg-primary font-bold text-primary-foreground shadow-sm"
-                          : "font-medium text-muted-foreground"
+                          : "font-medium text-muted-foreground",
                       )}
                     >
                       {Number(d.slice(8, 10))}
@@ -228,7 +250,9 @@ export default async function CalendarPage({
                     <EventDialog event={null} classes={classes} defaultDate={d}>
                       <button
                         type="button"
-                        aria-label={t("calendar.addOn", { date: fullDayLabel(d) })}
+                        aria-label={t("calendar.addOn", {
+                          date: fullDayLabel(d),
+                        })}
                         title={t("calendar.addOn", { date: fullDayLabel(d) })}
                         className="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover/day:opacity-100"
                       >
@@ -245,9 +269,9 @@ export default async function CalendarPage({
                         className={cn(
                           "truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium",
                           h.tentative
-                            // Tentative religious dates: dashed gold, not yet confirmed.
-                            ? "border border-dashed border-gold/70 bg-gold/10 text-foreground"
-                            : "bg-muted-foreground/15 text-muted-foreground"
+                            ? // Tentative religious dates: dashed gold, not yet confirmed.
+                              "border border-dashed border-gold/70 bg-gold/10 text-foreground"
+                            : "bg-muted-foreground/15 text-muted-foreground",
                         )}
                       >
                         {holidayName(h)}
@@ -255,7 +279,12 @@ export default async function CalendarPage({
                       </div>
                     ))}
                     {dayEvents.map((ev) => (
-                      <EventDialog key={ev.id} event={ev} classes={classes} defaultDate={d}>
+                      <EventDialog
+                        key={ev.id}
+                        event={ev}
+                        classes={classes}
+                        defaultDate={d}
+                      >
                         <button
                           type="button"
                           title={ev.title}
@@ -327,11 +356,19 @@ export default async function CalendarPage({
                             {ev.title}
                           </span>
                           <span className="block text-xs text-muted-foreground">
-                            {formatDate(ev.start_at, locale)} · {formatTime(ev.start_at, locale)}
-                            {ev.end_at ? ` – ${formatTime(ev.end_at, locale)}` : ""}
+                            {formatDate(ev.start_at, locale)} ·{" "}
+                            {formatTime(ev.start_at, locale)}
+                            {ev.end_at
+                              ? ` – ${formatTime(ev.end_at, locale)}`
+                              : ""}
                           </span>
                         </span>
-                        <Badge className={cn("shrink-0", audienceClasses(ev.audience))}>
+                        <Badge
+                          className={cn(
+                            "shrink-0",
+                            audienceClasses(ev.audience),
+                          )}
+                        >
                           {audienceLabel(ev)}
                         </Badge>
                       </button>

@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { AddChildDialog } from "@/components/modules/children/add-child-dialog";
 import { ChildrenRoster } from "@/components/modules/children/roster";
 import type { ClassOption, RosterChild } from "@/components/modules/children/types";
+import { algiersToday } from "@/components/modules/billing/dates";
 
 const SEVERITY_RANK: Record<AllergySeverity, number> = { mild: 1, moderate: 2, severe: 3 };
 
@@ -20,7 +21,7 @@ export default async function ChildrenPage() {
   const t = await getTranslations("children");
   const supabase = await createClient();
 
-  const [{ data: childRows, error }, { data: classRows }, { data: allergyRows }] =
+  const [{ data: childRows, error }, { data: classRows }, { data: allergyRows }, { data: feeRows }] =
     await Promise.all([
       supabase
         .from("kg_children")
@@ -36,6 +37,17 @@ export default async function ChildrenPage() {
         .from("kg_child_allergies")
         .select("child_id, severity")
         .eq("tenant_id", ctx.tenant.id),
+      // Live MONTHLY fees only. Finance-only, because who is being charged is
+      // not an educator's business. The period filter matters: every approval
+      // writes a one-off admission row too, and counting that as "has a fee"
+      // is exactly what let unbilled children look billed.
+      ctx.isFinance
+        ? supabase
+            .from("kg_child_fees")
+            .select("child_id, end_date, kg_fee_plans!inner(period)")
+            .eq("tenant_id", ctx.tenant.id)
+            .eq("kg_fee_plans.period", "monthly")
+        : Promise.resolve({ data: [] }),
     ]);
 
   if (error) throw new Error(error.message);
@@ -54,10 +66,21 @@ export default async function ChildrenPage() {
     }
   }
 
+  const billingToday = algiersToday();
+  const withMonthlyPlan = new Set(
+    ((feeRows ?? []) as { child_id: string; end_date: string | null }[])
+      .filter((f) => f.end_date === null || f.end_date > billingToday)
+      .map((f) => f.child_id)
+  );
+
   const rows: RosterChild[] = await Promise.all(
     ((childRows ?? []) as ChildRow[]).map(async (c) => {
       const allergy = allergyByChild.get(c.id);
       return {
+        // Only meaningful for a child who is actually attending, and only
+        // shown to finance.
+        noFeePlan:
+          ctx.isFinance && c.status === "enrolled" && !withMonthlyPlan.has(c.id),
         id: c.id,
         first_name: c.first_name,
         last_name: c.last_name,

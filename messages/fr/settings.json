@@ -263,5 +263,25 @@
         "description": "Une tâche du tableau vous est attribuée. Va à cette personne uniquement."
       }
     }
+  },
+  "hours": {
+    "title": "Jours et horaires d'ouverture",
+    "description": "Les jours où la crèche accueille les enfants. Les fermetures ponctuelles se gèrent dans Jours fériés.",
+    "days": {
+      "sun": "Dimanche",
+      "mon": "Lundi",
+      "tue": "Mardi",
+      "wed": "Mercredi",
+      "thu": "Jeudi",
+      "fri": "Vendredi",
+      "sat": "Samedi"
+    },
+    "closed": "Fermé",
+    "opensAt": "Ouverture",
+    "closesAt": "Fermeture",
+    "badRange": "La fermeture doit suivre l'ouverture.",
+    "summary": "{count, plural, one {# jour d'ouverture par semaine} other {# jours d'ouverture par semaine}}",
+    "noneOpen": "Sélectionnez au moins un jour d'ouverture.",
+    "saved": "Horaires enregistrés"
   }
 }

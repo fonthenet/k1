@@ -1,5 +1,5 @@
-// Local-date helpers for the attendance module (Algeria: Sunday–Thursday week).
-import { isDzWeekend } from "@/lib/format";
+// Local-date helpers for the attendance module.
+import { isOpenDay, type OpeningHours } from "@/lib/week";
 
 /** Format a Date as YYYY-MM-DD in local time (never UTC). */
 export function toDateStr(d: Date): string {
@@ -41,13 +41,19 @@ export function addMonthsStr(month: string, delta: number): string {
   return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}`;
 }
 
-/** All working days (Sun–Thu) of a month "YYYY-MM", as YYYY-MM-DD strings. */
-export function workingDaysOfMonth(month: string): string[] {
+/**
+ * The days a month "YYYY-MM" is actually open, as YYYY-MM-DD strings.
+ *
+ * Takes the crèche's own pattern rather than assuming Sunday–Thursday: this
+ * feeds attendance denominators, and a crèche that opens on Saturday counting
+ * it as a day off would understate every rate it ever reports.
+ */
+export function workingDaysOfMonth(month: string, hours: OpeningHours): string[] {
   const [y, m] = month.split("-").map(Number);
   const days: string[] = [];
   const d = new Date(y, m - 1, 1);
   while (d.getMonth() === m - 1) {
-    if (!isDzWeekend(d)) days.push(toDateStr(d));
+    if (isOpenDay(hours, d)) days.push(toDateStr(d));
     d.setDate(d.getDate() + 1);
   }
   return days;

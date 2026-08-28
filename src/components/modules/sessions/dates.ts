@@ -70,12 +70,6 @@ export function weekDays(startStr: string): string[] {
   return Array.from({ length: 7 }, (_, i) => addDaysStr(startStr, i));
 }
 
-/** Friday and Saturday are the weekend in Algeria. */
-export function isWeekendStr(dateStr: string): boolean {
-  const day = parseDateStr(dateStr).getDay();
-  return day === 5 || day === 6;
-}
-
 /** Instant range [from, to) covering `days` Algiers days from `startStr`. */
 export function algiersRange(startStr: string, days: number): { from: string; to: string } {
   const from = new Date(`${startStr}T00:00:00${TZ_OFFSET}`);

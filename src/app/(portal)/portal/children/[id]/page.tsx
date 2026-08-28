@@ -16,6 +16,7 @@ import {
   Stethoscope,
   TriangleAlert,
   UtensilsCrossed,
+  Wallet,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,8 @@ import {
   type PortalConsent,
 } from "@/components/modules/portal/consent-matrix";
 import { CONSENT_TYPES } from "@/components/modules/children/types";
+import { algiersToday, monthLabel } from "@/components/modules/billing/dates";
+import { getDuesByChild } from "@/components/modules/portal/dues";
 
 const TABS = ["journal", "attendance", "health", "activities", "permissions"] as const;
 type TabKey = (typeof TABS)[number];
@@ -376,6 +379,18 @@ export default async function PortalChildDetailPage({
   const name = childDisplayName(child, locale);
   const cls = classLabel(child, locale);
 
+  // Same helper the children list and the home screen use, so one child cannot
+  // read as settled on one screen and owing on another.
+  const dues = await getDuesByChild(supabase, ctx.tenant.id, [child.id], algiersToday());
+  const due = dues.get(child.id) ?? null;
+  const dueWhat = !due
+    ? null
+    : due.hasRegistration
+      ? t("children.due.admission")
+      : due.months.length > 0
+        ? monthLabel(due.months[0].slice(0, 7), locale)
+        : null;
+
   const journal = (journalRes.data ?? []) as JournalRow[];
 
   const attendance = (attendanceRes.data ?? []) as unknown as AttendanceRow[];
@@ -554,7 +569,6 @@ export default async function PortalChildDetailPage({
           <CheckinDialog
             badge={badge}
             child={checkinChildren.find((c) => c.id === child.id)}
-            family={checkinChildren}
             trigger="corner"
             className="absolute top-2 end-2 z-10"
           />
@@ -594,6 +608,31 @@ export default async function PortalChildDetailPage({
                   </span>
                 )}
               </div>
+
+              {/* What is outstanding for THIS child, on every tab of their
+                  file — the same figure the children list and the home screen
+                  show, from the same helper. */}
+              {due && (
+                <div className="mt-1.5">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium",
+                      due.overdue
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-card text-gold-ink ring-1 ring-gold/30"
+                    )}
+                  >
+                    <Wallet className="size-3" aria-hidden />
+                    {dueWhat
+                      ? t("children.due.forWhat", {
+                          amount: formatDZD(due.balance, locale),
+                          what: dueWhat,
+                        })
+                      : t("children.due.amount", { amount: formatDZD(due.balance, locale) })}
+                  </span>
+                </div>
+              )}
+
               {/* Said once, only while it is still missing: a face on file is
                   what makes the door check more than a scanned QR code. */}
               {!child.photo_path && (
@@ -617,6 +656,9 @@ export default async function PortalChildDetailPage({
             <Link
               key={key}
               href={`/portal/children/${child.id}?tab=${key}`}
+              // Without this the tab strip jumps to the top of the document on
+              // every tap, which on a phone reads as a page reload.
+              scroll={false}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-center text-sm font-medium transition-colors",

@@ -54,8 +54,11 @@ export interface EnrollLinkData {
 
 export interface WizardUser {
   id: string;
+  /** The auth address. May be an internal phone alias — never show it raw. */
   email: string | null;
   fullName: string | null;
+  /** Real phone from kg_profiles, or decoded from a phone alias. */
+  phone: string | null;
 }
 
 export interface WizardChild {

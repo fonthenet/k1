@@ -130,5 +130,9 @@ export interface TxnCategory {
 export interface DashboardStats {
   children_enrolled: number; children_present: number; children_checked_out: number;
   staff_present: number; pending_applications: number;
-  unpaid_invoices: number; unpaid_total: number; mtd_income: number; mtd_expense: number;
+  /** Money is null for anyone who is not finance — see migration 0067. */
+  unpaid_invoices: number | null; unpaid_total: number | null;
+  /** Only what is past its due date, as opposed to everything unpaid. */
+  overdue_invoices: number | null; overdue_total: number | null;
+  mtd_income: number | null; mtd_expense: number | null;
 }

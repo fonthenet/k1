@@ -40,7 +40,9 @@
     "mon": "Monday",
     "tue": "Tuesday",
     "wed": "Wednesday",
-    "thu": "Thursday"
+    "thu": "Thursday",
+    "fri": "Friday",
+    "sat": "Saturday"
   },
   "dialog": {
     "newTitle": "New activity",

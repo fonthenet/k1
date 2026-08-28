@@ -1,10 +1,15 @@
 import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Mail, MapPin, Navigation, Phone } from "lucide-react";
+import { Clock, Mail, MapPin, Navigation, Phone } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { directionsUrl } from "@/lib/geo";
 import { MapEmbed } from "@/components/shared/map-embed";
 import { formatPhone, telHref } from "@/lib/format";
+import {
+  dayKeyOf,
+  summariseOpeningHours,
+  type OpeningHours,
+} from "@/lib/week";
 
 export interface EstablishmentInfo {
   name: string;
@@ -16,6 +21,8 @@ export interface EstablishmentInfo {
   wilaya: string | null;
   latitude: number | null;
   longitude: number | null;
+  /** The weekly pattern. Omitted by callers that have no reason to show it. */
+  openingHours?: OpeningHours | null;
 }
 
 /**
@@ -27,6 +34,7 @@ export interface EstablishmentInfo {
  */
 export async function EstablishmentCard({ info }: { info: EstablishmentInfo }) {
   const t = await getTranslations("common.establishment");
+  const tDays = await getTranslations("common.daysShort");
   const locale = await getLocale();
   // Deduped: in Algeria the commune and the wilaya share a name far more often
   // than not — Jijel is in Jijel — and "Jijel, Jijel" reads like a bug.
@@ -35,6 +43,13 @@ export async function EstablishmentCard({ info }: { info: EstablishmentInfo }) {
     info.latitude != null && info.longitude != null
       ? { lat: info.latitude, lng: info.longitude }
       : null;
+
+  // Collapsed to runs before it is rendered: a parent wants one line reading
+  // "Sun – Thu · 08:00 – 16:30", not seven rows five of which are identical.
+  const ranges = info.openingHours ? summariseOpeningHours(info.openingHours) : [];
+  const todayHours = info.openingHours?.[dayKeyOf(new Date())] ?? null;
+  const dayLabel = (from: string, to: string) =>
+    from === to ? tDays(from) : `${tDays(from)} – ${tDays(to)}`;
 
   return (
     <Card className="shadow-sm">
@@ -89,6 +104,32 @@ export async function EstablishmentCard({ info }: { info: EstablishmentInfo }) {
             </div>
           </div>
         </div>
+
+        {/* Opening hours. Today's line first and in plain text, because the
+            question a parent actually opens this card to answer is "can I drop
+            him off now?" — the weekly pattern underneath is the reference. */}
+        {ranges.length > 0 && (
+          <div className="flex items-start gap-2 border-t border-border pt-3 text-sm">
+            <Clock className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-foreground">
+                {todayHours
+                  ? t("openToday", { open: todayHours.open, close: todayHours.close })
+                  : t("closedToday")}
+              </div>
+              <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                {ranges.map((r) => (
+                  <span key={r.from} className="whitespace-nowrap">
+                    {dayLabel(r.from, r.to)}{" "}
+                    <span className="tabular-nums" dir="ltr">
+                      {r.open} – {r.close}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {pin && (
           <div className="grid gap-2">

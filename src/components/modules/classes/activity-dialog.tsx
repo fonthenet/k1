@@ -46,12 +46,21 @@ interface SlotRow {
 function initialSlots(activity?: ActivityFormValues): SlotRow[] {
   if (!activity) return [];
   return activity.schedule
-    .filter((s): s is SlotRow => (SCHEDULE_DAYS as readonly string[]).includes(s.day))
+    .filter((s): s is SlotRow =>
+      (SCHEDULE_DAYS as readonly string[]).includes(s.day),
+    )
     .map((s) => ({ day: s.day as ScheduleDay, time: s.time.slice(0, 5) }));
 }
 
 /** Create/edit dialog for an activity, with a Sun–Thu schedule repeater. */
-export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) {
+export function ActivityDialog({
+  activity,
+  days = SCHEDULE_DAYS,
+}: {
+  activity?: ActivityFormValues;
+  /** Days this crèche opens — the only ones worth offering. */
+  days?: readonly ScheduleDay[];
+}) {
   const t = useTranslations("activities");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -60,7 +69,8 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
     name: activity?.name ?? "",
     nameAr: activity?.name_ar ?? "",
     description: activity?.description ?? "",
-    category: (activity?.category && (ACTIVITY_CATEGORIES as readonly string[]).includes(activity.category)
+    category: (activity?.category &&
+    (ACTIVITY_CATEGORIES as readonly string[]).includes(activity.category)
       ? activity.category
       : "general") as ActivityCategory,
     fee: activity ? String(activity.fee_amount) : "",
@@ -71,12 +81,17 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
   const [slots, setSlots] = useState<SlotRow[]>(() => initialSlots(activity));
   const [pending, startTransition] = useTransition();
 
-  const feeValid = form.fee !== "" && Number.isFinite(Number(form.fee)) && Number(form.fee) >= 0;
+  const feeValid =
+    form.fee !== "" &&
+    Number.isFinite(Number(form.fee)) &&
+    Number(form.fee) >= 0;
   const capacityValid =
     form.capacity.trim() === "" ||
     (Number.isInteger(Number(form.capacity)) && Number(form.capacity) >= 1);
   const slotsValid = slots.every((s) => /^\d{2}:\d{2}$/.test(s.time));
-  const canSubmit = Boolean(form.name.trim() && feeValid && capacityValid && slotsValid && !pending);
+  const canSubmit = Boolean(
+    form.name.trim() && feeValid && capacityValid && slotsValid && !pending,
+  );
 
   function submit() {
     if (!canSubmit) return;
@@ -97,13 +112,17 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
         setOpen(false);
         router.refresh();
       } else {
-        toast.error(res.error === "forbidden" ? t("toasts.forbidden") : t("toasts.error"));
+        toast.error(
+          res.error === "forbidden" ? t("toasts.forbidden") : t("toasts.error"),
+        );
       }
     });
   }
 
   const setSlot = (i: number, patch: Partial<SlotRow>) =>
-    setSlots((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+    setSlots((prev) =>
+      prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)),
+    );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -121,7 +140,9 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{activity ? t("dialog.editTitle") : t("dialog.newTitle")}</DialogTitle>
+          <DialogTitle>
+            {activity ? t("dialog.editTitle") : t("dialog.newTitle")}
+          </DialogTitle>
           <DialogDescription>{t("dialog.description")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
@@ -131,7 +152,9 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
               <Input
                 id="act-name"
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
@@ -140,14 +163,18 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
                 id="act-name-ar"
                 dir="rtl"
                 value={form.nameAr}
-                onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, nameAr: e.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
               <Label>{t("dialog.category")}</Label>
               <Select
                 value={form.category}
-                onValueChange={(v) => setForm((f) => ({ ...f, category: v as ActivityCategory }))}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, category: v as ActivityCategory }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -169,7 +196,9 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
                 min="1"
                 max="500"
                 value={form.capacity}
-                onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, capacity: e.target.value }))
+                }
                 placeholder={t("dialog.capacityHint")}
                 className="tabular-nums"
               />
@@ -182,7 +211,9 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
                 min="0"
                 step="100"
                 value={form.fee}
-                onChange={(e) => setForm((f) => ({ ...f, fee: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, fee: e.target.value }))
+                }
                 className="tabular-nums"
               />
             </div>
@@ -190,7 +221,9 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
               <Label>{t("dialog.period")}</Label>
               <Select
                 value={form.period}
-                onValueChange={(v) => setForm((f) => ({ ...f, period: v as FeePeriod }))}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, period: v as FeePeriod }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -212,7 +245,9 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
               id="act-desc"
               rows={2}
               value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
             />
           </div>
 
@@ -224,11 +259,14 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
                   value={slot.day}
                   onValueChange={(v) => setSlot(i, { day: v as ScheduleDay })}
                 >
-                  <SelectTrigger className="flex-1" aria-label={t("dialog.day")}>
+                  <SelectTrigger
+                    className="flex-1"
+                    aria-label={t("dialog.day")}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SCHEDULE_DAYS.map((d) => (
+                    {days.map((d) => (
                       <SelectItem key={d} value={d}>
                         {t(`daysFull.${d}`)}
                       </SelectItem>
@@ -248,7 +286,9 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
                   variant="ghost"
                   size="icon"
                   aria-label={tc("actions.delete")}
-                  onClick={() => setSlots((prev) => prev.filter((_, idx) => idx !== i))}
+                  onClick={() =>
+                    setSlots((prev) => prev.filter((_, idx) => idx !== i))
+                  }
                 >
                   <Trash2 className="text-muted-foreground" />
                 </Button>
@@ -259,7 +299,9 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
               size="sm"
               className="w-fit"
               disabled={slots.length >= 14}
-              onClick={() => setSlots((prev) => [...prev, { day: "sun", time: "09:00" }])}
+              onClick={() =>
+                setSlots((prev) => [...prev, { day: "sun", time: "09:00" }])
+              }
             >
               <Plus data-icon="inline-start" />
               {t("dialog.addSlot")}
@@ -278,7 +320,11 @@ export function ActivityDialog({ activity }: { activity?: ActivityFormValues }) 
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={pending}
+          >
             {tc("actions.cancel")}
           </Button>
           <Button onClick={submit} disabled={!canSubmit}>

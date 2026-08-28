@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { childDisplayName, formatDZD, formatDate, formatPhone, formatTime, isDzWeekend, telHref } from "@/lib/format";
+import { childDisplayName, formatDZD, formatDate, formatPhone, formatTime, telHref } from "@/lib/format";
+import { isOpenDay, toOpeningHours } from "@/lib/week";
 import type { AttendanceStatus, Gender } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -142,6 +143,9 @@ export default async function ReportsPage({
   searchParams: Promise<{ tab?: string; month?: string }>;
 }) {
   const ctx = await requireFinance();
+  const openingHours = toOpeningHours(
+    (ctx.tenant as { opening_hours?: unknown }).opening_hours
+  );
   const supabase = await createClient();
   const [t, locale] = await Promise.all([getTranslations("reports"), getLocale()]);
   const tid = ctx.tenant.id;
@@ -413,7 +417,7 @@ export default async function ReportsPage({
   const endForExpected = monthEndDate.getTime() < now.getTime() ? monthEndDate : now;
   let workdays = 0;
   for (let d = new Date(y, m - 1, 1); d.getTime() <= endForExpected.getTime(); d.setDate(d.getDate() + 1)) {
-    if (!isDzWeekend(d)) workdays++;
+    if (isOpenDay(openingHours, d)) workdays++;
   }
   const expectedHours = workdays * 8;
 

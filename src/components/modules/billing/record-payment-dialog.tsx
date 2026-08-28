@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Banknote, CheckCircle2, CreditCard, FileText, HandCoins, Landmark, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -40,14 +39,28 @@ const METHOD_ICON: Record<Method, React.ComponentType<{ className?: string }>> =
 export function RecordPaymentDialog({
   invoice,
   size = "default",
+  payable = true,
 }: {
   invoice: PayableInvoice;
   size?: "default" | "sm";
+  /**
+   * Whether there is still a balance to take. Hides the trigger — it must NOT
+   * unmount this component.
+   *
+   * Callers used to write `{payable && <RecordPaymentDialog/>}`. Recording a
+   * payment revalidates /billing from the server action, so the moment the last
+   * dinar landed the route re-rendered, `payable` turned false, and React tore
+   * this component out of the tree — with the confirmation still open on top of
+   * it. The receipt number and its print link appeared for about a second and
+   * then vanished, and the only way back to the receipt was the invoice page.
+   * Kept mounted, the same element stays in the same position and React keeps
+   * its state, so the confirmation survives the refresh underneath it.
+   */
+  payable?: boolean;
 }) {
   const t = useTranslations("billing");
   const tc = useTranslations("common");
   const locale = useLocale();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(invoice.balance));
   const [method, setMethod] = useState<Method>("cash");
@@ -84,7 +97,6 @@ export function RecordPaymentDialog({
       if (res.ok) {
         setDone({ paymentId: res.paymentId, receiptNumber: res.receiptNumber });
         toast.success(t("payment.success"));
-        router.refresh();
       } else {
         toast.error(t("toasts.error"));
       }
@@ -93,12 +105,17 @@ export function RecordPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant={size === "sm" ? "outline" : "default"} size={size === "sm" ? "sm" : "default"}>
-          <HandCoins data-icon="inline-start" />
-          {t("payment.button")}
-        </Button>
-      </DialogTrigger>
+      {payable && (
+        <DialogTrigger asChild>
+          <Button
+            variant={size === "sm" ? "outline" : "default"}
+            size={size === "sm" ? "sm" : "default"}
+          >
+            <HandCoins data-icon="inline-start" />
+            {t("payment.button")}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("payment.title")}</DialogTitle>

@@ -182,9 +182,11 @@ export default async function InvoiceDetailPage({
             {t("invoice.back")}
           </Link>
         </Button>
-        {payable && (
-          <RecordPaymentDialog invoice={{ id: inv.id, numberLabel, childName, balance }} />
-        )}
+        {/* Always rendered — see the `payable` prop's note. */}
+        <RecordPaymentDialog
+          payable={payable}
+          invoice={{ id: inv.id, numberLabel, childName, balance }}
+        />
         {ctx.isAdmin && inv.status !== "void" && <VoidInvoiceButton invoiceId={inv.id} />}
       </PageHeader>
 

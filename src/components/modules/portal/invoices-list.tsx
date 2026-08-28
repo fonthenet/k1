@@ -40,9 +40,14 @@ export function InvoicesList({ groups }: { groups: PortalChildInvoices[] }) {
               <PortalChildLink id={group.childId}>{group.childName}</PortalChildLink>
             </CardTitle>
             {group.balance > 0 ? (
-              <span className="text-end text-sm font-bold text-destructive tabular-nums">
-                {t("due")} : {formatDZD(group.balance, locale)}
-              </span>
+              // Only when it is genuinely a subtotal. With one open invoice the
+              // row underneath already states this exact figure, and printing
+              // it twice is most of why this screen read as noisy.
+              group.invoices.filter((i) => i.balance > 0).length > 1 ? (
+                <span className="text-end text-sm font-bold tabular-nums text-foreground">
+                  {t("due")} : {formatDZD(group.balance, locale)}
+                </span>
+              ) : null
             ) : (
               <Badge className="border border-success/25 bg-success/10 font-semibold text-success">
                 {t("upToDate")}
@@ -76,8 +81,10 @@ export function InvoicesList({ groups }: { groups: PortalChildInvoices[] }) {
                         <div className="text-sm font-semibold tabular-nums">
                           {formatDZD(inv.total, locale)}
                         </div>
-                        {inv.balance > 0 && (
-                          <div className="mt-0.5 text-xs font-medium text-destructive tabular-nums">
+                        {/* Nothing paid yet means the balance IS the total —
+                            saying it again underneath adds no information. */}
+                        {inv.balance > 0 && inv.paid_amount > 0 && (
+                          <div className="mt-0.5 text-xs font-medium text-muted-foreground tabular-nums">
                             {t("balanceShort")} {formatDZD(inv.balance, locale)}
                           </div>
                         )}

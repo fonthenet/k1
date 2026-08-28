@@ -7,7 +7,7 @@
     "today": "Today",
     "history": "History",
     "register": "Today's register",
-    "weekendNotice": "Weekend (Friday / Saturday) — the kindergarten is normally closed."
+    "closedNotice": "{day} — the kindergarten does not open on this day."
   },
   "tabs": {
     "all": "All classes"

@@ -69,6 +69,50 @@ export async function updateTenantProfile(input: z.infer<typeof tenantSchema>): 
   return { ok: true };
 }
 
+// ------------------------------------------------------------- opening hours
+
+const HHMM = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+const dayHoursSchema = z
+  .object({ open: z.string().regex(HHMM), close: z.string().regex(HHMM) })
+  .refine((v) => v.close > v.open, { message: "close must follow open" })
+  .nullable();
+
+const openingHoursSchema = z.object({
+  sun: dayHoursSchema, mon: dayHoursSchema, tue: dayHoursSchema, wed: dayHoursSchema,
+  thu: dayHoursSchema, fri: dayHoursSchema, sat: dayHoursSchema,
+});
+
+/**
+ * Set which days the crèche opens and between which hours.
+ *
+ * A crèche that is closed every day of the week is refused. It is almost
+ * certainly a mis-click, and the consequences are quiet and wide: no activity
+ * could be scheduled on any day, and every attendance rate would divide by
+ * zero. Closing for a period is what holidays are for.
+ */
+export async function updateOpeningHours(
+  input: z.infer<typeof openingHoursSchema>
+): Promise<SettingsResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const parsed = openingHoursSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  if (Object.values(v).every((d) => d === null)) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("kg_tenants")
+    .update({ opening_hours: v })
+    .eq("id", ctx.tenant.id);
+  if (error) return { ok: false, error: "generic" };
+
+  // Every surface reads this: the register banner, the calendar shading, the
+  // session planner, the activity day picker and the attendance rates.
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 const LOGO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export async function uploadTenantLogo(formData: FormData): Promise<SettingsResult> {

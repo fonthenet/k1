@@ -251,7 +251,10 @@ function AllergyDialog({
         if (!allergy) setForm({ allergen: "", severity: "mild", reaction: "", actionPlan: "" });
         router.refresh();
       } else {
-        toast.error(t("toasts.error"));
+        // 0061 made a second row for the same allergen impossible. Saying
+        // "an error occurred" for a list that already holds it is how someone
+        // ends up trying three times.
+        toast.error(res.error === "duplicate" ? t("toasts.duplicate") : t("toasts.error"));
       }
     });
   }

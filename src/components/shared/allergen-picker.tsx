@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ALLERGENS, allergenKeyFor } from "@/lib/allergens";
@@ -126,6 +126,94 @@ export function AllergenPicker({
           autoFocus={autoFocusOther}
         />
       )}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ multi
+
+/**
+ * Tick every allergen that applies, in one grid.
+ *
+ * The wizards used to render this whole 17-chip grid once per allergy: to
+ * record three you walked the same grid three times, and the page carried 51
+ * chips. The grid appears once now, and each tick becomes its own entry — which
+ * matters, because kg_child_allergies is one row per allergen with its own
+ * severity. Peanuts can be severe with an EpiPen while milk is mild, and that
+ * distinction is the entire reason the table is shaped that way.
+ *
+ * "Other" appends rather than toggles, so a child can have more than one
+ * allergy nobody thought to list.
+ */
+export function AllergenMultiPicker({
+  id,
+  values,
+  onToggle,
+  onAddOther,
+}: {
+  id: string;
+  /** Currently recorded allergens, canonical or free text. */
+  values: string[];
+  /** Called with a canonical value when a listed chip is tapped. */
+  onToggle: (value: string) => void;
+  /** Called when "Other" is tapped — append an entry the caller will name. */
+  onAddOther: () => void;
+}) {
+  const t = useTranslations("common");
+  const selected = new Set(values.map((v) => v.toLowerCase().trim()));
+
+  const groups = [
+    { group: "food" as const, label: t("allergens.groupFood") },
+    { group: "other" as const, label: t("allergens.groupOther") },
+  ];
+
+  return (
+    <div className="grid gap-3" role="group" aria-labelledby={id}>
+      {groups.map(({ group, label }) => (
+        <div key={group} className="grid gap-1.5">
+          <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+            {label}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {ALLERGENS.filter((a) => a.group === group).map((a) => {
+              const active = selected.has(a.value.toLowerCase());
+              return (
+                <button
+                  key={a.key}
+                  type="button"
+                  onClick={() => onToggle(a.value)}
+                  aria-pressed={active}
+                  className={cn(
+                    "inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-colors",
+                    "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                    active
+                      ? "border-transparent bg-destructive/10 text-destructive"
+                      : "border-border bg-card text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  {active && <Check className="size-3.5" aria-hidden />}
+                  {t(`allergens.${a.key}`)}
+                </button>
+              );
+            })}
+
+            {group === "other" && (
+              <button
+                type="button"
+                onClick={onAddOther}
+                className={cn(
+                  "inline-flex min-h-10 items-center gap-1.5 rounded-full border border-dashed px-3 py-2 text-sm font-medium transition-colors",
+                  "border-border text-muted-foreground hover:bg-muted",
+                  "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                )}
+              >
+                <Plus className="size-3.5" aria-hidden />
+                {t("allergens.other")}
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

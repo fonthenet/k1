@@ -30,6 +30,8 @@ export interface RosterChild {
   photoUrl: string | null;
   allergyCount: number;
   worstAllergy: AllergySeverity | null;
+  /** Enrolled, but charged no tuition. Finance-only; false for everyone else. */
+  noFeePlan: boolean;
 }
 
 export interface ClassOption {

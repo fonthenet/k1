@@ -42,6 +42,12 @@
         "moderate": "متوسط",
         "serious": "خطير"
       }
+    },
+    "due": {
+      "title": "{amount} مستحقة",
+      "by": "يُرجى الدفع قبل {date}",
+      "overdue": "متأخّرة — يُرجى التسوية",
+      "pending": "فاتورة في انتظار الدفع"
     }
   },
   "checkin": {
@@ -77,6 +83,11 @@
       "waitlist": "قائمة الانتظار",
       "withdrawn": "مشطوب",
       "alumni": "متخرّج"
+    },
+    "due": {
+      "amount": "{amount} مستحقة",
+      "forWhat": "{amount} — {what}",
+      "admission": "رسوم التسجيل"
     }
   },
   "applications": {
@@ -270,7 +281,8 @@
         "emergencyNotes": "ما يجب أن تعرفه الروضة في حالة طارئة"
       },
       "identityNote": "الاسم وتاريخ الميلاد مأخوذان من شهادة الميلاد، وتصحيحهما من صلاحية إدارة الروضة.",
-      "identityLink": "مراسلة الروضة"
+      "identityLink": "مراسلة الروضة",
+      "allergyDuplicate": "هذا النوع من الحساسية مُسجَّل بالفعل"
     },
     "activities": {
       "enrolledTitle": "أنشطة الطفل",
@@ -411,8 +423,11 @@
       "discount": "تخفيض {pct} %",
       "since": "منذ {date}",
       "until": "إلى غاية {date}",
-      "ended": "منتهٍ"
-    }
+      "ended": "منتهٍ",
+      "dueDay": "مستحقة في {day} من كل شهر"
+    },
+    "dueBy": "يُرجى الدفع قبل {date}",
+    "overdueHint": "متأخّرة — يُرجى المرور على المكتب"
   },
   "announcements": {
     "title": "الإعلانات",

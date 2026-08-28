@@ -75,7 +75,10 @@
   "establishment": {
     "title": "The establishment",
     "mapTitle": "Map — {name}",
-    "directions": "Directions"
+    "directions": "Directions",
+    "hours": "Opening hours",
+    "closedToday": "Closed today",
+    "openToday": "Open today · {open} – {close}"
   },
   "allergens": {
     "gluten": "Gluten",
@@ -99,5 +102,14 @@
     "groupOther": "Other",
     "other": "Other",
     "otherPlaceholder": "Name the allergen"
+  },
+  "daysShort": {
+    "sun": "Sun",
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat"
   }
 }

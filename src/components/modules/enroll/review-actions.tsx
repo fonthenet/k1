@@ -107,6 +107,11 @@ export function ReviewActions({
         : "none"
   );
   const [billFirstMonth, setBillFirstMonth] = useState(true);
+  const [noFeeAcknowledged, setNoFeeAcknowledged] = useState(false);
+  // Only when the crèche actually HAS plans to choose from: a tenant that has
+  // not set its tariffs up yet must still be able to enrol.
+  const mustAcknowledgeNoFee =
+    feePlans.length > 0 && feePlanId === "none" && !noFeeAcknowledged;
   const [rejectNote, setRejectNote] = useState("");
 
   if (status === "approved") {
@@ -242,10 +247,23 @@ export function ReviewActions({
                       {t("reviewActions.familyChose")}
                     </p>
                   )}
+                  {/* Enrolling with no monthly plan has to be a decision, not
+                      a default nobody noticed. kg_generate_monthly_invoices
+                      bills from kg_child_fees and skips a child with no row,
+                      so "none" means this family is never invoiced for the
+                      month — and nothing downstream ever says so. Four
+                      children reached that state before anyone spotted it. */}
                   {feePlanId === "none" && (
-                    <p className="text-xs text-warning-ink">
-                      {t("reviewActions.noFeePlanWarning")}
-                    </p>
+                    <label className="flex items-start gap-2.5 rounded-lg bg-warning/10 p-2.5 text-sm ring-1 ring-warning/30">
+                      <Checkbox
+                        checked={noFeeAcknowledged}
+                        onCheckedChange={(v) => setNoFeeAcknowledged(v === true)}
+                        className="mt-0.5"
+                      />
+                      <span className="min-w-0 text-warning-ink">
+                        {t("reviewActions.noFeePlanWarning")}
+                      </span>
+                    </label>
                   )}
                 </div>
 
@@ -291,7 +309,7 @@ export function ReviewActions({
             )}
           </div>
           <DialogFooter>
-            <Button onClick={doApprove} disabled={pending}>
+            <Button onClick={doApprove} disabled={pending || mustAcknowledgeNoFee}>
               {pending && <Loader2 className="size-4 animate-spin" data-icon="inline-start" />}
               {pending ? t("reviewActions.approving") : t("reviewActions.confirmApprove")}
             </Button>

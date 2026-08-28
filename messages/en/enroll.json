@@ -253,7 +253,7 @@
     "siblingNoFamily": "No guardian record was found for this applicant: approving will start a new family instead of extending one.",
     "feePlan": "Fee plan",
     "noFeePlan": "None — bill later",
-    "noFeePlanWarning": "Without a plan this child is never billed automatically. Set one on their record.",
+    "noFeePlanWarning": "No plan: this family will not be invoiced monthly. Tick to confirm.",
     "billNow": "Invoice this month now",
     "billNowHint": "Raises this month's invoice straight away. Otherwise it is generated on the 1st of next month.",
     "admissionFees": "Admission fees (applied automatically)",

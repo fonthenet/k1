@@ -79,12 +79,6 @@ export function initials(first: string, last: string): string {
   return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
 }
 
-// Sunday-first week for Algeria (weekend = Fri/Sat)
-export const DZ_WEEK_DAYS = ["sun", "mon", "tue", "wed", "thu"] as const;
-export function isDzWeekend(d: Date): boolean {
-  return d.getDay() === 5 || d.getDay() === 6;
-}
-
 /**
  * An Algerian phone number, in the form people actually write.
  *

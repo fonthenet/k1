@@ -818,7 +818,12 @@ export async function saveAllergy(input: z.input<typeof allergySchema>): Promise
       child_id: child.id,
       ...fields,
     });
-    if (error) return { ok: false, error: error.code === "42501" ? "forbidden" : "generic" };
+    // 23505 is kg_child_allergies_unique (0061): this allergen is already on
+    // the child's list. It is a normal thing for a parent to do, not a fault.
+    if (error) {
+      if (error.code === "23505") return { ok: false, error: "duplicate" };
+      return { ok: false, error: error.code === "42501" ? "forbidden" : "generic" };
+    }
   }
 
   revalidatePath(`/portal/children/${v.childId}`);

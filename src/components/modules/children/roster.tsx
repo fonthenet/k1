@@ -70,6 +70,25 @@ function AllergyBadge({ child }: { child: RosterChild }) {
   );
 }
 
+/**
+ * Enrolled, and charged no tuition.
+ *
+ * Gold rather than red: nobody is late — the crèche is simply not billing this
+ * family yet, and somebody has to decide. Shown only to finance, because the
+ * roster is read by educators all day and who is being charged is not their
+ * business; the page sets the flag to false for everyone else.
+ */
+function NoFeePlanBadge({ child }: { child: RosterChild }) {
+  const t = useTranslations("children");
+  if (!child.noFeePlan) return null;
+  return (
+    <Badge className="border-gold/40 bg-gold-muted text-gold-ink" title={t("billing.noPlanHint")}>
+      <AlertTriangle aria-hidden />
+      {t("billing.noPlan")}
+    </Badge>
+  );
+}
+
 function DualName({ child, locale }: { child: RosterChild; locale: string }) {
   const primary = childDisplayName(child, locale);
   const secondary =
@@ -261,7 +280,10 @@ export function ChildrenRoster({
                         <ClassChip child={c} locale={locale} />
                       </TableCell>
                       <TableCell>
-                        <AllergyBadge child={c} />
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <AllergyBadge child={c} />
+                          <NoFeePlanBadge child={c} />
+                        </div>
                       </TableCell>
                       <TableCell>
                         {c.tag_code ? (
@@ -311,6 +333,7 @@ export function ChildrenRoster({
                       </span>
                       <ClassChip child={c} locale={locale} />
                       <AllergyBadge child={c} />
+                      <NoFeePlanBadge child={c} />
                     </div>
                   </div>
                   <Badge className={childStatusClasses(c.status)}>{t(`status.${c.status}`)}</Badge>

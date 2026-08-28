@@ -253,7 +253,7 @@
     "siblingNoFamily": "Aucune fiche parent trouvée pour ce demandeur : l'approbation créera une nouvelle famille au lieu d'en compléter une.",
     "feePlan": "Formule tarifaire",
     "noFeePlan": "Aucune — facturer plus tard",
-    "noFeePlanWarning": "Sans formule, cet enfant ne sera jamais facturé automatiquement. À définir dans sa fiche.",
+    "noFeePlanWarning": "Aucune formule : cette famille ne sera pas facturée chaque mois. Cochez pour confirmer.",
     "billNow": "Facturer ce mois-ci maintenant",
     "billNowHint": "Émet la facture du mois immédiatement. Sinon elle sera générée le 1er du mois prochain.",
     "admissionFees": "Frais d'admission (appliqués automatiquement)",

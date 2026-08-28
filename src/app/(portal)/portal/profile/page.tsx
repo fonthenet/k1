@@ -9,6 +9,7 @@ import { EstablishmentCard } from "@/components/shared/establishment-card";
 import { PushToggle } from "@/components/shared/push-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, signedMediaUrl } from "@/lib/tenant";
+import { toOpeningHours } from "@/lib/week";
 import { ageFromDob, childDisplayName, initials } from "@/lib/format";
 import type { Relationship } from "@/lib/types";
 import { classLabel, getMyChildren } from "@/components/modules/portal/data";
@@ -248,6 +249,9 @@ export default async function PortalProfilePage() {
             wilaya: ctx.tenant.wilaya,
             latitude: ctx.tenant.latitude,
             longitude: ctx.tenant.longitude,
+            openingHours: toOpeningHours(
+              (ctx.tenant as { opening_hours?: unknown }).opening_hours
+            ),
           }}
         />
       </div>

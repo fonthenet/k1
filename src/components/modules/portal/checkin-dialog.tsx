@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { QrCode, Sun, Users } from "lucide-react";
+import { QrCode, Sun } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { CheckinStatusKind } from "./checkin-client";
 import { CheckinBadgeMissing, CheckinQrCard } from "./checkin-qr-card";
@@ -134,97 +133,6 @@ function CheckinChildLine({ child }: { child: CheckinDialogChild }) {
 }
 
 /**
- * Which of my children am I announcing?
- *
- * A row of faces, not a dropdown: a parent one place from the front of the
- * queue recognises a photo faster than they read a list, and a tab that is
- * already visible costs one tap instead of three. Each tab is 44px tall and
- * keeps its natural width, so three or four siblings scroll sideways at 375px
- * rather than squashing into unreadable slivers — and because the row is a
- * plain overflow container, RTL scrolls from the correct edge for free.
- */
-function CheckinChildTabs({
-  options,
-  value,
-  onValueChange,
-}: {
-  options: CheckinDialogChild[];
-  value: string;
-  onValueChange: (value: string) => void;
-}) {
-  const t = useTranslations("portal.checkin");
-  const listRef = useRef<HTMLDivElement>(null);
-
-  // With four siblings the row is wider than the phone, and the child the
-  // dialog opened on may be the one off the edge. Nothing is broken when that
-  // happens — the line below still names them — but the row would read as
-  // "nothing chosen", so it is dragged to the selected tab once, on open. The
-  // dialog unmounts its content when it closes, so this runs per opening.
-  useEffect(() => {
-    listRef.current
-      ?.querySelector('[data-slot="tabs-trigger"][data-state="active"]')
-      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
-    // Deliberately mount-only: after that the parent is driving the row.
-  }, []);
-
-  return (
-    <Tabs value={value} onValueChange={onValueChange} className="min-w-0 gap-2.5">
-      <TabsList
-        ref={listRef}
-        aria-label={t("pickChild")}
-        className={cn(
-          "w-full max-w-full justify-start gap-1 overflow-x-auto rounded-xl p-1",
-          // The stock list is a fixed 8 units tall; these tabs carry a face and
-          // a full thumb target, so the height comes from the content instead.
-          "h-auto group-data-horizontal/tabs:h-auto"
-        )}
-      >
-        {options.map((option) => (
-          <TabsTrigger
-            key={option.id}
-            value={option.id}
-            // grow, but never shrink: with room to spare the tabs share the
-            // row; with too little they overflow and the row scrolls.
-            className="h-11 flex-[1_0_auto] gap-2 rounded-lg px-2.5"
-          >
-            <Avatar className="size-7 shrink-0 ring-1 ring-primary/15">
-              {option.photoUrl && <AvatarImage src={option.photoUrl} alt="" />}
-              <AvatarFallback className="bg-primary/10 text-[0.625rem] font-semibold text-primary">
-                {option.initials}
-              </AvatarFallback>
-            </Avatar>
-            <span className="max-w-28 truncate">{option.givenName}</span>
-          </TabsTrigger>
-        ))}
-      </TabsList>
-
-      {/* One panel per child, and all it holds is the line naming them. The QR
-          sits ABOVE this whole block precisely because it does not belong to
-          any one tab. */}
-      {options.map((option) => (
-        <TabsContent key={option.id} value={option.id}>
-          <CheckinChildLine child={option} />
-        </TabsContent>
-      ))}
-    </Tabs>
-  );
-}
-
-/**
- * The child a freshly opened dialog should land on.
- *
- * Opened from one child's card, it is that child — the parent already said who
- * they meant. Opened cold, it is the first child who has not walked in yet,
- * because a parent standing at the door is almost always there for the one
- * still outside. With no attendance to go on, the first child.
- */
-function defaultChildId(options: CheckinDialogChild[], child?: CheckinDialogChild): string {
-  if (child && options.some((o) => o.id === child.id)) return child.id;
-  const notYet = options.find((o) => o.status?.kind === "notYet");
-  return notYet?.id ?? options[0]?.id ?? "";
-}
-
-/**
  * The door badge as a quick pop-up.
  *
  * A parent opens this one-handed while queueing at the gate, so it is a sheet
@@ -247,19 +155,12 @@ function defaultChildId(options: CheckinDialogChild[], child?: CheckinDialogChil
 export function CheckinDialog({
   badge,
   child,
-  family,
   trigger = "inline",
   className,
 }: {
   badge: PortalGuardianBadge;
   /** Omit when the badge is opened for the family as a whole. */
   child?: CheckinDialogChild;
-  /**
-   * Every child linked to this guardian, so a family with siblings can switch
-   * between them without closing the dialog. Fetched once per page and shared
-   * by every trigger on it — never queried from in here.
-   */
-  family?: CheckinDialogChild[];
   trigger?: TriggerShape;
   className?: string;
 }) {
@@ -267,29 +168,17 @@ export function CheckinDialog({
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
 
-  const options = family ?? [];
-  // One child needs no chooser, and an only child must never see a tab bar
-  // holding a single tab.
-  const showTabs = options.length > 1;
-  const [selectedId, setSelectedId] = useState(() => defaultChildId(options, child));
 
   // Only while the badge is actually up: outside the dialog the parent is
   // reading their portal like any other page and should keep the usual timeout.
   useScreenWakeLock(open && !!badge.tagCode);
 
   const shape = TRIGGER[trigger];
-  const selected = options.find((o) => o.id === selectedId) ?? options[0] ?? null;
 
   return (
     <Dialog
       open={open}
-      onOpenChange={(next) => {
-        // Every opening starts from the sensible child again: a parent who
-        // switched to a sibling last time and then tapped THIS card meant this
-        // card's child, not the leftover selection.
-        if (next) setSelectedId(defaultChildId(options, child));
-        setOpen(next);
-      }}
+      onOpenChange={setOpen}
     >
       <DialogTrigger asChild>
         <Button
@@ -341,24 +230,15 @@ export function CheckinDialog({
             <CheckinQrCard tagCode={badge.tagCode} guardianName={badge.name} />
 
             {/* Named under the code, because the staff member reads the code
-                first and then asks who they are handing over. */}
-            {showTabs && selected ? (
-              <>
-                <CheckinChildTabs
-                  options={options}
-                  value={selected.id}
-                  onValueChange={setSelectedId}
-                />
-                {/* Said plainly, because a row of tabs above a QR invites the
-                    wrong guess: the code did not change when you tapped. */}
-                <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-                  <Users className="mt-px size-4 shrink-0 text-primary" aria-hidden />
-                  {t("sameCodeHint")}
-                </p>
-              </>
-            ) : (
-              child && <CheckinChildLine child={child} />
-            )}
+                first and then asks who they are handing over.
+
+                There used to be a row of sibling tabs here. It had to be
+                followed by a line explaining that tapping it changed nothing —
+                the badge is issued per GUARDIAN, so every child shares one
+                code — and a control whose own caption says it does nothing is
+                a control that should not exist. The child is named, not
+                chosen. */}
+            {child && <CheckinChildLine child={child} />}
 
             <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
               <Sun className="mt-px size-4 shrink-0 text-gold" aria-hidden />

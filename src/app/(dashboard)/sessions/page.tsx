@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { CalendarClock, CalendarX2, CheckCircle2, Target } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
+import { isOpenDayStr, toOpeningHours } from "@/lib/week";
 import { childDisplayName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Membership } from "@/lib/types";
@@ -19,7 +20,6 @@ import {
   algiersRange,
   algiersToday,
   isValidDateStr,
-  isWeekendStr,
   longDateLabel,
   shortDayLabel,
   weekDays,
@@ -62,6 +62,9 @@ export default async function SessionsPage({
   searchParams: Promise<{ view?: string; date?: string; therapist?: string; type?: string }>;
 }) {
   const ctx = await requireStaff();
+  const openingHours = toOpeningHours(
+    (ctx.tenant as { opening_hours?: unknown }).opening_hours
+  );
   const t = await getTranslations("sessions");
   const locale = await getLocale();
   const sp = await searchParams;
@@ -266,7 +269,7 @@ export default async function SessionsPage({
         <div className="grid gap-4">
           {days.map((day) => {
             const rows = byDay.get(day) ?? [];
-            const weekend = isWeekendStr(day);
+            const weekend = !isOpenDayStr(openingHours, day);
             return (
               <section
                 key={day}

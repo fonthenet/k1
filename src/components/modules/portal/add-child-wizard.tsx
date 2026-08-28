@@ -213,7 +213,7 @@ export function AddChildWizard({
           <StepPhoto
             // StepPhoto only needs the id: it uploads to u/{userId}/enroll/{uuid}.jpg,
             // the one prefix storage policy lets this parent write to.
-            user={{ id: userId, email: null, fullName: null }}
+            user={{ id: userId, email: null, fullName: null, phone: null }}
             photoPath={child.photo_path}
             onUploaded={(path) => setChild((c) => ({ ...c, photo_path: path }))}
           />

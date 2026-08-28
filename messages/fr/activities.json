@@ -40,7 +40,9 @@
     "mon": "Lundi",
     "tue": "Mardi",
     "wed": "Mercredi",
-    "thu": "Jeudi"
+    "thu": "Jeudi",
+    "fri": "Vendredi",
+    "sat": "Samedi"
   },
   "dialog": {
     "newTitle": "Nouvelle activité",

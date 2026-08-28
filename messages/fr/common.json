@@ -75,7 +75,10 @@
   "establishment": {
     "title": "L'établissement",
     "mapTitle": "Carte — {name}",
-    "directions": "Itinéraire"
+    "directions": "Itinéraire",
+    "hours": "Horaires",
+    "closedToday": "Fermé aujourd'hui",
+    "openToday": "Ouvert aujourd'hui · {open} – {close}"
   },
   "allergens": {
     "gluten": "Gluten",
@@ -99,5 +102,14 @@
     "groupOther": "Autres",
     "other": "Autre",
     "otherPlaceholder": "Précisez l'allergène"
+  },
+  "daysShort": {
+    "sun": "Dim",
+    "mon": "Lun",
+    "tue": "Mar",
+    "wed": "Mer",
+    "thu": "Jeu",
+    "fri": "Ven",
+    "sat": "Sam"
   }
 }

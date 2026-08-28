@@ -44,3 +44,14 @@ export function daysSince(date: string, today: string): number {
     (new Date(`${today}T00:00:00`).getTime() - new Date(`${date}T00:00:00`).getTime()) / 86_400_000
   );
 }
+
+/**
+ * The day of the month a monthly invoice falls due.
+ *
+ * kg_generate_monthly_invoices (0047) sets due_date to the period start plus
+ * nine days, and kg_start_child_billing prices the first month the same way,
+ * so every monthly invoice is due on the 10th. Named here rather than written
+ * as "10" in a template: if that interval ever moves, this is the one place
+ * the parent-facing wording has to follow it to.
+ */
+export const INVOICE_DUE_DAY = 10;

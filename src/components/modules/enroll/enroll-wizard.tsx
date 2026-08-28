@@ -31,6 +31,7 @@ import { StepActivities } from "./step-activities";
 import { StepReview } from "./step-review";
 import { StepSuccess } from "./step-success";
 import { flushPush } from "@/app/actions/push";
+import { isPhoneAlias } from "@/lib/auth-identifier";
 
 // 0 welcome · 1 account · 2 child · 3 photo · 4 guardians · 5 health · 6 activities · 7 review
 const TOTAL_STEPS = 8;
@@ -163,14 +164,30 @@ export function EnrollWizard({
   );
 
   // Prefill guardian 1 from the account once authenticated.
+  //
+  // The phone is the point: someone who just signed up with 0550 12 34 56 was
+  // then asked for their phone number on the very next screen, as a required
+  // field. It is fetched from kg_profiles, or decoded from the alias.
+  //
+  // The email needs the opposite care. A phone signup's auth address is an
+  // internal alias (0550123456@phone.rawdati.app) that nothing can deliver to,
+  // and this used to copy it straight into the guardian's contact email, where
+  // it would be saved with the application and used to try to reach the family.
+  // isPhoneAlias keeps it out; the field stays empty for them to fill or not.
   const prefillGuardian1 = useCallback(
     (u: WizardUser) => {
       setState((s) => {
-        if (s.guardian1.first_name || s.guardian1.last_name) return s;
+        if (s.guardian1.first_name || s.guardian1.last_name || s.guardian1.phone) return s;
         const { first, last } = splitFullName(u.fullName);
         return {
           ...s,
-          guardian1: { ...s.guardian1, first_name: first, last_name: last, email: u.email ?? "" },
+          guardian1: {
+            ...s.guardian1,
+            first_name: first,
+            last_name: last,
+            email: isPhoneAlias(u.email) ? "" : (u.email ?? ""),
+            phone: u.phone ?? s.guardian1.phone,
+          },
         };
       });
     },

@@ -294,7 +294,9 @@
     "invoicesTitle": "Factures",
     "invoicesEmpty": "Aucune facture pour cet enfant",
     "goToBilling": "Ouvrir la facturation",
-    "restricted": "Réservé à la direction et à l'administration."
+    "restricted": "Réservé à la direction et à l'administration.",
+    "noPlan": "Sans mensualité",
+    "noPlanHint": "Cet enfant n'est pas facturé chaque mois — choisissez une formule."
   },
   "documents": {
     "title": "Documents",

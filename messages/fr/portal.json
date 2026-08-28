@@ -42,6 +42,12 @@
         "moderate": "Modéré",
         "serious": "Grave"
       }
+    },
+    "due": {
+      "title": "{amount} à régler",
+      "by": "À régler avant le {date}",
+      "overdue": "En retard — merci de régulariser",
+      "pending": "Facture en attente de règlement"
     }
   },
   "checkin": {
@@ -77,6 +83,11 @@
       "waitlist": "Liste d'attente",
       "withdrawn": "Radié(e)",
       "alumni": "Ancien(ne)"
+    },
+    "due": {
+      "amount": "{amount} à régler",
+      "forWhat": "{amount} — {what}",
+      "admission": "Frais d'inscription"
     }
   },
   "applications": {
@@ -270,7 +281,8 @@
         "emergencyNotes": "Ce que la crèche doit savoir en cas d'urgence"
       },
       "identityNote": "Le nom et la date de naissance proviennent de l'acte de naissance : seule l'administration peut les corriger.",
-      "identityLink": "Écrire à la crèche"
+      "identityLink": "Écrire à la crèche",
+      "allergyDuplicate": "Cet allergène est déjà dans la liste"
     },
     "activities": {
       "enrolledTitle": "Activités de l'enfant",
@@ -411,8 +423,11 @@
       "discount": "remise {pct} %",
       "since": "depuis le {date}",
       "until": "jusqu'au {date}",
-      "ended": "Terminé"
-    }
+      "ended": "Terminé",
+      "dueDay": "Exigible le {day} de chaque mois"
+    },
+    "dueBy": "À régler avant le {date}",
+    "overdueHint": "En retard — merci de passer au bureau"
   },
   "announcements": {
     "title": "Actualités",

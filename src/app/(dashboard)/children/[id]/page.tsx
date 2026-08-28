@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   IdCard,
   Receipt,
+  TriangleAlert,
   UserX,
   Wallet,
 } from "lucide-react";
@@ -39,6 +40,9 @@ import { PickupsSection } from "@/components/modules/children/pickups-section";
 import { StatusActions } from "@/components/modules/children/status-actions";
 import { CredentialCards } from "@/components/modules/credentials/credential-cards";
 import type { CredentialRow } from "@/components/modules/credentials/types";
+import { algiersToday } from "@/components/modules/billing/dates";
+import { AssignFeeDialog } from "@/components/modules/billing/assign-fee-dialog";
+import type { PlanOption } from "@/components/modules/billing/billing-types";
 import {
   attendanceStatusClasses,
   childStatusClasses,
@@ -130,6 +134,8 @@ type GuardianJoinRow = {
 
 type FeeJoinRow = {
   id: string;
+  /** Needed to open the assign dialog on the plan this child is already on. */
+  fee_plan_id: string;
   custom_amount: number | null;
   discount_pct: number;
   start_date: string;
@@ -205,6 +211,7 @@ export default async function ChildProfilePage({
     { data: healthRow },
     { data: allergyRows },
     { data: attendanceRows },
+    { data: planRows },
     feesRes,
     invoicesRes,
     { data: documentRows },
@@ -242,11 +249,24 @@ export default async function ChildProfilePage({
       .gte("date", start)
       .lt("date", end)
       .order("date", { ascending: false }),
+    // The tariffs this child could be put on. Fetched here so the plan can be
+    // set on the child's own screen: the "Sans mensualité" badge points at
+    // this tab, and until now the only thing here was a link to the billing
+    // hub — the badge promised an action the page could not perform.
+    ctx.isFinance
+      ? supabase
+          .from("kg_fee_plans")
+          .select("id, name, name_ar, amount, period, active")
+          .eq("tenant_id", ctx.tenant.id)
+          .eq("active", true)
+          .eq("period", "monthly")
+          .order("amount")
+      : Promise.resolve({ data: [] }),
     ctx.isFinance
       ? supabase
           .from("kg_child_fees")
           .select(
-            "id, custom_amount, discount_pct, start_date, end_date, kg_fee_plans(name, name_ar, amount, period)"
+            "id, fee_plan_id, custom_amount, discount_pct, start_date, end_date, kg_fee_plans(name, name_ar, amount, period)"
           )
           .eq("child_id", id)
           .eq("tenant_id", ctx.tenant.id)
@@ -380,6 +400,29 @@ export default async function ChildProfilePage({
   }, {});
 
   const fees = ((feesRes.data ?? []) as unknown as FeeJoinRow[]).filter((f) => f.kg_fee_plans);
+
+  // No live MONTHLY plan means this child is charged no tuition — the monthly
+  // run will invoice their activities, if any, and nothing else. The `period`
+  // test is the whole point: every approval also writes a one-off admission
+  // row, and treating that as "has a fee" is what let four children look
+  // billed while they were not.
+  const billingToday = algiersToday();
+  const planOptions = ((planRows ?? []) as PlanOption[]).map((p) => ({
+    ...p,
+    amount: Number(p.amount),
+  }));
+  // The live monthly assignment, so the dialog opens on what this child is
+  // actually on rather than empty.
+  const currentFee = fees.find(
+    (f) =>
+      f.kg_fee_plans?.period === "monthly" &&
+      (f.end_date === null || f.end_date > billingToday)
+  );
+  const hasMonthlyPlan = fees.some(
+    (f) =>
+      f.kg_fee_plans?.period === "monthly" &&
+      (f.end_date === null || f.end_date > billingToday)
+  );
   const invoices = (invoicesRes.data ?? []) as InvoiceRow[];
 
   // What this child owes, right now. Computed from kg_child_balance rather than
@@ -511,6 +554,31 @@ export default async function ChildProfilePage({
                     {t("billing.owes", { amount: formatDZD(balance, locale) })}
                   </Link>
                 </Badge>
+              )}
+              {/* Says it where the child is actually looked at, not only on
+                  the billing screen. Gold, not red: nobody is late — the
+                  crèche simply is not charging them yet, and somebody has to
+                  decide. */}
+              {ctx.isFinance && child.status === "enrolled" && !hasMonthlyPlan && (
+                // The badge IS the fix. It used to link to the billing tab and
+                // leave somebody to find the button there; the moment a person
+                // notices the problem is the moment to let them solve it.
+                <AssignFeeDialog
+                  childId={child.id}
+                  childName={name}
+                  plans={planOptions}
+                  trigger={
+                    <Badge
+                      asChild
+                      className="cursor-pointer border-gold/40 bg-gold-muted text-gold-ink hover:bg-gold-muted/70"
+                    >
+                      <button type="button" title={t("billing.noPlanHint")}>
+                        <TriangleAlert className="size-3.5" aria-hidden />
+                        {t("billing.noPlan")}
+                      </button>
+                    </Badge>
+                  }
+                />
               )}
               {ctx.isFinance && balance === 0 && invoices.length > 0 && (
                 <Badge variant="secondary" className="gap-1.5">
@@ -778,9 +846,32 @@ export default async function ChildProfilePage({
                     </span>
                     {t("billing.feesTitle")}
                   </CardTitle>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href="/billing">{t("billing.goToBilling")}</Link>
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Set it here, where the badge sends you. */}
+                    {planOptions.length > 0 && (
+                      <AssignFeeDialog
+                        childId={child.id}
+                        childName={name}
+                        plans={planOptions}
+                        current={
+                          currentFee
+                            ? {
+                                planId: currentFee.fee_plan_id,
+                                customAmount:
+                                  currentFee.custom_amount !== null
+                                    ? Number(currentFee.custom_amount)
+                                    : null,
+                                discountPct: Number(currentFee.discount_pct ?? 0),
+                                discountNote: null,
+                              }
+                            : undefined
+                        }
+                      />
+                    )}
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/billing">{t("billing.goToBilling")}</Link>
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   {fees.length === 0 ? (

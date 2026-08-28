@@ -135,13 +135,15 @@ function InlineText({
 
 export function RegisterClient({
   date,
-  isWeekend,
+  isClosedDay,
+  dayLabel,
   classes,
   activeClass,
   rows,
 }: {
   date: string;
-  isWeekend: boolean;
+  isClosedDay: boolean;
+  dayLabel: string;
   classes: RegisterClassTab[];
   activeClass: string;
   rows: RegisterRow[];
@@ -381,12 +383,12 @@ export function RegisterClient({
         </div>
       </div>
 
-      {isWeekend && (
+      {isClosedDay && (
         <div className="flex items-center gap-3 rounded-xl border border-gold/25 bg-gold-muted px-4 py-3 text-sm font-medium text-foreground">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gold text-gold-foreground">
             <TriangleAlert className="size-4" />
           </span>
-          {t("nav.weekendNotice")}
+          {t("nav.closedNotice", { day: dayLabel })}
         </div>
       )}
 
@@ -437,7 +439,7 @@ export function RegisterClient({
           description={t("empty.description")}
         />
       ) : (
-        <Card className={cn("py-0 shadow-sm", isWeekend && "bg-muted")}>
+        <Card className={cn("py-0 shadow-sm", isClosedDay && "bg-muted")}>
           <CardContent className="overflow-x-auto p-0">
             <Table>
               <TableHeader>

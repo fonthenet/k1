@@ -4,6 +4,8 @@ import type { Tenant } from "@/lib/types";
 import { requireAdmin, signedMediaUrl } from "@/lib/tenant";
 import { toCenterType } from "@/components/modules/settings/center-types";
 import { TenantProfileForm } from "@/components/modules/settings/tenant-profile-form";
+import { OpeningHoursForm } from "@/components/modules/settings/opening-hours-form";
+import { toOpeningHours } from "@/lib/week";
 
 export default async function SettingsSchoolPage() {
   const ctx = await requireAdmin();
@@ -14,8 +16,12 @@ export default async function SettingsSchoolPage() {
     (ctx.tenant as Tenant & { center_type?: string | null }).center_type
   );
 
+  const openingHours = toOpeningHours(
+    (ctx.tenant as Tenant & { opening_hours?: unknown }).opening_hours
+  );
+
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader title={t("school.title")} description={t("school.description")} />
       <TenantProfileForm
         tenant={{
@@ -31,6 +37,7 @@ export default async function SettingsSchoolPage() {
         }}
         logoUrl={logoUrl}
       />
+      <OpeningHoursForm initial={openingHours} />
     </div>
   );
 }

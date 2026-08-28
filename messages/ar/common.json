@@ -75,7 +75,10 @@
   "establishment": {
     "title": "المؤسسة",
     "mapTitle": "خريطة — {name}",
-    "directions": "الاتجاهات"
+    "directions": "الاتجاهات",
+    "hours": "أوقات العمل",
+    "closedToday": "مغلق اليوم",
+    "openToday": "مفتوح اليوم · {open} – {close}"
   },
   "allergens": {
     "gluten": "الغلوتين",
@@ -99,5 +102,14 @@
     "groupOther": "أخرى",
     "other": "أخرى",
     "otherPlaceholder": "حدِّد نوع الحساسية"
+  },
+  "daysShort": {
+    "sun": "الأحد",
+    "mon": "الإثنين",
+    "tue": "الثلاثاء",
+    "wed": "الأربعاء",
+    "thu": "الخميس",
+    "fri": "الجمعة",
+    "sat": "السبت"
   }
 }

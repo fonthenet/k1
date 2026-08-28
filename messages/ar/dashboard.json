@@ -19,7 +19,10 @@
     "unpaidTotal": "مستحقات غير مدفوعة",
     "unpaidHint": "{count, plural, =0 {لا توجد فواتير} one {فاتورة واحدة} two {فاتورتان} few {# فواتير} many {# فاتورة} other {# فاتورة}}",
     "pendingApplications": "طلبات قيد الانتظار",
-    "applicationsHint": "طلبات تسجيل للمراجعة"
+    "applicationsHint": "طلبات تسجيل للمراجعة",
+    "goneHome": "المغادرون",
+    "goneHomeHint": "خرجوا اليوم",
+    "staffPresent2": "الطاقم في العمل"
   },
   "today": {
     "title": "اليوم",
@@ -36,7 +39,11 @@
       "absent": "غائب",
       "sick": "مريض",
       "excused": "بعذر"
-    }
+    },
+    "arrived": "الحاضرون ({count})",
+    "nobodyYet": "{count, plural, zero {لم يصل أحد بعد} one {لم يصل أحد بعد — طفل واحد متوقع اليوم} two {لم يصل أحد بعد — طفلان متوقعان اليوم} few {لم يصل أحد بعد — # أطفال متوقعون اليوم} many {لم يصل أحد بعد — # طفلا متوقعون اليوم} other {لم يصل أحد بعد — # طفل متوقع اليوم}}",
+    "absentWithReason": "غيابات مبلّغ عنها ({count})",
+    "notArrivedYet": "{count, plural, zero {لا أحد ينتظر} one {طفل واحد لم يصل بعد} two {طفلان لم يصلا بعد} few {# أطفال لم يصلوا بعد} many {# طفلا لم يصلوا بعد} other {# طفل لم يصل بعد}}"
   },
   "finance": {
     "title": "المالية",
@@ -59,7 +66,7 @@
     "emptyHint": "لا توجد مهام معلّقة حاليا."
   },
   "announcements": {
-    "title": "آخر الإعلانات",
+    "title": "الإعلانات",
     "empty": "لا توجد إعلانات منشورة.",
     "pinned": "مثبّت",
     "audience": {

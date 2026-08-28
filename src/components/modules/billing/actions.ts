@@ -7,7 +7,16 @@ import { requireFinance } from "@/lib/tenant";
 import { algiersToday } from "./dates";
 
 export type ActionError = "invalid" | "duplicate" | "forbidden" | "inUse" | "error";
-export type ActionResult = { ok: true; id?: string } | { ok: false; error: ActionError };
+export type ActionResult =
+  | {
+      ok: true;
+      id?: string;
+      /** DA added to this month's invoice, when the action bills. */
+      billed?: number;
+      /** The action succeeded but the month could not be charged — say so. */
+      billingFailed?: boolean;
+    }
+  | { ok: false; error: ActionError };
 
 function mapDbError(error: { code?: string } | null): { ok: false; error: ActionError } {
   if (error?.code === "23505") return { ok: false, error: "duplicate" };
@@ -19,6 +28,13 @@ function revalidateBilling(invoiceId?: string) {
   revalidatePath("/billing");
   revalidatePath("/billing/arrears");
   if (invoiceId) revalidatePath(`/billing/invoices/${invoiceId}`);
+}
+
+interface RunSummary {
+  created: number;
+  skipped: number;
+  unbilled: number;
+  unbilledChildren: { childId: string; firstName: string | null; lastName: string | null }[];
 }
 
 const monthSchema = z.string().regex(/^\d{4}-\d{2}$/);
@@ -34,7 +50,10 @@ const optionalText = z
 
 export async function generateMonthlyInvoices(
   month: string
-): Promise<{ ok: true; count: number } | { ok: false; error: ActionError }> {
+): Promise<
+  | { ok: true; count: number; unbilled: number; unbilledNames: string[] }
+  | { ok: false; error: ActionError }
+> {
   const ctx = await requireFinance();
   if (!monthSchema.safeParse(month).success) return { ok: false, error: "invalid" };
 
@@ -48,8 +67,61 @@ export async function generateMonthlyInvoices(
     p_source: "manual",
   });
   if (error) return mapDbError(error);
+
+  // How many children were charged NO TUITION this month, and who. The run
+  // used to leave them out of its own arithmetic entirely, so it could report
+  // "12 invoices created" while a child sat unbilled month after month. The
+  // count is read back here so the person who pressed the button is told at
+  // the moment the money is counted, not weeks later when it never arrived.
+  const { data: summary } = await supabase.rpc("kg_invoice_run_summary", {
+    p_tenant: ctx.tenant.id,
+    p_month: `${month}-01`,
+  });
+  const run = (summary ?? null) as RunSummary | null;
+
   revalidateBilling();
-  return { ok: true, count: typeof data === "number" ? data : 0 };
+  return {
+    ok: true,
+    count: typeof data === "number" ? data : 0,
+    unbilled: run?.unbilled ?? 0,
+    unbilledNames: (run?.unbilledChildren ?? []).map((c) =>
+      [c.firstName, c.lastName].filter(Boolean).join(" ")
+    ),
+  };
+}
+
+/**
+ * Adds the charges missing from invoices that are already open for the month.
+ *
+ * The gap between the two mechanisms that keep a month right: the enrolment
+ * trigger bills an activity when it starts, and the monthly run bills children
+ * who have no invoice yet. An invoice that EXISTS but is short falls between
+ * them — the run skips that child, and the trigger already fired. Nothing ever
+ * revisits it, so the bill stays wrong and silent.
+ *
+ * Never touches a settled month: a paid invoice is a receipt the family already
+ * holds, and reopening it would invent a debt they never agreed to.
+ */
+export async function completeMonthInvoices(
+  month: string
+): Promise<{ ok: true; children: number; added: number } | { ok: false; error: ActionError }> {
+  const ctx = await requireFinance();
+  if (!monthSchema.safeParse(month).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kg_complete_month_invoices", {
+    p_tenant: ctx.tenant.id,
+    p_month: `${month}-01`,
+  });
+  if (error) return mapDbError(error);
+
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { children: number | string; added: number | string }
+    | null
+    | undefined;
+
+  revalidateBilling();
+  return { ok: true, children: Number(row?.children ?? 0), added: Number(row?.added ?? 0) };
 }
 
 /** Turns this month's drafts into issued invoices — the step that spends a number. */
@@ -319,8 +391,26 @@ export async function assignFee(input: z.input<typeof assignSchema>): Promise<Ac
     { onConflict: "child_id,fee_plan_id" }
   );
   if (error) return mapDbError(error);
+
+  // Bill the month the plan was chosen in. Without this, a child approved with
+  // no plan keeps an invoice holding only their admission fee: assigning a
+  // tariff later changed nothing, and the next run bills the NEXT month, so
+  // the month in between was never charged and nothing said so. Idempotent —
+  // it adds only what is missing, and leaves a paid month alone.
+  const { data: added, error: billError } = await supabase.rpc("kg_bill_child_month", {
+    p_tenant: ctx.tenant.id,
+    p_child: d.childId,
+    p_month: `${today.slice(0, 7)}-01`,
+  });
+
   revalidatePath("/billing/plans");
-  return { ok: true };
+  revalidatePath("/billing");
+  revalidatePath(`/children/${d.childId}`);
+  // The plan is saved either way — failing the whole action would be a lie. But
+  // a top-up that fails quietly is precisely the bug this exists to close, so
+  // the office is told the month still needs charging by hand.
+  if (billError) return { ok: true, billed: 0, billingFailed: true };
+  return { ok: true, billed: Number(added ?? 0) };
 }
 
 export async function endAssignment(feeId: string): Promise<ActionResult> {

@@ -33,9 +33,15 @@
     "empty": "Aucune facture pour ce mois",
     "emptyHint": "Générez les factures du mois à partir des formules assignées aux enfants, ou créez une facture manuelle.",
     "noFeePlan": {
-      "title": "{count, plural, one {1 enfant inscrit sans formule tarifaire} other {# enfants inscrits sans formule tarifaire}}",
-      "body": "Ils ne seront jamais facturés automatiquement.",
+      "title": "{count, plural, one {1 enfant inscrit n'est pas facturé chaque mois} other {# enfants inscrits ne sont pas facturés chaque mois}}",
+      "body": "Sans formule, le calcul mensuel les ignore.",
       "action": "Attribuer une formule"
+    },
+    "incomplete": {
+      "title": "{count, plural, one {# facture de ce mois est incomplète} other {# factures de ce mois sont incomplètes}}",
+      "body": "Des frais dus n'y figurent pas — total manquant : {amount}. Les factures déjà réglées ne sont pas modifiées.",
+      "action": "Compléter les factures",
+      "done": "{count, plural, =0 {Rien à ajouter} one {# facture complétée — {amount} ajoutés} other {# factures complétées — {amount} ajoutés}}"
     }
   },
   "status": {
@@ -84,7 +90,8 @@
     "title": "Générer les factures mensuelles",
     "description": "Créer les factures de {month} pour tous les enfants inscrits ayant une formule mensuelle. Les enfants déjà facturés pour ce mois seront ignorés.",
     "confirm": "Générer",
-    "success": "{count, plural, =0 {Aucune nouvelle facture à générer} one {# facture générée} other {# factures générées}}"
+    "success": "{count, plural, =0 {Aucune nouvelle facture à générer} one {# facture générée} other {# factures générées}}",
+    "unbilled": "{count, plural, one {# enfant sans formule — non facturé} other {# enfants sans formule — non facturés}}"
   },
   "newInvoice": {
     "button": "Nouvelle facture",
@@ -273,7 +280,9 @@
       "notePlaceholder": "Remise fratrie",
       "preview": "Montant facturé chaque mois : {amount}",
       "submit": "Assigner",
-      "success": "Formule assignée"
+      "success": "Formule assignée",
+      "successBilled": "Formule assignée — {amount} ajoutés à la facture de ce mois",
+      "successNotBilled": "Formule assignée, mais la facture du mois n'a pas pu être mise à jour. À vérifier."
     }
   },
   "arrears": {

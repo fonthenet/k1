@@ -42,6 +42,12 @@
         "moderate": "Moderate",
         "serious": "Serious"
       }
+    },
+    "due": {
+      "title": "{amount} to pay",
+      "by": "Due by {date}",
+      "overdue": "Overdue — please settle",
+      "pending": "Invoice awaiting payment"
     }
   },
   "checkin": {
@@ -77,6 +83,11 @@
       "waitlist": "Waiting list",
       "withdrawn": "Withdrawn",
       "alumni": "Alumni"
+    },
+    "due": {
+      "amount": "{amount} to pay",
+      "forWhat": "{amount} — {what}",
+      "admission": "Admission fee"
     }
   },
   "applications": {
@@ -270,7 +281,8 @@
         "emergencyNotes": "What the kindergarten should know in an emergency"
       },
       "identityNote": "Name and date of birth come from the birth certificate — only the office can correct them.",
-      "identityLink": "Message the kindergarten"
+      "identityLink": "Message the kindergarten",
+      "allergyDuplicate": "That allergen is already on the list"
     },
     "activities": {
       "enrolledTitle": "Enrolled activities",
@@ -411,8 +423,11 @@
       "discount": "{pct}% discount",
       "since": "since {date}",
       "until": "until {date}",
-      "ended": "Ended"
-    }
+      "ended": "Ended",
+      "dueDay": "Due on the {day}th of each month"
+    },
+    "dueBy": "Due by {date}",
+    "overdueHint": "Overdue — please come by the office"
   },
   "announcements": {
     "title": "News",

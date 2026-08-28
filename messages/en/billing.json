@@ -33,9 +33,15 @@
     "empty": "No invoices for this month",
     "emptyHint": "Generate the month's invoices from the fee plans assigned to children, or create a manual invoice.",
     "noFeePlan": {
-      "title": "{count, plural, one {1 enrolled child has no fee plan} other {# enrolled children have no fee plan}}",
-      "body": "They will never be invoiced automatically.",
-      "action": "Assign a plan"
+      "title": "{count, plural, one {1 enrolled child is not invoiced monthly} other {# enrolled children are not invoiced monthly}}",
+      "body": "With no fee plan, the monthly run skips them.",
+      "action": "Assign a fee plan"
+    },
+    "incomplete": {
+      "title": "{count, plural, one {# invoice this month is incomplete} other {# invoices this month are incomplete}}",
+      "body": "Charges that are owed are missing from them — {amount} in total. Invoices already settled are left alone.",
+      "action": "Complete the invoices",
+      "done": "{count, plural, =0 {Nothing to add} one {# invoice completed — {amount} added} other {# invoices completed — {amount} added}}"
     }
   },
   "status": {
@@ -84,7 +90,8 @@
     "title": "Generate monthly invoices",
     "description": "Create the {month} invoices for every enrolled child with a monthly fee plan. Children already invoiced for this month are skipped.",
     "confirm": "Generate",
-    "success": "{count, plural, =0 {No new invoices to generate} one {# invoice generated} other {# invoices generated}}"
+    "success": "{count, plural, =0 {No new invoices to generate} one {# invoice generated} other {# invoices generated}}",
+    "unbilled": "{count, plural, one {# child has no plan — not billed} other {# children have no plan — not billed}}"
   },
   "newInvoice": {
     "button": "New invoice",
@@ -273,7 +280,9 @@
       "notePlaceholder": "Sibling discount",
       "preview": "Amount billed each month: {amount}",
       "submit": "Assign",
-      "success": "Plan assigned"
+      "success": "Plan assigned",
+      "successBilled": "Plan assigned — {amount} added to this month's invoice",
+      "successNotBilled": "Plan assigned, but this month's invoice could not be updated. Please check it."
     }
   },
   "arrears": {

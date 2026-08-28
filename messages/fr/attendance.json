@@ -7,7 +7,7 @@
     "today": "Aujourd'hui",
     "history": "Historique",
     "register": "Registre du jour",
-    "weekendNotice": "Week-end (vendredi / samedi) — le jardin d'enfants est normalement fermé."
+    "closedNotice": "{day} — la crèche n'ouvre pas ce jour-là."
   },
   "tabs": {
     "all": "Toutes les classes"

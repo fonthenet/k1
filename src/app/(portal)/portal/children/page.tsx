@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Baby, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Baby, ChevronLeft, ChevronRight, Plus, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,10 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, signedMediaUrl } from "@/lib/tenant";
-import { ageFromDob, childDisplayName, initials } from "@/lib/format";
+import { ageFromDob, childDisplayName, formatDZD, initials } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { algiersToday, monthLabel } from "@/components/modules/billing/dates";
+import { getDuesByChild } from "@/components/modules/portal/dues";
 import {
   classLabel,
   getMyChildren,
@@ -37,6 +40,14 @@ export default async function PortalChildrenPage() {
     getMyOpenApplications(supabase, ctx),
     getMyGuardianBadge(supabase, ctx, locale),
   ]);
+  // Same source as the home screen's summary line, so the two cannot disagree.
+  const today = algiersToday();
+  const dues = await getDuesByChild(
+    supabase,
+    ctx.tenant.id,
+    children.map((c) => c.id),
+    today
+  );
   const photoUrls = await Promise.all(children.map((c) => signedMediaUrl(c.photo_path)));
   // One list for every card's badge: the code is the guardian's, so the dialog
   // opened from any card can switch between all of them. Assembled from what
@@ -129,6 +140,42 @@ export default async function PortalChildrenPage() {
                           </span>
                         )}
                       </div>
+
+                      {/* What is outstanding, and what it is FOR. An amount on
+                          its own leaves a parent guessing whether it is the
+                          admission fee or the month — which are different
+                          conversations to have with the office. */}
+                      {(() => {
+                        const due = dues.get(child.id);
+                        if (!due) return null;
+                        const what = due.hasRegistration
+                          ? t("children.due.admission")
+                          : due.months.length > 0
+                            ? monthLabel(due.months[0].slice(0, 7), locale)
+                            : null;
+                        return (
+                          <div className="mt-1.5">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium",
+                                due.overdue
+                                  ? "bg-destructive/10 text-destructive"
+                                  : "bg-gold-muted text-gold-ink"
+                              )}
+                            >
+                              <Wallet className="size-3" aria-hidden />
+                              {what
+                                ? t("children.due.forWhat", {
+                                    amount: formatDZD(due.balance, locale),
+                                    what,
+                                  })
+                                : t("children.due.amount", {
+                                    amount: formatDZD(due.balance, locale),
+                                  })}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <ForwardIcon className="size-4" />
@@ -146,7 +193,6 @@ export default async function PortalChildrenPage() {
                   <CheckinDialog
                     badge={badge}
                     child={checkinChildren[i]}
-                    family={checkinChildren}
                     trigger="block"
                     className="rounded-none"
                   />

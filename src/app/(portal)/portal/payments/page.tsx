@@ -1,14 +1,16 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import { Baby, Banknote, ReceiptText, Wallet } from "lucide-react";
+import { Baby, Banknote, ReceiptText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PortalChildLink } from "@/components/shared/entity-link";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/tenant";
-import { childDisplayName, formatDZD } from "@/lib/format";
+import { childDisplayName, formatDZD, formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { InvoiceStatus, PaymentMethod } from "@/lib/types";
 import { algiersToday, getMyChildren } from "@/components/modules/portal/data";
+import { INVOICE_DUE_DAY } from "@/components/modules/billing/dates";
 import { InvoicesList } from "@/components/modules/portal/invoices-list";
 import type {
   PortalChildInvoices,
@@ -26,6 +28,8 @@ type InvoiceRow = {
   status: InvoiceStatus;
   total: number | string;
   paid_amount: number | string;
+  /** Needed to tell "owed" from "late" — red is only for late. */
+  due_date: string | null;
 };
 
 type ItemRow = {
@@ -85,7 +89,7 @@ export default async function PortalPaymentsPage() {
 
   const { data: invoiceRows } = await supabase
     .from("kg_invoices")
-    .select("id, child_id, number, period_month, issue_date, status, total, paid_amount")
+    .select("id, child_id, number, period_month, issue_date, status, total, paid_amount, due_date")
     .eq("tenant_id", ctx.tenant.id)
     .in("child_id", childIds)
     .order("issue_date", { ascending: false })
@@ -172,6 +176,15 @@ export default async function PortalPaymentsPage() {
   });
 
   const totalDue = groups.reduce((sum, g) => sum + g.balance, 0);
+  // Red is for money that is genuinely late, not for money that is simply owed
+  // — the same rule the home screen and the child cards follow.
+  const openInvoices = invoices.filter((inv) => outstanding(inv) > 0.005);
+  const earliestDue =
+    openInvoices
+      .map((inv) => inv.due_date)
+      .filter((d): d is string => !!d)
+      .sort()[0] ?? null;
+  const anyOverdue = openInvoices.some((inv) => inv.due_date != null && inv.due_date < today);
   const hasInvoices = invoices.length > 0;
 
   return (
@@ -183,125 +196,35 @@ export default async function PortalPaymentsPage() {
         </p>
       </div>
 
-      {/* ===== Total owed across all my children ===== */}
-      <Card
-        className={
-          totalDue > 0
-            ? "bg-destructive/5 shadow-sm ring-destructive/25"
-            : "bg-success/5 shadow-sm ring-success/25"
-        }
-      >
-        <CardContent className="flex items-center gap-4">
-          <span
-            aria-hidden
-            className={
-              totalDue > 0
-                ? "flex size-12 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive"
-                : "flex size-12 shrink-0 items-center justify-center rounded-2xl bg-success/10 text-success"
-            }
-          >
-            <ReceiptText className="size-6" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {totalDue > 0 ? t("payments.totalDue") : t("payments.allSettled")}
-            </div>
-            <div
-              className={
-                totalDue > 0
-                  ? "mt-0.5 text-3xl font-bold tracking-tight text-destructive tabular-nums"
-                  : "mt-0.5 text-3xl font-bold tracking-tight text-success tabular-nums"
-              }
-            >
-              {formatDZD(totalDue, locale)}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ===== The standing monthly fee, per child ===== */}
-      <Card className="shadow-sm">
-        <CardContent className="grid gap-3">
-          <div className="flex items-start gap-3.5">
-            <span
-              aria-hidden
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-            >
-              <Wallet className="size-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-foreground">{t("payments.fees.title")}</div>
-              <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-                {t("payments.fees.description")}
-              </p>
-            </div>
-          </div>
-
-          {children.map((child) => {
-            const row = fees.find((f) => f.child_id === child.id);
-            const plan = row?.kg_fee_plans;
-            const gross = Number(row?.custom_amount ?? plan?.amount ?? 0);
-            const pct = Number(row?.discount_pct ?? 0);
-            const net = pct > 0 ? gross * (1 - pct / 100) : gross;
-            const ended = row?.end_date != null && row.end_date <= today;
-            return (
-              <div
-                key={child.id}
-                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl bg-muted/50 px-3.5 py-2.5"
-              >
-                <span className="text-sm font-medium">
-                  <PortalChildLink id={child.id}>{childDisplayName(child, locale)}</PortalChildLink>
-                </span>
-                {row ? (
-                  <>
-                    <span className="text-xs text-muted-foreground">
-                      {(locale === "ar" && plan?.name_ar) || plan?.name || ""}
-                    </span>
-                    {pct > 0 && (
-                      <Badge variant="secondary" className="text-[0.6875rem]">
-                        {t("payments.fees.discount", { pct })}
-                      </Badge>
-                    )}
-                    {ended && (
-                      <Badge variant="outline" className="text-[0.6875rem]">
-                        {t("payments.fees.ended")}
-                      </Badge>
-                    )}
-                    <span className="ms-auto text-sm font-semibold tabular-nums">
-                      {formatDZD(net, locale)}
-                      <span className="ms-1 text-xs font-normal text-muted-foreground">
-                        {t("payments.fees.perMonth")}
-                      </span>
-                    </span>
-                  </>
-                ) : (
-                  <span className="ms-auto text-xs text-muted-foreground">
-                    {t("payments.fees.none")}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      {/* ===== Cash-at-the-office explainer ===== */}
-      <Card className="bg-gold-muted/60 shadow-sm ring-gold/25">
-        <CardContent className="flex gap-3.5">
-          <span
-            aria-hidden
-            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gold text-gold-foreground"
-          >
-            <Banknote className="size-5" />
-          </span>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-foreground">{t("payments.cash.title")}</div>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              {t("payments.cash.body")}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ===== What is owed =====
+           This screen said the same number four times: here, again on each
+           child's header, again as the invoice total, and again as its
+           balance. It also opened with three explainer cards — the amount, the
+           standing fee, and how to pay — before a single invoice. The order
+           now follows the question a parent came to ask: how much, for what,
+           and only then how it works. */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {totalDue > 0 ? t("payments.totalDue") : t("payments.allSettled")}
+        </p>
+        <p
+          className={cn(
+            "mt-1 text-3xl font-bold tracking-tight tabular-nums",
+            totalDue > 0 ? (anyOverdue ? "text-destructive" : "text-foreground") : "text-success"
+          )}
+        >
+          {formatDZD(totalDue, locale)}
+        </p>
+        {totalDue > 0 && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            {anyOverdue
+              ? t("payments.overdueHint")
+              : earliestDue
+                ? t("payments.dueBy", { date: formatDate(earliestDue, locale) })
+                : t("payments.cash.title")}
+          </p>
+        )}
+      </div>
 
       {hasInvoices ? (
         <InvoicesList groups={groups} />
@@ -312,6 +235,84 @@ export default async function PortalPaymentsPage() {
           description={t("payments.emptyDescription")}
         />
       )}
+
+      {/* ===== How it works — context, not news, so it sits under the data
+           rather than in front of it, and shares one quiet card instead of
+           two tinted ones with icon tiles. ===== */}
+      <Card className="shadow-sm">
+        <CardContent className="grid gap-4">
+          <div>
+            <div className="text-sm font-semibold text-foreground">{t("payments.fees.title")}</div>
+            <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+              {t("payments.fees.description")}
+            </p>
+            <div className="mt-2.5 grid gap-1.5">
+              {children.map((child) => {
+                const row = fees.find((f) => f.child_id === child.id);
+                const plan = row?.kg_fee_plans;
+                const gross = Number(row?.custom_amount ?? plan?.amount ?? 0);
+                const pct = Number(row?.discount_pct ?? 0);
+                const net = pct > 0 ? gross * (1 - pct / 100) : gross;
+                const ended = row?.end_date != null && row.end_date <= today;
+                return (
+                  <div
+                    key={child.id}
+                    className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl bg-muted/50 px-3.5 py-2.5"
+                  >
+                    <span className="text-sm font-medium">
+                      <PortalChildLink id={child.id}>
+                        {childDisplayName(child, locale)}
+                      </PortalChildLink>
+                    </span>
+                    {row ? (
+                      <>
+                        <span className="text-xs text-muted-foreground">
+                          {(locale === "ar" && plan?.name_ar) || plan?.name || ""}
+                        </span>
+                        {pct > 0 && (
+                          <Badge variant="secondary" className="text-[0.6875rem]">
+                            {t("payments.fees.discount", { pct })}
+                          </Badge>
+                        )}
+                        {ended && (
+                          <Badge variant="outline" className="text-[0.6875rem]">
+                            {t("payments.fees.ended")}
+                          </Badge>
+                        )}
+                        <span className="ms-auto text-end text-sm font-semibold tabular-nums">
+                          {formatDZD(net, locale)}
+                          <span className="ms-1 text-xs font-normal text-muted-foreground">
+                            {t("payments.fees.perMonth")}
+                          </span>
+                          {/* When it falls due, so the amount is not a number
+                              without a deadline attached to it. */}
+                          <span className="block text-xs font-normal text-muted-foreground">
+                            {t("payments.fees.dueDay", { day: INVOICE_DUE_DAY })}
+                          </span>
+                        </span>
+                      </>
+                    ) : (
+                      <span className="ms-auto text-xs text-muted-foreground">
+                        {t("payments.fees.none")}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="border-t pt-3.5">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Banknote className="size-4 shrink-0 text-gold-ink" aria-hidden />
+              {t("payments.cash.title")}
+            </div>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              {t("payments.cash.body")}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

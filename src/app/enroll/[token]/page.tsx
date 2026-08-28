@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { signedMediaUrl } from "@/lib/tenant";
+import { aliasToPhone } from "@/lib/auth-identifier";
 import { EnrollWizard } from "@/components/modules/enroll/enroll-wizard";
 import type { EnrollLinkData, WizardUser } from "@/components/modules/enroll/types";
 import { SoftWash } from "@/components/shared/soft-wash";
@@ -57,16 +58,23 @@ export default async function EnrollPage({
       typeof user.user_metadata?.full_name === "string"
         ? (user.user_metadata.full_name as string)
         : null;
-    let fullName = metaName;
-    if (!fullName) {
-      const { data: profile } = await supabase
-        .from("kg_profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .maybeSingle();
-      fullName = profile?.full_name || null;
-    }
-    initialUser = { id: user.id, email: user.email ?? null, fullName };
+    const metaPhone =
+      typeof user.user_metadata?.phone === "string"
+        ? (user.user_metadata.phone as string)
+        : null;
+
+    // The profile is the record of truth for both; the alias is the fallback
+    // for someone who signed up with a phone number and nothing else.
+    const { data: profile } = await supabase
+      .from("kg_profiles")
+      .select("full_name, phone")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const fullName = metaName || profile?.full_name || null;
+    const phone = profile?.phone || metaPhone || aliasToPhone(user.email) || null;
+
+    initialUser = { id: user.id, email: user.email ?? null, fullName, phone };
   }
 
   return <EnrollWizard token={token} link={link} logoUrl={logoUrl} initialUser={initialUser} />;

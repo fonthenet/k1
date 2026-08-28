@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2, LogOut, UserCheck, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { normalizeAlgerianPhone, signInIdentity } from "@/lib/auth-identifier";
+import { aliasToPhone, normalizeAlgerianPhone, signInIdentity } from "@/lib/auth-identifier";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -65,7 +65,14 @@ export function StepAccount({
         if (err) {
           setError(t("account.signupError"));
         } else if (data.session && data.user) {
-          onAuthed({ id: data.user.id, email: data.user.email ?? identity.email, fullName: fullName.trim() });
+          onAuthed({
+            id: data.user.id,
+            email: data.user.email ?? identity.email,
+            fullName: fullName.trim(),
+            // They just typed it — carry it to the guardian step rather than
+            // asking for the same number twice.
+            phone: identity.kind === "phone" ? normalizeAlgerianPhone(email) : null,
+          });
           onNext();
         } else {
           // Email confirmation required by the project settings.
@@ -84,7 +91,16 @@ export function StepAccount({
             typeof data.user.user_metadata?.full_name === "string"
               ? (data.user.user_metadata.full_name as string)
               : null;
-          onAuthed({ id: data.user.id, email: data.user.email ?? email.trim(), fullName: metaName });
+          const metaPhone =
+            typeof data.user.user_metadata?.phone === "string"
+              ? (data.user.user_metadata.phone as string)
+              : null;
+          onAuthed({
+            id: data.user.id,
+            email: data.user.email ?? email.trim(),
+            fullName: metaName,
+            phone: metaPhone || aliasToPhone(data.user.email) || null,
+          });
           onNext();
         }
       }

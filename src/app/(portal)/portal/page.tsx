@@ -9,6 +9,7 @@ import {
   Pin,
   ShieldAlert,
   TreePalm,
+  Wallet,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +20,10 @@ import { ValueRange } from "@/components/shared/value-range";
 import { PortalChildLink } from "@/components/shared/entity-link";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, signedMediaUrl } from "@/lib/tenant";
+import { toOpeningHours } from "@/lib/week";
 import { EstablishmentCard } from "@/components/shared/establishment-card";
-import { childDisplayName, formatDate, formatTime, initials } from "@/lib/format";
+import { childDisplayName, formatDZD, formatDate, formatTime, initials } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { AttendanceStatus, Audience, IncidentSeverity } from "@/lib/types";
 import {
   algiersMonth,
@@ -59,6 +62,15 @@ type ReportRow = {
   mood: string | null;
   meals: unknown;
   activities_text: string | null;
+};
+
+type DueRow = {
+  id: string;
+  child_id: string;
+  total: number | string;
+  paid_amount: number | string;
+  due_date: string | null;
+  status: string;
 };
 
 type IncidentRow = {
@@ -117,7 +129,7 @@ export default async function PortalHomePage() {
   const childIds = children.map((c) => c.id);
   const myClassIds = new Set(children.map((c) => c.class_id).filter((id): id is string => !!id));
 
-  const [{ data: profile }, attendanceRes, reportsRes, incidentsRes, pinnedRes, eventsRes, holidaysRes] =
+  const [{ data: profile }, attendanceRes, reportsRes, duesRes, incidentsRes, pinnedRes, eventsRes, holidaysRes] =
     await Promise.all([
       supabase.from("kg_profiles").select("full_name").eq("id", ctx.user.id).maybeSingle(),
       childIds.length
@@ -135,6 +147,18 @@ export default async function PortalHomePage() {
             .eq("published", true)
             .order("date", { ascending: false })
             .limit(childIds.length * 5)
+        : Promise.resolve({ data: [] }),
+      // What the family owes. The home said nothing about money at all, so a
+      // parent whose child had just been approved — and who had an invoice
+      // waiting — saw a normal day and no bill. Only open invoices: a draft is
+      // the office still working, and a void one is not owed.
+      childIds.length
+        ? supabase
+            .from("kg_invoices")
+            .select("id, child_id, total, paid_amount, due_date, status")
+            .in("child_id", childIds)
+            .in("status", ["sent", "unpaid", "partial", "overdue"])
+            .order("due_date", { ascending: true })
         : Promise.resolve({ data: [] }),
       childIds.length
         ? supabase
@@ -180,6 +204,20 @@ export default async function PortalHomePage() {
   }
 
   const incidents = (incidentsRes.data ?? []) as IncidentRow[];
+
+  // What is still owed, and by when. `balance` rather than `status`: a partly
+  // paid invoice is still money the family owes, and saying "unpaid" about one
+  // they have already paid half of is how a crèche gets an angry phone call.
+  const dues = ((duesRes.data ?? []) as DueRow[])
+    .map((d) => ({ ...d, balance: Number(d.total) - Number(d.paid_amount) }))
+    .filter((d) => d.balance > 0.005);
+  const totalDue = dues.reduce((sum, d) => sum + d.balance, 0);
+  const dueByChild = new Map<string, number>();
+  for (const d of dues) {
+    dueByChild.set(d.child_id, (dueByChild.get(d.child_id) ?? 0) + d.balance);
+  }
+  const earliestDue = dues.find((d) => d.due_date)?.due_date ?? null;
+  const anyOverdue = dues.some((d) => d.due_date && d.due_date < today);
 
   const pinned = ((pinnedRes.data ?? []) as AnnouncementRow[]).filter(
     (a) =>
@@ -280,6 +318,48 @@ export default async function PortalHomePage() {
           {t("home.greeting", { name: greetingName })}
         </h2>
       </div>
+
+      {/* ===== What the family owes =====
+           A parent whose child had just been approved saw a normal day and no
+           bill: the home carried no mention of money, and the invoice sat two
+           taps away under Payments. Gold, not red — an unpaid invoice inside
+           its terms is a thing to do, not an emergency — and red only once it
+           is genuinely past its date. */}
+      {totalDue > 0 && (
+        <Link
+          href="/portal/payments"
+          className={cn(
+            "flex items-center gap-3.5 rounded-2xl p-4 ring-1 transition-colors",
+            "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+            anyOverdue
+              ? "bg-destructive/5 ring-destructive/25 hover:bg-destructive/10"
+              : "bg-gold-muted/50 ring-gold/30 hover:bg-gold-muted/70"
+          )}
+        >
+          <span
+            aria-hidden
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-xl",
+              anyOverdue ? "text-destructive" : "text-gold-ink"
+            )}
+          >
+            <Wallet className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              {t("home.due.title", { amount: formatDZD(totalDue, locale) })}
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+              {anyOverdue
+                ? t("home.due.overdue")
+                : earliestDue
+                  ? t("home.due.by", { date: formatDate(earliestDue, locale) })
+                  : t("home.due.pending")}
+            </p>
+          </div>
+          <ForwardIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+      )}
 
       {/* ===== Unacknowledged incidents ===== */}
       {incidents.length > 0 && (
@@ -423,7 +503,6 @@ export default async function PortalHomePage() {
                     <CheckinDialog
                       badge={badge}
                       child={checkinChildren[index]}
-                      family={checkinChildren}
                     />
                     <Button
                       asChild
@@ -560,6 +639,9 @@ export default async function PortalHomePage() {
             wilaya: ctx.tenant.wilaya,
             latitude: ctx.tenant.latitude,
             longitude: ctx.tenant.longitude,
+            openingHours: toOpeningHours(
+              (ctx.tenant as { opening_hours?: unknown }).opening_hours
+            ),
           }}
         />
       </section>

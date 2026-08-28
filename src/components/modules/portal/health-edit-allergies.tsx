@@ -114,7 +114,9 @@ function AllergyDialog({
         setOpen(false);
         router.refresh();
       } else {
-        toast.error(tc("toasts.error"));
+        // Already on the list (0061). A parent adding it again has made no
+        // mistake worth an "error" — tell them it is already there.
+        toast.error(res.error === "duplicate" ? t("allergyDuplicate") : tc("toasts.error"));
       }
     });
   }

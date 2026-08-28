@@ -1,17 +1,9 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import {
-  AlarmClock,
-  CircleCheck,
-  Coins,
-  Eye,
-  FileText,
-  Receipt,
-  TriangleAlert,
-} from "lucide-react";
+import { AlarmClock, ChevronRight, CircleCheck, Coins, Eye, FileText, Receipt, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -45,7 +37,8 @@ import {
   effectiveStatus,
   INVOICE_STATUS_BADGE,
 } from "@/components/modules/billing/maps";
-import type { ChildOption } from "@/components/modules/billing/billing-types";
+import { CompleteInvoicesButton } from "@/components/modules/billing/complete-invoices-button";
+import type { ChildOption, InvoiceGap } from "@/components/modules/billing/billing-types";
 
 const FILTERS = ["all", "unpaid", "partial", "paid", "overdue", "void"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -86,8 +79,13 @@ export default async function BillingPage({
   const { start, end } = monthRange(month);
   const today = algiersToday();
 
-  const [{ data: invRows, error }, { data: payRows }, { data: childRows }, { data: feeRows }] =
-    await Promise.all([
+  const [
+    { data: invRows, error },
+    { data: payRows },
+    { data: childRows },
+    { data: feeRows },
+    { data: gapRows },
+  ] = await Promise.all([
     supabase
       .from("kg_invoices")
       .select(
@@ -110,14 +108,28 @@ export default async function BillingPage({
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled")
       .order("first_name"),
-    // Enrolled children with a live fee row. Anyone enrolled and NOT in here is
-    // invisible to the monthly run: kg_generate_monthly_invoices bills from
-    // kg_child_fees, so a child without one is skipped silently every month and
-    // attends all year for free without anybody noticing.
+    // Enrolled children with a live MONTHLY fee. Anyone enrolled and NOT in
+    // here is invisible to the monthly run: kg_generate_monthly_invoices joins
+    // on period = 'monthly', so a child without one is skipped silently every
+    // month and attends all year for free without anybody noticing.
+    //
+    // The period join is the point. Every approval also writes an ADMISSION
+    // row (period 'once', start_date = end_date = the day of approval), and
+    // counting that as "billed" hid two children here on the day they were
+    // enrolled — the one day somebody is most likely to be looking.
     supabase
       .from("kg_child_fees")
-      .select("child_id, end_date")
-      .eq("tenant_id", ctx.tenant.id),
+      .select("child_id, end_date, kg_fee_plans!inner(period)")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("kg_fee_plans.period", "monthly"),
+    // Invoices that exist for this month but are missing a charge that is owed.
+    // Neither of the two mechanisms that keep a month right revisits these: the
+    // monthly run skips a child who already has an invoice, and the enrolment
+    // trigger fired long ago. Without this they stay short in silence.
+    supabase.rpc("kg_month_invoice_gaps", {
+      p_tenant: ctx.tenant.id,
+      p_month: `${month}-01`,
+    }),
   ]);
   if (error) throw new Error(error.message);
 
@@ -126,10 +138,15 @@ export default async function BillingPage({
 
   const billedChildIds = new Set(
     ((feeRows ?? []) as { child_id: string; end_date: string | null }[])
-      .filter((f) => f.end_date === null || f.end_date >= today)
+      // `> today`, not `>=`: a fee whose last day is today is finished, and a
+      // child whose plan ends tonight needs a new one before the next run.
+      .filter((f) => f.end_date === null || f.end_date > today)
       .map((f) => f.child_id)
   );
   const unbilled = childOptions.filter((c) => !billedChildIds.has(c.id));
+
+  const gaps = (gapRows ?? []) as InvoiceGap[];
+  const gapTotal = gaps.reduce((s, g) => s + Number(g.missing), 0);
 
   const withEffective = invoices.map((inv) => ({ inv, shown: effectiveStatus(inv, today) }));
   const invoiced = invoices
@@ -170,26 +187,72 @@ export default async function BillingPage({
           exception a human would read as a problem, just a family who never
           receives an invoice. Approval now sets the fee (0054); this catches the
           ones approved before it did, and anyone whose plan is later ended. */}
+      {/* Enrolled and unbillable. The monthly run reads kg_child_fees, so a child
+          without a live monthly fee is charged no tuition — no error, nothing a
+          human would read as a problem, just a family who is never invoiced.
+          Approval now forces the choice (0063) and the run reports them (0064);
+          this is where they wait until somebody acts.
+
+          Each child is their own link. There used to be one "Attribuer une
+          formule" button here that navigated to whichever child happened to be
+          first in the list — a label promising an action it did not perform,
+          for a child it did not name. With two children waiting, that button
+          silently ignored one of them. */}
       {unbilled.length > 0 && (
-        <Card className="mb-6 bg-warning/5 py-3 shadow-sm ring-2 ring-warning/30">
-          <CardContent className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/15 text-warning-ink">
-              <TriangleAlert className="size-4.5" />
-            </span>
-            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-5 gap-y-1">
-              <h2 className="text-sm font-semibold text-foreground">
-                {t("hub.noFeePlan.title", { count: unbilled.length })}
-              </h2>
-              <p className="text-sm text-muted-foreground">{t("hub.noFeePlan.body")}</p>
-              <p className="min-w-0 basis-full truncate text-xs text-muted-foreground">
-                {unbilled.map((c) => childDisplayName(c, locale)).join(" · ")}
-              </p>
-            </div>
-            <Button variant="outline" size="sm" asChild className="shrink-0">
-              <Link href={`/children/${unbilled[0].id}`}>{t("hub.noFeePlan.action")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="mb-6">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-gold-ink">
+            <TriangleAlert className="size-4 shrink-0" aria-hidden />
+            {t("hub.noFeePlan.title", { count: unbilled.length })}
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            {t("hub.noFeePlan.body")}
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {unbilled.map((c) => (
+              <li key={c.id}>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/children/${c.id}?tab=billing`}>
+                    {childDisplayName(c, locale)}
+                    <ChevronRight
+                      data-icon="inline-end"
+                      className="rtl:-scale-x-100"
+                      aria-hidden
+                    />
+                  </Link>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Open invoices that are short. Distinct from the block above: those
+          children have no tariff at all, these have one and were charged less
+          than it. Same quiet treatment — one heading, the names, one action —
+          because two loud panels stacked on a screen read as an outage. */}
+      {gaps.length > 0 && (
+        <div className="mb-6">
+          <p className="text-sm font-semibold text-foreground">
+            {t("hub.incomplete.title", { count: gaps.length })}
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            {t("hub.incomplete.body", { amount: formatDZD(gapTotal, locale) })}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {gaps.map((g) => (
+              <Button key={g.child_id} variant="outline" size="sm" asChild>
+                <Link href={`/children/${g.child_id}?tab=billing`}>
+                  {childDisplayName(g, locale)}
+                  <span className="text-muted-foreground">
+                    {" +"}
+                    {formatDZD(Number(g.missing), locale)}
+                  </span>
+                </Link>
+              </Button>
+            ))}
+            <CompleteInvoicesButton month={month} />
+          </div>
+        </div>
       )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -320,12 +383,14 @@ export default async function BillingPage({
                               <Eye />
                             </Link>
                           </Button>
-                          {payable && (
-                            <RecordPaymentDialog
-                              size="sm"
-                              invoice={{ id: inv.id, numberLabel, childName, balance }}
-                            />
-                          )}
+                          {/* Always rendered, never `payable && …`: the action
+                              revalidates this page, and unmounting the dialog
+                              mid-confirmation takes the receipt link with it. */}
+                          <RecordPaymentDialog
+                            size="sm"
+                            payable={payable}
+                            invoice={{ id: inv.id, numberLabel, childName, balance }}
+                          />
                         </div>
                       </TableCell>
                     </TableRow>

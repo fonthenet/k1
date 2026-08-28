@@ -294,7 +294,9 @@
     "invoicesTitle": "Invoices",
     "invoicesEmpty": "No invoices for this child",
     "goToBilling": "Open billing",
-    "restricted": "Restricted to owners and administrators."
+    "restricted": "Restricted to owners and administrators.",
+    "noPlan": "No monthly fee",
+    "noPlanHint": "This child is not invoiced monthly — choose a fee plan."
   },
   "documents": {
     "title": "Documents",

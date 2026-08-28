@@ -4,29 +4,22 @@ import { ArrowLeft, ArrowRight, ClipboardList, Star, Users, Wallet } from "lucid
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ChildLink } from "@/components/shared/entity-link";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { childDisplayName, formatDate, formatDZD } from "@/lib/format";
+import { childDisplayName, formatDZD } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { FeePlan } from "@/lib/types";
 import { PlanDialog } from "@/components/modules/billing/plan-dialog";
 import { DeletePlanButton } from "@/components/modules/billing/delete-plan-button";
-import { AssignFeeDialog } from "@/components/modules/billing/assign-fee-dialog";
-import { EndAssignmentButton } from "@/components/modules/billing/end-assignment-button";
 import { EmptyIcon, IconTile, TONE_PILL } from "@/components/modules/billing/finance-ui";
 import { algiersToday } from "@/components/modules/billing/dates";
 import type { PlanOption } from "@/components/modules/billing/billing-types";
+import {
+  AssignmentsTable,
+  type AssignmentRow,
+} from "@/components/modules/billing/assignments-table";
 
 type FeeRow = {
   id: string;
@@ -104,6 +97,34 @@ export default async function PlansPage() {
       period: p.period,
       active: p.active,
     }));
+
+  // Resolved here, not in the table: the Arabic name, the class label and the
+  // discounted amount are all locale- or data-dependent, and the client
+  // component's only job is to order rows it can already read.
+  const assignmentRows: AssignmentRow[] = children.map((c) => {
+    const fee = feeByChild.get(c.id);
+    const plan = fee ? planById.get(fee.fee_plan_id) : undefined;
+    const base = fee ? Number(fee.custom_amount ?? plan?.amount ?? 0) : null;
+    const pct = fee ? Number(fee.discount_pct) : null;
+    return {
+      childId: c.id,
+      name: childDisplayName(c, locale),
+      className: c.kg_classes
+        ? locale === "ar" && c.kg_classes.name_ar
+          ? c.kg_classes.name_ar
+          : c.kg_classes.name
+        : null,
+      feeId: fee?.id ?? null,
+      planId: fee?.fee_plan_id ?? null,
+      planName: plan ? (locale === "ar" && plan.name_ar ? plan.name_ar : plan.name) : null,
+      discountNote: fee?.discount_note ?? null,
+      base,
+      customAmount: fee?.custom_amount !== null && fee ? Number(fee.custom_amount) : null,
+      discountPct: pct,
+      due: base !== null && pct !== null ? Math.round(base * (1 - pct / 100)) : null,
+      since: fee?.start_date ?? null,
+    };
+  });
 
   const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
 
@@ -223,112 +244,7 @@ export default async function PlansPage() {
               />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
-                  <TableRow>
-                    <TableHead className="ps-4">
-                      {t("plans.assignments.columns.child")}
-                    </TableHead>
-                    <TableHead>{t("plans.assignments.columns.plan")}</TableHead>
-                    <TableHead className="text-end">{t("plans.assignments.columns.base")}</TableHead>
-                    <TableHead className="text-end">
-                      {t("plans.assignments.columns.discount")}
-                    </TableHead>
-                    <TableHead className="text-end">
-                      {t("plans.assignments.columns.effective")}
-                    </TableHead>
-                    <TableHead>{t("plans.assignments.columns.since")}</TableHead>
-                    <TableHead className="pe-4 text-end">
-                      {t("plans.assignments.columns.actions")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {children.map((c) => {
-                    const fee = feeByChild.get(c.id);
-                    const plan = fee ? planById.get(fee.fee_plan_id) : undefined;
-                    const base = fee ? Number(fee.custom_amount ?? plan?.amount ?? 0) : null;
-                    const pct = fee ? Number(fee.discount_pct) : 0;
-                    const due = base !== null ? Math.round(base * (1 - pct / 100)) : null;
-                    const name = childDisplayName(c, locale);
-                    return (
-                      <TableRow key={c.id} className="h-14">
-                        <TableCell className="ps-4">
-                          <div className="font-medium">
-                            <ChildLink id={c.id}>{name}</ChildLink>
-                          </div>
-                          {c.kg_classes && (
-                            <div className="text-xs text-muted-foreground">
-                              {locale === "ar" && c.kg_classes.name_ar
-                                ? c.kg_classes.name_ar
-                                : c.kg_classes.name}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {plan ? (
-                            <div>
-                              <div className="font-medium">
-                                {locale === "ar" && plan.name_ar ? plan.name_ar : plan.name}
-                              </div>
-                              {fee?.discount_note && (
-                                <div className="text-xs text-muted-foreground">
-                                  {fee.discount_note}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <Badge className={TONE_PILL.muted}>
-                              {t("plans.assignments.noPlan")}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-end tabular-nums text-muted-foreground">
-                          {base !== null ? formatDZD(base, locale) : "—"}
-                        </TableCell>
-                        <TableCell className="text-end tabular-nums">
-                          {fee && pct > 0 ? (
-                            <Badge className={TONE_PILL.gold}>{`${pct} %`}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-end font-semibold tabular-nums">
-                          {due !== null ? formatDZD(due, locale) : "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {fee ? formatDate(fee.start_date, locale) : "—"}
-                        </TableCell>
-                        <TableCell className="pe-4">
-                          <div className="flex items-center justify-end gap-1">
-                            <AssignFeeDialog
-                              childId={c.id}
-                              childName={name}
-                              plans={planOptions}
-                              current={
-                                fee
-                                  ? {
-                                      planId: fee.fee_plan_id,
-                                      customAmount:
-                                        fee.custom_amount !== null
-                                          ? Number(fee.custom_amount)
-                                          : null,
-                                      discountPct: Number(fee.discount_pct),
-                                      discountNote: fee.discount_note,
-                                    }
-                                  : undefined
-                              }
-                            />
-                            {fee && <EndAssignmentButton feeId={fee.id} />}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            <AssignmentsTable rows={assignmentRows} planOptions={planOptions} />
           )}
         </CardContent>
       </Card>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { openDays, toOpeningHours } from "@/lib/week";
 import { requireStaff } from "@/lib/tenant";
 import { ACTIVITY_CATEGORIES, SCHEDULE_DAYS, algiersToday } from "./class-types";
 
@@ -290,6 +291,17 @@ export async function saveActivity(
   if (!parsed.success) return { ok: false, error: "invalid" };
   const d = parsed.data;
 
+  // A slot on a day the crèche does not open is refused here, not just hidden
+  // in the picker. The dialog offers the open days, but the day list travels in
+  // the request, and a schedule that survives a later change of opening days
+  // would put children in a room on a day nobody is there to receive them.
+  const open = openDays(
+    toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours)
+  );
+  if (d.schedule.some((slot) => !(open as readonly string[]).includes(slot.day))) {
+    return { ok: false, error: "invalid" };
+  }
+
   const row = {
     name: d.name,
     name_ar: d.nameAr,
@@ -370,6 +382,7 @@ export async function addActivityEnrollment(
   );
   if (error) return mapDbError(error);
   revalidateActivity(activityId);
+  revalidatePath(`/children/${childId}`);
   return { ok: true };
 }
 
@@ -407,13 +420,16 @@ export async function resolveActivityRequest(
     : { status: "cancelled" };
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: row, error } = await supabase
     .from("kg_activity_enrollments")
     .update(patch)
     .eq("id", enrollmentId)
     .eq("tenant_id", ctx.tenant.id)
-    .eq("status", "requested");
+    .eq("status", "requested")
+    .select("child_id")
+    .maybeSingle();
   if (error) return mapDbError(error);
   revalidateActivity(activityId);
+  if (row?.child_id) revalidatePath(`/children/${row.child_id}`);
   return { ok: true };
 }

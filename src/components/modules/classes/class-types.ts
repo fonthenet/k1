@@ -1,3 +1,4 @@
+import { DAY_KEYS, type DayKey } from "@/lib/week";
 // Shared types & constants for the classes + activities module.
 
 import type { AllergySeverity, FeePeriod } from "@/lib/types";
@@ -58,8 +59,17 @@ export interface ClassChildAllergy {
 export const ACTIVITY_CATEGORIES = ["religion", "art", "language", "sport", "general"] as const;
 export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number];
 
-export const SCHEDULE_DAYS = ["sun", "mon", "tue", "wed", "thu"] as const;
-export type ScheduleDay = (typeof SCHEDULE_DAYS)[number];
+/**
+ * Every weekday is schedulable in principle.
+ *
+ * This used to be Sunday–Thursday, which did not merely style Friday
+ * differently — it left it out of the type, the dropdown and the server
+ * schema, so a crèche that opened on Saturday could not put a single activity
+ * on one. Which days are actually offered is now the crèche's own setting
+ * (kg_tenants.opening_hours); this is just the vocabulary.
+ */
+export const SCHEDULE_DAYS = DAY_KEYS;
+export type ScheduleDay = DayKey;
 
 export interface ScheduleSlot {
   day: string;
