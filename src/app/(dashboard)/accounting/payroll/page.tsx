@@ -91,7 +91,7 @@ export default async function PayrollPage() {
             </div>
           ) : (
             <Table>
-              <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
                 <TableRow>
                   <TableHead className="ps-4">{t("payroll.month")}</TableHead>
                   <TableHead>{t("payroll.status")}</TableHead>

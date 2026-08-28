@@ -787,7 +787,7 @@ export default async function ChildProfilePage({
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-muted/40 hover:bg-muted/40 [&>th]:font-semibold">
+                      <TableRow className="[&>th]:font-semibold">
                         <TableHead>{t("attendance.columns.date")}</TableHead>
                         <TableHead>{t("attendance.columns.status")}</TableHead>
                         <TableHead>{t("attendance.columns.in")}</TableHead>
@@ -882,7 +882,7 @@ export default async function ChildProfilePage({
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-muted/40 hover:bg-muted/40 [&>th]:font-semibold">
+                          <TableRow className="[&>th]:font-semibold">
                             <TableHead>{t("billing.columns.plan")}</TableHead>
                             <TableHead className="text-end">{t("billing.columns.amount")}</TableHead>
                             <TableHead>{t("billing.columns.period")}</TableHead>
@@ -946,7 +946,7 @@ export default async function ChildProfilePage({
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-muted/40 hover:bg-muted/40 [&>th]:font-semibold">
+                          <TableRow className="[&>th]:font-semibold">
                             <TableHead>{t("billing.columns.number")}</TableHead>
                             <TableHead>{t("billing.columns.month")}</TableHead>
                             <TableHead>{t("billing.columns.issued")}</TableHead>

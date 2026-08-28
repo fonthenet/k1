@@ -204,7 +204,7 @@ export default async function ProgramsPage({
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableRow>
                       <TableHead className="text-start">{t("programs.table.child")}</TableHead>
                       <TableHead className="text-start">{t("programs.table.program")}</TableHead>
                       <TableHead className="text-start">{t("programs.table.therapist")}</TableHead>

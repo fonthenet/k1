@@ -121,7 +121,7 @@ export function ArrearsFamiliesTable({
 
   return (
     <Table>
-      <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold">
+      <TableHeader className="[&_th]:text-xs [&_th]:font-semibold">
         <TableRow>
           <SortableHeader columnKey="name" sort={sort} onSort={onSort} className="ps-2">
             {t("arrears.columns.child")}
@@ -288,7 +288,7 @@ export function ArrearsAgingTable({
 
   return (
     <Table>
-      <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold">
+      <TableHeader className="[&_th]:text-xs [&_th]:font-semibold">
         <TableRow>
           <SortableHeader columnKey="name" sort={sort} onSort={onSort} className="ps-2">
             {t("arrears.columns.child")}

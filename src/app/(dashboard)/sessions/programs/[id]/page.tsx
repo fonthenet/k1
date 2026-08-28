@@ -206,7 +206,7 @@ export default async function ProgramDetailPage({
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent">
+                    <TableRow>
                       <TableHead className="text-start">
                         {t("programDetail.historyDate")}
                       </TableHead>

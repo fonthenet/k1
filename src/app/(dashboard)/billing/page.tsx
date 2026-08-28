@@ -304,7 +304,7 @@ export default async function BillingPage({
         <Card className="gap-0 overflow-hidden py-0 shadow-sm">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
                 <TableRow>
                   <TableHead className="ps-4">{t("hub.columns.number")}</TableHead>
                   <TableHead>{t("hub.columns.child")}</TableHead>

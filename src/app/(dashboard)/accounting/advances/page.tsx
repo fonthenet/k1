@@ -269,7 +269,7 @@ function AdvancesTable({
           <>
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
+                <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
                   <TableRow>
                     <TableHead className="ps-4">{labels.member}</TableHead>
                     <TableHead>{labels.date}</TableHead>

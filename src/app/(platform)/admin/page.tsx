@@ -76,7 +76,7 @@ export default async function PlatformOverviewPage() {
             </div>
           ) : (
             <Table>
-              <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
                 <TableRow>
                   <TableHead className="ps-4">{t("leads.columns.phone")}</TableHead>
                   <TableHead>{t("leads.columns.profile")}</TableHead>

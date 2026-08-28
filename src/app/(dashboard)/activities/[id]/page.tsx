@@ -344,7 +344,7 @@ export default async function ActivityDetailPage({
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40 [&>th]:font-semibold">
+                <TableRow className="[&>th]:font-semibold">
                   <TableHead>{t("detail.enrollments.child")}</TableHead>
                   <TableHead>{t("detail.enrollments.class")}</TableHead>
                   <TableHead>

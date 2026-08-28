@@ -235,7 +235,7 @@ export function ChildrenRoster({
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40 [&>th]:font-semibold">
+                  <TableRow className="[&>th]:font-semibold">
                     <SortableHeader columnKey="child" sort={sort} onSort={onSort}>
                       {t("roster.columns.child")}
                     </SortableHeader>

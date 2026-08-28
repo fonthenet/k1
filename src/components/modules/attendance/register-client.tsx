@@ -556,7 +556,7 @@ export function RegisterClient({
                     not — a column of buttons and free-text inputs has no order
                     worth offering. The [&>button] override keeps the sortable
                     headers at the same weight as the plain ones beside them. */}
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableRow>
                   <SortableHeader
                     columnKey="child"
                     sort={sort}

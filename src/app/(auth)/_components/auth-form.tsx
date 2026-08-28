@@ -220,7 +220,15 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
 
       <div className="grid gap-2">
         <Label htmlFor={`${idPrefix}-password`}>{t(`${mode}.password`)}</Label>
-        <div className="relative">
+        {/* dir on the WRAPPER, not on the input alone.
+            The password itself must read left-to-right in every language, but
+            when only the input carried dir="ltr" the two halves of this row
+            resolved their logical properties in different frames: the input's
+            `pe-11` became padding-RIGHT (its own ltr), while the button's
+            `end-1` became LEFT (the page's rtl). In Arabic the reveal icon
+            landed on top of the dots. Sharing one direction context makes the
+            reserved space and the button the same side by construction. */}
+        <div className="relative" dir="ltr">
           <Input
             id={`${idPrefix}-password`}
             name="password"
@@ -228,7 +236,6 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
             autoComplete={mode === "login" ? "current-password" : "new-password"}
             required
             minLength={mode === "signup" ? 8 : undefined}
-            dir="ltr"
             className="h-10 pe-11 text-start"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

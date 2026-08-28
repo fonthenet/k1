@@ -181,8 +181,8 @@ export default async function StaffLeavesPage() {
                 </div>
               ) : (
                 <Table>
-                  <TableHeader className="bg-muted/50">
-                    <TableRow className="hover:bg-transparent">
+                  <TableHeader>
+                    <TableRow>
                       {[
                         t("leaves.columns.member"),
                         t("leaves.columns.type"),

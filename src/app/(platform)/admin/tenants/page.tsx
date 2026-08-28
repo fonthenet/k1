@@ -49,7 +49,7 @@ export default async function PlatformTenantsPage() {
             </div>
           ) : (
             <Table>
-              <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
                 <TableRow>
                   <TableHead className="ps-4">{t("tenants.columns.name")}</TableHead>
                   <TableHead>{t("tenants.columns.where")}</TableHead>

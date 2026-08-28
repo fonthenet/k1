@@ -207,7 +207,7 @@ export default async function InvoiceDetailPage({
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
+                  <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
                     <TableRow>
                       <TableHead className="ps-4">{t("invoice.itemsColumns.kind")}</TableHead>
                       <TableHead>{t("invoice.itemsColumns.description")}</TableHead>
@@ -260,7 +260,7 @@ export default async function InvoiceDetailPage({
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-muted/40 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
+                    <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
                       <TableRow>
                         <TableHead className="ps-4">
                           {t("invoice.paymentsColumns.receipt")}

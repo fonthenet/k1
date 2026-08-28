@@ -116,8 +116,8 @@ export default async function StaffPage() {
         <Card className="overflow-hidden border border-border py-0 shadow-sm ring-0">
           <CardContent className="overflow-x-auto p-0">
             <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow className="hover:bg-transparent">
+              <TableHeader>
+                <TableRow>
                   <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     {t("team.columns.member")}
                   </TableHead>

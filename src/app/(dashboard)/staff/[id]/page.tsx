@@ -239,8 +239,8 @@ export default async function StaffMemberPage({
                   <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("timesheets.empty")}</p>
                 ) : (
                   <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow className="hover:bg-transparent">
+                    <TableHeader>
+                      <TableRow>
                         <TableHead>{t("timesheets.columns.date")}</TableHead>
                         <TableHead>{t("timesheets.columns.in")}</TableHead>
                         <TableHead>{t("timesheets.columns.out")}</TableHead>
@@ -334,8 +334,8 @@ export default async function StaffMemberPage({
                   <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("leaves.empty")}</p>
                 ) : (
                   <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow className="hover:bg-transparent">
+                    <TableHeader>
+                      <TableRow>
                         <TableHead>{t("leaves.columns.type")}</TableHead>
                         <TableHead>{t("leaves.columns.period")}</TableHead>
                         <TableHead>{t("leaves.columns.reason")}</TableHead>
@@ -402,8 +402,8 @@ export default async function StaffMemberPage({
                   <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("salary.advancesEmpty")}</p>
                 ) : (
                   <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow className="hover:bg-transparent">
+                    <TableHeader>
+                      <TableRow>
                         <TableHead>{t("salary.advanceColumns.date")}</TableHead>
                         <TableHead className="text-end">{t("salary.advanceColumns.amount")}</TableHead>
                         <TableHead>{t("salary.advanceColumns.repaid")}</TableHead>
@@ -442,8 +442,8 @@ export default async function StaffMemberPage({
                   <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("salary.payrollEmpty")}</p>
                 ) : (
                   <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow className="hover:bg-transparent">
+                    <TableHeader>
+                      <TableRow>
                         <TableHead>{t("salary.payrollColumns.month")}</TableHead>
                         <TableHead className="text-end">{t("salary.payrollColumns.base")}</TableHead>
                         <TableHead className="text-end">{t("salary.payrollColumns.bonuses")}</TableHead>
