@@ -261,3 +261,36 @@
     display: none;
   }
 }
+
+/* Focus rings are for keyboards.
+ *
+ * Radix restores focus to the trigger when a menu, popover or dialog closes,
+ * and Chrome counts that programmatic focus as keyboard-like — so clicking any
+ * dropdown with a mouse left a thick ring behind on the button afterwards.
+ *
+ * The ring is not removed, it is scoped: while the person is using a pointer,
+ * only the ring is neutralised (`--tw-ring-shadow`, not `box-shadow`), so a
+ * button's own hover shadow survives. The moment a navigation key is pressed
+ * the modality flips back and the ring returns, because without it the app
+ * cannot be navigated by keyboard at all.
+ *
+ * See src/components/shared/input-modality.tsx for where the flag is set. */
+html[data-modality="pointer"] :focus-visible {
+  outline: none;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
+}
+
+/* The thin half of the same frame. `focus-visible:border-ring` turns a
+ * button's 1px transparent border teal, which survives the ring being
+ * neutralised above and reads as a hairline outline round the control.
+ *
+ * Matched on `border-transparent` rather than on every focused element,
+ * because that class is precisely the set whose border is *meant* to be
+ * invisible. tailwind-merge drops it from anything that declares a real border
+ * — an outline button carries `border-border` instead, a text input
+ * `border-input` — so neither loses its own border while it happens to hold
+ * focus after a click. */
+html[data-modality="pointer"] [class~="border-transparent"]:focus-visible {
+  border-color: transparent;
+}

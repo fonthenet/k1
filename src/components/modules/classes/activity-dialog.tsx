@@ -27,6 +27,17 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { TimePicker } from "@/components/shared/time-picker";
+import {
+  DEFAULT_OPENING_HOURS,
+  openDays,
+  type DayKey,
+  type OpeningHours,
+} from "@/lib/week";
+
+/** "HH:MM" to the whole hour the picker bounds on, or a fallback when closed. */
+function hourOf(time: string | undefined, fallback: number): number {
+  return time ? Number(time.slice(0, 2)) : fallback;
+}
 import type { FeePeriod } from "@/lib/types";
 import { saveActivity } from "./actions";
 import {
@@ -55,12 +66,13 @@ function initialSlots(activity?: ActivityFormValues): SlotRow[] {
 /** Create/edit dialog for an activity, with a Sun–Thu schedule repeater. */
 export function ActivityDialog({
   activity,
-  days = SCHEDULE_DAYS,
+  openingHours = DEFAULT_OPENING_HOURS,
 }: {
   activity?: ActivityFormValues;
-  /** Days this crèche opens — the only ones worth offering. */
-  days?: readonly ScheduleDay[];
+  /** The crèche's week. Bounds both the day list and each slot's time. */
+  openingHours?: OpeningHours;
 }) {
+  const days = openDays(openingHours);
   const t = useTranslations("activities");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -276,11 +288,16 @@ export function ActivityDialog({
                 <Label htmlFor={`act-slot-time-${i}`} className="sr-only">
                   {t("dialog.time")}
                 </Label>
+                {/* Bounded by the day the slot is on: offering 18:00 for a
+                    day that closes at 16:30 invites a choice the server then
+                    refuses, which reads as a broken form rather than a rule. */}
                 <TimePicker
                   id={`act-slot-time-${i}`}
                   value={slot.time}
                   onChange={(v) => setSlot(i, { time: v })}
                   className="w-32 tabular-nums"
+                  fromHour={hourOf(openingHours[slot.day as DayKey]?.open, 6)}
+                  toHour={hourOf(openingHours[slot.day as DayKey]?.close, 21)}
                 />
                 <Button
                   variant="ghost"

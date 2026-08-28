@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   CircleDashed,
@@ -21,11 +20,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { AttendanceStatus } from "@/lib/types";
-import { childDisplayName, formatTime, initials } from "@/lib/format";
+import { childDisplayName, formatDate, formatTime, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -47,6 +47,12 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/shared/empty-state";
+import {
+  SortableHeader,
+  compareValues,
+  nextSort,
+  type SortState,
+} from "@/components/shared/sortable-header";
 import { DatePicker } from "@/components/shared/date-picker";
 import { TimePicker } from "@/components/shared/time-picker";
 import { ATTENDANCE_STATUSES, STATUS_STYLES, isPresentish } from "./status-config";
@@ -63,6 +69,10 @@ export interface RegisterClassTab {
   id: string;
   name: string;
   name_ar: string | null;
+  /** Children of this class marked present or late today — the tab's "3/5". */
+  present: number;
+  /** Enrolled children in this class, marked or not. */
+  total: number;
 }
 
 export interface RegisterRow {
@@ -85,6 +95,11 @@ export interface RegisterRow {
     absence_reason: string | null;
   } | null;
 }
+
+// "none" is a real member of the sort state, not the absence of one: the
+// register must open in exactly the order the office has always seen (the
+// server's first-name order), and only a tap on a header starts re-cutting it.
+type RegisterSortKey = "none" | "child" | "status" | "checkIn";
 
 interface TimeDialogState {
   childId: string;
@@ -138,6 +153,7 @@ export function RegisterClient({
   isClosedDay,
   dayLabel,
   classes,
+  totals,
   activeClass,
   rows,
 }: {
@@ -145,9 +161,12 @@ export function RegisterClient({
   isClosedDay: boolean;
   dayLabel: string;
   classes: RegisterClassTab[];
+  /** Presence across every enrolled child, for the "all classes" tab. */
+  totals: { present: number; total: number };
   activeClass: string;
   rows: RegisterRow[];
 }) {
+  const isToday = date === toDateStr(new Date());
   const t = useTranslations("attendance");
   const tc = useTranslations("common");
   const locale = useLocale();
@@ -159,6 +178,7 @@ export function RegisterClient({
   const [bulkPending, setBulkPending] = useState(false);
   const [timeDialog, setTimeDialog] = useState<TimeDialogState | null>(null);
   const [timeSaving, setTimeSaving] = useState(false);
+  const [sort, setSort] = useState<SortState<RegisterSortKey>>({ key: "none", dir: "asc" });
 
   // Server data arrived — drop optimistic overrides.
   const [prevRows, setPrevRows] = useState(rows);
@@ -188,6 +208,38 @@ export function RegisterClient({
     return { present, absent, notMarked, checkedOut };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, optimStatus]);
+
+  const onSort = (key: RegisterSortKey) => setSort((s) => nextSort(s, key));
+
+  // A sorted VIEW of the rows — the row objects themselves are untouched, so
+  // every status handler keeps working on the same data it always did.
+  const sortedRows = useMemo(() => {
+    if (sort.key === "none") return rows;
+    const valueOf = (row: RegisterRow): string | number | null => {
+      switch (sort.key) {
+        case "child":
+          // The displayed name, so Arabic sorts by the Arabic name the staff
+          // actually read, not by a Latin field they cannot see on screen.
+          return childDisplayName(row.child, locale);
+        case "status": {
+          // The segmented control's own order (present → excused), so sorted
+          // groups appear in the same sequence as the buttons that set them.
+          const s = displayStatus(row);
+          return s === null ? null : ATTENDANCE_STATUSES.indexOf(s);
+        }
+        case "checkIn":
+          // ISO timestamps compare correctly as plain strings; children who
+          // never checked in have no value and sink, as nulls always do here.
+          return row.attendance?.check_in_at ?? null;
+        default:
+          return null;
+      }
+    };
+    return [...rows].sort((a, b) => compareValues(valueOf(a), valueOf(b), sort.dir, locale));
+    // displayStatus reads optimStatus, so a status tap re-sorts immediately
+    // instead of waiting out the server round-trip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, sort, locale, optimStatus]);
 
   const setSaving = (id: string, on: boolean) =>
     setSavingIds((s) => ({ ...s, [id]: on }));
@@ -323,8 +375,15 @@ export function RegisterClient({
     <div className="space-y-6">
       {/* Toolbar: date navigation + actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* One segmented control: ‹ date › [Today].
+            The picker is ghost — it used to be an outlined button inside this
+            outlined group, a box drawn twice, with its calendar icon sitting
+            right next to the Today button's calendar icon. The date is now
+            "aujourd'hui" when it is today, because the person opening the
+            register mostly wants to know they are on the right day, not to
+            parse a date; and Today only appears once it would do something. */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm">
+          <div className="flex items-center gap-0.5 rounded-xl border border-border bg-card p-1 shadow-sm">
             <Button
               variant="ghost"
               size="icon"
@@ -343,7 +402,15 @@ export function RegisterClient({
               onChange={(v) => {
                 if (v) navigate(v, activeClass);
               }}
-              className="h-8 w-36 text-center font-medium tabular-nums"
+              variant="ghost"
+              label={
+                isToday ? (
+                  t("nav.todayLabel")
+                ) : (
+                  <span className="tabular-nums">{formatDate(date, locale)}</span>
+                )
+              }
+              className="h-8 w-40 justify-center font-medium"
             />
             <Button
               variant="ghost"
@@ -354,15 +421,20 @@ export function RegisterClient({
             >
               <ChevronRight className="rtl:-scale-x-100" />
             </Button>
+            {!isToday && (
+              <>
+                <Separator orientation="vertical" className="mx-0.5 !h-5" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary hover:text-primary"
+                  onClick={() => navigate(toDateStr(new Date()), activeClass)}
+                >
+                  {t("nav.today")}
+                </Button>
+              </>
+            )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(toDateStr(new Date()), activeClass)}
-          >
-            <CalendarDays data-icon="inline-start" />
-            {t("nav.today")}
-          </Button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -415,15 +487,52 @@ export function RegisterClient({
         ))}
       </div>
 
-      {/* Class filter */}
+      {/* Class filter. Every tab carries its class's presence count ("3/5")
+          in the same label-plus-count vocabulary the billing chips taught the
+          office, so an educator sees whether her room is complete before she
+          taps anything. The counts stay neutral on purpose — five coloured
+          badges would turn one row of tabs into an alarm panel, and the number
+          itself is the signal. The open tab shows the live client-side counter
+          so it can never disagree with the tiles above it while a tap is still
+          saving; the other tabs show the server's numbers, which every
+          mutation refreshes. Taller triggers than the default because this is
+          a tablet screen worked with a thumb, not a pointer. */}
       <Tabs value={activeClass} onValueChange={(v) => navigate(date, v)}>
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="all">{t("tabs.all")}</TabsTrigger>
-          {classes.map((c) => (
-            <TabsTrigger key={c.id} value={c.id}>
-              {locale === "ar" && c.name_ar ? c.name_ar : c.name}
-            </TabsTrigger>
-          ))}
+        <TabsList className="flex-wrap gap-1 group-data-horizontal/tabs:h-auto">
+          {[
+            { value: "all", label: t("tabs.all"), ...totals },
+            ...classes.map((c) => ({
+              value: c.id,
+              label: locale === "ar" && c.name_ar ? c.name_ar : c.name,
+              present: c.present,
+              total: c.total,
+            })),
+          ].map((tab) => {
+            const active = activeClass === tab.value;
+            const present = active ? counters.present : tab.present;
+            return (
+              <TabsTrigger key={tab.value} value={tab.value} className="h-10 px-3">
+                {tab.label}
+                {/* A class with no children has no presence question to answer. */}
+                {tab.total > 0 && (
+                  <>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "rounded-4xl px-1.5 py-0.5 text-xs font-medium tabular-nums",
+                        active ? "bg-muted text-muted-foreground" : "bg-background/60"
+                      )}
+                    >
+                      {present}/{tab.total}
+                    </span>
+                    <span className="sr-only">
+                      {t("tabs.presence", { present, total: tab.total })}
+                    </span>
+                  </>
+                )}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
       </Tabs>
 
@@ -443,16 +552,35 @@ export function RegisterClient({
           <CardContent className="overflow-x-auto p-0">
             <Table>
               <TableHeader>
+                {/* Child, status and check-in sort; check-out and details do
+                    not — a column of buttons and free-text inputs has no order
+                    worth offering. The [&>button] override keeps the sortable
+                    headers at the same weight as the plain ones beside them. */}
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  <TableHead className="min-w-52 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  <SortableHeader
+                    columnKey="child"
+                    sort={sort}
+                    onSort={onSort}
+                    className="min-w-52 text-xs tracking-wide uppercase [&>button]:font-semibold"
+                  >
                     {t("table.child")}
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  </SortableHeader>
+                  <SortableHeader
+                    columnKey="status"
+                    sort={sort}
+                    onSort={onSort}
+                    className="text-xs tracking-wide uppercase [&>button]:font-semibold"
+                  >
                     {t("table.status")}
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  </SortableHeader>
+                  <SortableHeader
+                    columnKey="checkIn"
+                    sort={sort}
+                    onSort={onSort}
+                    className="text-xs tracking-wide uppercase [&>button]:font-semibold"
+                  >
                     {t("table.checkIn")}
-                  </TableHead>
+                  </SortableHeader>
                   <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     {t("table.checkOut")}
                   </TableHead>
@@ -462,7 +590,7 @@ export function RegisterClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row) => {
+                {sortedRows.map((row) => {
                   const status = displayStatus(row);
                   const att = row.attendance;
                   const name = childDisplayName(row.child, locale);

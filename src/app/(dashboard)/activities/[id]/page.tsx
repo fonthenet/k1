@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { StatCard } from "@/components/shared/stat-card";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
-import { openDays, toOpeningHours } from "@/lib/week";
+import { toOpeningHours } from "@/lib/week";
 import { childDisplayName, formatDate, formatDZD } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Activity } from "@/lib/types";
@@ -96,8 +96,8 @@ export default async function ActivityDetailPage({
 }) {
   const { id } = await params;
   const ctx = await requireStaff();
-  const activityDays = openDays(
-    toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours)
+  const openingHours = toOpeningHours(
+    (ctx.tenant as { opening_hours?: unknown }).opening_hours
   );
   const t = await getTranslations("activities");
   const locale = await getLocale();
@@ -218,7 +218,7 @@ export default async function ActivityDetailPage({
           {canEnroll && <AddEnrollmentDialog activityId={activity.id} candidates={candidates} />}
           {canManage && (
             <>
-              <ActivityDialog activity={toFormValues(activity)} days={activityDays} />
+              <ActivityDialog activity={toFormValues(activity)} openingHours={openingHours} />
               <ActivityActiveToggle activityId={activity.id} active={activity.active} />
             </>
           )}

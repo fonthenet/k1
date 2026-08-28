@@ -7,10 +7,12 @@
     "today": "اليوم",
     "history": "السجل الشهري",
     "register": "سجل اليوم",
-    "closedNotice": "{day} — الروضة لا تفتح في هذا اليوم."
+    "closedNotice": "{day} — الروضة لا تفتح في هذا اليوم.",
+    "todayLabel": "اليوم"
   },
   "tabs": {
-    "all": "كل الأقسام"
+    "all": "كل الأقسام",
+    "presence": "{present, plural, zero {لا حاضر من أصل {total}} one {حاضر واحد من أصل {total}} two {حاضران من أصل {total}} few {# حاضرين من أصل {total}} many {# حاضرًا من أصل {total}} other {# حاضر من أصل {total}}}"
   },
   "counters": {
     "present": "{count, plural, =0 {لا حاضر} one {حاضر واحد} two {حاضران} few {# حاضرين} many {# حاضرًا} other {# حاضر}}",

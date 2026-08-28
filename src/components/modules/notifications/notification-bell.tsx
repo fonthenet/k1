@@ -112,7 +112,9 @@ export function NotificationBell({ userId }: { userId?: string }) {
         <Button
           variant="ghost"
           size="icon"
-          className="relative text-muted-foreground hover:text-foreground"
+          /* Matches the other header controls: lifted to the panel colour with
+             a hairline, not filled with grey on an already-tinted band. */
+          className="relative text-muted-foreground transition-colors hover:bg-background hover:text-foreground hover:shadow-xs hover:ring-1 hover:ring-border/60 aria-expanded:bg-background aria-expanded:text-foreground aria-expanded:shadow-xs aria-expanded:ring-1 aria-expanded:ring-border/60"
           aria-label={`${t("title")} — ${t("unreadCount", { count: unread })}`}
         >
           <Bell className="size-4" />

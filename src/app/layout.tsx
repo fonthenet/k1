@@ -24,6 +24,8 @@ export const metadata: Metadata = {
     "La plateforme tout-en-un pour gérer votre crèche ou jardin d'enfants : inscriptions, présences, facturation, comptabilité et communication avec les parents.",
 };
 
+import { InputModality } from "@/components/shared/input-modality";
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
@@ -36,6 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       >
         <ThemeProvider dir={dir}>
           <NextIntlClientProvider messages={messages}>
+            <InputModality />
             {children}
             <Toaster position={dir === "rtl" ? "bottom-left" : "bottom-right"} richColors />
           </NextIntlClientProvider>

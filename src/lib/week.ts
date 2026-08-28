@@ -137,3 +137,16 @@ export function summariseOpeningHours(hours: OpeningHours): HoursRange[] {
   }
   return out;
 }
+
+/**
+ * Does a "HH:MM" fall inside the crèche's hours on that weekday?
+ *
+ * Used to validate scheduled activity slots. A closed day is never inside, and
+ * the comparison is on the string because "HH:MM" sorts correctly as text —
+ * zero-padded, fixed width, 24-hour.
+ */
+export function isWithinHours(hours: OpeningHours, day: DayKey, time: string): boolean {
+  const h = hours[day];
+  if (!h) return false;
+  return time >= h.open && time <= h.close;
+}

@@ -14,6 +14,7 @@ import { NewThreadDialog } from "@/components/modules/comms/new-thread-dialog";
 import { ReplyForm } from "@/components/modules/comms/reply-form";
 import { ThreadsList } from "@/components/modules/comms/threads-list";
 import { fetchThreadItems } from "@/components/modules/comms/queries";
+import { MarkThreadRead } from "@/components/modules/comms/mark-thread-read";
 import { algiersDateStr } from "@/components/modules/comms/dates";
 import type { ChildOption } from "@/components/modules/comms/types";
 
@@ -90,6 +91,8 @@ export default async function ThreadPage({
 
   return (
     <div>
+      {/* Opening the thread is what marks it read — see migration 0070. */}
+      <MarkThreadRead threadId={threadId} />
       <PageHeader title={t("messages.title")} description={t("messages.description")}>
         <NewThreadDialog childrenOptions={childrenOptions} />
       </PageHeader>

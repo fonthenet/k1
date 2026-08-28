@@ -7,10 +7,12 @@
     "today": "Today",
     "history": "History",
     "register": "Today's register",
-    "closedNotice": "{day} — the kindergarten does not open on this day."
+    "closedNotice": "{day} — the kindergarten does not open on this day.",
+    "todayLabel": "Today"
   },
   "tabs": {
-    "all": "All classes"
+    "all": "All classes",
+    "presence": "{present, plural, =0 {none of {total} present} one {# of {total} present} other {# of {total} present}}"
   },
   "counters": {
     "present": "{count, plural, =0 {0 present} one {# present} other {# present}}",

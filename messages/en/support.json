@@ -1,0 +1,11 @@
+{
+  "title": "Rawdati support",
+  "subtitle": "We usually reply within a few hours.",
+  "placeholder": "Write your message…",
+  "send": "Send",
+  "failed": "Not sent — try again",
+  "empty": {
+    "title": "Have a question?",
+    "body": "Write to us about billing, settings or anything that is not working. We answer here."
+  }
+}

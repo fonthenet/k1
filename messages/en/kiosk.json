@@ -122,6 +122,8 @@
     "alreadyClockedIn": "You are already clocked in today.",
     "alreadyOnBreak": "You are already on a break.",
     "notOnBreak": "No break is running.",
-    "staffCodeHere": "That is a staff badge. Use the Personnel tab."
+    "staffCodeHere": "That is a staff badge. Use the Personnel tab.",
+    "closedDay": "The kindergarten is closed today.",
+    "outsideHours": "Outside opening hours."
   }
 }

@@ -102,9 +102,11 @@ type RecordOutcome =
       checkOutAt: string | null;
     }
   | { kind: "failed"; message: string }
-  // The database's authorization gate said no. Distinct from "failed": the
-  // request worked; the adult is not allowed to take this child.
-  | { kind: "refused" };
+  // The database said no. Distinct from "failed": the request worked and
+  // nothing was written — the custody gate, a closed day, or a scan outside
+  // opening hours. The reason travels with it because they read very
+  // differently at the door.
+  | { kind: "refused"; reason: string };
 
 /** The jsonb kg_checkin_by_tag returns, in both of its shapes. */
 interface CheckinPayload {
@@ -330,6 +332,10 @@ export function KioskClient({
       if (message.includes("unknown_tag") || message.includes("unknown_code"))
         showError(t("errors.unknownCode"));
       else if (message.includes("pickup_not_allowed")) showError(t("errors.pickupNotAllowed"));
+      // The crèche is shut. Said plainly, because the person holding the tag is
+      // standing at a door that is not open.
+      else if (message.includes("closed_day")) showError(t("errors.closedDay"));
+      else if (message.includes("outside_hours")) showError(t("errors.outsideHours"));
       else if (message.includes("already_clocked_in")) showError(t("errors.alreadyClockedIn"));
       else if (message.includes("already_on_break")) showError(t("errors.alreadyOnBreak"));
       else if (message.includes("not_on_break")) showError(t("errors.notOnBreak"));
@@ -420,7 +426,8 @@ export function KioskClient({
         if (rpcError) return { kind: "failed", message: rpcError.message };
 
         const payload = (data ?? {}) as CheckinPayload;
-        if (payload.refused === true) return { kind: "refused" };
+        if (payload.refused === true)
+          return { kind: "refused", reason: payload.reason ?? "pickup_not_allowed" };
         if (payload.duplicate === true) {
           // NOTHING was written. Never treat this as a success.
           return {
@@ -580,7 +587,7 @@ export function KioskClient({
           // The tile should already have been blocked; this is the database
           // holding the line if it wasn't. Loud, specific, no write happened.
           failedCount += 1;
-          lastMessage = "pickup_not_allowed";
+          lastMessage = res.reason;
         } else if (res.kind === "duplicate") {
           duplicates.push({
             child,

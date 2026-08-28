@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { openDays, toOpeningHours } from "@/lib/week";
+import { isWithinHours, toOpeningHours } from "@/lib/week";
 import { requireStaff } from "@/lib/tenant";
 import { ACTIVITY_CATEGORIES, SCHEDULE_DAYS, algiersToday } from "./class-types";
 
@@ -295,10 +295,12 @@ export async function saveActivity(
   // in the picker. The dialog offers the open days, but the day list travels in
   // the request, and a schedule that survives a later change of opening days
   // would put children in a room on a day nobody is there to receive them.
-  const open = openDays(
-    toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours)
-  );
-  if (d.schedule.some((slot) => !(open as readonly string[]).includes(slot.day))) {
+  const hours = toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours);
+  // Both halves of the same rule: the day must be one the crèche opens, and the
+  // time must fall inside that day's hours. A session booked for 18:00 when the
+  // doors shut at 16:30 is a room with nobody in it and a parent arriving to
+  // collect a child who was never there.
+  if (d.schedule.some((slot) => !isWithinHours(hours, slot.day, slot.time))) {
     return { ok: false, error: "invalid" };
   }
 

@@ -1,45 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import {
-  LayoutDashboard, Baby, ClipboardList, CalendarCheck, School, Palette,
-  Users, Receipt, Wallet, Megaphone, MessageSquare, CalendarDays, Stethoscope, ListChecks,
-  UtensilsCrossed, BarChart3, Settings, MonitorSmartphone, ShieldAlert,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { KgRole } from "@/lib/types";
+import { NavLinks } from "./nav-links";
 
-interface NavItem {
-  href: string;
-  key: string;
-  icon: React.ComponentType<{ className?: string }>;
-  roles?: KgRole[]; // undefined = all staff
-}
-
-const NAV: NavItem[] = [
-  { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
-  { href: "/children", key: "children", icon: Baby },
-  { href: "/applications", key: "applications", icon: ClipboardList, roles: ["owner", "admin"] },
-  { href: "/attendance", key: "attendance", icon: CalendarCheck },
-  { href: "/classes", key: "classes", icon: School },
-  { href: "/activities", key: "activities", icon: Palette },
-  { href: "/sessions", key: "sessions", icon: Stethoscope },
-  { href: "/tasks", key: "tasks", icon: ListChecks },
-  { href: "/staff", key: "staff", icon: Users, roles: ["owner", "admin", "accountant"] },
-  { href: "/billing", key: "billing", icon: Receipt, roles: ["owner", "admin", "accountant"] },
-  { href: "/accounting", key: "accounting", icon: Wallet, roles: ["owner", "admin", "accountant"] },
-  { href: "/announcements", key: "announcements", icon: Megaphone },
-  { href: "/messages", key: "messages", icon: MessageSquare },
-  { href: "/calendar", key: "calendar", icon: CalendarDays },
-  { href: "/menus", key: "menus", icon: UtensilsCrossed },
-  { href: "/incidents", key: "incidents", icon: ShieldAlert },
-  { href: "/reports", key: "reports", icon: BarChart3, roles: ["owner", "admin", "accountant"] },
-  { href: "/kiosk", key: "kiosk", icon: MonitorSmartphone },
-  { href: "/settings", key: "settings", icon: Settings, roles: ["owner", "admin"] },
-];
 
 export function Sidebar({
   role,
@@ -50,7 +15,6 @@ export function Sidebar({
   tenantName: string;
   logoUrl?: string | null;
 }) {
-  const pathname = usePathname();
   const t = useTranslations("common");
 
   return (
@@ -84,34 +48,7 @@ export function Sidebar({
         </div>
       </div>
       <nav className="no-scrollbar flex-1 space-y-0.5 overflow-y-auto px-2.5 pb-3">
-        {NAV.filter((item) => !item.roles || item.roles.includes(role)).map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
-                active
-                  ? "bg-background font-semibold text-sidebar-accent-foreground shadow-xs ring-1 ring-border/60"
-                  : "font-medium text-muted-foreground hover:bg-background/60 hover:text-sidebar-foreground"
-              )}
-            >
-              {/* No edge bar: the filled pill and the coloured icon already
-                  carry the active state, and aria-current carries it for
-                  screen readers. */}
-              <Icon
-                className={cn(
-                  "size-4 shrink-0 transition-colors",
-                  active ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground"
-                )}
-              />
-              <span className="truncate">{t(`nav.${item.key}`)}</span>
-            </Link>
-          );
-        })}
+        <NavLinks role={role} />
       </nav>
     </aside>
   );

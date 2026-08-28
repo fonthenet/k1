@@ -122,6 +122,8 @@
     "alreadyClockedIn": "Votre arrivée est déjà enregistrée aujourd'hui.",
     "alreadyOnBreak": "Vous êtes déjà en pause.",
     "notOnBreak": "Aucune pause en cours.",
-    "staffCodeHere": "Ceci est un badge du personnel. Utilisez l'onglet Personnel."
+    "staffCodeHere": "Ceci est un badge du personnel. Utilisez l'onglet Personnel.",
+    "closedDay": "La crèche est fermée aujourd'hui.",
+    "outsideHours": "En dehors des heures d'ouverture."
   }
 }

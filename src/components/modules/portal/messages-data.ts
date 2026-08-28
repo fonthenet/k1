@@ -36,11 +36,12 @@ export interface PortalThreadItem {
   /** One-line preview of the newest message. */
   preview: string | null;
   /**
-   * Honest heuristic — NOT a read receipt. True when the newest message was
-   * sent by somebody other than the signed-in parent, i.e. the kindergarten
-   * spoke last and this family has not answered yet. The schema has no
-   * per-user read state and we deliberately do not invent one, so this dot
-   * means "their turn came back to you", not "unread".
+   * Genuinely unread: the crèche has said something since this parent last
+   * opened the thread.
+   *
+   * This used to be a heuristic — "the newest message is not mine" — because
+   * the schema had no per-user read state. It does now (kg_thread_reads, 0070),
+   * so the dot clears by reading the thread rather than only by replying to it.
    */
   awaitingParent: boolean;
 }
@@ -135,6 +136,16 @@ export async function getMyThreads(
     }
   }
 
+  const { data: readRows } = await supabase
+    .from("kg_thread_reads")
+    .select("thread_id, last_read_at")
+    .eq("user_id", userId)
+    .in(
+      "thread_id",
+      threads.map((th) => th.id)
+    );
+  const readAt = new Map((readRows ?? []).map((r) => [r.thread_id, r.last_read_at]));
+
   return threads
     .map((th) => {
       const last = lastByThread.get(th.id);
@@ -148,7 +159,13 @@ export async function getMyThreads(
         childName: th.kg_children ? childDisplayName(th.kg_children, locale) : null,
         sortedAt,
         preview: last ? last.body.replace(/\s+/g, " ").trim() || null : null,
-        awaitingParent: !!last && last.sender_id !== userId,
+        awaitingParent:
+          !!last &&
+          last.sender_id !== userId &&
+          !(
+            readAt.has(th.id) &&
+            new Date(readAt.get(th.id)!) >= new Date(last.created_at)
+          ),
       };
     })
     .sort((a, b) => Date.parse(b.sortedAt) - Date.parse(a.sortedAt));

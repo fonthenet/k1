@@ -21,7 +21,8 @@
     "portal": "Espace parents",
     "sessions": "Séances",
     "tasks": "Tâches",
-    "platform": "Panneau plateforme"
+    "platform": "Panneau plateforme",
+    "menu": "Menu"
   },
   "actions": {
     "save": "Enregistrer",

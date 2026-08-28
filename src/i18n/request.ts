@@ -11,7 +11,7 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "./locales";
 const NAMESPACES = [
   "common", "notifications", "landing", "landingFeatures", "landingCta", "auth", "dashboard", "reports", "children", "enroll",
   "attendance", "staff", "billing", "accounting", "classes", "activities",
-  "comms", "portal", "settings", "kiosk", "sessions", "tasks", "credentials", "platform",
+  "comms", "portal", "settings", "kiosk", "sessions", "tasks", "credentials", "platform", "support",
 ];
 
 export default getRequestConfig(async () => {

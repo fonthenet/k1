@@ -53,6 +53,8 @@ export function DatePicker({
   toYear,
   minDate,
   maxDate,
+  variant = "outline",
+  label,
 }: {
   /** "yyyy-MM-dd", same as the native input it replaces */
   value: string;
@@ -68,6 +70,13 @@ export function DatePicker({
   minDate?: string;
   /** "yyyy-MM-dd" — latest selectable day (replaces the native `max`) */
   maxDate?: string;
+  /**
+   * "ghost" for a picker that already sits inside a bordered group — an
+   * outlined button inside an outlined container is a box drawn twice.
+   */
+  variant?: "outline" | "ghost";
+  /** Replaces the formatted date, for callers that want to say more than it. */
+  label?: React.ReactNode;
 }) {
   const locale = useLocale();
   const [open, setOpen] = React.useState(false);
@@ -88,7 +97,7 @@ export function DatePicker({
         <Button
           id={id}
           type="button"
-          variant="outline"
+          variant={variant}
           disabled={disabled}
           aria-required={required}
           data-empty={!selected}
@@ -99,7 +108,7 @@ export function DatePicker({
           )}
         >
           <span className="truncate">
-            {selected ? formatDate(selected, locale) : (placeholder ?? "—")}
+            {label ?? (selected ? formatDate(selected, locale) : (placeholder ?? "—"))}
           </span>
           <CalendarIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </Button>

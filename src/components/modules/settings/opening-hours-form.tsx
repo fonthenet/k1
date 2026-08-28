@@ -6,8 +6,8 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TimePicker } from "@/components/shared/time-picker";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
@@ -104,20 +104,23 @@ export function OpeningHoursForm({ initial }: { initial: OpeningHours }) {
 
                 {on ? (
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="time"
+                    {/* The shared picker, not <input type="time">: the native
+                        widget formats to the BROWSER's locale, so an English
+                        browser rendered these as "08:00 AM". Algeria runs on
+                        24-hour time, and the stored value always did — only the
+                        display disagreed. */}
+                    <TimePicker
+                      id={`day-${day}-open`}
                       value={value.open}
-                      onChange={(e) => setTime(day, "open", e.target.value)}
-                      className="w-32 tabular-nums"
-                      aria-label={t("hours.opensAt")}
+                      onChange={(v) => setTime(day, "open", v)}
+                      className="w-32"
                     />
                     <span className="text-muted-foreground">–</span>
-                    <Input
-                      type="time"
+                    <TimePicker
+                      id={`day-${day}-close`}
                       value={value.close}
-                      onChange={(e) => setTime(day, "close", e.target.value)}
-                      className="w-32 tabular-nums"
-                      aria-label={t("hours.closesAt")}
+                      onChange={(v) => setTime(day, "close", v)}
+                      className="w-32"
                     />
                     {badDay(day) && (
                       <span className="text-xs text-destructive">{t("hours.badRange")}</span>

@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
-import { openDays, toOpeningHours } from "@/lib/week";
+import { toOpeningHours } from "@/lib/week";
 import { formatDZD } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Activity } from "@/lib/types";
@@ -40,8 +40,8 @@ function toFormValues(a: Activity): ActivityFormValues {
 
 export default async function ActivitiesPage() {
   const ctx = await requireStaff();
-  const activityDays = openDays(
-    toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours)
+  const openingHours = toOpeningHours(
+    (ctx.tenant as { opening_hours?: unknown }).opening_hours
   );
   const t = await getTranslations("activities");
   const locale = await getLocale();
@@ -74,7 +74,7 @@ export default async function ActivitiesPage() {
   return (
     <div>
       <PageHeader title={t("list.title")} description={t("list.description")}>
-        {ctx.isAdmin && <ActivityDialog days={activityDays} />}
+        {ctx.isAdmin && <ActivityDialog openingHours={openingHours} />}
       </PageHeader>
 
       {activities.length === 0 ? (
@@ -86,7 +86,7 @@ export default async function ActivitiesPage() {
           }
           title={t("list.empty")}
           description={t("list.emptyDescription")}
-          action={ctx.isAdmin ? <ActivityDialog days={activityDays} /> : undefined}
+          action={ctx.isAdmin ? <ActivityDialog openingHours={openingHours} /> : undefined}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -134,7 +134,7 @@ export default async function ActivitiesPage() {
                     </div>
                     {ctx.isAdmin && (
                       <div className="flex shrink-0 items-center gap-1">
-                        <ActivityDialog activity={toFormValues(a)} days={activityDays} />
+                        <ActivityDialog activity={toFormValues(a)} openingHours={openingHours} />
                         <ActivityActiveToggle activityId={a.id} active={a.active} />
                       </div>
                     )}

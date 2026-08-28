@@ -5,7 +5,8 @@
   "nav": {
     "leads": "Demandes",
     "tenants": "Crèches",
-    "exit": "Quitter"
+    "exit": "Quitter",
+    "support": "Assistance"
   },
   "overview": {
     "title": "Plateforme",
@@ -115,5 +116,16 @@
   },
   "errors": {
     "generic": "Une erreur est survenue. Réessayez."
+  },
+  "support": {
+    "metaTitle": "Assistance clients",
+    "title": "Assistance clients",
+    "subtitle": "Les conversations avec les crèches abonnées.",
+    "empty": "Aucune conversation",
+    "emptyHint": "Elles apparaîtront ici dès qu'une crèche écrira.",
+    "emptyThread": "Pas encore de message dans cette conversation.",
+    "placeholder": "Répondre à la crèche…",
+    "send": "Envoyer",
+    "failed": "Non envoyé — réessayez"
   }
 }

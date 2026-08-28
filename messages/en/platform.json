@@ -5,7 +5,8 @@
   "nav": {
     "leads": "Leads",
     "tenants": "Crèches",
-    "exit": "Exit"
+    "exit": "Exit",
+    "support": "Support"
   },
   "overview": {
     "title": "Platform",
@@ -115,5 +116,16 @@
   },
   "errors": {
     "generic": "Something went wrong. Try again."
+  },
+  "support": {
+    "metaTitle": "Client support",
+    "title": "Client support",
+    "subtitle": "Conversations with subscribing kindergartens.",
+    "empty": "No conversations",
+    "emptyHint": "They appear here as soon as a kindergarten writes in.",
+    "emptyThread": "No messages in this conversation yet.",
+    "placeholder": "Reply to the kindergarten…",
+    "send": "Send",
+    "failed": "Not sent — try again"
   }
 }

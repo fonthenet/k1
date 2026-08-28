@@ -9,6 +9,7 @@ import {
   type RegisterClassTab,
   type RegisterRow,
 } from "@/components/modules/attendance/register-client";
+import { isPresentish } from "@/components/modules/attendance/status-config";
 import { allergenLabel } from "@/lib/allergens";
 import {
   isValidDateStr,
@@ -17,6 +18,12 @@ import {
 } from "@/components/modules/attendance/dates";
 
 export const dynamic = "force-dynamic";
+
+interface ClassRecord {
+  id: string;
+  name: string;
+  name_ar: string | null;
+}
 
 interface ChildRecord {
   id: string;
@@ -62,7 +69,7 @@ export default async function AttendancePage({
     .order("last_name");
   if (activeClass !== "all") childrenQuery = childrenQuery.eq("class_id", activeClass);
 
-  const [classesRes, childrenRes, attendanceRes, allergiesRes] = await Promise.all([
+  const [classesRes, childrenRes, attendanceRes, allergiesRes, rosterRes] = await Promise.all([
     supabase
       .from("kg_classes")
       .select("id, name, name_ar")
@@ -78,13 +85,26 @@ export default async function AttendancePage({
       .from("kg_child_allergies")
       .select("child_id, allergen")
       .eq("tenant_id", ctx.tenant.id),
+    // The class tabs must show their counts no matter which class is filtered
+    // into the table, so the roster is a separate, deliberately thin query:
+    // ids and class assignment only — no photos to sign, no names to carry.
+    supabase
+      .from("kg_children")
+      .select("id, class_id")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("status", "enrolled"),
   ]);
 
   const firstError =
-    classesRes.error ?? childrenRes.error ?? attendanceRes.error ?? allergiesRes.error;
+    classesRes.error ??
+    childrenRes.error ??
+    attendanceRes.error ??
+    allergiesRes.error ??
+    rosterRes.error;
   if (firstError) throw new Error(firstError.message);
 
-  const classes = (classesRes.data ?? []) as RegisterClassTab[];
+  const classes = (classesRes.data ?? []) as ClassRecord[];
+  const roster = (rosterRes.data ?? []) as { id: string; class_id: string | null }[];
   const children = (childrenRes.data ?? []) as ChildRecord[];
   const attendance = (attendanceRes.data ?? []) as AttendanceRecord[];
 
@@ -96,6 +116,29 @@ export default async function AttendancePage({
     allergiesByChild.set(a.child_id, list);
   }
   const classById = new Map(classes.map((c) => [c.id, c]));
+
+  // Presence per class for the tabs. "Present" here means exactly what the
+  // green tile means (present or late), so the number on a tab and the numbers
+  // above it can never tell two different stories about the same room.
+  const presentChildIds = new Set(
+    attendance.filter((a) => isPresentish(a.status)).map((a) => a.child_id)
+  );
+  const presenceByClass = new Map<string, { present: number; total: number }>();
+  let presentAll = 0;
+  for (const r of roster) {
+    if (presentChildIds.has(r.id)) presentAll++;
+    // A child without a class still counts in "all classes", just not in a tab.
+    if (!r.class_id) continue;
+    const entry = presenceByClass.get(r.class_id) ?? { present: 0, total: 0 };
+    entry.total++;
+    if (presentChildIds.has(r.id)) entry.present++;
+    presenceByClass.set(r.class_id, entry);
+  }
+  const classTabs: RegisterClassTab[] = classes.map((c) => ({
+    ...c,
+    present: presenceByClass.get(c.id)?.present ?? 0,
+    total: presenceByClass.get(c.id)?.total ?? 0,
+  }));
 
   const photoUrls = await Promise.all(
     children.map((c) => signedMediaUrl(c.photo_path))
@@ -148,7 +191,8 @@ export default async function AttendancePage({
         dayLabel={new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
           weekday: "long",
         }).format(dateObj)}
-        classes={classes}
+        classes={classTabs}
+        totals={{ present: presentAll, total: roster.length }}
         activeClass={activeClass}
         rows={rows}
       />

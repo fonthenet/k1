@@ -13,6 +13,8 @@ import { setLocale } from "@/app/actions/locale";
 import { createClient } from "@/lib/supabase/client";
 import { initials } from "@/lib/format";
 import { NotificationBell } from "@/components/modules/notifications/notification-bell";
+import { MobileNav } from "./mobile-nav";
+import type { KgRole } from "@/lib/types";
 
 export function Topbar({
   userName,
@@ -20,6 +22,9 @@ export function Topbar({
   title,
   userId,
   isPlatformAdmin,
+  role,
+  tenantName,
+  logoUrl,
 }: {
   userName: string;
   roleLabel?: string;
@@ -28,6 +33,10 @@ export function Topbar({
   userId?: string;
   /** Runs Rawdati as a business. Almost nobody; the entry is hidden otherwise. */
   isPlatformAdmin?: boolean;
+  /** For the mobile drawer, which is the only navigation below `md`. */
+  role: KgRole;
+  tenantName: string;
+  logoUrl?: string | null;
 }) {
   const router = useRouter();
   const locale = useLocale();
@@ -40,15 +49,34 @@ export function Topbar({
     router.refresh();
   }
 
+  /**
+   * Hover treatment for the header's controls.
+   *
+   * The ghost default fills with `bg-muted`, a grey that sits on the same
+   * tinted band this header is painted in — so hovering read as a smudge
+   * rather than a control lighting up. This lifts the control to the panel
+   * colour with a hairline, which is exactly how the sidebar marks its active
+   * item: the shell already has a word for "raised", so the header uses it
+   * instead of inventing a second one.
+   */
+  const headerControl =
+    "text-muted-foreground transition-colors hover:bg-background hover:text-foreground " +
+    "hover:shadow-xs hover:ring-1 hover:ring-border/60 " +
+    "aria-expanded:bg-background aria-expanded:text-foreground aria-expanded:shadow-xs " +
+    "aria-expanded:ring-1 aria-expanded:ring-border/60";
+
   return (
     // Lives inside the content panel now, so its rule spans the panel rather
     // than the whole window — the difference between a card with a header and
     // a browser chopped in two by a line. Tinted to the same shade as the
     // sidebar's brand block, so both panels are capped the same way.
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-shell/45 px-4 md:px-6">
-      <h1 className="truncate font-heading text-base font-semibold tracking-tight text-foreground">
-        {title}
-      </h1>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <MobileNav role={role} tenantName={tenantName} logoUrl={logoUrl} />
+        <h1 className="truncate font-heading text-base font-semibold tracking-tight text-foreground">
+          {title}
+        </h1>
+      </div>
       <div className="flex items-center gap-1">
         <NotificationBell userId={userId} />
         <DropdownMenu>
@@ -56,7 +84,7 @@ export function Topbar({
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1.5 text-muted-foreground hover:text-foreground"
+              className={`gap-1.5 ${headerControl}`}
             >
               {locale === "ar" ? "العربية" : locale === "en" ? "English" : "Français"}
             </Button>
@@ -69,7 +97,7 @@ export function Topbar({
         </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2 px-2">
+            <Button variant="ghost" className={`gap-2 px-2 ${headerControl}`}>
               <Avatar className="size-8">
                 <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
                   {initials(first, last)}

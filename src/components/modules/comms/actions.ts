@@ -109,6 +109,31 @@ const threadSchema = z.object({
   body: z.string().trim().min(1).max(5000),
 });
 
+/**
+ * Records that the signed-in person has opened a thread.
+ *
+ * Returns whether anything changed, so the caller refreshes the list only when
+ * a dot actually needs to disappear rather than on every mount.
+ *
+ * Uses getTenantContext, not requireStaff: parents read threads too, and the
+ * database restates the visibility rule itself (0070).
+ */
+export async function markThreadRead(threadId: string): Promise<boolean> {
+  if (!z.uuid().safeParse(threadId).success) return false;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kg_mark_thread_read", { p_thread: threadId });
+  if (error || data !== true) return false;
+
+  // Revalidate here rather than leaving it to the caller: the thread list is
+  // rendered by the very page the reader is looking at, so the dot has to
+  // disappear under them, not on their next visit. Self-limiting — a second
+  // call finds the marker already current, returns false above, and never
+  // reaches this line, so there is no revalidate/re-render loop.
+  revalidatePath("/messages", "layout");
+  revalidatePath("/portal/messages", "layout");
+  return true;
+}
+
 export async function createThread(input: z.infer<typeof threadSchema>): Promise<ActionResult> {
   const ctx = await requireStaff();
   const parsed = threadSchema.safeParse(input);

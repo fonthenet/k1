@@ -7,10 +7,12 @@
     "today": "Aujourd'hui",
     "history": "Historique",
     "register": "Registre du jour",
-    "closedNotice": "{day} — la crèche n'ouvre pas ce jour-là."
+    "closedNotice": "{day} — la crèche n'ouvre pas ce jour-là.",
+    "todayLabel": "Aujourd'hui"
   },
   "tabs": {
-    "all": "Toutes les classes"
+    "all": "Toutes les classes",
+    "presence": "{present, plural, =0 {0 présent sur {total}} one {# présent sur {total}} other {# présents sur {total}}}"
   },
   "counters": {
     "present": "{count, plural, =0 {0 présent} one {# présent} other {# présents}}",

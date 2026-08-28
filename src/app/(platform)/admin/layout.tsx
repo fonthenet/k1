@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { Building2, Inbox, LogOut } from "lucide-react";
+import { Building2, Inbox, LifeBuoy, LogOut } from "lucide-react";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { displayIdentity } from "@/lib/auth-identifier";
 
@@ -34,6 +34,13 @@ export default async function PlatformLayout({ children }: { children: React.Rea
             >
               <Building2 className="size-4" aria-hidden />
               {t("nav.tenants")}
+            </Link>
+            <Link
+              href="/admin/support"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-background/75 transition-colors hover:bg-background/10 hover:text-background"
+            >
+              <LifeBuoy className="size-4" aria-hidden />
+              {t("nav.support")}
             </Link>
             <Link
               href="/dashboard"

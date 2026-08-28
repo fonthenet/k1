@@ -21,7 +21,8 @@
     "portal": "Parent portal",
     "sessions": "Sessions",
     "tasks": "Tasks",
-    "platform": "Platform panel"
+    "platform": "Platform panel",
+    "menu": "Menu"
   },
   "actions": {
     "save": "Save",

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MarkThreadRead } from "@/components/modules/comms/mark-thread-read";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Baby, ChevronLeft, ChevronRight, MessagesSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +121,8 @@ export default async function PortalThreadPage({
 
   return (
     <div className="grid gap-4">
+      {/* Opening the thread is what marks it read — see migration 0070. */}
+      <MarkThreadRead threadId={threadId} />
       <div className="flex items-start gap-2">
         <Button
           asChild
