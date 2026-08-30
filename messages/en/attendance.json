@@ -8,7 +8,11 @@
     "history": "History",
     "register": "Today's register",
     "closedNotice": "{day} — the kindergarten does not open on this day.",
-    "todayLabel": "Today"
+    "todayLabel": "Today",
+    "sortLabel": "Order",
+    "sortPresent": "Present first",
+    "sortUnmarked": "Not marked first",
+    "sortName": "By name"
   },
   "tabs": {
     "all": "All classes",
@@ -47,6 +51,11 @@
     "checkIn": "Check-in time",
     "checkOut": "Check-out time",
     "hint": "Leave a field empty to clear the corresponding time."
+  },
+  "checkOutDialog": {
+    "title": "Check out {name}",
+    "description": "Who is collecting the child? Pick someone from the list, or type a name.",
+    "orType": "Or type another name"
   },
   "fields": {
     "pickedUpBy": "Picked up by",

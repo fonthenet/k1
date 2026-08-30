@@ -75,6 +75,21 @@ export interface RegisterClassTab {
   total: number;
 }
 
+/**
+ * Someone the office already knows may collect this child: a linked guardian,
+ * or a name a parent added to `kg_authorized_pickups`. Resolved on the server
+ * with the rest of the register, so choosing one costs no round-trip.
+ */
+export interface RegisterCollector {
+  /** null for an authorized pickup — there is no guardian record to point at. */
+  guardianId: string | null;
+  name: string;
+  /** Already translated server-side. */
+  relationship: string | null;
+  /** `can_pickup`, or any authorized pickup: shown first and seeded by default. */
+  preferred: boolean;
+}
+
 export interface RegisterRow {
   child: {
     id: string;
@@ -87,6 +102,7 @@ export interface RegisterRow {
     classNameAr: string | null;
   };
   allergies: string[];
+  collectors: RegisterCollector[];
   attendance: {
     status: AttendanceStatus;
     check_in_at: string | null;
@@ -106,6 +122,14 @@ interface TimeDialogState {
   name: string;
   checkIn: string;
   checkOut: string;
+}
+
+interface CheckOutDialogState {
+  childId: string;
+  name: string;
+  collectors: RegisterCollector[];
+  pickedUpBy: string;
+  guardianId: string | null;
 }
 
 function isoToTimeInput(iso: string | null): string {
@@ -178,6 +202,7 @@ export function RegisterClient({
   const [bulkPending, setBulkPending] = useState(false);
   const [timeDialog, setTimeDialog] = useState<TimeDialogState | null>(null);
   const [timeSaving, setTimeSaving] = useState(false);
+  const [checkOutDialog, setCheckOutDialog] = useState<CheckOutDialogState | null>(null);
   const [sort, setSort] = useState<SortState<RegisterSortKey>>({ key: "none", dir: "asc" });
 
   // Server data arrived — drop optimistic overrides.
@@ -264,15 +289,42 @@ export function RegisterClient({
     });
   };
 
-  const handleCheckOut = (row: RegisterRow) => {
-    const id = row.child.id;
+  /**
+   * The departure is asked for, not just stamped. The button used to write the
+   * row with nobody attached, leaving the one safeguarding fact of the day to a
+   * free-text box in another column that staff had to notice afterwards.
+   */
+  const openCheckOut = (row: RegisterRow, name: string) => {
+    // Seed the first preferred collector: the common case is the mother at the
+    // gate, and it should cost one confirm, not a choice.
+    const seed = row.collectors.find((c) => c.preferred) ?? null;
+    setCheckOutDialog({
+      childId: row.child.id,
+      name,
+      collectors: row.collectors,
+      pickedUpBy: seed?.name ?? "",
+      guardianId: seed?.guardianId ?? null,
+    });
+  };
+
+  const handleCheckOut = () => {
+    if (!checkOutDialog) return;
+    const { childId: id, pickedUpBy, guardianId } = checkOutDialog;
     setSaving(id, true);
     startTransition(async () => {
-      const res = await checkOutNow({ childId: id, date });
+      const res = await checkOutNow({
+        childId: id,
+        date,
+        pickedUpBy: pickedUpBy.trim() || undefined,
+        // The id only describes the name it was chosen with — see the typing
+        // handler below, which drops it.
+        guardianId: guardianId ?? undefined,
+      });
       setSaving(id, false);
       if (!res.ok) toast.error(t("toasts.error"));
       else {
         toast.success(t("toasts.checkedOut"));
+        setCheckOutDialog(null);
         router.refresh();
       }
     });
@@ -548,7 +600,12 @@ export function RegisterClient({
           description={t("empty.description")}
         />
       ) : (
-        <Card className={cn("py-0 shadow-sm", isClosedDay && "bg-muted")}>
+        // A closed day does not repaint the table. The notice above already
+        // says the crèche is shut, and greying the card said it a second time
+        // at the cost of the header band: TableHeader tints with `bg-muted/40`,
+        // which over a `bg-muted` card is the same hue on itself and disappears.
+        // White card, tinted header — the same as every other table.
+        <Card className="py-0 shadow-sm">
           <CardContent className="overflow-x-auto p-0">
             <Table>
               <TableHeader>
@@ -710,9 +767,28 @@ export function RegisterClient({
 
                       <TableCell className="whitespace-nowrap">
                         {att?.check_out_at ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold tabular-nums text-foreground">
-                            <LogOut className="size-3.5 text-gold rtl:-scale-x-100" />
-                            {formatTime(att.check_out_at, locale)}
+                          <span className="inline-flex max-w-60 items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold text-foreground">
+                            <LogOut className="size-3.5 shrink-0 text-gold rtl:-scale-x-100" />
+                            {/* The clock sits beside a name that may be Arabic
+                                or Latin. Two neutral runs either side of a
+                                separator get reordered by an RTL paragraph, so
+                                the time keeps its own isolate. */}
+                            <span dir="ltr" className="tabular-nums">
+                              {formatTime(att.check_out_at, locale)}
+                            </span>
+                            {att.picked_up_by && (
+                              <>
+                                <span aria-hidden className="opacity-40">
+                                  ·
+                                </span>
+                                <span
+                                  className="min-w-0 truncate font-medium"
+                                  title={att.picked_up_by}
+                                >
+                                  {att.picked_up_by}
+                                </span>
+                              </>
+                            )}
                           </span>
                         ) : canCheckOut ? (
                           <Button
@@ -720,7 +796,7 @@ export function RegisterClient({
                             size="sm"
                             className="border-gold/40 hover:bg-gold/10"
                             disabled={saving}
-                            onClick={() => handleCheckOut(row)}
+                            onClick={() => openCheckOut(row, name)}
                           >
                             <LogOut data-icon="inline-start" className="rtl:-scale-x-100" />
                             {t("actions.checkOutNow")}
@@ -799,6 +875,93 @@ export function RegisterClient({
                 <Button onClick={handleTimeSave} disabled={timeSaving}>
                   {timeSaving && <Loader2 data-icon="inline-start" className="animate-spin" />}
                   {tc("actions.save")}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Check-out dialog — who took the child, asked while it can still be
+          answered. Free text stays for the grandmother nobody has added yet:
+          refusing the unusual case would just mean nothing gets recorded. */}
+      <Dialog
+        open={checkOutDialog !== null}
+        onOpenChange={(open) => !open && setCheckOutDialog(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          {checkOutDialog && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {t("checkOutDialog.title", { name: checkOutDialog.name })}
+                </DialogTitle>
+                <DialogDescription>{t("checkOutDialog.description")}</DialogDescription>
+              </DialogHeader>
+              {checkOutDialog.collectors.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {checkOutDialog.collectors.map((c) => {
+                    const active = checkOutDialog.pickedUpBy === c.name;
+                    return (
+                      <button
+                        key={c.guardianId ?? `pickup:${c.name}`}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() =>
+                          setCheckOutDialog((d) =>
+                            d ? { ...d, pickedUpBy: c.name, guardianId: c.guardianId } : d
+                          )
+                        }
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                          active
+                            ? "border-primary/30 bg-primary/10 text-primary"
+                            : "border-border bg-muted/60 text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {c.name}
+                        {c.relationship && (
+                          <span className="opacity-70">· {c.relationship}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="att-picked-up-by">
+                  {checkOutDialog.collectors.length > 0
+                    ? t("checkOutDialog.orType")
+                    : t("fields.pickedUpBy")}
+                </Label>
+                <Input
+                  id="att-picked-up-by"
+                  value={checkOutDialog.pickedUpBy}
+                  placeholder={t("fields.pickedUpByPlaceholder")}
+                  maxLength={120}
+                  onChange={(e) =>
+                    setCheckOutDialog((d) =>
+                      // Typed over a chosen guardian: the id no longer
+                      // describes what the name says.
+                      d ? { ...d, pickedUpBy: e.target.value, guardianId: null } : d
+                    )
+                  }
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCheckOutDialog(null)}>
+                  {tc("actions.cancel")}
+                </Button>
+                <Button
+                  onClick={handleCheckOut}
+                  disabled={!!savingIds[checkOutDialog.childId]}
+                >
+                  {savingIds[checkOutDialog.childId] ? (
+                    <Loader2 data-icon="inline-start" className="animate-spin" />
+                  ) : (
+                    <LogOut data-icon="inline-start" className="rtl:-scale-x-100" />
+                  )}
+                  {t("actions.checkOutNow")}
                 </Button>
               </DialogFooter>
             </>

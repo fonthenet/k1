@@ -31,6 +31,8 @@ export interface CheckinDialogChildStatus {
   /** Already formatted server-side, so the server and client agree. */
   time: string | null;
   reason: string | null;
+  /** Who collected the child — only ever set on "left". */
+  collectedBy?: string | null;
 }
 
 /** The child a trigger was opened from — name and face, nothing else. */
@@ -102,7 +104,9 @@ function CheckinChildLine({ child }: { child: CheckinDialogChild }) {
         statusLabel = tHome("status.arrived", { time: status.time ?? "" });
         break;
       case "left":
-        statusLabel = tHome("status.left", { time: status.time ?? "" });
+        statusLabel = status.collectedBy
+          ? tHome("status.leftWith", { time: status.time ?? "", name: status.collectedBy })
+          : tHome("status.left", { time: status.time ?? "" });
         break;
       case "absent":
         statusLabel = status.reason

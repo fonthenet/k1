@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireStaff } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { flushPush } from "@/app/actions/push";
+import { isAway, isPresentish } from "./status-config";
 
 export type ActionResult =
   | { ok: true; count?: number }
@@ -39,7 +40,7 @@ export async function setAttendanceStatus(
     .eq("date", date)
     .maybeSingle();
 
-  const presentish = status === "present" || status === "late";
+  const presentish = isPresentish(status);
   const row: Record<string, unknown> = {
     tenant_id: ctx.tenant.id,
     child_id: childId,
@@ -87,6 +88,14 @@ export async function setAttendanceTimes(
   const toIso = (time: string) =>
     time === "" ? null : new Date(`${date}T${time}:00`).toISOString();
 
+  const { data: existing } = await supabase
+    .from("kg_attendance")
+    .select("status")
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("child_id", childId)
+    .eq("date", date)
+    .maybeSingle();
+
   const row: Record<string, unknown> = {
     tenant_id: ctx.tenant.id,
     child_id: childId,
@@ -97,8 +106,13 @@ export async function setAttendanceTimes(
     check_out_method: checkOut === "" ? null : "manual",
   };
   if (checkIn !== "") {
-    // A manual check-in implies the child was there.
-    row.status = "present";
+    // A manual check-in implies the child was there — but not that they were on
+    // time. Correcting a late child's arrival time used to rewrite them to
+    // `present`, which is the one edit staff make most often on a late row.
+    // Only a row that says nothing yet, or one whose absence was reported and
+    // then contradicted by an arrival, gets promoted.
+    if (existing?.status == null || isAway(existing.status))
+      row.status = "present";
     row.checked_in_by = ctx.user.id;
   }
   if (checkOut !== "") row.checked_out_by = ctx.user.id;
@@ -114,7 +128,16 @@ export async function setAttendanceTimes(
   return { ok: true };
 }
 
-const checkOutSchema = z.object({ childId: uuid, date: dateStr });
+const checkOutSchema = z.object({
+  childId: uuid,
+  date: dateStr,
+  // Who took the child. The register's one safeguarding fact, and it was not
+  // being recorded at all on this path.
+  pickedUpBy: z.string().trim().max(120).optional(),
+  // The record, not just the name: a guardian id can be checked against the
+  // child's file afterwards, and a typed string cannot.
+  guardianId: uuid.optional(),
+});
 
 /** Row action: record the check-out right now. */
 export async function checkOutNow(
@@ -122,7 +145,7 @@ export async function checkOutNow(
 ): Promise<ActionResult> {
   const parsed = checkOutSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { childId, date } = parsed.data;
+  const { childId, date, pickedUpBy, guardianId } = parsed.data;
 
   const ctx = await requireStaff();
   const supabase = await createClient();
@@ -133,6 +156,10 @@ export async function checkOutNow(
       check_out_at: new Date().toISOString(),
       check_out_method: "manual",
       checked_out_by: ctx.user.id,
+      // Only ever ADD the collector — a check-out with the box left empty must
+      // not wipe a name the kiosk or an earlier correction already recorded.
+      ...(pickedUpBy ? { picked_up_by: pickedUpBy } : {}),
+      ...(guardianId ? { checked_out_guardian_id: guardianId } : {}),
     })
     .eq("tenant_id", ctx.tenant.id)
     .eq("child_id", childId)

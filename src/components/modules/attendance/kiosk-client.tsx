@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { KioskKeypad } from "./kiosk-keypad";
 import { KioskScanner } from "./kiosk-scanner";
 import { toDateStr } from "./dates";
+import { PRESENTISH_STATUSES, isAway, stillHere } from "./status-config";
 import { flushPush } from "@/app/actions/push";
 import { allergenLabel } from "@/lib/allergens";
 
@@ -164,6 +165,9 @@ interface StaffResult {
 const CHILD_SELECT =
   "id, first_name, last_name, first_name_ar, last_name_ar, tag_code, photo_path, kg_classes(name, name_ar)";
 const GUARDIAN_SELECT = "id, first_name, last_name, relationship, photo_path";
+
+/** The adult's name as every read surface shows it. */
+const guardianName = (g: KioskGuardian) => `${g.first_name} ${g.last_name}`.trim();
 const CODE_RE = /^[A-Z0-9-]{1,32}$/;
 const RELATIONSHIPS = ["father", "mother", "guardian", "grandparent", "sibling", "other"];
 
@@ -295,12 +299,17 @@ export function KioskClient({
   }, []);
 
   // ----- present count (poll every 30 s) -----
+  // Presentish AND still here — the same two conditions kg_dashboard_stats
+  // counts, so the door screen and the office tile never print two numbers
+  // under the same word. Without the status filter this counted a child marked
+  // sick, sitting in the office waiting to be collected, as present.
   const refreshPresent = useCallback(async () => {
     const { count } = await supabase
       .from("kg_attendance")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenantId)
       .eq("date", toDateStr(new Date()))
+      .in("status", PRESENTISH_STATUSES)
       .not("check_in_at", "is", null)
       .is("check_out_at", null);
     if (typeof count === "number") setPresentCount(count);
@@ -394,20 +403,21 @@ export function KioskClient({
   const recordChild = useCallback(
     async (
       child: KioskChild,
-      guardianId: string | null,
+      guardian: KioskGuardian | null,
       force?: Direction
     ): Promise<RecordOutcome> => {
+      const guardianId = guardian?.id ?? null;
       const date = toDateStr(new Date());
       const { data: att } = await supabase
         .from("kg_attendance")
-        .select("check_in_at, check_out_at")
+        .select("status, check_in_at, check_out_at")
         .eq("tenant_id", tenantId)
         .eq("child_id", child.id)
         .eq("date", date)
         .maybeSingle();
 
       const direction: Direction =
-        force ?? (att?.check_in_at && !att.check_out_at ? "out" : "in");
+        force ?? (att && stillHere(att) ? "out" : "in");
       let at = new Date().toISOString();
 
       if (child.tag_code) {
@@ -470,27 +480,45 @@ export function KioskClient({
           check_in_method: "kiosk",
           // Only reachable when a departure is forced onto a child with no row.
           ...(direction === "out" ? { check_out_at: at, check_out_method: "kiosk" } : {}),
-          ...(guardianId
+          // `picked_up_by` is the column every read surface displays, so an id
+          // alone renders blank everywhere. The tag path already writes both
+          // (kg_checkin_by_tag fills the name from the scanned guardian); this
+          // branch has to do it itself.
+          ...(guardian
             ? direction === "out"
-              ? { checked_out_guardian_id: guardianId }
-              : { checked_in_guardian_id: guardianId }
+              ? {
+                  checked_out_guardian_id: guardian.id,
+                  picked_up_by: guardianName(guardian),
+                }
+              : { checked_in_guardian_id: guardian.id }
             : {}),
         });
         if (insError) return { kind: "failed", message: insError.message };
         return { kind: "recorded", direction, at, viaRpc: false };
       }
 
+      // The scan records a time, not a verdict. A child the register marked
+      // `late` this morning stays late: overwriting the word on the way out
+      // erased the only record that they arrived late, and with it the
+      // register's tally, the history grid and the monthly report. Arrival
+      // still promotes a row that says nothing yet, or one whose absence was
+      // reported and then walked through the door anyway.
       const patch: Record<string, unknown> =
         direction === "out"
-          ? { status: "present", check_out_at: at, check_out_method: "kiosk" }
+          ? { check_out_at: at, check_out_method: "kiosk" }
           : {
-              status: "present",
+              ...(att.status == null || isAway(att.status)
+                ? { status: "present" }
+                : {}),
               check_in_at: att.check_in_at ?? at,
               check_in_method: "kiosk",
             };
       // Only ever add attribution — a later child-tag scan must not wipe the
       // adult a guardian scan already recorded.
-      if (guardianId) patch[attribution] = guardianId;
+      if (guardian) {
+        patch[attribution] = guardian.id;
+        if (direction === "out") patch.picked_up_by = guardianName(guardian);
+      }
 
       const { error: updError } = await supabase
         .from("kg_attendance")
@@ -579,7 +607,7 @@ export function KioskClient({
       let usedRpc = false;
 
       for (const child of children) {
-        const res = await recordChild(child, guardian?.id ?? null);
+        const res = await recordChild(child, guardian);
         if (res.kind === "recorded") {
           done.push({ child, direction: res.direction, at: res.at });
           if (res.viaRpc) usedRpc = true;
@@ -654,7 +682,7 @@ export function KioskClient({
         try {
           const res = await recordChild(
             current.child,
-            batch.guardian?.id ?? null,
+            batch.guardian,
             forceDirection(current.reason)
           );
           if (res.kind === "recorded") {
@@ -833,7 +861,7 @@ export function KioskClient({
         return {
           child,
           photoUrl: child.photo_path ? (photoMap[child.photo_path] ?? null) : null,
-          direction: att?.check_in_at && !att.check_out_at ? "out" : "in",
+          direction: att && stillHere(att) ? "out" : "in",
           checkInAt: att?.check_in_at ?? null,
           canPickup: pickupByChild[child.id] ?? false,
         };
@@ -1102,7 +1130,6 @@ export function KioskClient({
       : child.kg_classes.name;
   };
 
-  const guardianName = (g: KioskGuardian) => `${g.first_name} ${g.last_name}`.trim();
   const relationshipLabel = (relationship: string) =>
     t(`relationships.${RELATIONSHIPS.includes(relationship) ? relationship : "other"}`);
 

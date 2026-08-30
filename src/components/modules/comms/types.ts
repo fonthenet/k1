@@ -59,7 +59,9 @@ export interface ThreadListItem {
   childName: string | null;
   lastMessageAt: string;
   preview: string | null;
-  /** Last message was sent by someone else — style as "unread". */
+  /** Messages from other people since this person last opened the thread. */
+  unreadCount: number;
+  /** `unreadCount > 0`, kept so the /messages list can stay a plain dot. */
   unread: boolean;
 }
 

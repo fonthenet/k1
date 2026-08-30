@@ -97,7 +97,7 @@ export const ALLERGENS: AllergenDef[] = [
       "arachide", "arachides", "cacahuete", "cacahuète", "cacahuetes", "cacahuètes",
       "beurre de cacahuete", "kaokao",
       // ar
-      "فول سوداني", "كاوكاو",
+      "فول سوداني", "الفول السوداني", "فول السوداني", "كاوكاو",
       // en
       "peanut", "peanuts", "groundnut",
     ],
@@ -112,7 +112,7 @@ export const ALLERGENS: AllergenDef[] = [
       "amandes", "pistache", "pistaches", "cajou", "noix de cajou", "praline",
       "nutella", "pate a tartiner", "pâte à tartiner",
       // ar
-      "لوز", "جوز", "بندق", "فستق", "كاجو",
+      "مكسرات", "المكسرات", "لوز", "جوز", "بندق", "فستق", "كاجو",
       // en
       "nut", "nuts", "almond", "almonds", "hazelnut", "walnut", "cashew", "pistachio",
     ],
@@ -139,7 +139,7 @@ export const ALLERGENS: AllergenDef[] = [
       "crustace", "crustacé", "crustaces", "crustacés", "crevette", "crevettes",
       "fruits de mer", "calamar", "calmar", "moule", "moules", "crabe",
       // ar
-      "جمبري", "قريدس", "مأكولات بحرية", "سلطعون",
+      "قشريات", "القشريات", "جمبري", "قريدس", "مأكولات بحرية", "سلطعون",
       // en
       "shellfish", "shrimp", "prawn", "seafood", "crab", "squid", "mussel",
     ],
@@ -174,6 +174,20 @@ export const ALLERGENS: AllergenDef[] = [
     group: "food",
     onMenu: true,
     terms: ["miel", "عسل", "honey"],
+  },
+  {
+    value: "agrumes",
+    key: "citrus",
+    group: "food",
+    onMenu: true,
+    terms: [
+      "agrume", "agrumes", "orange", "oranges", "citron", "clementine",
+      "clémentine", "mandarine", "pamplemousse", "jus d'orange",
+      // ar
+      "حمضيات", "الحمضيات", "برتقال", "ليمون", "كلمنتين", "مندرين",
+      // en
+      "citrus", "lemon", "mandarin",
+    ],
   },
   // ---- Not served, so never on a menu — but children have them and staff
   // ---- must see them on the register and at the kiosk.

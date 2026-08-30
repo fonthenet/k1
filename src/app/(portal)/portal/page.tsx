@@ -40,6 +40,7 @@ import {
   parseMeals,
   severityClasses,
 } from "@/components/modules/portal/portal-types";
+import { isAway } from "@/components/modules/attendance/status-config";
 import { AckIncidentButton } from "@/components/modules/portal/ack-incident-button";
 import {
   CheckinDialog,
@@ -53,6 +54,7 @@ type AttendanceRow = {
   status: AttendanceStatus;
   check_in_at: string | null;
   check_out_at: string | null;
+  picked_up_by: string | null;
   absence_reason: string | null;
 };
 
@@ -135,7 +137,7 @@ export default async function PortalHomePage() {
       childIds.length
         ? supabase
             .from("kg_attendance")
-            .select("child_id, status, check_in_at, check_out_at, absence_reason")
+            .select("child_id, status, check_in_at, check_out_at, picked_up_by, absence_reason")
             .in("child_id", childIds)
             .eq("date", today)
         : Promise.resolve({ data: [] }),
@@ -249,7 +251,7 @@ export default async function PortalHomePage() {
   function todayCheckin(childId: string): CheckinDialogChildStatus {
     const row = attendanceByChild.get(childId);
     if (!row) return { kind: "notYet", time: null, reason: null };
-    if (row.status === "absent" || row.status === "sick" || row.status === "excused") {
+    if (isAway(row.status)) {
       return {
         kind: "absent",
         time: null,
@@ -257,7 +259,14 @@ export default async function PortalHomePage() {
       };
     }
     if (row.check_out_at) {
-      return { kind: "left", time: formatTime(row.check_out_at, locale), reason: null };
+      // A parent reading "Left at 16:00" still has to ask the one question the
+      // register already knows the answer to.
+      return {
+        kind: "left",
+        time: formatTime(row.check_out_at, locale),
+        reason: null,
+        collectedBy: row.picked_up_by,
+      };
     }
     if (row.check_in_at) {
       return { kind: "arrived", time: formatTime(row.check_in_at, locale), reason: null };
@@ -277,7 +286,12 @@ export default async function PortalHomePage() {
         };
       case "left":
         return {
-          label: t("home.status.left", { time: status.time ?? "" }),
+          label: status.collectedBy
+            ? t("home.status.leftWith", {
+                time: status.time ?? "",
+                name: status.collectedBy,
+              })
+            : t("home.status.left", { time: status.time ?? "" }),
           classes: attendanceChipClasses("left"),
         };
       case "arrived":

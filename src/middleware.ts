@@ -8,7 +8,7 @@ const PROTECTED_PREFIXES = [
   "/billing", "/accounting", "/classes", "/activities", "/announcements",
   "/messages", "/calendar", "/menus", "/reports", "/settings", "/portal",
   "/kiosk", "/onboarding", "/incidents", "/sessions", "/tasks",
-  "/notifications", "/after-login",
+  "/notifications", "/after-login", "/my-pay",
 ];
 
 export async function middleware(request: NextRequest) {

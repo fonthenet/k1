@@ -113,8 +113,20 @@
       "body": "{text}"
     },
     "application_status": {
-      "title": "Dossier de {child}",
-      "body": "{status}"
+      "title": "{status, select, approved{Place confirmée} offered{Une place vous est proposée} interview{Entretien} waitlist{Sur la liste d'attente} rejected{Nous ne pouvons pas proposer de place} under_review{Demande reçue} other{Mise à jour de la demande}}",
+      "body": "{status, select, approved{{childName} est inscrit. Bienvenue !} offered{Nous pouvons proposer une place à {childName}. Merci de nous contacter pour confirmer.} interview{Nous souhaitons vous rencontrer au sujet de la demande de {childName}.} waitlist{{childName} est sur la liste d'attente. Nous vous contacterons dès qu'une place se libère.} rejected{Nous sommes désolés : nous ne pouvons pas proposer de place à {childName} pour le moment.} under_review{Nous étudions la demande de {childName}.} other{{childName}}}"
+    },
+    "advance_approved": {
+      "body": "Elle sera déduite de votre prochaine paie.",
+      "title": "Votre avance est approuvée — {amount}"
+    },
+    "advance_rejected": {
+      "body": "La demande de {amount} a été refusée.",
+      "title": "Votre avance n'a pas été approuvée"
+    },
+    "advance_requested": {
+      "body": "{name} demande une avance sur salaire.",
+      "title": "Avance demandée — {amount}"
     }
   },
   "push": {

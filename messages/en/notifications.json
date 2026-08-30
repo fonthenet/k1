@@ -113,8 +113,20 @@
       "body": "{text}"
     },
     "application_status": {
-      "title": "{child}'s application",
-      "body": "{status}"
+      "title": "{status, select, approved{Place confirmed} offered{A place is offered} interview{Interview} waitlist{On the waiting list} rejected{We cannot offer a place} under_review{Application received} other{Application update}}",
+      "body": "{status, select, approved{{childName} is enrolled. Welcome!} offered{We can offer {childName} a place. Please get in touch to confirm.} interview{We would like to meet you about {childName}'s application.} waitlist{{childName} is on the waiting list. We will contact you as soon as a place comes free.} rejected{We are sorry — we cannot offer {childName} a place at the moment.} under_review{We are looking at {childName}'s application.} other{{childName}}}"
+    },
+    "advance_approved": {
+      "body": "It will be deducted from your next payslip.",
+      "title": "Your advance was approved — {amount}"
+    },
+    "advance_rejected": {
+      "body": "The request for {amount} was declined.",
+      "title": "Your advance was not approved"
+    },
+    "advance_requested": {
+      "body": "{name} has asked for a salary advance.",
+      "title": "Advance requested — {amount}"
     }
   },
   "push": {

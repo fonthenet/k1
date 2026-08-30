@@ -75,6 +75,18 @@ leaving at 09:15). Rules:
   in 100+ places; follow it.
 - Numbers that open a translated Arabic string need a leading U+200F, and Arabic
   thousands separators should be U+00A0 so the digits cannot reorder.
+- A `dir="ltr"` island cuts BOTH ways. Put one Arabic word inside it and the
+  Latin runs around that word reorder instead:
+
+      "you@example.dz أو 0550 12 34 56"  →  you@example.dz 56 34 12 0550 أو
+
+  `أو` is a strong Arabic letter, so the digits after it become Arabic numbers
+  and the spaces between the groups resolve RTL — the phone number comes out
+  backwards, in Arabic only. So: **a placeholder on a `dir="ltr"` field carries
+  sample values and nothing else.** Say the conjunction in the `<Label>`, which
+  is RTL and can hold prose; the placeholder shows the shapes, joined by ` · `.
+  Isolating the word (U+2067…U+2069) also works, but an invisible character in
+  a JSON message file does not survive the next translator.
 - Test in Arabic FIRST, not last. An RTL bug in a fee, a time or a phone number
   is a correctness bug, not a layout nit.
 

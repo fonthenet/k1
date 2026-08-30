@@ -40,6 +40,7 @@ import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/modules/dashboard/url-tabs";
 import { MonthSelect } from "@/components/modules/dashboard/month-select";
 import { ExportCsvButton } from "@/components/modules/dashboard/export-csv-button";
+import { isPresentish } from "@/components/modules/attendance/status-config";
 import { unpaidBreakMinutes } from "@/components/modules/staff/dates";
 
 // ---------- local row types (schema: supabase/migrations) ----------
@@ -257,7 +258,6 @@ export default async function ReportsPage({
   });
 
   // ================= (a) Attendance =================
-  const isPresent = (s: AttendanceStatus) => s === "present" || s === "late";
   const classRows = [
     ...classes.map((c) => ({ key: c.id, label: locale === "ar" && c.name_ar ? c.name_ar : c.name, classId: c.id as string | null })),
     { key: "none", label: t("attendance.unassigned"), classId: null as string | null },
@@ -266,7 +266,7 @@ export default async function ReportsPage({
       const kids = children.filter((c) => c.class_id === cls.classId);
       const ids = new Set(kids.map((k) => k.id));
       const recs = att.filter((a) => ids.has(a.child_id));
-      const present = recs.filter((r) => isPresent(r.status)).length;
+      const present = recs.filter((r) => isPresentish(r.status)).length;
       return {
         ...cls,
         enrolled: kids.length,
@@ -316,7 +316,7 @@ export default async function ReportsPage({
       d.setDate(weekStart.getDate() + i);
       const key = isoDate(d);
       const recs = attByDate.get(key) ?? [];
-      const present = recs.filter((r) => isPresent(r.status)).length;
+      const present = recs.filter((r) => isPresentish(r.status)).length;
       cells.push({
         key,
         day: d.getDate(),

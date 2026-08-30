@@ -87,7 +87,30 @@
     "deleteDesc": "« {description} » ({amount}) sera définitivement supprimée du journal.",
     "added": "Transaction ajoutée",
     "updated": "Transaction modifiée",
-    "deleted": "Transaction supprimée"
+    "deleted": "Transaction supprimée",
+    "items": {
+      "title": "Liste des achats",
+      "hint": "Détaillez le total ligne par ligne — ce qui a été acheté, en quelle quantité et à quel prix.",
+      "add": "Ajouter un article",
+      "name": "Article",
+      "namePlaceholder": "Pain",
+      "qty": "Qté",
+      "unit": "Prix unitaire",
+      "remove": "Retirer",
+      "count": "{count, plural, one {# article} other {# articles}}",
+      "total": "Total de la liste",
+      "empty": "Non détaillé",
+      "detailTitle": "Ce qui a été acheté",
+      "saved": "Liste enregistrée",
+      "edit": "Modifier la liste",
+      "itemised": "Détaillé",
+      "lockedHint": "Les écritures créées automatiquement par la facturation ou la paie ne peuvent pas être détaillées."
+    },
+    "descriptionPlaceholderIncome": "frais d'inscription reçus",
+    "detailTitle": "Détail de la transaction",
+    "linkedAdvance": "Avance sur salaire",
+    "linkedPayment": "Liée à un paiement",
+    "linkedPayroll": "Versement de salaire"
   },
   "categories": {
     "title": "Catégories",
@@ -131,7 +154,12 @@
     "created": "Brouillon de paie créé",
     "deleteTitle": "Supprimer ce brouillon ?",
     "deleteDesc": "La paie de {month} et toutes ses lignes seront supprimées.",
-    "deleted": "Brouillon supprimé"
+    "deleted": "Brouillon supprimé",
+    "delete": "Supprimer le brouillon",
+    "draftsTitle": "Brouillons",
+    "finalizedOn": "Clôturé le {date}",
+    "preparedBy": "Préparé par {name} · {date}",
+    "preparedOn": "Préparé le {date}"
   },
   "run": {
     "title": "Paie de {month}",
@@ -161,7 +189,10 @@
     "method": "Méthode de paiement",
     "paid": "Paie marquée comme payée",
     "paidAt": "Payée le {date}",
-    "hourlyBasis": "{hours} h × {rate}"
+    "hourlyBasis": "{hours} h × {rate}",
+    "editDesc": "Les montants sont modifiables tant que la paie est un brouillon. Les avances sont calculées par la paie et ne se saisissent pas ici.",
+    "editTitle": "Modifier la ligne de paie",
+    "netPreview": "Net {amount}"
   },
   "payslip": {
     "title": "Bulletin de paie",
@@ -183,7 +214,19 @@
     "signatureEmployee": "Signature de l'employé(e)",
     "generated": "Édité le {date}",
     "print": "Imprimer",
-    "back": "Retour à la paie"
+    "back": "Retour à la paie",
+    "notFound": "Bulletin de paie introuvable",
+    "notFoundHint": "Ce bulletin n'existe pas, ou ne vous est pas accessible.",
+    "breakdown": "Ce mois-ci",
+    "takeHome": "Net à payer",
+    "gross": "Brut",
+    "copy": "Copier",
+    "share": "Partager",
+    "copied": "Fiche de paie copiée",
+    "docTitleFr": "Fiche de paie",
+    "docTitleAr": "قسيمة الراتب",
+    "signatureFr": "Signature de l'employeur",
+    "signatureAr": "توقيع صاحب العمل"
   },
   "advances": {
     "title": "Avances sur salaire",
@@ -209,7 +252,35 @@
     "emptyOutstanding": "Aucune avance en cours",
     "emptyRepaid": "Aucune avance remboursée",
     "added": "Avance enregistrée",
-    "markedRepaid": "Avance marquée remboursée"
+    "markedRepaid": "Avance marquée remboursée",
+    "markRepaidPayrollNote": "Cette avance est rattachée à une paie en brouillon : la déduction de {amount} sera retirée de ce bulletin.",
+    "approve": "Approuver",
+    "approveDesc": "Une dépense de {amount} pour {name} est enregistrée immédiatement, puis déduite de la prochaine paie.",
+    "approveTitle": "Approuver cette avance ?",
+    "approved": "Approuvée",
+    "decidedOn": "Décidée le {date}",
+    "decisionNote": "Note de décision",
+    "decisionNotePlaceholder": "ex. : 3000 approuvés sur les 5000 demandés",
+    "decisionSaved": "Décision enregistrée",
+    "emptyRequested": "Aucune demande en attente",
+    "pending": "En attente de décision",
+    "pendingCount": "{count, plural, one {# demande} other {# demandes}}",
+    "reason": "Motif",
+    "reasonPlaceholder": "Dépenses familiales, loyer…",
+    "reject": "Refuser",
+    "rejectDesc": "Aucun montant n'est versé. L'employé peut refaire une demande.",
+    "rejectTitle": "Refuser cette demande ?",
+    "rejected": "Refusée",
+    "request": "Demander une avance",
+    "requestDesc": "La direction financière examine la demande. Aucun montant n'est versé avant l'approbation.",
+    "requestSent": "Demande envoyée",
+    "requestTitle": "Demander une avance sur salaire",
+    "requested": "Demandées",
+    "requestedOn": "Demandée le {date}",
+    "withdraw": "Retirer",
+    "withdrawDesc": "La demande de {amount} sera supprimée.",
+    "withdrawTitle": "Retirer cette demande ?",
+    "withdrawn": "Demande retirée"
   },
   "errors": {
     "generic": "Une erreur est survenue. Réessayez.",
@@ -221,6 +292,23 @@
     "exists": "Une paie existe déjà pour ce mois.",
     "notDraft": "Cette paie n'est plus en brouillon.",
     "notFinalized": "Finalisez la paie avant de la marquer comme payée.",
-    "noStaff": "Aucun membre actif du personnel."
+    "noStaff": "Aucun membre actif du personnel.",
+    "onFinalizedPayroll": "Cette avance est déjà déduite d'une paie finalisée. Elle sera soldée quand la paie sera payée.",
+    "blocked": "Rien n'a été modifié. L'état a peut-être changé — rechargez."
+  },
+  "pay": {
+    "advances": "Mes avances",
+    "advancesUnavailable": "Les demandes d'avance ne sont pas encore disponibles dans l'application.",
+    "awaitingPay": "Pas encore versé",
+    "back": "Retour à ma paie",
+    "emptyAdvances": "Aucune avance",
+    "emptyAdvancesHint": "Vous pouvez demander ici une avance sur votre salaire.",
+    "emptyPayslips": "Aucun bulletin pour l'instant",
+    "emptyPayslipsHint": "Chaque bulletin apparaît ici dès que la paie du mois est préparée.",
+    "lastNet": "Dernier net versé",
+    "payslips": "Bulletins de paie",
+    "periodUnknown": "Période indisponible",
+    "subtitle": "Vos bulletins et vos avances",
+    "title": "Ma paie"
   }
 }

@@ -8,17 +8,21 @@
     "history": "السجل الشهري",
     "register": "سجل اليوم",
     "closedNotice": "{day} — الروضة لا تفتح في هذا اليوم.",
-    "todayLabel": "اليوم"
+    "todayLabel": "اليوم",
+    "sortLabel": "الترتيب",
+    "sortPresent": "الحاضرون أولاً",
+    "sortUnmarked": "غير المسجّلين أولاً",
+    "sortName": "بالاسم"
   },
   "tabs": {
     "all": "كل الأقسام",
     "presence": "{present, plural, zero {لا حاضر من أصل {total}} one {حاضر واحد من أصل {total}} two {حاضران من أصل {total}} few {# حاضرين من أصل {total}} many {# حاضرًا من أصل {total}} other {# حاضر من أصل {total}}}"
   },
   "counters": {
-    "present": "{count, plural, =0 {لا حاضر} one {حاضر واحد} two {حاضران} few {# حاضرين} many {# حاضرًا} other {# حاضر}}",
-    "absent": "{count, plural, =0 {لا غائب} one {غائب واحد} two {غائبان} few {# غائبين} many {# غائبًا} other {# غائب}}",
+    "present": "{count, plural, =0 {لا أحد حاضر} one {حاضر واحد} two {حاضران} few {# حاضرين} many {# حاضرًا} other {# حاضر}}",
+    "absent": "{count, plural, =0 {لا أحد غائب} one {غائب واحد} two {غائبان} few {# غائبين} many {# غائبًا} other {# غائب}}",
     "notMarked": "{count, plural, =0 {لا أحد بدون تسجيل} one {واحد بدون تسجيل} two {اثنان بدون تسجيل} few {# بدون تسجيل} many {# بدون تسجيل} other {# بدون تسجيل}}",
-    "checkedOut": "{count, plural, =0 {لا خروج} one {خرج واحد} two {خرج اثنان} few {# خرجوا} many {# خرجوا} other {# خرجوا}}"
+    "checkedOut": "{count, plural, =0 {لم يخرج أحد} one {خرج واحد} two {خرج اثنان} few {# خرجوا} many {# خرجوا} other {# خرجوا}}"
   },
   "status": {
     "present": "حاضر",
@@ -47,6 +51,11 @@
     "checkIn": "وقت الوصول",
     "checkOut": "وقت الخروج",
     "hint": "اترك الخانة فارغة لمسح الوقت الموافق لها."
+  },
+  "checkOutDialog": {
+    "title": "استلام {name}",
+    "description": "من استلم الطفل؟ اختر شخصًا من القائمة أو اكتب الاسم.",
+    "orType": "أو اكتب اسمًا آخر"
   },
   "fields": {
     "pickedUpBy": "استلمه",

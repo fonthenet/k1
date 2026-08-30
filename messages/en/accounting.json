@@ -87,7 +87,30 @@
     "deleteDesc": "\"{description}\" ({amount}) will be permanently removed from the ledger.",
     "added": "Transaction added",
     "updated": "Transaction updated",
-    "deleted": "Transaction deleted"
+    "deleted": "Transaction deleted",
+    "items": {
+      "title": "Shopping list",
+      "hint": "Break the total down line by line — what was bought, how much of it, and at what price.",
+      "add": "Add item",
+      "name": "Item",
+      "namePlaceholder": "Bread",
+      "qty": "Qty",
+      "unit": "Unit price",
+      "remove": "Remove",
+      "count": "{count, plural, one {# item} other {# items}}",
+      "total": "List total",
+      "empty": "Not itemised",
+      "detailTitle": "What was bought",
+      "saved": "Shopping list saved",
+      "edit": "Edit the list",
+      "itemised": "Itemised",
+      "lockedHint": "Entries created automatically by billing or payroll cannot be itemised."
+    },
+    "descriptionPlaceholderIncome": "registration fee received",
+    "detailTitle": "Transaction detail",
+    "linkedAdvance": "Salary advance",
+    "linkedPayment": "Linked to a payment",
+    "linkedPayroll": "Salary payout"
   },
   "categories": {
     "title": "Categories",
@@ -131,7 +154,12 @@
     "created": "Payroll draft created",
     "deleteTitle": "Delete this draft?",
     "deleteDesc": "The {month} payroll and all its lines will be deleted.",
-    "deleted": "Draft deleted"
+    "deleted": "Draft deleted",
+    "delete": "Delete draft",
+    "draftsTitle": "Drafts",
+    "finalizedOn": "Locked {date}",
+    "preparedBy": "Prepared by {name} · {date}",
+    "preparedOn": "Prepared {date}"
   },
   "run": {
     "title": "Payroll — {month}",
@@ -161,7 +189,10 @@
     "method": "Payment method",
     "paid": "Payroll marked as paid",
     "paidAt": "Paid on {date}",
-    "hourlyBasis": "{hours} h × {rate}"
+    "hourlyBasis": "{hours} h × {rate}",
+    "editDesc": "Amounts can be changed while the payroll is a draft. Advances are computed by the run and are not typed here.",
+    "editTitle": "Edit payroll line",
+    "netPreview": "Net {amount}"
   },
   "payslip": {
     "title": "Payslip",
@@ -183,7 +214,19 @@
     "signatureEmployee": "Employee signature",
     "generated": "Issued on {date}",
     "print": "Print",
-    "back": "Back to payroll"
+    "back": "Back to payroll",
+    "notFound": "Payslip not found",
+    "notFoundHint": "This payslip does not exist, or it is not yours to view.",
+    "breakdown": "This month",
+    "takeHome": "Take-home pay",
+    "gross": "Gross",
+    "copy": "Copy",
+    "share": "Share",
+    "copied": "Payslip copied",
+    "docTitleFr": "Fiche de paie",
+    "docTitleAr": "قسيمة الراتب",
+    "signatureFr": "Signature de l'employeur",
+    "signatureAr": "توقيع صاحب العمل"
   },
   "advances": {
     "title": "Salary advances",
@@ -209,7 +252,35 @@
     "emptyOutstanding": "No outstanding advances",
     "emptyRepaid": "No repaid advances",
     "added": "Advance recorded",
-    "markedRepaid": "Advance marked repaid"
+    "markedRepaid": "Advance marked repaid",
+    "markRepaidPayrollNote": "This advance is queued on a draft payroll run: the {amount} deduction will be removed from that payslip.",
+    "approve": "Approve",
+    "approveDesc": "A {amount} expense for {name} is recorded straight away, and deducted from the next payroll.",
+    "approveTitle": "Approve this advance?",
+    "approved": "Approved",
+    "decidedOn": "Decided on {date}",
+    "decisionNote": "Decision note",
+    "decisionNotePlaceholder": "e.g. approved 3000 of the 5000 requested",
+    "decisionSaved": "Decision recorded",
+    "emptyRequested": "No pending requests",
+    "pending": "Awaiting a decision",
+    "pendingCount": "{count, plural, one {# request} other {# requests}}",
+    "reason": "Reason",
+    "reasonPlaceholder": "Family expenses, rent…",
+    "reject": "Reject",
+    "rejectDesc": "No money moves. The employee can file a new request.",
+    "rejectTitle": "Reject this request?",
+    "rejected": "Rejected",
+    "request": "Request an advance",
+    "requestDesc": "Finance reviews the request. No money moves before it is approved.",
+    "requestSent": "Request sent",
+    "requestTitle": "Request a salary advance",
+    "requested": "Requested",
+    "requestedOn": "Requested on {date}",
+    "withdraw": "Withdraw",
+    "withdrawDesc": "The {amount} request will be removed.",
+    "withdrawTitle": "Withdraw this request?",
+    "withdrawn": "Request withdrawn"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -221,6 +292,23 @@
     "exists": "A payroll already exists for this month.",
     "notDraft": "This payroll is no longer a draft.",
     "notFinalized": "Finalize the payroll before marking it paid.",
-    "noStaff": "No active staff members."
+    "noStaff": "No active staff members.",
+    "onFinalizedPayroll": "This advance is already deducted on a finalised payroll run. It settles when that run is paid.",
+    "blocked": "Nothing was changed. The state may have moved on — reload."
+  },
+  "pay": {
+    "advances": "My advances",
+    "advancesUnavailable": "Advance requests are not available in the app yet.",
+    "awaitingPay": "Not paid yet",
+    "back": "Back to my pay",
+    "emptyAdvances": "No advances",
+    "emptyAdvancesHint": "You can ask for an advance on your salary here.",
+    "emptyPayslips": "No payslips yet",
+    "emptyPayslipsHint": "Each payslip appears here as soon as the month's payroll is prepared.",
+    "lastNet": "Last net paid",
+    "payslips": "Payslips",
+    "periodUnknown": "Period unavailable",
+    "subtitle": "Your payslips and your advances",
+    "title": "My pay"
   }
 }

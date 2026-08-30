@@ -3,8 +3,8 @@ import { getPlatformContext } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
-import { SupportWidget } from "@/components/modules/support/support-widget";
-import { getSupportSummary } from "@/components/modules/support/data";
+import { InboxWidget } from "@/components/modules/inbox/inbox-widget";
+import { getInboxSummary } from "@/components/modules/inbox/data";
 import { displayIdentity } from "@/lib/auth-identifier";
 
 /**
@@ -19,7 +19,7 @@ import { displayIdentity } from "@/lib/auth-identifier";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireStaff();
   const supabase = await createClient();
-  const [{ data: profile }, platform, logoUrl, support] = await Promise.all([
+  const [{ data: profile }, platform, logoUrl, inbox] = await Promise.all([
     supabase.from("kg_profiles").select("full_name").eq("id", ctx.user.id).single(),
     // The operator panel had no way in but typing the URL. Everyone else gets
     // nothing here, so the menu never hints that /admin exists.
@@ -27,9 +27,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     // The crèche's own logo, not Rawdati's mark: staff spend their day in here
     // and it should look like their place of work.
     signedMediaUrl(ctx.tenant.logo_url),
-    // Admins only — the vendor relationship is not an educator's business, and
-    // the RPC returns null for anyone else anyway.
-    ctx.isAdmin ? getSupportSummary(ctx.tenant.id) : Promise.resolve(null),
+    // Every member of staff: family conversations are everyone's business.
+    // The support thread inside it is still admins only — see getInboxSummary.
+    getInboxSummary(ctx.tenant.id, ctx.user.id, ctx.isAdmin),
   ]);
 
   return (
@@ -47,13 +47,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           logoUrl={logoUrl}
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
-        {support && (
-          <SupportWidget
-            tenantId={ctx.tenant.id}
-            threadId={support.threadId}
-            initialUnread={support.unread}
-          />
-        )}
+        <InboxWidget
+          tenantId={ctx.tenant.id}
+          userId={ctx.user.id}
+          supportThreadId={inbox.supportThreadId}
+          initialUnread={inbox.unread}
+        />
       </div>
     </div>
   );

@@ -55,6 +55,59 @@ export async function getSupportMessages(threadId: string): Promise<SupportMessa
     .reverse();
 }
 
+/**
+ * The crèche wrote it and this operator has not opened the thread since.
+ *
+ * Mirrors `isMessageUnread` on the family side, but keyed on `from_platform`
+ * rather than on a sender id: a support thread has two sides, not two people.
+ * Shared by the inbox rows and the nav badge so they cannot disagree.
+ */
+function isSupportMessageUnread(
+  m: { from_platform: boolean; created_at: string },
+  lastReadAt: string | undefined
+): boolean {
+  return (
+    !m.from_platform &&
+    (lastReadAt === undefined || new Date(m.created_at) > new Date(lastReadAt))
+  );
+}
+
+/**
+ * How many client messages are waiting on Rawdati — the operator nav badge.
+ *
+ * Counted in messages, like every other badge in the product. Leaner than
+ * `getSupportInbox`: no tenant names, no previews. It runs in the platform
+ * layout, so it runs on every operator page.
+ */
+export async function countUnreadSupportMessages(userId: string): Promise<number> {
+  const supabase = await createClient();
+
+  const { data: threadRows } = await supabase
+    .from("kg_support_threads")
+    .select("id")
+    .order("last_message_at", { ascending: false })
+    .limit(200);
+
+  const ids = (threadRows ?? []).map((r) => r.id as string);
+  if (ids.length === 0) return 0;
+
+  const [{ data: msgs }, { data: reads }] = await Promise.all([
+    supabase
+      .from("kg_support_messages")
+      .select("thread_id, from_platform, created_at")
+      .in("thread_id", ids)
+      .order("created_at", { ascending: false })
+      .limit(400),
+    supabase.from("kg_support_reads").select("thread_id, last_read_at").eq("user_id", userId),
+  ]);
+
+  const readAt = new Map((reads ?? []).map((r) => [r.thread_id, r.last_read_at]));
+
+  let waiting = 0;
+  for (const m of msgs ?? []) if (isSupportMessageUnread(m, readAt.get(m.thread_id))) waiting++;
+  return waiting;
+}
+
 /** Every client conversation, most recently active first — the operator's inbox. */
 export async function getSupportInbox(userId: string): Promise<SupportInboxRow[]> {
   const supabase = await createClient();
@@ -96,8 +149,7 @@ export async function getSupportInbox(userId: string): Promise<SupportInboxRow[]
       tenantName: r.kg_tenants?.name ?? "—",
       lastMessageAt: r.last_message_at,
       preview: l ? l.body.replace(/\s+/g, " ").trim() || null : null,
-      unread:
-        !!l && !l.from_platform && !(seen !== undefined && new Date(seen) >= new Date(l.created_at)),
+      unread: !!l && isSupportMessageUnread(l, seen),
     };
   });
 }

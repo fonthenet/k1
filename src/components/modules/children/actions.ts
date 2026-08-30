@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import type { KgRole } from "@/lib/types";
+import { serializeHealthList } from "@/components/modules/portal/health-edit-shared";
 
 export type ActionResult =
   | { ok: true; id?: string }
@@ -142,9 +143,19 @@ export async function updateChild(
   return { ok: true };
 }
 
+/**
+ * Move a child between enrolled, withdrawn and alumni.
+ *
+ * There is deliberately no delete anywhere in this app, and this is the reason:
+ * `kg_children` cascades to sixteen tables INCLUDING `kg_invoices`, while
+ * `kg_payments.child_id` is only SET NULL. Deleting a child would destroy their
+ * billing history and leave the payments behind it, orphaned — money received
+ * against invoices that no longer exist, and nothing to say why. Every one of
+ * these three is reversible and keeps the whole record.
+ */
 export async function setChildStatus(
   childId: string,
-  action: "withdraw" | "reenroll"
+  action: "withdraw" | "reenroll" | "archive"
 ): Promise<ActionResult> {
   const ctx = await requireStaff();
   if (!z.uuid().safeParse(childId).success) return { ok: false, error: "invalid" };
@@ -153,7 +164,11 @@ export async function setChildStatus(
   const patch =
     action === "withdraw"
       ? { status: "withdrawn", withdrawal_date: today }
-      : { status: "enrolled", withdrawal_date: null };
+      : action === "archive"
+        ? // Archiving keeps whatever withdrawal date was already recorded: a
+          // child who left in June and is archived in September left in June.
+          { status: "alumni" }
+        : { status: "enrolled", withdrawal_date: null };
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -520,10 +535,25 @@ export async function deletePickup(childId: string, pickupId: string): Promise<A
 
 // ===== Health =====
 
+/**
+ * One line of a jsonb list column. `source` carries the original JSON of an
+ * entry that was an object rather than a string; `serializeHealthList` writes
+ * it back untouched when the label still matches, so a staff save cannot
+ * flatten a richer entry the form only ever showed as one line.
+ */
+const healthListItemSchema = z.object({
+  label: z.string().trim().min(1).max(200),
+  source: z
+    .record(z.string(), z.unknown())
+    .refine((v) => JSON.stringify(v).length <= 2000)
+    .nullable()
+    .default(null),
+});
+
 const healthSchema = z.object({
-  conditions: z.array(z.string().trim().min(1).max(200)).max(50),
-  medications: z.array(z.string().trim().min(1).max(200)).max(50),
-  vaccinations: z.array(z.string().trim().min(1).max(200)).max(50),
+  conditions: z.array(healthListItemSchema).max(50),
+  medications: z.array(healthListItemSchema).max(50),
+  vaccinations: z.array(healthListItemSchema).max(50),
   dietary: optionalText,
   specialNeeds: optionalText,
   doctorName: optionalText,
@@ -550,14 +580,16 @@ export async function saveHealth(
   const { error } = await supabase.from("kg_child_health").upsert(
     {
       child_id: childId,
-      medical_conditions: d.conditions,
-      medications: d.medications,
-      vaccinations: d.vaccinations,
+      medical_conditions: serializeHealthList(d.conditions),
+      medications: serializeHealthList(d.medications),
+      vaccinations: serializeHealthList(d.vaccinations),
       dietary_restrictions: d.dietary,
       special_needs: d.specialNeeds,
       doctor_name: d.doctorName,
       doctor_phone: d.doctorPhone,
       emergency_notes: d.emergencyNotes,
+      // The default only applies on insert; an update must move it itself.
+      updated_at: new Date().toISOString(),
     },
     { onConflict: "child_id" }
   );

@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { LogOut, RotateCcw } from "lucide-react";
+import { Archive, LogOut, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,14 +26,14 @@ export function StatusActions({ childId, status }: { childId: string; status: Ch
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const isWithdrawn = status === "withdrawn";
-  const action = isWithdrawn ? "reenroll" : "withdraw";
+  // Enrolled: offer both ways out. Otherwise: offer the way back.
+  const isActive = status === "enrolled";
 
-  function run() {
+  function run(action: "withdraw" | "reenroll" | "archive", okKey: string) {
     startTransition(async () => {
       const res = await setChildStatus(childId, action);
       if (res.ok) {
-        toast.success(t(isWithdrawn ? "toasts.reenrolled" : "toasts.withdrawn"));
+        toast.success(t(okKey));
         router.refresh();
       } else {
         toast.error(t("toasts.error"));
@@ -42,36 +42,89 @@ export function StatusActions({ childId, status }: { childId: string; status: Ch
   }
 
   return (
+    <div className="flex flex-wrap gap-2">
+      {isActive ? (
+        <>
+          <Confirm
+            trigger={
+              <Button variant="destructive" disabled={pending}>
+                <LogOut data-icon="inline-start" />
+                {t("statusActions.withdraw")}
+              </Button>
+            }
+            title={t("statusActions.withdrawTitle")}
+            description={t("statusActions.withdrawDescription")}
+            cancel={tc("actions.cancel")}
+            confirm={tc("actions.confirm")}
+            onConfirm={() => run("withdraw", "toasts.withdrawn")}
+          />
+          <Confirm
+            trigger={
+              <Button variant="outline" disabled={pending}>
+                <Archive data-icon="inline-start" />
+                {t("statusActions.archive")}
+              </Button>
+            }
+            title={t("statusActions.archiveTitle")}
+            description={t("statusActions.archiveDescription")}
+            cancel={tc("actions.cancel")}
+            confirm={tc("actions.confirm")}
+            onConfirm={() => run("archive", "toasts.archived")}
+          />
+        </>
+      ) : (
+        <Confirm
+          trigger={
+            <Button variant="outline" disabled={pending}>
+              <RotateCcw data-icon="inline-start" />
+              {t("statusActions.reenroll")}
+            </Button>
+          }
+          title={t("statusActions.reenrollTitle")}
+          description={t("statusActions.reenrollDescription")}
+          cancel={tc("actions.cancel")}
+          confirm={tc("actions.confirm")}
+          onConfirm={() => run("reenroll", "toasts.reenrolled")}
+        />
+      )}
+
+      {/* Said out loud, so nobody goes hunting for a delete button: there is
+          none, and the reason is that deleting a child would take their
+          invoices with it. */}
+      <p className="w-full text-xs text-muted-foreground">
+        {t("statusActions.nothingIsDeleted")}
+      </p>
+    </div>
+  );
+}
+
+/** One destructive-ish button behind a confirmation. */
+function Confirm({
+  trigger,
+  title,
+  description,
+  cancel,
+  confirm,
+  onConfirm,
+}: {
+  trigger: React.ReactNode;
+  title: string;
+  description: string;
+  cancel: string;
+  confirm: string;
+  onConfirm: () => void;
+}) {
+  return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        {isWithdrawn ? (
-          <Button variant="outline" disabled={pending}>
-            <RotateCcw data-icon="inline-start" />
-            {t("statusActions.reenroll")}
-          </Button>
-        ) : (
-          <Button variant="destructive" disabled={pending}>
-            <LogOut data-icon="inline-start" />
-            {t("statusActions.withdraw")}
-          </Button>
-        )}
-      </AlertDialogTrigger>
+      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            {t(isWithdrawn ? "statusActions.reenrollTitle" : "statusActions.withdrawTitle")}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {t(
-              isWithdrawn
-                ? "statusActions.reenrollDescription"
-                : "statusActions.withdrawDescription"
-            )}
-          </AlertDialogDescription>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
-          <AlertDialogAction onClick={run}>{tc("actions.confirm")}</AlertDialogAction>
+          <AlertDialogCancel>{cancel}</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>{confirm}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

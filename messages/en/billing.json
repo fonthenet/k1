@@ -221,7 +221,12 @@
       "cheque": "صك بنكي",
       "chargily": "Chargily",
       "other": "أخرى"
-    }
+    },
+    "copy": "Copy",
+    "copied": "Receipt copied",
+    "share": "Share",
+    "printing": "Preparing…",
+    "printFailed": "Could not prepare the receipt."
   },
   "plans": {
     "title": "Fee plans",

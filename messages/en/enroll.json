@@ -123,6 +123,20 @@
       "severe": "Severe"
     },
     "reaction": "Reaction",
+    "reactions": {
+      "rash": "Skin rash",
+      "hives": "Hives",
+      "swelling": "Swelling",
+      "breathing": "Difficulty breathing",
+      "vomiting": "Vomiting",
+      "diarrhoea": "Digestive upset",
+      "cough": "Coughing / wheezing",
+      "eyes": "Itchy or runny eyes",
+      "anaphylaxis": "Anaphylaxis",
+      "other": "Other…"
+    },
+    "reactionPlaceholder": "rash, vomiting, difficulty breathing…",
+    "otherLabel": "Describe it",
     "actionPlan": "What to do if a reaction occurs?",
     "conditions": "Chronic conditions",
     "conditionsHint": "One per line — e.g. asthma",
@@ -193,7 +207,26 @@
     "submittedOn": "Received on {date}",
     "activitiesCount": "{count, plural, =0 {No activities} one {# activity} other {# activities}}",
     "errorTitle": "Applications unavailable",
-    "retry": "Try again"
+    "retry": "Try again",
+    "approve": "Approve & enrol",
+    "approveTitle": "Enrol {name}?",
+    "approveDesc": "This creates the child, their guardians and their health record, and gives the family a sign-in. It cannot be undone.",
+    "approveBills": "They will also be enrolled in {count, plural, one {# activity} other {# activities}}, charged to this month's invoice.",
+    "approveNoFee": "Monthly fees are not set here — assign them from the child's record afterwards.",
+    "approveClass": "Class",
+    "approveNoClass": "No class yet",
+    "approved": "{name} is enrolled",
+    "alreadyApproved": "This application was already approved.",
+    "rejectTitle": "Turn down {name}?",
+    "rejectDesc": "The application stays on record and can be moved back into review later. No child record is created.",
+    "reject": "Reject",
+    "reconsider": "Reconsider",
+    "reconsiderTitle": "Reopen {name}'s application?",
+    "reconsiderDesc": "The application goes back to under review. The family was never told it was refused, so they will not notice anything.",
+    "reconsidered": "Application reopened",
+    "openChild": "Open the child's record",
+    "enrolledOn": "Enrolled",
+    "stageSaved": "Stage saved — nothing was sent to the family"
   },
   "detail": {
     "back": "All applications",
@@ -289,7 +322,8 @@
     "views": {
       "pipeline": "Pipeline",
       "waitlist": "Waitlist",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "decided": "Decided"
     },
     "stages": {
       "submitted": "New",

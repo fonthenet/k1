@@ -37,9 +37,16 @@ import type { GuardianCredentialState } from "@/components/modules/children/guar
 import { GuardiansSection } from "@/components/modules/children/guardians-section";
 import { HealthSection } from "@/components/modules/children/health-section";
 import { PickupsSection } from "@/components/modules/children/pickups-section";
+import {
+  ChildActivitiesSection,
+  type ChildActivityOption,
+  type ChildActivityRow,
+} from "@/components/modules/children/activities-section";
+import { activityChargeIsLocked } from "@/components/modules/classes/actions";
 import { StatusActions } from "@/components/modules/children/status-actions";
 import { CredentialCards } from "@/components/modules/credentials/credential-cards";
 import type { CredentialRow } from "@/components/modules/credentials/types";
+import { parseHealthList } from "@/components/modules/portal/health-edit-shared";
 import { algiersToday } from "@/components/modules/billing/dates";
 import { AssignFeeDialog } from "@/components/modules/billing/assign-fee-dialog";
 import type { PlanOption } from "@/components/modules/billing/billing-types";
@@ -148,10 +155,6 @@ type InvoiceRow = {
   due_date: string | null; status: InvoiceStatus; total: number; paid_amount: number;
 };
 
-function asStringArray(v: unknown): string[] {
-  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
-}
-
 export default async function ChildProfilePage({
   params,
   searchParams,
@@ -216,6 +219,9 @@ export default async function ChildProfilePage({
     invoicesRes,
     { data: documentRows },
     { data: consentRows },
+    { data: activityEnrollmentRows },
+    { data: activityRows },
+    chargeLocked,
   ] = await Promise.all([
     supabase
       .from("kg_child_guardians")
@@ -292,6 +298,24 @@ export default async function ChildProfilePage({
       .select("consent_type, granted, decided_at")
       .eq("child_id", id)
       .eq("tenant_id", ctx.tenant.id),
+    // What this child is signed up for, and what they could be signed up for.
+    // Asked here rather than only on the activities screen because that is the
+    // question staff have in front of them at the gate.
+    supabase
+      .from("kg_activity_enrollments")
+      .select("id, activity_id, status")
+      .eq("child_id", id)
+      .eq("tenant_id", ctx.tenant.id),
+    supabase
+      .from("kg_activities")
+      .select("id, name, name_ar, category, fee_amount, fee_period")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("active", true)
+      .order("name"),
+    // Enrolling bills the family; once this month's invoice is part-paid the
+    // charge can no longer be taken back off it. Asked before the dialog opens
+    // so the warning is on screen when the decision is made.
+    activityChargeIsLocked(id),
   ]);
 
   const photoUrl = await signedMediaUrl(child.photo_path);
@@ -376,11 +400,53 @@ export default async function ChildProfilePage({
       phone: g.phone,
     }));
 
+  // Activities. Only what the child is IN or WAITING ON is shown — an ended
+  // enrolment is history, and the record already has enough history tabs. The
+  // same rule builds the "enrol" list, so a child cannot be enrolled twice.
+  type ActivityRow = {
+    id: string;
+    name: string;
+    name_ar: string | null;
+    category: string;
+    fee_amount: number | string;
+    fee_period: FeePeriod;
+  };
+  const activityById = new Map(
+    ((activityRows ?? []) as ActivityRow[]).map((a) => [
+      a.id,
+      {
+        id: a.id,
+        name: locale === "ar" && a.name_ar ? a.name_ar : a.name,
+        category: a.category,
+        feeAmount: Number(a.fee_amount),
+        feePeriod: a.fee_period,
+      } satisfies ChildActivityOption,
+    ])
+  );
+  const liveEnrollments = (
+    (activityEnrollmentRows ?? []) as { id: string; activity_id: string; status: string }[]
+  ).filter((e) => e.status === "active" || e.status === "requested");
+  const childActivities: ChildActivityRow[] = liveEnrollments.flatMap((e) => {
+    // An enrolment in an activity that has since been switched off is still
+    // real — and still billed — so it must not vanish from the record.
+    const a = activityById.get(e.activity_id);
+    return a
+      ? [{ ...a, enrollmentId: e.id, status: e.status as "active" | "requested" }]
+      : [];
+  });
+  const joinedActivityIds = new Set(liveEnrollments.map((e) => e.activity_id));
+  const activityOptions: ChildActivityOption[] = [...activityById.values()].filter(
+    (a) => !joinedActivityIds.has(a.id)
+  );
+
   const health: ChildHealthRow | null = healthRow
     ? {
-        medical_conditions: asStringArray(healthRow.medical_conditions),
-        medications: asStringArray(healthRow.medications),
-        vaccinations: asStringArray(healthRow.vaccinations),
+        // jsonb lists, kept as editable lines that remember their original
+        // JSON: an entry seeded from an application as `{ "name": "BCG", … }`
+        // must survive a staff save that never touched it.
+        medical_conditions: parseHealthList(healthRow.medical_conditions),
+        medications: parseHealthList(healthRow.medications),
+        vaccinations: parseHealthList(healthRow.vaccinations),
         dietary_restrictions: healthRow.dietary_restrictions,
         special_needs: healthRow.special_needs,
         doctor_name: healthRow.doctor_name,
@@ -712,6 +778,16 @@ export default async function ChildProfilePage({
             canManageCredentials={ctx.isAdmin}
           />
           <PickupsSection childId={child.id} pickups={pickups ?? []} />
+          {/* On the record itself, as the phone has it — not behind a tab. The
+              question "what is this child signed up for" is asked while the
+              child is standing there. */}
+          <ChildActivitiesSection
+            childId={child.id}
+            enrollments={childActivities}
+            available={activityOptions}
+            canManage={ctx.role !== "accountant"}
+            chargeLocked={chargeLocked}
+          />
 
           {/* A card issued to the CHILD (a wristband, a tag in the bag) opens
               the door with no adult attached to it, which is why the kiosk

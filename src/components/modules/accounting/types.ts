@@ -12,6 +12,17 @@ export interface CategoryOption {
   is_system: boolean;
 }
 
+/** One line of a shopping trip. `amount` is derived by the database. */
+export interface TxnItemRow {
+  id: string;
+  name: string;
+  qty: number;
+  unit_amount: number;
+  amount: number;
+  note: string | null;
+  position: number;
+}
+
 export interface LedgerRow {
   id: string;
   kind: TxnKind;
@@ -24,6 +35,8 @@ export interface LedgerRow {
   related_advance_id: string | null;
   related_payroll_item_id: string | null;
   category: { id: string; name: string; color: string } | null;
+  /** Empty when the entry was never itemised, which is a valid state. */
+  items?: TxnItemRow[];
 }
 
 export interface PayrollRunRow {

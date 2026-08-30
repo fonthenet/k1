@@ -22,10 +22,13 @@ import { endActivityEnrollment, resolveActivityRequest } from "./actions";
 export function EndEnrollmentButton({
   activityId,
   enrollmentId,
+  childId,
   childName,
 }: {
   activityId: string;
   enrollmentId: string;
+  /** The child's record is revalidated too — it lists this enrolment as well. */
+  childId: string;
   childName: string;
 }) {
   const t = useTranslations("activities");
@@ -36,7 +39,7 @@ export function EndEnrollmentButton({
 
   function confirm() {
     startTransition(async () => {
-      const res = await endActivityEnrollment(activityId, enrollmentId);
+      const res = await endActivityEnrollment(activityId, enrollmentId, childId);
       if (res.ok) {
         setOpen(false);
         toast.success(t("toasts.ended"));

@@ -16,6 +16,7 @@ import type { AllergySeverity } from "@/lib/types";
 import type { WizardAllergy, WizardHealth } from "./types";
 import { Field, StepHeader } from "./wizard-ui";
 import { AllergenMultiPicker } from "@/components/shared/allergen-picker";
+import { ReactionPicker } from "@/components/shared/reaction-picker";
 import { allergenKeyFor, allergenLabel } from "@/lib/allergens";
 
 const SEVERITIES: AllergySeverity[] = ["mild", "moderate", "severe"];
@@ -29,6 +30,9 @@ export function StepHealth({
 }) {
   const t = useTranslations("enroll");
   const tc = useTranslations("common");
+  // Scoped so the shared reaction picker resolves `reactions.*` and
+  // `otherLabel` from this namespace's own copy of the vocabulary.
+  const th = useTranslations("enroll.health");
 
   const updateAllergy = (index: number, patch: Partial<WizardAllergy>) => {
     onChange({
@@ -141,10 +145,13 @@ export function StepHealth({
                         </Select>
                       </Field>
                       <Field label={`${t("health.reaction")} (${tc("labels.optional")})`}>
-                        <Input
+                        <ReactionPicker
+                          id={`allergy-${i}-reaction`}
                           className="h-11 text-base"
                           value={a.reaction}
-                          onChange={(e) => updateAllergy(i, { reaction: e.target.value })}
+                          onChange={(reaction) => updateAllergy(i, { reaction })}
+                          t={th}
+                          placeholder={th("reactionPlaceholder")}
                         />
                       </Field>
                       <Field label={`${t("health.actionPlan")} (${tc("labels.optional")})`}>

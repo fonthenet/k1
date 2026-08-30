@@ -8,6 +8,7 @@ import {
   Bell,
   CalendarX2,
   ClipboardList,
+  HandCoins,
   HeartPulse,
   ListChecks,
   LogIn,
@@ -56,6 +57,12 @@ const ICONS: Record<string, LucideIcon> = {
   application_status: ClipboardList,
   activity_decision: Sparkles,
   session_published: NotebookPen,
+  // Emitted by trg_kg_notify_advance: the request to finance, and finance's
+  // answer back to the employee. Without these three the bell fell through to
+  // the generic icon for the only notification about somebody's own pay.
+  advance_requested: HandCoins,
+  advance_approved: HandCoins,
+  advance_rejected: HandCoins,
 };
 
 // Tokens only. Gold tints take `gold-ink` for text — the raw gold hue is far
@@ -91,6 +98,13 @@ const TONES: Record<string, string> = {
   application_status: "bg-gold-muted text-gold-ink",
   activity_decision: "bg-primary/10 text-primary",
   session_published: "bg-primary/10 text-primary",
+  // A request is a question waiting on a human — the same warm tone the other
+  // "somebody must decide this" rows carry. The answer is money or it is not:
+  // approved is cash the employee is owed, rejected moved nothing and is a
+  // plain fact, not an alarm.
+  advance_requested: "bg-gold-muted text-gold-ink",
+  advance_approved: "bg-success/10 text-success",
+  advance_rejected: "bg-muted text-muted-foreground",
 };
 
 /** The square icon tile that opens every notification row. */

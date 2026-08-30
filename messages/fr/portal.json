@@ -5,7 +5,8 @@
     "myChildren": "Mes enfants",
     "messages": "Messages",
     "payments": "Paiements",
-    "announcements": "Actualités"
+    "announcements": "Actualités",
+    "unreadMessages": "{count, plural, =0 {Aucun message non lu} one {# message non lu} other {# messages non lus}}"
   },
   "error": {
     "title": "Impossible d'afficher cette page",
@@ -28,6 +29,7 @@
       "notYet": "Pas encore arrivé",
       "arrived": "Arrivé à {time}",
       "left": "Parti à {time}",
+      "leftWith": "Parti à {time} — récupéré par {name}",
       "absent": "Absent",
       "absentReason": "Absent — {reason}",
       "sickReason": "Maladie"
@@ -282,7 +284,41 @@
       },
       "identityNote": "Le nom et la date de naissance proviennent de l'acte de naissance : seule l'administration peut les corriger.",
       "identityLink": "Écrire à la crèche",
-      "allergyDuplicate": "Cet allergène est déjà dans la liste"
+      "allergyDuplicate": "Cet allergène est déjà dans la liste",
+      "allergens": {
+        "peanuts": "Arachides",
+        "treeNuts": "Fruits à coque",
+        "milk": "Lait / lactose",
+        "eggs": "Œufs",
+        "gluten": "Blé / gluten",
+        "fish": "Poisson",
+        "shellfish": "Crustacés",
+        "soy": "Soja",
+        "sesame": "Sésame",
+        "strawberry": "Fraise",
+        "citrus": "Agrumes",
+        "honey": "Miel",
+        "pollen": "Pollen",
+        "dust": "Acariens",
+        "animals": "Poils d'animaux",
+        "insects": "Piqûres d'insectes",
+        "medicine": "Médicaments",
+        "latex": "Latex",
+        "other": "Autre…"
+      },
+      "reactions": {
+        "rash": "Éruption cutanée",
+        "hives": "Urticaire",
+        "swelling": "Gonflement",
+        "breathing": "Difficulté respiratoire",
+        "vomiting": "Vomissements",
+        "diarrhoea": "Troubles digestifs",
+        "cough": "Toux / sifflement",
+        "eyes": "Yeux irrités ou larmoyants",
+        "anaphylaxis": "Choc anaphylactique",
+        "other": "Autre…"
+      },
+      "otherLabel": "Précisez"
     },
     "activities": {
       "enrolledTitle": "Activités de l'enfant",
@@ -523,7 +559,10 @@
     },
     "alerts": {
       "title": "Alertes",
-      "description": "Recevez une notification sur ce téléphone dès que la crèche publie quelque chose au sujet de votre enfant."
+      "description": "Recevez une notification sur ce téléphone dès que la crèche publie quelque chose au sujet de votre enfant.",
+      "enable": "Activer les notifications",
+      "enabled": "Notifications activées",
+      "denied": "Les notifications sont désactivées pour Rawdati. Activez-les dans Réglages pour être prévenu."
     },
     "signOut": {
       "hint": "Il vous faudra votre e-mail et votre mot de passe pour vous reconnecter."

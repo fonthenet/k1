@@ -27,7 +27,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +34,7 @@ import { cn } from "@/lib/utils";
 import type { AllergySeverity } from "@/lib/types";
 import { allergenLabel } from "@/lib/allergens";
 import { AllergenPicker } from "@/components/shared/allergen-picker";
+import { ReactionPicker } from "@/components/shared/reaction-picker";
 import { deleteAllergy, saveAllergy } from "./actions";
 import { severityClasses } from "./portal-types";
 import { ALLERGY_SEVERITIES, type PortalAllergy } from "./health-edit-shared";
@@ -183,13 +183,13 @@ function AllergyDialog({
 
           <div className="grid gap-2">
             <Label htmlFor={`${fieldId}-reaction`}>{t("reaction")}</Label>
-            <Input
+            <ReactionPicker
               id={`${fieldId}-reaction`}
               className="h-11"
               value={form.reaction}
-              onChange={(e) => setForm((f) => ({ ...f, reaction: e.target.value }))}
+              onChange={(reaction) => setForm((f) => ({ ...f, reaction }))}
+              t={t}
               placeholder={t("reactionPlaceholder")}
-              autoComplete="off"
             />
           </div>
 

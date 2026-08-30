@@ -87,7 +87,30 @@
     "deleteDesc": "سيتم حذف « {description} » ({amount}) نهائيًا من الدفتر.",
     "added": "تمت إضافة المعاملة",
     "updated": "تم تعديل المعاملة",
-    "deleted": "تم حذف المعاملة"
+    "deleted": "تم حذف المعاملة",
+    "items": {
+      "title": "قائمة المشتريات",
+      "hint": "فصّل المبلغ سطرًا بسطر — ما تم شراؤه، بأي كمية، وبأي سعر.",
+      "add": "إضافة مادة",
+      "name": "المادة",
+      "namePlaceholder": "خبز",
+      "qty": "الكمية",
+      "unit": "سعر الوحدة",
+      "remove": "حذف",
+      "count": "{count, plural, zero {# مادة} one {مادة واحدة} two {مادتان} few {# مواد} many {# مادة} other {# مادة}}",
+      "total": "مجموع القائمة",
+      "empty": "غير مفصّل",
+      "detailTitle": "ما تم شراؤه",
+      "saved": "تم حفظ القائمة",
+      "edit": "تعديل القائمة",
+      "itemised": "مفصّل",
+      "lockedHint": "القيود التي تنشئها الفوترة أو الأجور تلقائيًا لا يمكن تفصيلها."
+    },
+    "descriptionPlaceholderIncome": "استلام حقوق التسجيل",
+    "detailTitle": "تفاصيل المعاملة",
+    "linkedAdvance": "تسبيق على الراتب",
+    "linkedPayment": "مرتبطة بدفعة",
+    "linkedPayroll": "دفع راتب"
   },
   "categories": {
     "title": "الفئات",
@@ -131,7 +154,12 @@
     "created": "تم إنشاء مسودة الرواتب",
     "deleteTitle": "حذف هذه المسودة؟",
     "deleteDesc": "سيتم حذف رواتب شهر {month} وجميع سطورها.",
-    "deleted": "تم حذف المسودة"
+    "deleted": "تم حذف المسودة",
+    "delete": "حذف المسودة",
+    "draftsTitle": "مسودّات",
+    "finalizedOn": "أُقفل في {date}",
+    "preparedBy": "أعدّه {name} · {date}",
+    "preparedOn": "أُعدّ في {date}"
   },
   "run": {
     "title": "رواتب شهر {month}",
@@ -161,7 +189,10 @@
     "method": "طريقة الدفع",
     "paid": "تم وضع علامة مدفوعة",
     "paidAt": "دُفعت في {date}",
-    "hourlyBasis": "{hours} ساعة × {rate}"
+    "hourlyBasis": "{hours} ساعة × {rate}",
+    "editDesc": "المبالغ قابلة للتعديل ما دامت الرواتب مسودة. التسبيقات يحسبها الكشف ولا تُكتب هنا.",
+    "editTitle": "تعديل سطر الراتب",
+    "netPreview": "الصافي {amount}"
   },
   "payslip": {
     "title": "قسيمة الراتب",
@@ -183,7 +214,19 @@
     "signatureEmployee": "إمضاء الموظف(ة)",
     "generated": "حُرّرت في {date}",
     "print": "طباعة",
-    "back": "العودة إلى الرواتب"
+    "back": "العودة إلى الرواتب",
+    "notFound": "قسيمة الراتب غير موجودة",
+    "notFoundHint": "هذه القسيمة غير موجودة، أو ليست من حقك الاطلاع عليها.",
+    "breakdown": "تفصيل الشهر",
+    "takeHome": "صافي المستحق",
+    "gross": "الإجمالي",
+    "copy": "نسخ",
+    "share": "مشاركة",
+    "copied": "نُسخت قسيمة الراتب",
+    "docTitleFr": "Fiche de paie",
+    "docTitleAr": "قسيمة الراتب",
+    "signatureFr": "Signature de l'employeur",
+    "signatureAr": "توقيع صاحب العمل"
   },
   "advances": {
     "title": "التسبيقات على الراتب",
@@ -209,7 +252,35 @@
     "emptyOutstanding": "لا توجد تسبيقات جارية",
     "emptyRepaid": "لا توجد تسبيقات مسدَّدة",
     "added": "تم تسجيل التسبيق",
-    "markedRepaid": "تم اعتباره مسدَّدًا"
+    "markedRepaid": "تم اعتباره مسدَّدًا",
+    "markRepaidPayrollNote": "هذه السلفة مرتبطة بكشف رواتب قيد الإعداد: سيُزال خصم {amount} من ذلك الكشف.",
+    "approve": "موافقة",
+    "approveDesc": "سيُسجَّل مصروف بمبلغ {amount} لفائدة {name} فورًا، ويُقتطَع من رواتب الشهر المقبل.",
+    "approveTitle": "الموافقة على التسبيق؟",
+    "approved": "موافَق عليه",
+    "decidedOn": "تقرَّر في {date}",
+    "decisionNote": "ملاحظة القرار",
+    "decisionNotePlaceholder": "مثلاً: موافقة على 3000 من أصل 5000 المطلوبة",
+    "decisionSaved": "تم تسجيل القرار",
+    "emptyRequested": "لا توجد طلبات في الانتظار",
+    "pending": "في انتظار الرد",
+    "pendingCount": "{count, plural, zero {لا طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلبًا} other {# طلب}}",
+    "reason": "سبب الطلب",
+    "reasonPlaceholder": "مصاريف عائلية، كراء…",
+    "reject": "رفض",
+    "rejectDesc": "لن يخرج أي مال. يمكن للموظف تقديم طلب جديد.",
+    "rejectTitle": "رفض الطلب؟",
+    "rejected": "مرفوض",
+    "request": "طلب تسبيق",
+    "requestDesc": "يراجع المسؤول المالي الطلب. لا يخرج أي مال قبل الموافقة.",
+    "requestSent": "أُرسل الطلب",
+    "requestTitle": "طلب تسبيق على الراتب",
+    "requested": "مطلوبة",
+    "requestedOn": "طُلب في {date}",
+    "withdraw": "سحب الطلب",
+    "withdrawDesc": "سيُحذف طلب {amount} نهائيًا.",
+    "withdrawTitle": "سحب الطلب؟",
+    "withdrawn": "تم سحب الطلب"
   },
   "errors": {
     "generic": "حدث خطأ. أعد المحاولة.",
@@ -221,6 +292,23 @@
     "exists": "توجد رواتب لهذا الشهر بالفعل.",
     "notDraft": "هذه الرواتب لم تعد مسودة.",
     "notFinalized": "أنهِ الرواتب قبل وضع علامة مدفوعة.",
-    "noStaff": "لا يوجد أعضاء نشطون في الطاقم."
+    "noStaff": "لا يوجد أعضاء نشطون في الطاقم.",
+    "onFinalizedPayroll": "هذه السلفة مخصومة من كشف رواتب مُعتمد. ستُسوّى عند دفع الكشف.",
+    "blocked": "لم يُنفَّذ شيء. قد تكون الحالة تغيّرت — أعد التحميل."
+  },
+  "pay": {
+    "advances": "تسبيقاتي",
+    "advancesUnavailable": "طلب التسبيقات غير متاح بعد في التطبيق.",
+    "awaitingPay": "لم يُدفع بعد",
+    "back": "العودة إلى راتبي",
+    "emptyAdvances": "لا توجد تسبيقات",
+    "emptyAdvancesHint": "يمكنك من هنا طلب تسبيق على راتبك.",
+    "emptyPayslips": "لا توجد قسائم راتب بعد",
+    "emptyPayslipsHint": "ستظهر هنا كل قسيمة راتب فور تحضير رواتب الشهر.",
+    "lastNet": "آخر صافي مقبوض",
+    "payslips": "قسائم الراتب",
+    "periodUnknown": "الفترة غير متاحة",
+    "subtitle": "قسائم راتبك وتسبيقاتك",
+    "title": "راتبي"
   }
 }

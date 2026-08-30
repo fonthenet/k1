@@ -19,6 +19,21 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+/**
+ * The affordance itself, for the doors that are not one of the names below.
+ *
+ * The ledger needed both: a row derived from payroll goes to a route these
+ * wrappers do not cover, and a row somebody typed opens a dialog rather than a
+ * route, because there is no page for a transaction. Two elements — an anchor
+ * and a `<button>` — in the same column, which have to look like one thing.
+ * Same dotted underline, same hover, same focus ring.
+ */
+export const ENTITY_LINK_CLASS = cn(
+  "rounded underline decoration-dotted underline-offset-4 transition-colors",
+  "hover:text-primary hover:decoration-solid",
+  "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+);
+
 function EntityLink({
   href,
   children,
@@ -29,15 +44,7 @@ function EntityLink({
   className?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className={cn(
-        "rounded underline decoration-dotted underline-offset-4 transition-colors",
-        "hover:text-primary hover:decoration-solid",
-        "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
-        className
-      )}
-    >
+    <Link href={href} className={cn(ENTITY_LINK_CLASS, className)}>
       {children}
     </Link>
   );

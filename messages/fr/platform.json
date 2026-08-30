@@ -6,7 +6,8 @@
     "leads": "Demandes",
     "tenants": "Crèches",
     "exit": "Quitter",
-    "support": "Assistance"
+    "support": "Assistance",
+    "supportWaiting": "{count, plural, =0 {Aucun message en attente} one {# message en attente} other {# messages en attente}}"
   },
   "overview": {
     "title": "Plateforme",

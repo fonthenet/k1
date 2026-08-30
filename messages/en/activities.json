@@ -68,7 +68,9 @@
     "selectChild": "Child",
     "placeholder": "Select a child",
     "submit": "Enrol",
-    "noneAvailable": "Every enrolled child is already in this activity."
+    "noneAvailable": "Every enrolled child is already in this activity.",
+    "billsHint": "Enrolling adds this month's fee to the family's invoice.",
+    "billsLocked": "This month's invoice is already part-paid, so this charge cannot be removed later."
   },
   "detail": {
     "back": "Back to activities",
@@ -129,7 +131,8 @@
     "enrolled": "Child enrolled in the activity",
     "ended": "Enrolment ended",
     "approved": "Request approved",
-    "declined": "Request declined"
+    "declined": "Request declined",
+    "endKeptCharge": "Enrolment ended. This month's charge stays — the invoice is already part-paid."
   },
   "error": {
     "title": "Could not load the activities",

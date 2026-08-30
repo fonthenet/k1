@@ -8,7 +8,11 @@
     "history": "Historique",
     "register": "Registre du jour",
     "closedNotice": "{day} — la crèche n'ouvre pas ce jour-là.",
-    "todayLabel": "Aujourd'hui"
+    "todayLabel": "Aujourd'hui",
+    "sortLabel": "Ordre",
+    "sortPresent": "Présents d'abord",
+    "sortUnmarked": "Non pointés d'abord",
+    "sortName": "Par nom"
   },
   "tabs": {
     "all": "Toutes les classes",
@@ -47,6 +51,11 @@
     "checkIn": "Heure d'arrivée",
     "checkOut": "Heure de sortie",
     "hint": "Laissez un champ vide pour effacer l'heure correspondante."
+  },
+  "checkOutDialog": {
+    "title": "Départ de {name}",
+    "description": "Qui vient chercher l'enfant ? Choisissez une personne dans la liste, ou saisissez un nom.",
+    "orType": "Ou saisissez un autre nom"
   },
   "fields": {
     "pickedUpBy": "Récupéré par",

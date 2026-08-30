@@ -123,6 +123,20 @@
       "severe": "Sévère"
     },
     "reaction": "Réaction",
+    "reactions": {
+      "rash": "Éruption cutanée",
+      "hives": "Urticaire",
+      "swelling": "Gonflement",
+      "breathing": "Difficulté respiratoire",
+      "vomiting": "Vomissements",
+      "diarrhoea": "Troubles digestifs",
+      "cough": "Toux / sifflement",
+      "eyes": "Yeux irrités ou larmoyants",
+      "anaphylaxis": "Choc anaphylactique",
+      "other": "Autre…"
+    },
+    "reactionPlaceholder": "éruption cutanée, vomissements, gêne respiratoire…",
+    "otherLabel": "Précisez",
     "actionPlan": "Que faire en cas de réaction ?",
     "conditions": "Maladies chroniques",
     "conditionsHint": "Une par ligne — ex. asthme",
@@ -193,7 +207,26 @@
     "submittedOn": "Reçue le {date}",
     "activitiesCount": "{count, plural, =0 {Aucune activité} one {# activité} other {# activités}}",
     "errorTitle": "Demandes indisponibles",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "approve": "Approuver et inscrire",
+    "approveTitle": "Inscrire {name} ?",
+    "approveDesc": "Cela crée l'enfant, ses tuteurs et son dossier de santé, et donne un accès à la famille. C'est irréversible.",
+    "approveBills": "Il sera aussi inscrit à {count, plural, one {# activité} other {# activités}}, facturées sur la facture de ce mois.",
+    "approveNoFee": "Les frais mensuels ne sont pas définis ici — attribuez-les depuis la fiche de l'enfant.",
+    "approveClass": "Classe",
+    "approveNoClass": "Sans classe",
+    "approved": "{name} est inscrit",
+    "alreadyApproved": "Cette demande a déjà été approuvée.",
+    "rejectTitle": "Refuser {name} ?",
+    "rejectDesc": "La demande reste enregistrée et peut être remise en examen plus tard. Aucune fiche enfant n'est créée.",
+    "reject": "Refuser",
+    "reconsider": "Réexaminer",
+    "reconsiderTitle": "Rouvrir la demande de {name} ?",
+    "reconsiderDesc": "La demande repasse en cours d'examen. La famille n'a jamais été informée du refus, elle ne remarquera rien.",
+    "reconsidered": "Demande rouverte",
+    "openChild": "Ouvrir la fiche de l'enfant",
+    "enrolledOn": "Inscrit",
+    "stageSaved": "Étape enregistrée — rien n'a été envoyé à la famille"
   },
   "detail": {
     "back": "Toutes les demandes",
@@ -289,7 +322,8 @@
     "views": {
       "pipeline": "Pipeline",
       "waitlist": "Liste d'attente",
-      "rejected": "Refusées"
+      "rejected": "Refusées",
+      "decided": "Traitées"
     },
     "stages": {
       "submitted": "Nouvelles",

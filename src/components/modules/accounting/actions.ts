@@ -15,7 +15,9 @@ type ActionError =
   | "exists"
   | "notDraft"
   | "notFinalized"
-  | "noStaff";
+  | "onFinalizedPayroll"
+  | "noStaff"
+  | "blocked";
 
 type Result<T = undefined> =
   | ({ ok: true } & (T extends undefined ? { data?: undefined } : { data: T }))
@@ -49,6 +51,20 @@ function revalidateFinancePages() {
 
 // ------------------------------------------------------------- transactions
 
+/**
+ * One line of a shopping trip.
+ *
+ * `amount` is deliberately absent: the database computes it from qty × unit and
+ * rolls the lines up into the parent's total. Sending a total the client
+ * calculated would be a second source of truth for one number.
+ */
+const txnItemSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  qty: z.number().positive().max(100000),
+  unitAmount: z.number().min(0).max(100000000),
+  note: z.string().max(200).optional().nullable(),
+});
+
 const txnSchema = z.object({
   id: z.uuid().optional(),
   kind: kindSchema,
@@ -58,6 +74,12 @@ const txnSchema = z.object({
   method: methodSchema,
   description: z.string().min(1).max(300),
   reference: z.string().max(120).optional(),
+  /**
+   * When present and non-empty, the entry is itemised: `amount` is ignored and
+   * the trigger derives it from these. Absent means the entry keeps whatever
+   * single figure was typed, which is right for a bill that has no line items.
+   */
+  items: z.array(txnItemSchema).max(100).optional(),
 });
 
 export async function saveTransaction(input: z.infer<typeof txnSchema>): Promise<Result> {
@@ -89,17 +111,34 @@ export async function saveTransaction(input: z.infer<typeof txnSchema>): Promise
     reference: v.reference?.trim() || null,
   };
 
+  // A shopping trip's total is the sum of its lines; the client's `amount` is
+  // not consulted. The row goes in at 0 and the rollup trigger has the last
+  // word, which is also what keeps two people editing the same trip consistent.
+  const items = v.items ?? null;
+  const itemised = items !== null && items.length > 0;
+  if (itemised) payload.amount = 0;
+
   if (v.id) {
     // Edits: admins only, current-month entries only, never payment-linked rows.
     if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
     const { data: existing } = await supabase
       .from("kg_transactions")
-      .select("id, date, related_payment_id")
+      .select("id, date, related_payment_id, related_advance_id, related_payroll_item_id")
       .eq("id", v.id)
       .eq("tenant_id", ctx.tenant.id)
       .maybeSingle();
     if (!existing) return { ok: false, error: "generic" };
-    if (existing.related_payment_id) return { ok: false, error: "locked" };
+    // All three, not just the payment: `tx_upd` refuses a row a trigger owns, and
+    // an RLS-filtered UPDATE comes back 200/empty with no error — so checking
+    // only the payment left an advance or salary row reporting a save that never
+    // happened. The ledger row belongs to whatever posted it.
+    if (
+      existing.related_payment_id ||
+      existing.related_advance_id ||
+      existing.related_payroll_item_id
+    ) {
+      return { ok: false, error: "locked" };
+    }
     if (!inCurrentMonth(existing.date) || !inCurrentMonth(v.date)) {
       return { ok: false, error: "notCurrentMonth" };
     }
@@ -109,17 +148,71 @@ export async function saveTransaction(input: z.infer<typeof txnSchema>): Promise
       .eq("id", v.id)
       .eq("tenant_id", ctx.tenant.id);
     if (error) return { ok: false, error: "generic" };
+
+    if (items !== null) {
+      const replaced = await replaceItems(supabase, ctx.tenant.id, v.id, items);
+      if (!replaced) return { ok: false, error: "generic" };
+    }
   } else {
-    const { error } = await supabase.from("kg_transactions").insert({
-      tenant_id: ctx.tenant.id,
-      ...payload,
-      created_by: ctx.user.id,
-    });
-    if (error) return { ok: false, error: "generic" };
+    const { data: created, error } = await supabase
+      .from("kg_transactions")
+      .insert({ tenant_id: ctx.tenant.id, ...payload, created_by: ctx.user.id })
+      .select("id")
+      .single();
+    if (error || !created) return { ok: false, error: "generic" };
+
+    if (itemised) {
+      const written = await replaceItems(supabase, ctx.tenant.id, created.id, items);
+      if (!written) {
+        // An entry that claims to be itemised and has no items would show a
+        // total nobody can account for. Better to have neither.
+        await supabase
+          .from("kg_transactions")
+          .delete()
+          .eq("id", created.id)
+          .eq("tenant_id", ctx.tenant.id);
+        return { ok: false, error: "generic" };
+      }
+    }
   }
 
   revalidateFinancePages();
   return { ok: true };
+}
+
+/**
+ * Replace a transaction's lines wholesale.
+ *
+ * Delete-then-insert rather than a diff: the list is short, its order is
+ * meaningful, and matching by name breaks the moment somebody buys bread twice.
+ */
+async function replaceItems(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  transactionId: string,
+  items: z.infer<typeof txnItemSchema>[]
+): Promise<boolean> {
+  const { error: delErr } = await supabase
+    .from("kg_transaction_items")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("transaction_id", transactionId);
+  if (delErr) return false;
+
+  if (items.length === 0) return true;
+
+  const { error } = await supabase.from("kg_transaction_items").insert(
+    items.map((i, position) => ({
+      transaction_id: transactionId,
+      tenant_id: tenantId,
+      name: i.name.trim(),
+      qty: i.qty,
+      unit_amount: i.unitAmount,
+      note: i.note?.trim() || null,
+      position,
+    }))
+  );
+  return !error;
 }
 
 export async function deleteTransaction(id: string): Promise<Result> {
@@ -130,12 +223,19 @@ export async function deleteTransaction(id: string): Promise<Result> {
 
   const { data: existing } = await supabase
     .from("kg_transactions")
-    .select("id, date, related_payment_id")
+    .select("id, date, related_payment_id, related_advance_id, related_payroll_item_id")
     .eq("id", id)
     .eq("tenant_id", ctx.tenant.id)
     .maybeSingle();
   if (!existing) return { ok: false, error: "generic" };
-  if (existing.related_payment_id) return { ok: false, error: "locked" };
+  // Same three as the edit path — `tx_del` refuses all of them, silently.
+  if (
+    existing.related_payment_id ||
+    existing.related_advance_id ||
+    existing.related_payroll_item_id
+  ) {
+    return { ok: false, error: "locked" };
+  }
   if (!inCurrentMonth(existing.date)) return { ok: false, error: "notCurrentMonth" };
 
   const { error } = await supabase
@@ -253,6 +353,10 @@ export async function createPayrollRun(month: string): Promise<Result<{ id: stri
     .from("kg_salary_advances")
     .select("id, membership_id, amount")
     .eq("tenant_id", ctx.tenant.id)
+    // Approved only. A staff member's pending request is also unrepaid and
+    // unclaimed, so without this it would be deducted from their real salary
+    // before anyone had agreed to lend them the money.
+    .eq("status", "approved")
     .eq("repaid", false)
     .is("payroll_item_id", null);
 
@@ -521,12 +625,16 @@ export async function addAdvance(input: z.infer<typeof advanceSchema>): Promise<
     .maybeSingle();
   if (!member) return { ok: false, error: "invalid" };
 
+  // Granting from the dashboard IS the decision — finance is already the person
+  // who would approve it, so there is nobody left to ask. Stated rather than left
+  // to the column default, because it is what makes the ledger expense post.
   const { error } = await supabase.from("kg_salary_advances").insert({
     tenant_id: ctx.tenant.id,
     membership_id: v.membershipId,
     amount: v.amount,
     date: v.date,
     note: v.note?.trim() || null,
+    status: "approved",
     created_by: ctx.user.id,
   });
   if (error) return { ok: false, error: "generic" };
@@ -535,19 +643,227 @@ export async function addAdvance(input: z.infer<typeof advanceSchema>): Promise<
   return { ok: true };
 }
 
+/**
+ * A decision on a request the phone filed. The note is what finance writes back
+ * to the employee ("3000 of the 5000 you asked for"), so it is optional on
+ * approve and on reject alike.
+ */
+const advanceDecisionSchema = z.object({
+  id: z.uuid(),
+  note: z.string().max(300).optional(),
+});
+
+/**
+ * Approve or reject a staff member's advance request.
+ *
+ * Two things are load-bearing here.
+ *
+ * First, `requested` is asserted in the WHERE clause rather than read first.
+ * Two people in finance clicking Approve and Reject on the same request must
+ * not both win, and a re-submitted form must not re-decide something already
+ * decided.
+ *
+ * Second, the `.select()`. PostgREST answers a write that RLS filtered away
+ * with 200 and an EMPTY ARRAY — there is no error object to test — so without
+ * counting the returned rows a refused decision reports success and the request
+ * sits there still pending. This repo has shipped that bug before.
+ *
+ * No ledger row is written here. trg_kg_advance_ledger posts the "Salaires"
+ * expense the moment status becomes 'approved', and deletes it again if the row
+ * ever leaves that status — so approving books the money once, and rejecting an
+ * advance that had been approved un-books it. Inserting a kg_transactions row
+ * as well would charge the school twice for one advance.
+ */
+async function decideAdvance(
+  input: z.infer<typeof advanceDecisionSchema>,
+  status: "approved" | "rejected"
+): Promise<Result> {
+  const ctx = await requireFinance();
+  const parsed = advanceDecisionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const supabase = await createClient();
+
+  // Whose request is this? `sa_ins_self` admits any ACTIVE membership, and a
+  // parent's membership is active — so a parent hitting PostgREST with their own
+  // JWT can file a salary advance request and it lands in this queue, drawn with
+  // no name because the page's member map excludes parents. Approving it would
+  // post a real "Salaires" expense against somebody who is not on the payroll.
+  // Rejecting one is still allowed: that is how finance clears the queue.
+  // Same membership test `addAdvance` makes before granting one, for the same
+  // reason: an advance is only ever owed by somebody on the payroll.
+  if (status === "approved") {
+    const { data: target } = await supabase
+      .from("kg_salary_advances")
+      .select("membership_id")
+      .eq("id", v.id)
+      .eq("tenant_id", ctx.tenant.id)
+      .maybeSingle();
+    if (!target) return { ok: false, error: "invalid" };
+
+    const { data: member } = await supabase
+      .from("kg_memberships")
+      .select("id")
+      .eq("id", target.membership_id)
+      .eq("tenant_id", ctx.tenant.id)
+      .neq("role", "parent")
+      .maybeSingle();
+    if (!member) return { ok: false, error: "invalid" };
+  }
+
+  // decided_at is left to kg_normalize_advance_decision() — the CHECK ties it to
+  // the status, and one writer for that pair is enough.
+  const { data, error } = await supabase
+    .from("kg_salary_advances")
+    .update({
+      status,
+      decided_by: ctx.user.id,
+      decision_note: v.note?.trim() || null,
+    })
+    .eq("id", v.id)
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("status", "requested")
+    .select("id");
+  if (error) return { ok: false, error: "generic" };
+  if (!data || data.length === 0) return { ok: false, error: "blocked" };
+
+  revalidatePath("/accounting/advances");
+  // An approval is cash out of the box the same second, and the next payroll run
+  // will pick the advance up as a deduction.
+  revalidatePath("/accounting/payroll");
+  revalidateFinancePages();
+  return { ok: true };
+}
+
+export async function approveAdvance(
+  input: z.infer<typeof advanceDecisionSchema>
+): Promise<Result> {
+  return decideAdvance(input, "approved");
+}
+
+export async function rejectAdvance(
+  input: z.infer<typeof advanceDecisionSchema>
+): Promise<Result> {
+  return decideAdvance(input, "rejected");
+}
+
+interface ClaimedItem {
+  id: string;
+  run_id: string;
+  base_amount: number | string;
+  bonuses: number | string;
+  deductions: number | string;
+  advances_deducted: number | string;
+  kg_payroll_runs: { status: string } | null;
+}
+
+/**
+ * Record that an advance was settled outside payroll — the employee handed the
+ * money back.
+ *
+ * The trap this guards is that an advance can already be queued on a payroll
+ * line. Flipping `repaid` on its own used to leave `advances_deducted` standing,
+ * so the same 4 000 DA came off the employee's salary AND was recorded as paid
+ * back in cash: they settled it twice, out of one month's pay.
+ *
+ * So there are three cases, not one:
+ *
+ *  - Not on any payroll line — nothing else is deducting it. Flip and done.
+ *  - On a DRAFT line — take the deduction back off the line as well, which is
+ *    what "they paid it another way" actually means.
+ *  - On a finalized or paid line — refuse. The deduction is locked in and the
+ *    money is already coming out of their salary; recording a cash repayment on
+ *    top is the double charge, not the fix for it.
+ */
 export async function markAdvanceRepaid(id: string): Promise<Result> {
   const ctx = await requireFinance();
   if (!z.uuid().safeParse(id).success) return { ok: false, error: "invalid" };
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: advance } = await supabase
     .from("kg_salary_advances")
-    .update({ repaid: true })
+    .select(
+      "id, amount, repaid, payroll_item_id, kg_payroll_items(id, run_id, base_amount, bonuses, deductions, advances_deducted, kg_payroll_runs(status))"
+    )
     .eq("id", id)
     .eq("tenant_id", ctx.tenant.id)
-    .eq("repaid", false);
-  if (error) return { ok: false, error: "generic" };
+    // Only an approved advance can be repaid: a request never handed any money
+    // over, so there is nothing to hand back. The CHECK constraint refuses it
+    // anyway — this turns that into an answer instead of a database error.
+    .eq("status", "approved")
+    .maybeSingle();
+  if (!advance || advance.repaid) return { ok: false, error: "generic" };
+
+  const item = (advance.kg_payroll_items as unknown as ClaimedItem | null) ?? null;
+
+  // Nobody else is deducting it: this flip is the whole story.
+  if (!advance.payroll_item_id || !item) {
+    const { data: flipped, error } = await supabase
+      .from("kg_salary_advances")
+      .update({ repaid: true })
+      .eq("id", id)
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("repaid", false)
+      .select("id");
+    if (error) return { ok: false, error: "generic" };
+    // A filtered UPDATE returns 200 with an empty array and no error object, so
+    // the row count is the only way to tell "settled" from "somebody else got
+    // there first" — two people on the same advance must not both be told yes.
+    if (!flipped || flipped.length === 0) return { ok: false, error: "blocked" };
+    revalidatePath("/accounting/advances");
+    return { ok: true };
+  }
+
+  // Only a draft line can still be changed — same rule as updatePayrollItem.
+  if (item.kg_payroll_runs?.status !== "draft") {
+    return { ok: false, error: "onFinalizedPayroll" };
+  }
+
+  // Claim the advance first, conditional on nothing having moved since the read.
+  // A concurrent "mark run paid" would settle it out from under us, and the loser
+  // of that race must not go on to edit a line that is now paid.
+  const { data: claimed, error: claimError } = await supabase
+    .from("kg_salary_advances")
+    .update({ repaid: true, payroll_item_id: null })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("repaid", false)
+    .eq("payroll_item_id", advance.payroll_item_id)
+    .select("id");
+  if (claimError) return { ok: false, error: "generic" };
+  if (!claimed || claimed.length === 0) return { ok: false, error: "generic" };
+
+  // Then take it back off the payslip. Same arithmetic as updatePayrollItem, so
+  // a line edited by hand and a line edited by this end up in the same shape.
+  const nextAdvances = Math.max(0, Number(item.advances_deducted) - Number(advance.amount));
+  const { data: patched, error: itemError } = await supabase
+    .from("kg_payroll_items")
+    .update({
+      advances_deducted: nextAdvances,
+      net_amount:
+        Number(item.base_amount) + Number(item.bonuses) - Number(item.deductions) - nextAdvances,
+    })
+    .eq("id", item.id)
+    .eq("tenant_id", ctx.tenant.id)
+    .select("id");
+  // Zero rows is the same failure as an error and must take the same path: the
+  // advance is already flipped to repaid at this point, so returning ok here
+  // would leave the deduction standing against an advance the books call settled
+  // — the double charge this whole function exists to prevent.
+  if (itemError || !patched || patched.length === 0) {
+    // Put the advance back rather than leave a deduction standing against an
+    // advance the books now call repaid — that is the very bug this prevents.
+    await supabase
+      .from("kg_salary_advances")
+      .update({ repaid: false, payroll_item_id: advance.payroll_item_id })
+      .eq("id", id)
+      .eq("tenant_id", ctx.tenant.id);
+    return { ok: false, error: "generic" };
+  }
 
   revalidatePath("/accounting/advances");
+  revalidatePath(`/accounting/payroll/${item.run_id}`);
+  revalidatePath("/accounting/payroll");
+  revalidateFinancePages();
   return { ok: true };
 }

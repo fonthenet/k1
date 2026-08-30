@@ -14,7 +14,13 @@ const TABS = [
   { key: "announcements", href: "/portal/announcements", icon: Megaphone },
 ] as const;
 
-export function PortalTabs() {
+/**
+ * The badge carries no stream of its own. `NotificationBell` refreshes this
+ * layout on every notification, and a staff reply always raises one, so the
+ * count re-renders from the database rather than from a tally kept here — which
+ * also means a thread read on another device clears it.
+ */
+export function PortalTabs({ unreadMessages = 0 }: { unreadMessages?: number }) {
   const pathname = usePathname();
   const t = useTranslations("portal.shell");
 
@@ -49,13 +55,27 @@ export function PortalTabs() {
               )}
               <span
                 className={cn(
-                  "flex h-8 w-full max-w-14 items-center justify-center rounded-full transition-colors",
+                  "relative flex h-8 w-full max-w-14 items-center justify-center rounded-full transition-colors",
                   active && "bg-primary/10"
                 )}
               >
                 <Icon className="size-5" />
+                {key === "messages" && unreadMessages > 0 && (
+                  <span
+                    aria-hidden
+                    className="absolute -end-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gold-solid px-1 text-[11px] leading-none font-bold text-gold-foreground tabular-nums ring-2 ring-background"
+                  >
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
               </span>
               <span className="w-full text-center leading-tight">{t(key)}</span>
+              {/* The digit is decorative; the count belongs to the link's name. */}
+              {key === "messages" && unreadMessages > 0 && (
+                <span className="sr-only">
+                  {t("unreadMessages", { count: unreadMessages })}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Field, StepHeader } from "@/components/modules/enroll/wizard-ui";
 import { AllergenMultiPicker } from "@/components/shared/allergen-picker";
+import { ReactionPicker } from "@/components/shared/reaction-picker";
 import { allergenKeyFor, allergenLabel } from "@/lib/allergens";
 import type { WizardAllergy } from "@/components/modules/enroll/types";
 import type { AllergySeverity } from "@/lib/types";
@@ -39,6 +40,9 @@ export function AddChildStepHealth({
 }) {
   const t = useTranslations("enroll");
   const tc = useTranslations("common");
+  // Scoped so the shared reaction picker resolves `reactions.*` and
+  // `otherLabel` from this namespace's own copy of the vocabulary.
+  const th = useTranslations("enroll.health");
 
   const updateAllergy = (index: number, patch: Partial<WizardAllergy>) => {
     onChange({
@@ -149,10 +153,13 @@ export function AddChildStepHealth({
                         </Select>
                       </Field>
                       <Field label={`${t("health.reaction")} (${tc("labels.optional")})`}>
-                        <Input
+                        <ReactionPicker
+                          id={`allergy-${i}-reaction`}
                           className="h-11 text-base"
                           value={a.reaction}
-                          onChange={(e) => updateAllergy(i, { reaction: e.target.value })}
+                          onChange={(reaction) => updateAllergy(i, { reaction })}
+                          t={th}
+                          placeholder={th("reactionPlaceholder")}
                         />
                       </Field>
                       <Field label={`${t("health.actionPlan")} (${tc("labels.optional")})`}>

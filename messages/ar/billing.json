@@ -221,7 +221,12 @@
       "cheque": "صك بنكي",
       "chargily": "Chargily",
       "other": "أخرى"
-    }
+    },
+    "copy": "نسخ",
+    "copied": "تم نسخ الوصل",
+    "share": "مشاركة",
+    "printing": "جارٍ التحضير…",
+    "printFailed": "تعذّر تحضير الوصل."
   },
   "plans": {
     "title": "الصيغ والأسعار",

@@ -6,7 +6,8 @@
     "leads": "Leads",
     "tenants": "Crèches",
     "exit": "Exit",
-    "support": "Support"
+    "support": "Support",
+    "supportWaiting": "{count, plural, =0 {No messages waiting} one {# message waiting} other {# messages waiting}}"
   },
   "overview": {
     "title": "Platform",

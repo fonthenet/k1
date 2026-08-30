@@ -113,8 +113,20 @@
       "body": "{text}"
     },
     "application_status": {
-      "title": "ملف {child}",
-      "body": "{status}"
+      "title": "{status, select, approved{تم تأكيد المقعد} offered{نعرض عليكم مقعدًا} interview{مقابلة} waitlist{على قائمة الانتظار} rejected{لا يمكننا تقديم مقعد} under_review{تم استلام الطلب} other{تحديث بشأن الطلب}}",
+      "body": "{status, select, approved{{childName} مسجَّل. أهلاً بكم!} offered{يمكننا تقديم مقعد لـ {childName}. يُرجى الاتصال بنا للتأكيد.} interview{نودّ لقاءكم بخصوص طلب {childName}.} waitlist{{childName} على قائمة الانتظار. سنتصل بكم فور توفّر مقعد.} rejected{نأسف، لا يمكننا تقديم مقعد لـ {childName} في الوقت الحالي.} under_review{ندرس طلب {childName}.} other{{childName}}}"
+    },
+    "advance_approved": {
+      "body": "ستُخصم من راتبك القادم.",
+      "title": "تمت الموافقة على سلفتك — {amount}"
+    },
+    "advance_rejected": {
+      "body": "طلب {amount} لم يُقبل.",
+      "title": "لم تتم الموافقة على سلفتك"
+    },
+    "advance_requested": {
+      "body": "{name} يطلب سلفة على الراتب.",
+      "title": "طلب سلفة — {amount}"
     }
   },
   "push": {

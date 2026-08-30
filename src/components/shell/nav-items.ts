@@ -10,6 +10,7 @@ import {
   LayoutDashboard, Baby, ClipboardList, CalendarCheck, School, Palette,
   Users, Receipt, Wallet, Megaphone, MessageSquare, CalendarDays, Stethoscope,
   ListChecks, UtensilsCrossed, BarChart3, Settings, MonitorSmartphone, ShieldAlert,
+  HandCoins,
 } from "lucide-react";
 
 export interface NavItem {
@@ -31,6 +32,12 @@ const NAV: NavItem[] = [
   { href: "/staff", key: "staff", icon: Users, roles: ["owner", "admin", "accountant"] },
   { href: "/billing", key: "billing", icon: Receipt, roles: ["owner", "admin", "accountant"] },
   { href: "/accounting", key: "accounting", icon: Wallet, roles: ["owner", "admin", "accountant"] },
+  // The other side of the same subject, for the people /accounting refuses.
+  // Listed for educators and staff only — not because finance may not read
+  // their own payslip (the page lets them), but because /accounting/payroll and
+  // /accounting/advances already show them theirs alongside everyone else's,
+  // and a second entry saying "My pay" would read as a different, richer place.
+  { href: "/my-pay", key: "myPay", icon: HandCoins, roles: ["educator", "staff"] },
   { href: "/announcements", key: "announcements", icon: Megaphone },
   { href: "/messages", key: "messages", icon: MessageSquare },
   { href: "/calendar", key: "calendar", icon: CalendarDays },

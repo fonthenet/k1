@@ -15,12 +15,14 @@ import {
 } from "@/components/modules/portal/checkin-client";
 import { CheckinBadgeMissing } from "@/components/modules/portal/checkin-qr-card";
 import { allergenLabel } from "@/lib/allergens";
+import { isAway } from "@/components/modules/attendance/status-config";
 
 type AttendanceRow = {
   child_id: string;
   status: AttendanceStatus;
   check_in_at: string | null;
   check_out_at: string | null;
+  picked_up_by: string | null;
   absence_reason: string | null;
 };
 
@@ -60,7 +62,7 @@ export default async function PortalCheckinPage() {
     const [attRes, allergyRes] = await Promise.all([
       supabase
         .from("kg_attendance")
-        .select("child_id, status, check_in_at, check_out_at, absence_reason")
+        .select("child_id, status, check_in_at, check_out_at, picked_up_by, absence_reason")
         .eq("tenant_id", ctx.tenant.id)
         .in("child_id", childIds)
         .eq("date", today),
@@ -92,7 +94,7 @@ export default async function PortalCheckinPage() {
   function statusOf(childId: string): CheckinChildRow["status"] {
     const row = attendanceByChild.get(childId);
     if (!row) return { kind: "notYet", time: null, reason: null };
-    if (row.status === "absent" || row.status === "sick" || row.status === "excused") {
+    if (isAway(row.status)) {
       return {
         kind: "absent",
         time: null,
@@ -103,7 +105,12 @@ export default async function PortalCheckinPage() {
     // Times are formatted here so the server and the client never disagree on
     // the device time zone.
     if (row.check_out_at) {
-      return { kind: "left", time: formatTime(row.check_out_at, locale), reason: null };
+      return {
+        kind: "left",
+        time: formatTime(row.check_out_at, locale),
+        reason: null,
+        collectedBy: row.picked_up_by,
+      };
     }
     if (row.check_in_at) {
       return { kind: "arrived", time: formatTime(row.check_in_at, locale), reason: null };

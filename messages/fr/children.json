@@ -21,7 +21,13 @@
       "allergies": "Allergies",
       "tag": "Code badge",
       "status": "Statut"
-    }
+    },
+    "former": "Anciens enfants",
+    "formerHint": "Retirés ou archivés. Leurs dossiers sont conservés.",
+    "sortLabel": "Trier par",
+    "sortName": "Nom",
+    "sortClass": "Classe",
+    "sortPresence": "Présents d'abord"
   },
   "status": {
     "pending": "En attente",
@@ -74,7 +80,14 @@
     "withdrawDescription": "L'enfant passera au statut « Retiré » avec la date de retrait du jour. Son dossier et son historique sont conservés.",
     "reenroll": "Réinscrire",
     "reenrollTitle": "Réinscrire cet enfant ?",
-    "reenrollDescription": "L'enfant repassera au statut « Inscrit » et la date de retrait sera effacée."
+    "reenrollDescription": "L'enfant repassera au statut « Inscrit » et la date de retrait sera effacée.",
+    "archive": "Archiver l'enfant",
+    "archiveTitle": "Archiver cet enfant ?",
+    "archiveDescription": "L'enfant passe en « Ancien ». Son dossier, ses factures, sa présence et son historique de santé sont conservés — il quitte simplement la liste active.",
+    "restore": "Remettre en inscrit",
+    "restoreTitle": "Remettre cet enfant sur la liste ?",
+    "restoreDescription": "L'enfant repasse en « Inscrit » et réapparaît dans le registre.",
+    "nothingIsDeleted": "Rien n'est jamais supprimé. Les factures et l'historique d'un enfant sont conservés quel que soit son statut."
   },
   "profile": {
     "back": "Tous les enfants",
@@ -241,6 +254,20 @@
     "allergen": "Allergène",
     "severity": "Gravité",
     "reaction": "Réaction",
+    "reactions": {
+      "rash": "Éruption cutanée",
+      "hives": "Urticaire",
+      "swelling": "Gonflement",
+      "breathing": "Difficulté respiratoire",
+      "vomiting": "Vomissements",
+      "diarrhoea": "Troubles digestifs",
+      "cough": "Toux / sifflement",
+      "eyes": "Yeux irrités ou larmoyants",
+      "anaphylaxis": "Choc anaphylactique",
+      "other": "Autre…"
+    },
+    "reactionPlaceholder": "éruption cutanée, vomissements, gêne respiratoire…",
+    "otherLabel": "Précisez",
     "actionPlan": "Conduite à tenir",
     "deleteTitle": "Supprimer cette allergie ?",
     "deleteDescription": "L'allergie sera retirée du dossier de l'enfant."
@@ -358,6 +385,8 @@
     "tagTaken": "Ce code badge est déjà utilisé par un autre enfant",
     "duplicate": "Cet élément existe déjà",
     "forbidden": "Vous n'avez pas les droits pour cette action",
-    "error": "Une erreur est survenue. Réessayez."
+    "error": "Une erreur est survenue. Réessayez.",
+    "archived": "Enfant archivé",
+    "restored": "Enfant remis sur la liste"
   }
 }

@@ -2,15 +2,17 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { requireStaff, signedMediaUrl } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { isOpenDay, toOpeningHours } from "@/lib/week";
-import type { AttendanceStatus } from "@/lib/types";
+import type { AttendanceStatus, Relationship } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   RegisterClient,
   type RegisterClassTab,
+  type RegisterCollector,
   type RegisterRow,
 } from "@/components/modules/attendance/register-client";
 import { isPresentish } from "@/components/modules/attendance/status-config";
 import { allergenLabel } from "@/lib/allergens";
+import { childDisplayName } from "@/lib/format";
 import {
   isValidDateStr,
   parseDateStr,
@@ -44,6 +46,27 @@ interface AttendanceRecord {
   absence_reason: string | null;
 }
 
+interface GuardianLinkRecord {
+  child_id: string;
+  can_pickup: boolean | null;
+  kg_guardians: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    first_name_ar: string | null;
+    last_name_ar: string | null;
+    relationship: Relationship;
+  } | null;
+}
+
+interface PickupRecord {
+  child_id: string;
+  name: string;
+  relationship: string | null;
+}
+
+const RELATIONSHIPS = ["father", "mother", "guardian", "grandparent", "sibling", "other"];
+
 export default async function AttendancePage({
   searchParams,
 }: {
@@ -52,6 +75,10 @@ export default async function AttendancePage({
   const ctx = await requireStaff();
   const t = await getTranslations("attendance");
   const tc = await getTranslations("common");
+  // The relationship words already exist, translated and reviewed, in the
+  // kiosk namespace of this same module — a second copy under `attendance`
+  // would only be a second thing to keep in sync.
+  const tk = await getTranslations("kiosk");
   const locale = await getLocale();
   const sp = await searchParams;
 
@@ -69,7 +96,15 @@ export default async function AttendancePage({
     .order("last_name");
   if (activeClass !== "all") childrenQuery = childrenQuery.eq("class_id", activeClass);
 
-  const [classesRes, childrenRes, attendanceRes, allergiesRes, rosterRes] = await Promise.all([
+  const [
+    classesRes,
+    childrenRes,
+    attendanceRes,
+    allergiesRes,
+    rosterRes,
+    guardianLinksRes,
+    pickupsRes,
+  ] = await Promise.all([
     supabase
       .from("kg_classes")
       .select("id, name, name_ar")
@@ -93,6 +128,21 @@ export default async function AttendancePage({
       .select("id, class_id")
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled"),
+    // Who may collect a child. "Picked up by" used to be a free-text box, the
+    // one shape that guarantees the answer is unverifiable. The people are
+    // already known, so the register offers them and stores a guardian id.
+    // `kg_child_guardians` carries no tenant_id of its own — the join to
+    // kg_guardians is what scopes it, hence `!inner`.
+    supabase
+      .from("kg_child_guardians")
+      .select(
+        "child_id, can_pickup, kg_guardians!inner(id, first_name, last_name, first_name_ar, last_name_ar, relationship)"
+      )
+      .eq("kg_guardians.tenant_id", ctx.tenant.id),
+    supabase
+      .from("kg_authorized_pickups")
+      .select("child_id, name, relationship")
+      .eq("tenant_id", ctx.tenant.id),
   ]);
 
   const firstError =
@@ -100,7 +150,9 @@ export default async function AttendancePage({
     childrenRes.error ??
     attendanceRes.error ??
     allergiesRes.error ??
-    rosterRes.error;
+    rosterRes.error ??
+    guardianLinksRes.error ??
+    pickupsRes.error;
   if (firstError) throw new Error(firstError.message);
 
   const classes = (classesRes.data ?? []) as ClassRecord[];
@@ -116,6 +168,43 @@ export default async function AttendancePage({
     allergiesByChild.set(a.child_id, list);
   }
   const classById = new Map(classes.map((c) => [c.id, c]));
+
+  // Collectors, per child, `can_pickup` first then alphabetical — the same
+  // order the phone shows, so the chip a teacher reaches for is in the same
+  // place on both. An authorized pickup is on the list precisely because a
+  // parent named them, so it is preferred too; it just has no guardian id to
+  // store. Names go through childDisplayName so Arabic gets Arabic names.
+  const relationshipLabel = (rel: string) =>
+    RELATIONSHIPS.includes(rel) ? tk(`relationships.${rel}`) : rel;
+  const collectorsByChild = new Map<string, RegisterCollector[]>();
+  const addCollector = (childId: string, c: RegisterCollector) => {
+    const list = collectorsByChild.get(childId) ?? [];
+    list.push(c);
+    collectorsByChild.set(childId, list);
+  };
+  for (const link of (guardianLinksRes.data ?? []) as unknown as GuardianLinkRecord[]) {
+    const g = link.kg_guardians;
+    if (!g) continue;
+    addCollector(link.child_id, {
+      guardianId: g.id,
+      name: childDisplayName(g, locale),
+      relationship: relationshipLabel(g.relationship),
+      preferred: Boolean(link.can_pickup),
+    });
+  }
+  for (const p of (pickupsRes.data ?? []) as PickupRecord[]) {
+    addCollector(p.child_id, {
+      guardianId: null,
+      name: p.name,
+      relationship: p.relationship ? relationshipLabel(p.relationship) : null,
+      preferred: true,
+    });
+  }
+  for (const list of collectorsByChild.values()) {
+    list.sort(
+      (a, b) => Number(b.preferred) - Number(a.preferred) || a.name.localeCompare(b.name, locale)
+    );
+  }
 
   // Presence per class for the tabs. "Present" here means exactly what the
   // green tile means (present or late), so the number on a tab and the numbers
@@ -159,6 +248,7 @@ export default async function AttendancePage({
         classNameAr: klass?.name_ar ?? null,
       },
       allergies: allergiesByChild.get(c.id) ?? [],
+      collectors: collectorsByChild.get(c.id) ?? [],
       attendance: att
         ? {
             status: att.status,

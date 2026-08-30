@@ -11,6 +11,7 @@ import type {
   InvoiceStatus,
   Relationship,
 } from "@/lib/types";
+import type { HealthListItem } from "@/components/modules/portal/health-edit-shared";
 
 /** One roster row, flattened server-side (signed photo URL, class + allergy summary). */
 export interface RosterChild {
@@ -85,9 +86,11 @@ export interface AuthorizedPickup {
 }
 
 export interface ChildHealthRow {
-  medical_conditions: string[];
-  medications: string[];
-  vaccinations: string[];
+  /** jsonb lists as editable lines — an object entry keeps its JSON in
+   *  `source` so a staff save cannot flatten what it never showed. */
+  medical_conditions: HealthListItem[];
+  medications: HealthListItem[];
+  vaccinations: HealthListItem[];
   dietary_restrictions: string | null;
   special_needs: string | null;
   doctor_name: string | null;

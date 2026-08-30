@@ -20,6 +20,7 @@
     "unpaidHint": "{count, plural, =0 {aucune facture} one {# facture} other {# factures}}",
     "pendingApplications": "Demandes en attente",
     "applicationsHint": "inscriptions à examiner",
+    "inBuildingNow": "Dans l'établissement",
     "goneHome": "Repartis",
     "goneHomeHint": "sortis aujourd'hui",
     "staffPresent2": "Personnel en poste"
@@ -75,5 +76,8 @@
       "staff": "Équipe",
       "class": "Classe"
     }
-  }
+  },
+  "viewIcons": "Icônes",
+  "viewLabel": "Affichage",
+  "viewList": "Liste"
 }

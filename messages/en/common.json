@@ -10,6 +10,7 @@
     "staff": "Team",
     "billing": "Billing",
     "accounting": "Accounting",
+    "myPay": "My pay",
     "announcements": "Announcements",
     "messages": "Messages",
     "calendar": "Calendar",
@@ -60,9 +61,12 @@
     "today": "Today",
     "thisMonth": "This month",
     "all": "All",
+    "less": "Less",
     "yes": "Yes",
     "no": "No",
-    "optional": "optional"
+    "optional": "optional",
+    "years": "{count, plural, one {# year} other {# years}}",
+    "months": "{count, plural, one {# month} other {# months}}"
   },
   "toasts": {
     "saved": "Saved successfully",
@@ -92,6 +96,7 @@
     "soy": "Soy",
     "sesame": "Sesame",
     "strawberry": "Strawberry",
+    "citrus": "Citrus",
     "honey": "Honey",
     "pollen": "Pollen",
     "dust": "Dust mites",
@@ -112,5 +117,11 @@
     "thu": "Thu",
     "fri": "Fri",
     "sat": "Sat"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "system": "Match my phone",
+    "light": "Light",
+    "dark": "Dark"
   }
 }

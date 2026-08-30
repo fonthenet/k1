@@ -15,6 +15,7 @@ import { ChildLink, ClassLink } from "@/components/shared/entity-link";
 import {
   ATTENDANCE_STATUSES,
   STATUS_STYLES,
+  isPresentish,
 } from "@/components/modules/attendance/status-config";
 import {
   addMonthsStr,
@@ -266,7 +267,7 @@ export default async function AttendanceHistoryPage({
                       let total = 0;
                       for (const d of days) {
                         const s = statusByKey.get(`${child.id}|${d}`);
-                        if (s === "present" || s === "late") total++;
+                        if (isPresentish(s)) total++;
                       }
                       const perfect = elapsedCount > 0 && total === elapsedCount;
                       return (

@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Lock, Plus, Receipt, Scale, TrendingDown, TrendingUp, TriangleAlert } from "lucide-react";
+import { Plus, Receipt, Scale, TrendingDown, TrendingUp, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import { formatDate, formatDZD } from "@/lib/format";
@@ -20,10 +21,12 @@ import {
 } from "@/components/ui/table";
 import { MonthSelect } from "@/components/modules/dashboard/month-select";
 import { AccountingNav } from "@/components/modules/accounting/nav-tabs";
+import { TxnDetailDialog } from "@/components/modules/accounting/txn-detail-dialog";
 import { TxnDialog } from "@/components/modules/accounting/txn-dialog";
 import { TxnFilters } from "@/components/modules/accounting/txn-filters";
 import { TxnRowActions } from "@/components/modules/accounting/txn-row-actions";
 import { EmptyIcon, MoneyStat } from "@/components/modules/billing/finance-ui";
+import { ENTITY_LINK_CLASS } from "@/components/shared/entity-link";
 import {
   monthKey,
   type CategoryOption,
@@ -42,7 +45,20 @@ interface RawTxn {
   related_payment_id: string | null;
   related_advance_id: string | null;
   related_payroll_item_id: string | null;
+  /** The payslip route is keyed by run + item, and the row only carries the item. */
+  kg_payroll_items: { id: string; run_id: string } | null;
   kg_txn_categories: { id: string; name: string; color: string } | null;
+  kg_transaction_items:
+    | {
+        id: string;
+        name: string;
+        qty: number | string;
+        unit_amount: number | string;
+        amount: number | string;
+        note: string | null;
+        position: number;
+      }[]
+    | null;
 }
 
 export default async function TransactionsPage({
@@ -68,7 +84,15 @@ export default async function TransactionsPage({
   let query = supabase
     .from("kg_transactions")
     .select(
-      "id, kind, amount, date, method, description, reference, related_payment_id, related_advance_id, related_payroll_item_id, kg_txn_categories(id, name, color)"
+      "id, kind, amount, date, method, description, reference, related_payment_id, " +
+        "related_advance_id, related_payroll_item_id, " +
+        // Pinned to the constraint rather than left to PostgREST to resolve by
+        // table name: the day a second column here points at kg_payroll_items
+        // the embed becomes ambiguous, and that fails the whole query — the
+        // ledger would go blank, not one link.
+        "kg_payroll_items!kg_transactions_related_payroll_item_id_fkey(id, run_id), " +
+        "kg_txn_categories(id, name, color), " +
+        "kg_transaction_items(id, name, qty, unit_amount, amount, note, position)"
     )
     .eq("tenant_id", tid)
     .gte("date", monthStart)
@@ -90,7 +114,17 @@ export default async function TransactionsPage({
 
   const hasError = Boolean(txnRes.error || catRes.error);
   const categories = (catRes.data ?? []) as CategoryOption[];
-  const rows: LedgerRow[] = ((txnRes.data ?? []) as unknown as RawTxn[]).map((tx) => ({
+  const rawRows = (txnRes.data ?? []) as unknown as RawTxn[];
+
+  // item id → run id, because /accounting/payroll/[id]/payslip/[itemId] needs
+  // both and the transaction only stores the item.
+  const runByPayrollItem = new Map(
+    rawRows.flatMap((tx) =>
+      tx.kg_payroll_items ? [[tx.kg_payroll_items.id, tx.kg_payroll_items.run_id] as const] : []
+    )
+  );
+
+  const rows: LedgerRow[] = rawRows.map((tx) => ({
     id: tx.id,
     kind: tx.kind,
     amount: Number(tx.amount),
@@ -102,6 +136,20 @@ export default async function TransactionsPage({
     related_advance_id: tx.related_advance_id,
     related_payroll_item_id: tx.related_payroll_item_id,
     category: tx.kg_txn_categories,
+    // Sorted here rather than in the query: PostgREST cannot order an embedded
+    // resource, and the list is short.
+    items: [...(tx.kg_transaction_items ?? [])]
+      .sort((a, b) => a.position - b.position)
+      .map((i) => ({
+        id: i.id,
+        name: i.name,
+        // Postgres numerics arrive as strings over PostgREST.
+        qty: Number(i.qty),
+        unit_amount: Number(i.unit_amount),
+        amount: Number(i.amount),
+        note: i.note,
+        position: i.position,
+      })),
   }));
 
   const incomeCategories = categories.filter((c) => c.kind === "income");
@@ -119,6 +167,47 @@ export default async function TransactionsPage({
   const monthTitle = monthYearFmt.format(new Date(y, m - 1, 1));
 
   const canManage = ctx.isAdmin && month === currentKey;
+
+  /**
+   * Where a row leads, and what it is.
+   *
+   * The three link columns were only ever read as "this cannot be edited". They
+   * are also the answer to the question the ledger raises and never answered —
+   * *what was this?* — so each one is a door, to the same destination the phone
+   * chose: a fee opens the receipt it was written from, a salary line opens that
+   * payslip, an advance opens the advances page at that advance.
+   *
+   * The label is per link kind on purpose. One generic "linked to a payment"
+   * used to be printed on all three, so a salary payout — 10 of this tenant's
+   * 45 rows — claimed to be a parent's fee.
+   */
+  function destinationOf(tx: LedgerRow): { href: string | null; label: string } | null {
+    if (tx.related_payment_id) {
+      return {
+        href: `/billing/receipts/${tx.related_payment_id}`,
+        label: t("txn.linkedPayment"),
+      };
+    }
+    if (tx.related_payroll_item_id) {
+      const runId = runByPayrollItem.get(tx.related_payroll_item_id);
+      return {
+        // No run means the payslip route has nothing to look up, so the row says
+        // where it came from and stays put rather than offering a 404.
+        href: runId ? `/accounting/payroll/${runId}/payslip/${tx.related_payroll_item_id}` : null,
+        label: t("txn.linkedPayroll"),
+      };
+    }
+    if (tx.related_advance_id) {
+      // The advances page has no route per advance — it is tabs over one list —
+      // so the id is a query the page opens the right tab for, and the hash
+      // scrolls to the row.
+      return {
+        href: `/accounting/advances?advance=${tx.related_advance_id}#advance-${tx.related_advance_id}`,
+        label: t("txn.linkedAdvance"),
+      };
+    }
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -223,12 +312,8 @@ export default async function TransactionsPage({
                       // a trigger on its source record (0030); editing the ledger
                       // copy would only put the two out of sync, and deleting it
                       // would hide cash that really left the till.
-                      const locked = Boolean(
-                        tx.related_payment_id ||
-                          tx.related_advance_id ||
-                          tx.related_payroll_item_id
-                      );
-                      const editable = canManage && !locked;
+                      const linked = destinationOf(tx);
+                      const editable = canManage && !linked;
                       const isIncome = tx.kind === "income";
                       return (
                         <TableRow key={tx.id} className="h-14">
@@ -236,17 +321,35 @@ export default async function TransactionsPage({
                             {formatDate(tx.date, locale)}
                           </TableCell>
                           <TableCell className="max-w-72">
-                            <div className="flex items-center gap-1.5">
-                              <span className="truncate font-medium">{tx.description || "—"}</span>
-                              {locked && (
-                                <span title={t("txn.lockedHint")} aria-label={t("txn.locked")}>
-                                  <Lock className="size-3.5 shrink-0 text-muted-foreground" />
-                                </span>
+                            <span className="block truncate font-medium">
+                              {linked?.href ? (
+                                <Link href={linked.href} className={ENTITY_LINK_CLASS}>
+                                  {tx.description || "—"}
+                                </Link>
+                              ) : linked ? (
+                                tx.description || "—"
+                              ) : (
+                                <TxnDetailDialog
+                                  txn={tx}
+                                  trigger={
+                                    <button type="button" className={ENTITY_LINK_CLASS}>
+                                      {tx.description || "—"}
+                                    </button>
+                                  }
+                                />
                               )}
-                            </div>
-                            {tx.reference && (
-                              <div className="truncate text-xs text-muted-foreground" dir="ltr">
-                                {tx.reference}
+                            </span>
+                            {(linked || tx.reference) && (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {/* What this row is, in place of the lock icon that
+                                    used to sit here: "not editable" is the least
+                                    useful thing about a salary payout. */}
+                                {linked && <span className="shrink-0">{linked.label}</span>}
+                                {tx.reference && (
+                                  <span className="truncate" dir="ltr">
+                                    {tx.reference}
+                                  </span>
+                                )}
                               </div>
                             )}
                           </TableCell>

@@ -10,6 +10,7 @@
     "staff": "الفريق",
     "billing": "الفوترة",
     "accounting": "المحاسبة",
+    "myPay": "راتبي",
     "announcements": "الإعلانات",
     "messages": "الرسائل",
     "calendar": "التقويم",
@@ -60,9 +61,12 @@
     "today": "اليوم",
     "thisMonth": "هذا الشهر",
     "all": "الكل",
+    "less": "أقل",
     "yes": "نعم",
     "no": "لا",
-    "optional": "اختياري"
+    "optional": "اختياري",
+    "years": "{count, plural, zero {# سنة} one {سنة} two {سنتان} few {# سنوات} many {# سنة} other {# سنة}}",
+    "months": "{count, plural, zero {# شهر} one {شهر} two {شهران} few {# أشهر} many {# شهرًا} other {# شهر}}"
   },
   "toasts": {
     "saved": "تم الحفظ بنجاح",
@@ -92,6 +96,7 @@
     "soy": "الصويا",
     "sesame": "السمسم",
     "strawberry": "الفراولة",
+    "citrus": "الحمضيات",
     "honey": "العسل",
     "pollen": "غبار الطلع",
     "dust": "عث الغبار",
@@ -112,5 +117,11 @@
     "thu": "الخميس",
     "fri": "الجمعة",
     "sat": "السبت"
+  },
+  "appearance": {
+    "title": "المظهر",
+    "system": "حسب الهاتف",
+    "light": "فاتح",
+    "dark": "داكن"
   }
 }

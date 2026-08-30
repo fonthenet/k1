@@ -127,7 +127,12 @@ export function StepChild({
               <SelectItem value="unknown">{t("child.bloodUnknown")}</SelectItem>
               {BLOOD_TYPES.map((b) => (
                 <SelectItem key={b} value={b}>
-                  {b}
+                  {/* "A+" ends in a neutral character, which takes the
+                      paragraph's direction — so in Arabic the whole list read
+                      +A, -A, +B … and picking one put a reversed value in the
+                      trigger. The same isolation the phone number already gets
+                      two files over. */}
+                  <span dir="ltr">{b}</span>
                 </SelectItem>
               ))}
             </SelectContent>

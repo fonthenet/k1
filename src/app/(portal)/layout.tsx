@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PortalTopbar } from "@/components/modules/portal/portal-topbar";
 import { PortalTabs } from "@/components/modules/portal/portal-tabs";
 import { NotificationBell } from "@/components/modules/portal/notification-bell";
+import { countUnreadMessages } from "@/components/modules/comms/queries";
 import { displayIdentity } from "@/lib/auth-identifier";
 
 /**
@@ -16,13 +17,17 @@ export default async function PortalLayout({ children }: { children: React.React
   const ctx = await getTenantContext();
   const supabase = await createClient();
   // RLS keeps both queries to this user's own rows.
-  const [{ data: profile }, { count: unread }, logoUrl] = await Promise.all([
+  const [{ data: profile }, { count: unread }, logoUrl, unreadThreads] = await Promise.all([
     supabase.from("kg_profiles").select("full_name").eq("id", ctx.user.id).maybeSingle(),
     supabase
       .from("kg_notifications")
       .select("id", { count: "exact", head: true })
       .is("read_at", null),
     signedMediaUrl(ctx.tenant.logo_url),
+    // The Messages tab needs no stream of its own: the bell above refreshes
+    // this layout on every notification, and a staff reply always raises one
+    // (migration 0012). One subscription, two badges.
+    countUnreadMessages(ctx.tenant.id, ctx.user.id),
   ]);
 
   return (
@@ -35,7 +40,7 @@ export default async function PortalLayout({ children }: { children: React.React
         notifications={<NotificationBell userId={ctx.user.id} unreadCount={unread ?? 0} />}
       />
       <main className="mx-auto w-full max-w-lg px-4 pb-28 pt-5">{children}</main>
-      <PortalTabs />
+      <PortalTabs unreadMessages={unreadThreads} />
     </div>
   );
 }

@@ -46,12 +46,22 @@ function Section({
   );
 }
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
+function Row({
+  label,
+  value,
+  ltr,
+}: {
+  label: string;
+  value: React.ReactNode;
+  /** For values ending in a neutral character — "A+", "+213…" — which the
+   *  bidi algorithm otherwise reorders in Arabic. */
+  ltr?: boolean;
+}) {
   if (!value) return null;
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-end font-medium">{value}</span>
+      <span className="text-end font-medium" dir={ltr ? "ltr" : undefined}>{value}</span>
     </div>
   );
 }
@@ -97,7 +107,7 @@ export function AddChildStepReview({
             label={te("child.gender")}
             value={child.gender ? te(`child.${child.gender}`) : null}
           />
-          <Row label={te("child.bloodType")} value={child.blood_type || null} />
+          <Row label={te("child.bloodType")} value={child.blood_type || null} ltr />
         </Section>
 
         <Section icon={Camera} title={te("review.photo")} onEdit={() => goTo(1)} editLabel={edit}>

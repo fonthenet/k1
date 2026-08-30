@@ -68,7 +68,9 @@
     "selectChild": "Enfant",
     "placeholder": "Choisir un enfant",
     "submit": "Inscrire",
-    "noneAvailable": "Tous les enfants inscrits participent déjà à cette activité."
+    "noneAvailable": "Tous les enfants inscrits participent déjà à cette activité.",
+    "billsHint": "L'inscription ajoute le tarif du mois à la facture de la famille.",
+    "billsLocked": "La facture du mois est déjà partiellement payée : ce montant ne pourra plus être retiré."
   },
   "detail": {
     "back": "Retour aux activités",
@@ -129,7 +131,8 @@
     "enrolled": "Enfant inscrit à l'activité",
     "ended": "Inscription terminée",
     "approved": "Demande acceptée",
-    "declined": "Demande refusée"
+    "declined": "Demande refusée",
+    "endKeptCharge": "Inscription terminée. Le montant du mois reste — la facture est déjà partiellement payée."
   },
   "error": {
     "title": "Impossible de charger les activités",

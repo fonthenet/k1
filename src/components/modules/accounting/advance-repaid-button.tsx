@@ -23,10 +23,13 @@ export function AdvanceRepaidButton({
   advanceId,
   memberName,
   amountLabel,
+  detachesFromPayroll = false,
 }: {
   advanceId: string;
   memberName: string;
   amountLabel: string;
+  /** Queued on a draft run: confirming also removes that line's deduction. */
+  detachesFromPayroll?: boolean;
 }) {
   const t = useTranslations("accounting");
   const tc = useTranslations("common");
@@ -53,6 +56,13 @@ export function AdvanceRepaidButton({
           <AlertDialogTitle>{t("advances.markRepaidTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
             {t("advances.markRepaidDesc", { amount: amountLabel, name: memberName })}
+            {/* Say what else this touches. Silently editing somebody's payslip is
+                how the deduction and the repayment drifted apart in the first place. */}
+            {detachesFromPayroll && (
+              <span className="mt-2 block font-medium text-foreground">
+                {t("advances.markRepaidPayrollNote", { amount: amountLabel })}
+              </span>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

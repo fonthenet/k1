@@ -42,40 +42,46 @@ import { Textarea } from "@/components/ui/textarea";
 import type { AllergySeverity } from "@/lib/types";
 import { allergenLabel } from "@/lib/allergens";
 import { AllergenPicker } from "@/components/shared/allergen-picker";
+import { ReactionPicker } from "@/components/shared/reaction-picker";
+import type { HealthListItem } from "@/components/modules/portal/health-edit-shared";
 import { deleteAllergy, saveAllergy, saveHealth } from "./actions";
 import { severityClasses, type AllergyRow, type ChildHealthRow } from "./types";
 
-function toLines(list: string[]): string {
-  return list.join("\n");
+function toLines(items: HealthListItem[]): string {
+  return items.map((i) => i.label).join("\n");
 }
 
-function fromLines(text: string): string[] {
+/**
+ * Text back to lines, matched against what was loaded so an entry the staff
+ * member never retyped keeps the original JSON it came from — same contract as
+ * `serializeHealthList` on the portal side.
+ */
+function fromLines(text: string, original: HealthListItem[]): HealthListItem[] {
+  const bySource = new Map<string, Record<string, unknown>>();
+  for (const item of original) if (item.source) bySource.set(item.label, item.source);
+
   return text
     .split("\n")
     .map((l) => l.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((label) => ({ label, source: bySource.get(label) ?? null }));
 }
 
-function ChipList({ items }: { items: string[] }) {
+function ChipList({ items }: { items: HealthListItem[] }) {
   if (items.length === 0) return <span className="text-sm text-muted-foreground">—</span>;
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((item, i) => (
         <Badge key={i} variant="secondary">
-          {item}
+          {item.label}
         </Badge>
       ))}
     </div>
   );
 }
 
-function HealthEditDialog({ childId, health }: { childId: string; health: ChildHealthRow | null }) {
-  const t = useTranslations("children");
-  const tc = useTranslations("common");
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const [form, setForm] = useState({
+function healthFormFrom(health: ChildHealthRow | null) {
+  return {
     conditions: toLines(health?.medical_conditions ?? []),
     medications: toLines(health?.medications ?? []),
     vaccinations: toLines(health?.vaccinations ?? []),
@@ -84,18 +90,35 @@ function HealthEditDialog({ childId, health }: { childId: string; health: ChildH
     doctorName: health?.doctor_name ?? "",
     doctorPhone: health?.doctor_phone ?? "",
     emergencyNotes: health?.emergency_notes ?? "",
-  });
+  };
+}
+
+function HealthEditDialog({ childId, health }: { childId: string; health: ChildHealthRow | null }) {
+  const t = useTranslations("children");
+  const tc = useTranslations("common");
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [form, setForm] = useState(() => healthFormFrom(health));
 
   const set = (key: keyof typeof form) => (value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  // Re-seed from the row on every open: parents write this same row (0016), so
+  // a draft held since mount is a stale snapshot, and a stale draft on a health
+  // field is worse than none.
+  function onOpenChange(next: boolean) {
+    if (next) setForm(healthFormFrom(health));
+    setOpen(next);
+  }
 
   function submit() {
     if (pending) return;
     startTransition(async () => {
       const res = await saveHealth(childId, {
-        conditions: fromLines(form.conditions),
-        medications: fromLines(form.medications),
-        vaccinations: fromLines(form.vaccinations),
+        conditions: fromLines(form.conditions, health?.medical_conditions ?? []),
+        medications: fromLines(form.medications, health?.medications ?? []),
+        vaccinations: fromLines(form.vaccinations, health?.vaccinations ?? []),
         dietary: form.dietary || undefined,
         specialNeeds: form.specialNeeds || undefined,
         doctorName: form.doctorName || undefined,
@@ -113,7 +136,7 @@ function HealthEditDialog({ childId, health }: { childId: string; health: ChildH
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Pencil data-icon="inline-start" />
@@ -215,6 +238,15 @@ function HealthEditDialog({ childId, health }: { childId: string; health: ChildH
   );
 }
 
+function allergyFormFrom(allergy: AllergyRow | null) {
+  return {
+    allergen: allergy?.allergen ?? "",
+    severity: (allergy?.severity ?? "mild") as AllergySeverity,
+    reaction: allergy?.reaction ?? "",
+    actionPlan: allergy?.action_plan ?? "",
+  };
+}
+
 function AllergyDialog({
   childId,
   allergy,
@@ -226,15 +258,22 @@ function AllergyDialog({
 }) {
   const t = useTranslations("children");
   const tc = useTranslations("common");
+  // Scoped so the shared reaction picker resolves `reactions.*` and
+  // `otherLabel` from this namespace's own copy of the vocabulary.
+  const ta = useTranslations("children.allergies");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [form, setForm] = useState({
-    allergen: allergy?.allergen ?? "",
-    severity: (allergy?.severity ?? "mild") as AllergySeverity,
-    reaction: allergy?.reaction ?? "",
-    actionPlan: allergy?.action_plan ?? "",
-  });
+  const [form, setForm] = useState(() => allergyFormFrom(allergy));
+
+  // Re-seed from the row on every open — including after a save, which is why
+  // there is no manual reset here. A parent can have filled the action plan in
+  // since this page mounted (0016); saving a snapshot from mount over it would
+  // blank a safety field with nothing on screen to show it.
+  function onOpenChange(next: boolean) {
+    if (next) setForm(allergyFormFrom(allergy));
+    setOpen(next);
+  }
 
   function submit() {
     if (!form.allergen.trim() || pending) return;
@@ -248,7 +287,6 @@ function AllergyDialog({
       if (res.ok) {
         toast.success(t("toasts.saved"));
         setOpen(false);
-        if (!allergy) setForm({ allergen: "", severity: "mild", reaction: "", actionPlan: "" });
         router.refresh();
       } else {
         // 0061 made a second row for the same allergen impossible. Saying
@@ -260,7 +298,7 @@ function AllergyDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
@@ -295,10 +333,12 @@ function AllergyDialog({
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="a-reaction">{t("allergies.reaction")}</Label>
-            <Input
+            <ReactionPicker
               id="a-reaction"
               value={form.reaction}
-              onChange={(e) => setForm((f) => ({ ...f, reaction: e.target.value }))}
+              onChange={(reaction) => setForm((f) => ({ ...f, reaction }))}
+              t={ta}
+              placeholder={ta("reactionPlaceholder")}
             />
           </div>
           <div className="grid gap-1.5">

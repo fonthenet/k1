@@ -27,6 +27,8 @@ export interface CheckinChildRow {
     /** Already formatted server-side, so the server and client agree. */
     time: string | null;
     reason: string | null;
+    /** Who collected the child — only ever set on "left". */
+    collectedBy?: string | null;
   };
 }
 
@@ -66,7 +68,9 @@ export function CheckinClient({
       case "arrived":
         return tHome("status.arrived", { time: status.time ?? "" });
       case "left":
-        return tHome("status.left", { time: status.time ?? "" });
+        return status.collectedBy
+          ? tHome("status.leftWith", { time: status.time ?? "", name: status.collectedBy })
+          : tHome("status.left", { time: status.time ?? "" });
       case "absent":
         return status.reason
           ? tHome("status.absentReason", { reason: status.reason })

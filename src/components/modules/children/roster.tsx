@@ -9,7 +9,7 @@ import {
 } from "@/components/shared/sortable-header";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { AlertTriangle, Search } from "lucide-react";
+import { AlertTriangle, ChevronDown, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ageFromDob, childDisplayName } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { ChildStatus } from "@/lib/types";
 import { ChildAvatar } from "./child-avatar";
 import {
@@ -109,6 +110,35 @@ function DualName({ child, locale }: { child: RosterChild; locale: string }) {
   );
 }
 
+/** One child as a card — the mobile row, and every row of the former group. */
+function ChildCard({ child, locale }: { child: RosterChild; locale: string }) {
+  const t = useTranslations("children");
+  return (
+    <Card className="relative py-0 shadow-sm transition-shadow hover:shadow-md">
+      <CardContent className="flex items-center gap-3 p-3.5">
+        <ChildAvatar
+          firstName={child.first_name}
+          lastName={child.last_name}
+          photoUrl={child.photoUrl}
+          className="size-12"
+        />
+        <div className="min-w-0 flex-1">
+          <Link href={`/children/${child.id}`} className="after:absolute after:inset-0">
+            <DualName child={child} locale={locale} />
+          </Link>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">{ageFromDob(child.dob, locale)}</span>
+            <ClassChip child={child} locale={locale} />
+            <AllergyBadge child={child} />
+            <NoFeePlanBadge child={child} />
+          </div>
+        </div>
+        <Badge className={childStatusClasses(child.status)}>{t(`status.${child.status}`)}</Badge>
+      </CardContent>
+    </Card>
+  );
+}
+
 type SortKey = "child" | "age" | "klass" | "allergies" | "tag" | "status";
 
 export function ChildrenRoster({
@@ -126,6 +156,7 @@ export function ChildrenRoster({
   // Name ascending is the roster people expect to land on; every other order is
   // something they went looking for.
   const [sort, setSort] = useState<SortState<SortKey>>({ key: "child", dir: "asc" });
+  const [showFormer, setShowFormer] = useState(false);
 
   const onSort = (key: SortKey) => setSort((cur) => nextSort(cur, key));
 
@@ -173,6 +204,17 @@ export function ChildrenRoster({
     return collated.map((x) => x.row);
   }, [filtered, sort, locale, t]);
 
+  // A withdrawn or archived child is still a record somebody has to reach —
+  // they just should not be sitting alphabetically in the middle of the
+  // register, nor counted as if they were still here. They get their own group
+  // at the bottom, folded shut.
+  //
+  // Only when no status is being asked for: filtering ON "withdrawn" and then
+  // hiding every withdrawn child would make the filter do nothing.
+  const grouped = statusFilter === "all";
+  const active = grouped ? sorted.filter((c) => c.status === "enrolled") : sorted;
+  const former = grouped ? sorted.filter((c) => c.status !== "enrolled") : [];
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
@@ -214,7 +256,7 @@ export function ChildrenRoster({
           </SelectContent>
         </Select>
         <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
-          {t("roster.count", { count: sorted.length })}
+          {t("roster.count", { count: active.length })}
         </span>
       </div>
 
@@ -231,7 +273,12 @@ export function ChildrenRoster({
       ) : (
         <>
           {/* Desktop table */}
-          <Card className="hidden overflow-hidden py-0 shadow-sm md:block">
+          <Card
+            className={cn(
+              "hidden overflow-hidden py-0 shadow-sm md:block",
+              active.length === 0 && "md:hidden"
+            )}
+          >
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -257,7 +304,7 @@ export function ChildrenRoster({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sorted.map((c) => (
+                  {active.map((c) => (
                     <TableRow key={c.id} className="relative transition-colors hover:bg-primary/5">
                       <TableCell>
                         <Link
@@ -311,36 +358,43 @@ export function ChildrenRoster({
 
           {/* Mobile cards */}
           <div className="grid gap-3 md:hidden">
-            {sorted.map((c) => (
-              <Card
-                key={c.id}
-                className="relative py-0 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <CardContent className="flex items-center gap-3 p-3.5">
-                  <ChildAvatar
-                    firstName={c.first_name}
-                    lastName={c.last_name}
-                    photoUrl={c.photoUrl}
-                    className="size-12"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <Link href={`/children/${c.id}`} className="after:absolute after:inset-0">
-                      <DualName child={c} locale={locale} />
-                    </Link>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className="text-xs text-muted-foreground">
-                        {ageFromDob(c.dob, locale)}
-                      </span>
-                      <ClassChip child={c} locale={locale} />
-                      <AllergyBadge child={c} />
-                      <NoFeePlanBadge child={c} />
-                    </div>
-                  </div>
-                  <Badge className={childStatusClasses(c.status)}>{t(`status.${c.status}`)}</Badge>
-                </CardContent>
-              </Card>
+            {active.map((c) => (
+              <ChildCard key={c.id} child={c} locale={locale} />
             ))}
           </div>
+
+          {/* Former children — kept, reachable, and out of the register. */}
+          {former.length > 0 && (
+            <div className="grid gap-3">
+              <button
+                type="button"
+                onClick={() => setShowFormer((v) => !v)}
+                aria-expanded={showFormer}
+                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 text-start shadow-sm transition-colors hover:bg-muted/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold">{t("roster.former")}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {t("roster.formerHint")}
+                  </div>
+                </div>
+                <Badge className="bg-muted tabular-nums text-muted-foreground">
+                  {former.length}
+                </Badge>
+                {/* Points down when shut, up when open — a vertical chevron
+                    needs no RTL mirroring, unlike the back arrows. */}
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 text-muted-foreground transition-transform",
+                    showFormer && "rotate-180"
+                  )}
+                  aria-hidden
+                />
+              </button>
+              {showFormer &&
+                former.map((c) => <ChildCard key={c.id} child={c} locale={locale} />)}
+            </div>
+          )}
         </>
       )}
     </div>

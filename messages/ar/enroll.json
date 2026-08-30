@@ -123,6 +123,20 @@
       "severe": "شديدة"
     },
     "reaction": "ردّة الفعل",
+    "reactions": {
+      "rash": "طفح جلدي",
+      "hives": "شرى (أرتكاريا)",
+      "swelling": "تورّم",
+      "breathing": "صعوبة في التنفّس",
+      "vomiting": "تقيّؤ",
+      "diarrhoea": "اضطرابات هضمية",
+      "cough": "سعال / أزيز",
+      "eyes": "حكة أو دموع في العينين",
+      "anaphylaxis": "صدمة تحسسية",
+      "other": "أخرى…"
+    },
+    "reactionPlaceholder": "طفح جلدي، تقيؤ، صعوبة في التنفّس…",
+    "otherLabel": "حدِّد",
     "actionPlan": "ما العمل عند حدوث ردّة فعل؟",
     "conditions": "أمراض مزمنة",
     "conditionsHint": "مرض في كل سطر — مثال: الربو",
@@ -193,7 +207,26 @@
     "submittedOn": "وصل في {date}",
     "activitiesCount": "{count, plural, =0 {لا أنشطة} one {نشاط واحد} two {نشاطان} few {# أنشطة} many {# نشاطًا} other {# نشاط}}",
     "errorTitle": "تعذّر عرض الطلبات",
-    "retry": "إعادة المحاولة"
+    "retry": "إعادة المحاولة",
+    "approve": "الموافقة والتسجيل",
+    "approveTitle": "تسجيل {name}؟",
+    "approveDesc": "يُنشئ هذا ملف الطفل وأولياء أمره وسجله الصحي، ويمنح العائلة حساب دخول. لا يمكن التراجع عن ذلك.",
+    "approveBills": "سيُسجَّل أيضًا في {count, plural, zero {# نشاط} one {نشاط واحد} two {نشاطين} few {# أنشطة} many {# نشاطًا} other {# نشاط}} وتُحتسب الرسوم على فاتورة هذا الشهر.",
+    "approveNoFee": "لا تُضبط الرسوم الشهرية هنا — عيّنها من ملف الطفل بعد الموافقة.",
+    "approveClass": "القسم",
+    "approveNoClass": "بدون قسم بعد",
+    "approved": "تم تسجيل {name}",
+    "alreadyApproved": "سبقت الموافقة على هذا الطلب.",
+    "rejectTitle": "رفض طلب {name}؟",
+    "rejectDesc": "يبقى الطلب في السجل ويمكن إعادته إلى المراجعة لاحقًا. لا يُنشأ أي ملف طفل.",
+    "reject": "رفض",
+    "reconsider": "إعادة النظر",
+    "reconsiderTitle": "إعادة فتح طلب {name}؟",
+    "reconsiderDesc": "يعود الطلب إلى قيد المراجعة. لم تُبلَّغ العائلة بالرفض، فلن تلاحظ شيئًا.",
+    "reconsidered": "أُعيد فتح الطلب",
+    "openChild": "فتح ملف الطفل",
+    "enrolledOn": "مُسجَّل",
+    "stageSaved": "حُفظت الحالة — لم يصل العائلة أي شيء"
   },
   "detail": {
     "back": "كل الطلبات",
@@ -289,7 +322,8 @@
     "views": {
       "pipeline": "المسار",
       "waitlist": "قائمة الانتظار",
-      "rejected": "المرفوضة"
+      "rejected": "المرفوضة",
+      "decided": "تمّت معالجتها"
     },
     "stages": {
       "submitted": "جديدة",

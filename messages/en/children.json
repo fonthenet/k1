@@ -21,7 +21,13 @@
       "allergies": "Allergies",
       "tag": "Badge code",
       "status": "Status"
-    }
+    },
+    "former": "Former children",
+    "formerHint": "Withdrawn or archived. Their records are kept.",
+    "sortLabel": "Sort by",
+    "sortName": "Name",
+    "sortClass": "Class",
+    "sortPresence": "Present first"
   },
   "status": {
     "pending": "Pending",
@@ -74,7 +80,14 @@
     "withdrawDescription": "The child will move to \"Withdrawn\" status with today's date as the withdrawal date. Their record and history are kept.",
     "reenroll": "Re-enroll",
     "reenrollTitle": "Re-enroll this child?",
-    "reenrollDescription": "The child will return to \"Enrolled\" status and the withdrawal date will be cleared."
+    "reenrollDescription": "The child will return to \"Enrolled\" status and the withdrawal date will be cleared.",
+    "archive": "Archive child",
+    "archiveTitle": "Archive this child?",
+    "archiveDescription": "The child moves to \"Alumni\". Their record, invoices, attendance and health history are all kept — they simply leave the active roster.",
+    "restore": "Return to enrolled",
+    "restoreTitle": "Return this child to the roster?",
+    "restoreDescription": "The child returns to \"Enrolled\" and appears in the register again.",
+    "nothingIsDeleted": "Nothing is ever deleted. A child's invoices and history are kept whichever status they are in."
   },
   "profile": {
     "back": "All children",
@@ -241,6 +254,20 @@
     "allergen": "Allergen",
     "severity": "Severity",
     "reaction": "Reaction",
+    "reactions": {
+      "rash": "Skin rash",
+      "hives": "Hives",
+      "swelling": "Swelling",
+      "breathing": "Difficulty breathing",
+      "vomiting": "Vomiting",
+      "diarrhoea": "Digestive upset",
+      "cough": "Coughing / wheezing",
+      "eyes": "Itchy or runny eyes",
+      "anaphylaxis": "Anaphylaxis",
+      "other": "Other…"
+    },
+    "reactionPlaceholder": "rash, vomiting, difficulty breathing…",
+    "otherLabel": "Describe it",
     "actionPlan": "Action plan",
     "deleteTitle": "Delete this allergy?",
     "deleteDescription": "The allergy will be removed from the child's record."
@@ -358,6 +385,8 @@
     "tagTaken": "This badge code is already used by another child",
     "duplicate": "This item already exists",
     "forbidden": "You don't have permission to do that",
-    "error": "Something went wrong. Please try again."
+    "error": "Something went wrong. Please try again.",
+    "archived": "Child archived",
+    "restored": "Child returned to the roster"
   }
 }

@@ -29,6 +29,7 @@ import {
   RequestActions,
 } from "@/components/modules/classes/enrollment-actions";
 import {
+  algiersToday,
   asScheduleSlots,
   sortSchedule,
   type ActivityFormValues,
@@ -142,7 +143,7 @@ export default async function ActivityDetailPage({
   const canManage = ctx.isAdmin;
   const canEnroll = ctx.role !== "accountant";
 
-  const [{ data: enrollmentRows }, { data: candidateRows }] = await Promise.all([
+  const [{ data: enrollmentRows }, { data: candidateRows }, { data: paidRows }] = await Promise.all([
     supabase
       .from("kg_activity_enrollments")
       .select(
@@ -157,6 +158,20 @@ export default async function ActivityDetailPage({
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled")
       .order("first_name"),
+    // Whose invoice for this month has already been paid into. Enrolling one of
+    // those children adds a fee that `trg_kg_activity_enrollment_billing` (0033)
+    // can no longer take back off the invoice, so the dialog has to say so
+    // before the write. Educators get nothing here — `inv_sel` (0003) is
+    // finance-only — and the dialog then falls back to the plain hint.
+    ctx.isFinance
+      ? supabase
+          .from("kg_invoices")
+          .select("child_id")
+          .eq("tenant_id", ctx.tenant.id)
+          .eq("period_month", `${algiersToday().slice(0, 7)}-01`)
+          .neq("status", "void")
+          .gt("paid_amount", 0)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const enrollments = ((enrollmentRows ?? []) as unknown as EnrollmentRow[]).filter(
@@ -175,6 +190,9 @@ export default async function ActivityDetailPage({
   const candidates: EnrollCandidate[] = ((candidateRows ?? []) as CandidateRow[])
     .filter((c) => !takenIds.has(c.id))
     .map((c) => ({ id: c.id, name: childDisplayName(c, locale) }));
+  const lockedChildIds = [
+    ...new Set(((paidRows ?? []) as { child_id: string }[]).map((r) => r.child_id)),
+  ];
 
   const slots = sortSchedule(asScheduleSlots(activity.schedule));
   const fee = Number(activity.fee_amount);
@@ -215,7 +233,13 @@ export default async function ActivityDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {canEnroll && <AddEnrollmentDialog activityId={activity.id} candidates={candidates} />}
+          {canEnroll && (
+            <AddEnrollmentDialog
+              activityId={activity.id}
+              candidates={candidates}
+              lockedChildIds={lockedChildIds}
+            />
+          )}
           {canManage && (
             <>
               <ActivityDialog activity={toFormValues(activity)} openingHours={openingHours} />
@@ -335,7 +359,11 @@ export default async function ActivityDetailPage({
           description={t("detail.enrollments.emptyDescription")}
           action={
             canEnroll ? (
-              <AddEnrollmentDialog activityId={activity.id} candidates={candidates} />
+              <AddEnrollmentDialog
+                activityId={activity.id}
+                candidates={candidates}
+                lockedChildIds={lockedChildIds}
+              />
             ) : undefined
           }
         />
@@ -388,6 +416,7 @@ export default async function ActivityDetailPage({
                           <EndEnrollmentButton
                             activityId={activity.id}
                             enrollmentId={e.id}
+                            childId={child.id}
                             childName={name}
                           />
                         )}

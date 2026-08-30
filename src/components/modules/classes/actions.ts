@@ -388,23 +388,69 @@ export async function addActivityEnrollment(
   return { ok: true };
 }
 
+/**
+ * Stop an enrolment: `ended` for a child who was attending, `cancelled` for a
+ * request that was never approved. Same write either way — the status is the
+ * record of what actually happened, and "ended" on a class nobody ever attended
+ * would be a lie in next year's history.
+ *
+ * The child id is not decoration: this is now reachable from the child's own
+ * record, and without revalidating that path the row stays on screen after it
+ * has gone from the database.
+ */
 export async function endActivityEnrollment(
   activityId: string,
-  enrollmentId: string
+  enrollmentId: string,
+  childId: string,
+  status: "ended" | "cancelled" = "ended"
 ): Promise<ActionResult> {
   const ctx = await requireStaff();
   if (ctx.role === "accountant") return { ok: false, error: "forbidden" };
-  if (!z.uuid().safeParse(enrollmentId).success) return { ok: false, error: "invalid" };
+  if (!z.uuid().safeParse(enrollmentId).success || !z.uuid().safeParse(childId).success)
+    return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("kg_activity_enrollments")
-    .update({ status: "ended", end_date: algiersToday() })
+    .update({ status, end_date: algiersToday() })
     .eq("id", enrollmentId)
     .eq("tenant_id", ctx.tenant.id);
   if (error) return mapDbError(error);
   revalidateActivity(activityId);
+  revalidatePath(`/children/${childId}`);
   return { ok: true };
+}
+
+/**
+ * Can a charge added this month still be taken back?
+ *
+ * `trg_kg_activity_enrollment_billing` (0033) removes an activity's line only
+ * from invoices whose `paid_amount` is still 0. The moment a family has paid
+ * ANY of this month's invoice, enrolling becomes irreversible: ending the
+ * enrolment leaves the 1 200 DA behind and nothing in the app takes it off.
+ * So the screen asks first and warns before the write, rather than discovering
+ * it afterwards.
+ *
+ * An educator gets `false` here whatever the truth is — `inv_sel` (0003) only
+ * lets finance read kg_invoices, so the select comes back empty. That is the
+ * right failure: the dialog falls back to the plain "this bills the family"
+ * hint, which is still true, instead of claiming a certainty it cannot check.
+ */
+export async function activityChargeIsLocked(childId: string): Promise<boolean> {
+  const ctx = await requireStaff();
+  if (!z.uuid().safeParse(childId).success) return false;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("kg_invoices")
+    .select("paid_amount")
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("child_id", childId)
+    .eq("period_month", `${algiersToday().slice(0, 7)}-01`)
+    .neq("status", "void");
+  return ((data ?? []) as { paid_amount: number | string }[]).some(
+    (i) => Number(i.paid_amount) > 0
+  );
 }
 
 /** Approve (→ active) or decline (→ cancelled) a parent's 'requested' enrollment. */

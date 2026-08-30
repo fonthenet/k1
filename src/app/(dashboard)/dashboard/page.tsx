@@ -50,6 +50,7 @@ import {
   type ArrearsFamily,
 } from "@/components/modules/dashboard/arrears-data";
 import { ChildLink } from "@/components/shared/entity-link";
+import { isAway } from "@/components/modules/attendance/status-config";
 
 interface ChildLite {
   id: string;
@@ -72,6 +73,7 @@ interface AttRow {
   status: AttendanceStatus;
   check_in_at: string | null;
   check_out_at: string | null;
+  picked_up_by: string | null;
   absence_reason: string | null;
 }
 
@@ -140,7 +142,7 @@ export default async function DashboardPage() {
     supabase.rpc("kg_dashboard_stats", { p_tenant: tid }),
     supabase
       .from("kg_attendance")
-      .select("child_id, status, check_in_at, check_out_at, absence_reason")
+      .select("child_id, status, check_in_at, check_out_at, picked_up_by, absence_reason")
       .eq("tenant_id", tid)
       .eq("date", today),
     supabase
@@ -200,24 +202,29 @@ export default async function DashboardPage() {
   );
   const att = (attRes.data ?? []) as AttRow[];
 
+  // A child marked absent/sick/excused never belongs in the arrivals list, even
+  // when the row carries a timestamp: a child sent home sick at eleven has a
+  // check-in, and printing them here in green made "sick" invisible.
   const checkins = att
-    .filter((a) => a.check_in_at && childById.has(a.child_id))
+    .filter((a) => a.check_in_at && !isAway(a.status) && childById.has(a.child_id))
     .sort((a, b) => (b.check_in_at ?? "").localeCompare(a.check_in_at ?? ""));
 
+  // The split is on the WORD, not on the timestamp — same question the parent
+  // portal and the mobile register ask. Filtering on `!check_in_at` first used
+  // to drop an away child who had been scanned in before anyone rang, so they
+  // appeared in no tile and no row on the one screen the director reads.
   const attByChild = new Map(att.map((a) => [a.child_id, a]));
-  const absents = children
+  const reportedAbsences = children
     .map((child) => ({ child, rec: attByChild.get(child.id) }))
-    .filter(({ rec }) => !rec?.check_in_at)
+    .filter(({ rec }) => isAway(rec?.status))
     .map(({ child, rec }) => ({
       child,
-      reason:
-        rec &&
-        (["absent", "sick", "excused"] as AttendanceStatus[]).includes(
-          rec.status,
-        )
-          ? rec.status
-          : null,
+      reason: (rec?.status ?? null) as AttendanceStatus | null,
     }));
+  const notArrivedYet = children.filter((child) => {
+    const rec = attByChild.get(child.id);
+    return !rec || (!isAway(rec.status) && !rec.check_in_at);
+  });
 
   // Two very different facts were being listed as one.
   //
@@ -225,9 +232,7 @@ export default async function DashboardPage() {
   // not arrived yet" is not — before the first child is dropped off it is true
   // of everyone, and the card filled with sixteen rows all saying the same
   // nothing, burying the handful of rows that meant something. Only reported
-  // absences get a row now; the rest are a count with a link.
-  const reportedAbsences = absents.filter((a) => a.reason !== null);
-  const notArrivedYet = absents.filter((a) => a.reason === null);
+  // absences get a row above; the rest are a count with a link.
 
   // ----- Finances: last 6 months, grouped in JS -----
   const txns = (txnRes.data ?? []) as {
@@ -358,7 +363,7 @@ export default async function DashboardPage() {
           head. */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label={t("stats.presentNow")}
+          label={t("stats.inBuildingNow")}
           value={stats?.children_present ?? 0}
           hint={t("stats.ofEnrolled", { count: stats?.children_enrolled ?? 0 })}
           icon={<Baby className="size-5" />}
@@ -467,6 +472,13 @@ export default async function DashboardPage() {
                             {a.check_out_at && (
                               <div className="text-muted-foreground">
                                 {formatTime(a.check_out_at, locale)}
+                              </div>
+                            )}
+                            {/* A departure time with nobody beside it is the
+                                one line of this list that hides a fact. */}
+                            {a.check_out_at && a.picked_up_by && (
+                              <div className="max-w-32 truncate font-normal text-muted-foreground">
+                                {a.picked_up_by}
                               </div>
                             )}
                           </div>
