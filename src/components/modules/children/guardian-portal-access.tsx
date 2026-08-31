@@ -46,6 +46,7 @@ export function GuardianPortalAccess({
   guardianName,
   phone,
   hasAccount,
+  email,
   claim,
   now,
 }: {
@@ -53,6 +54,14 @@ export function GuardianPortalAccess({
   guardianName: string;
   phone: string | null;
   hasAccount: boolean;
+  /**
+   * The address on the guardian's record. Shown beside "connected" so staff
+   * can tell WHICH account answers for this parent — two guardians in a family
+   * both reading "connected" is not enough to know who to reset or re-invite.
+   * Null when none is on file; the account's own address lives in `auth.users`,
+   * which staff cannot read.
+   */
+  email: string | null;
   claim: GuardianClaim | null;
   /** The server's clock, so "expires in N days" is pure given props rather
    *  than a `Date.now()` read during render. Same trick as ArrearsRefresh. */
@@ -67,10 +76,19 @@ export function GuardianPortalAccess({
 
   if (hasAccount) {
     return (
-      <Badge variant="secondary" className="gap-1.5">
-        <CheckCircle2 className="size-3.5 text-success" />
-        {t("connected")}
-      </Badge>
+      <span className="flex flex-wrap items-center gap-2">
+        <Badge variant="secondary" className="gap-1.5">
+          <CheckCircle2 className="size-3.5 text-success" />
+          {t("connected")}
+        </Badge>
+        {email && (
+          // dir=ltr: an address is a Latin run and mirrors in the Arabic UI
+          // without it — see CONVENTIONS.md, "Bidi".
+          <span dir="ltr" className="text-xs text-muted-foreground">
+            {email}
+          </span>
+        )}
+      </span>
     );
   }
 

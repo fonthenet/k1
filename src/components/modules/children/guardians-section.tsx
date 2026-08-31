@@ -555,6 +555,7 @@ export function GuardiansSection({
                     guardianName={childDisplayName(g, locale)}
                     phone={g.phone || null}
                     hasAccount={g.hasAccount}
+                    email={g.email || null}
                     claim={g.claim}
                     now={now}
                   />
