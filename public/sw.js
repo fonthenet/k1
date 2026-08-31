@@ -19,7 +19,7 @@ self.addEventListener("push", (event) => {
     icon: "/icon-192.png",
     badge: "/icon-badge.png",
     // Same tag replaces an earlier alert about the same thing instead of stacking.
-    tag: payload.tag || payload.type || "rawdati",
+    tag: payload.tag || payload.type || "rawdatik",
     data: { url: payload.url || "/" },
     dir: "auto",
   };

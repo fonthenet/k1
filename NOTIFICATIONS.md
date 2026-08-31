@@ -125,7 +125,7 @@ Once deployed, from the Supabase SQL editor:
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
-select cron.schedule('rawdati-push', '* * * * *', $$
+select cron.schedule('rawdatik-push', '* * * * *', $$
   select net.http_post(
     url := 'https://<your-domain>/api/push/dispatch',
     headers := jsonb_build_object('x-push-secret', '<PUSH_DISPATCH_SECRET>')
