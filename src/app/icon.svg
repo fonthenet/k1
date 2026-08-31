@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Rawdatik">
+  <!--
+    The seedling from src/components/landing/wordmark.tsx — روضة means
+    garden, so the mark is a sprout: two leaves off one stem under a sun.
+    It carries no script, which is what a product sold in three languages
+    needs from its icon.
+
+    Drawn at 64 rather than reusing the 24-unit component path directly:
+    a browser tab renders this at 16px, where the component's hairline
+    stem disappears. The stem is proportionally thicker here and the
+    whole mark sits at 62% of the tile so it still reads as a plant.
+  -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#006F8F"/>
+      <stop offset=".52" stop-color="#008DA1"/>
+      <stop offset="1" stop-color="#31B7BC"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="url(#g)"/>
+
+  <g transform="translate(32 33) scale(1.42) translate(-12 -12)" fill="#fff">
+    <path d="M12 21v-6.6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" opacity=".72"/>
+    <path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z"/>
+    <circle cx="12" cy="4.4" r="1.9" opacity=".85"/>
+  </g>
+</svg>
