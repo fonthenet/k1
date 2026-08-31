@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { ActivityLink } from "@/components/shared/entity-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -197,7 +198,12 @@ export function ChildActivitiesSection({
             >
               <CategoryIcon category={e.category} className="size-10 [&>svg]:size-5" />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-semibold">{e.name}</div>
+                {/* The row said which activity but gave no way to it — the
+                    fees, the schedule and who else is in it are all one click
+                    away on the activity's own page. */}
+                <div className="truncate font-semibold">
+                  <ActivityLink id={e.id}>{e.name}</ActivityLink>
+                </div>
                 <div className="truncate text-sm tabular-nums text-muted-foreground">
                   {feeLine(e)}
                 </div>

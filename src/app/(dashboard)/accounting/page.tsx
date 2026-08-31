@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { formatDate, formatDZD } from "@/lib/format";
+import { formatDZD, formatDate, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { TxnKind } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
@@ -61,7 +61,7 @@ export default async function AccountingOverviewPage({
   const supabase = await createClient();
   const [t, locale] = await Promise.all([getTranslations("accounting"), getLocale()]);
   const tid = ctx.tenant.id;
-  const intlLocale = locale === "ar" ? "ar-DZ" : "fr-DZ";
+  const dateLocale = intlLocale(locale);
 
   const sp = await searchParams;
   const now = new Date();
@@ -109,8 +109,8 @@ export default async function AccountingOverviewPage({
   const cashBalance = sum(txns, "income") - sum(txns, "expense");
 
   // ---- 6-month bars (ending at the selected month) ----
-  const shortMonthFmt = new Intl.DateTimeFormat(intlLocale, { month: "short" });
-  const monthYearFmt = new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" });
+  const shortMonthFmt = new Intl.DateTimeFormat(dateLocale, { month: "short" });
+  const monthYearFmt = new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" });
   const barData: MonthPoint[] = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(y, m - 1 - (5 - i), 1);
     const key = monthKey(d);

@@ -9,7 +9,7 @@
  *
  * Supabase's native phone auth needs an SMS provider (Twilio, Vonage) wired up
  * and billed per message. Until one is connected, a phone number is carried as
- * an ALIAS address — `0555123456@phone.rawdati.app` — against which the normal
+ * an ALIAS address — `0555123456@phone.rawdatik.app` — against which the normal
  * email+password flow runs. The alias is an internal identifier: it is never
  * shown, never emailed, and `displayIdentity` strips it back to the number
  * wherever a person's login would otherwise appear on screen.
@@ -27,7 +27,7 @@
  */
 
 /** Alias domain. Never deliverable, never shown, never emailed. */
-export const PHONE_ALIAS_DOMAIN = "phone.rawdati.app";
+export const PHONE_ALIAS_DOMAIN = "phone.rawdatik.app";
 
 /**
  * An Algerian number in the one shape the whole product uses: `0` + 9 digits.

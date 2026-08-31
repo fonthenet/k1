@@ -86,8 +86,7 @@
     "archiveDescription": "L'enfant passe en « Ancien ». Son dossier, ses factures, sa présence et son historique de santé sont conservés — il quitte simplement la liste active.",
     "restore": "Remettre en inscrit",
     "restoreTitle": "Remettre cet enfant sur la liste ?",
-    "restoreDescription": "L'enfant repasse en « Inscrit » et réapparaît dans le registre.",
-    "nothingIsDeleted": "Rien n'est jamais supprimé. Les factures et l'historique d'un enfant sont conservés quel que soit son statut."
+    "restoreDescription": "L'enfant repasse en « Inscrit » et réapparaît dans le registre."
   },
   "profile": {
     "back": "Tous les enfants",
@@ -173,14 +172,30 @@
       "copy": "Copier",
       "copied": "Code copié",
       "copyFailed": "Copie impossible — notez le code.",
-      "hint": "Communiquez ce code au parent. Il le saisira après avoir créé son compte. Valable 14 jours, utilisable une seule fois.",
       "errors": {
         "invalid": "Ce parent est introuvable.",
         "forbidden": "Vous ne pouvez pas inviter des parents.",
         "alreadyLinked": "Ce parent a déjà un compte.",
-        "error": "Une erreur est survenue. Réessayez."
-      }
-    }
+        "error": "Une erreur est survenue. Réessayez.",
+        "duplicate": "Cet élément existe déjà."
+      },
+      "issued": "Invitation créée",
+      "cancelled": "Invitation annulée",
+      "copyLink": "Copier le lien",
+      "linkCopied": "Lien d’invitation copié",
+      "whatsapp": "WhatsApp",
+      "cancel": "Annuler",
+      "cancelTitle": "Annuler cette invitation ?",
+      "cancelDescription": "Le code cesse de fonctionner immédiatement. Vous pourrez en envoyer un nouveau à tout moment.",
+      "cancelKeep": "La conserver",
+      "cancelConfirm": "Annuler l’invitation",
+      "outstanding": "{count, plural, =0 {Expire aujourd’hui.} one {Expire dans # jour.} other {Expire dans # jours.}} Usage unique.",
+      "reissue": "Envoyer un nouveau code",
+      "message": "Bonjour {name}, voici votre lien vers l’espace parents : {link}"
+    },
+    "duplicatePhone": "Ce numéro appartient déjà à {name}.",
+    "linkFound": "Rattacher {name} à cet enfant",
+    "createAnyway": "Créer quand même une nouvelle fiche"
   },
   "photo": {
     "childTitle": "Photo de l'enfant",

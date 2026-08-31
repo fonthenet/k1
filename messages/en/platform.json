@@ -1,5 +1,5 @@
 {
-  "brand": "Rawdati",
+  "brand": "Rawdatik",
   "badge": "Platform",
   "signedInAs": "Signed in as {email}",
   "nav": {
@@ -48,7 +48,7 @@
   "tenants": {
     "metaTitle": "Crèches · Platform",
     "title": "Crèches",
-    "subtitle": "Who is using Rawdati, and how big they are.",
+    "subtitle": "Who is using Rawdatik, and how big they are.",
     "privacyNote": "This panel shows counts only. Children's records and parents' details cannot be opened from here — that is enforced in the database, not just hidden in this page.",
     "never": "No activity",
     "emptyTitle": "No crèches yet",

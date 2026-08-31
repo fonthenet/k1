@@ -1,6 +1,8 @@
 // Date-string helpers for the comms module (Africa/Algiers, Sunday-first week).
 // All "date strings" are YYYY-MM-DD; all math is done in UTC to stay DST-safe.
 
+import { intlLocale } from "@/lib/format";
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
@@ -75,7 +77,7 @@ export function dateRange(start: string, end: string, cap = 60): string[] {
 
 /** Localized month title, e.g. "septembre 2026" / "سبتمبر 2026". */
 export function monthTitle(month: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
@@ -86,7 +88,7 @@ export function monthTitle(month: string, locale: string): string {
 export function weekdayName(col: number, locale: string, style: "short" | "long" = "short"): string {
   // 2026-08-23 is a Sunday.
   const base = parseDateStr(addDaysStr("2026-08-23", col));
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: style,
     timeZone: "UTC",
   }).format(base);
@@ -94,7 +96,7 @@ export function weekdayName(col: number, locale: string, style: "short" | "long"
 
 /** Localized "day month" label, e.g. "14 sept." */
 export function dayMonthLabel(s: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     day: "numeric",
     month: "short",
     timeZone: "UTC",

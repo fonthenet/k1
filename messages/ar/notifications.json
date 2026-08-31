@@ -127,6 +127,10 @@
     "advance_requested": {
       "body": "{name} يطلب سلفة على الراتب.",
       "title": "طلب سلفة — {amount}"
+    },
+    "event": {
+      "title": "{name}",
+      "body": "{date} · {time} · {className} · {description}"
     }
   },
   "push": {

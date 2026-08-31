@@ -161,7 +161,7 @@ export function CreateWizard() {
               align="inline-start"
               className="h-full self-stretch border-e border-input bg-muted px-3 text-muted-foreground"
             >
-              rawdati.dz/
+              rawdatik.com/
             </InputGroupAddon>
             <InputGroupInput
               id="kg-slug"

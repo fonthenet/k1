@@ -34,7 +34,7 @@ type ArrearRow = {
     last_name: string;
     first_name_ar: string | null;
     last_name_ar: string | null;
-    kg_classes: { name: string; name_ar: string | null } | null;
+    kg_classes: { id: string; name: string; name_ar: string | null } | null;
   } | null;
 };
 
@@ -42,6 +42,7 @@ interface ChildArrears {
   childId: string;
   name: string;
   className: string | null;
+  classId: string | null;
   buckets: [number, number, number, number]; // current, 30d, 60d, 90d+
   total: number;
 }
@@ -60,7 +61,7 @@ export default async function ArrearsPage() {
     supabase
       .from("kg_invoices")
       .select(
-        "id, child_id, due_date, issue_date, total, paid_amount, kg_children(id, first_name, last_name, first_name_ar, last_name_ar, kg_classes(name, name_ar))"
+        "id, child_id, due_date, issue_date, total, paid_amount, kg_children(id, first_name, last_name, first_name_ar, last_name_ar, kg_classes(id, name, name_ar))"
       )
       .eq("tenant_id", ctx.tenant.id)
       .in("status", ["sent", "unpaid", "partial", "overdue"])
@@ -82,6 +83,25 @@ export default async function ArrearsPage() {
   }
   const familyName = (f: ArrearsFamily) => arNameByChild.get(f.childId) ?? (f.childName || "—");
 
+  // Which invoices each debt is made of. `kg_arrears_summary` collapses a
+  // family to one row and drops the ids, but the aging query below already
+  // carries them — and it is ordered by due date, so each list comes out
+  // oldest first, which is the one the office chases.
+  // The summary RPC returns a class NAME and no id, so the class column could
+  // not be a door. The invoice join above knows the id; key it on the child.
+  const classIdByChild = new Map<string, string>();
+  for (const r of rows) {
+    const cid = r.kg_children?.kg_classes?.id;
+    if (cid && !classIdByChild.has(r.child_id)) classIdByChild.set(r.child_id, cid);
+  }
+
+  const invoiceIdsByChild = new Map<string, string[]>();
+  for (const r of rows) {
+    const list = invoiceIdsByChild.get(r.child_id);
+    if (list) list.push(r.id);
+    else invoiceIdsByChild.set(r.child_id, [r.id]);
+  }
+
   const byChild = new Map<string, ChildArrears>();
   for (const r of rows) {
     const balance = Number(r.total) - Number(r.paid_amount);
@@ -94,6 +114,7 @@ export default async function ArrearsPage() {
         childId: r.child_id,
         name: r.kg_children ? childDisplayName(r.kg_children, locale) : "—",
         className: cls ? (locale === "ar" && cls.name_ar ? cls.name_ar : cls.name) : null,
+        classId: cls?.id ?? null,
         buckets: [0, 0, 0, 0],
         total: 0,
       };
@@ -120,6 +141,8 @@ export default async function ArrearsPage() {
     childId: f.childId,
     name: familyName(f),
     className: f.className,
+    classId: classIdByChild.get(f.childId) ?? null,
+    invoiceIds: invoiceIdsByChild.get(f.childId) ?? [],
     invoiceCount: f.invoiceCount,
     outstanding: f.outstanding,
     oldestDue: f.oldestDue,
@@ -132,6 +155,8 @@ export default async function ArrearsPage() {
     childId: a.childId,
     name: a.name,
     className: a.className,
+    classId: a.classId,
+    invoiceIds: invoiceIdsByChild.get(a.childId) ?? [],
     buckets: [...a.buckets],
     total: a.total,
     phone: phoneByChild.get(a.childId) ?? null,

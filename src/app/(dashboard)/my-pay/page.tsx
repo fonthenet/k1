@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { FileText, HandCoins, TriangleAlert, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
-import { formatDate, formatDZD } from "@/lib/format";
+import { formatDZD, formatDate, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { PaymentMethod, PayrollStatus } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
@@ -79,7 +79,7 @@ export default async function MyPayPage() {
     getTranslations("common"),
     getLocale(),
   ]);
-  const intlLocale = locale === "ar" ? "ar-DZ" : "fr-DZ";
+  const dateLocale = intlLocale(locale);
 
   const [payslipRes, advanceRes] = await Promise.all([
     supabase
@@ -140,7 +140,7 @@ export default async function MyPayPage() {
 
   const monthLabel = (month: string) =>
     month
-      ? new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" }).format(
+      ? new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" }).format(
           new Date(`${month}T00:00:00`)
         )
       : t("pay.periodUnknown");

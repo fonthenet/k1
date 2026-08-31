@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Plus, Receipt, Scale, TrendingDown, TrendingUp, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { formatDate, formatDZD } from "@/lib/format";
+import { formatDZD, formatDate, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -70,16 +70,25 @@ export default async function TransactionsPage({
   const supabase = await createClient();
   const [t, locale] = await Promise.all([getTranslations("accounting"), getLocale()]);
   const tid = ctx.tenant.id;
-  const intlLocale = locale === "ar" ? "ar-DZ" : "fr-DZ";
+  const dateLocale = intlLocale(locale);
 
   const sp = await searchParams;
   const now = new Date();
   const currentKey = monthKey(now);
-  const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month ?? "") ? (sp.month as string) : currentKey;
-  const [y, m] = month.split("-").map(Number);
-  const monthStart = `${month}-01`;
+  // "all" exists because the categories screen counts a category's transactions
+  // over ALL time. Sending that count to a page pinned to the current month
+  // meant clicking "12 transactions" could show 11 — the number promising one
+  // thing and the destination showing another.
+  const allMonths = sp.month === "all";
+  const month = allMonths
+    ? "all"
+    : /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month ?? "")
+      ? (sp.month as string)
+      : currentKey;
+  const [y, m] = (allMonths ? currentKey : month).split("-").map(Number);
+  const monthStart = `${allMonths ? currentKey : month}-01`;
   const lastDay = new Date(y, m, 0).getDate();
-  const monthEnd = `${month}-${String(lastDay).padStart(2, "0")}`;
+  const monthEnd = `${allMonths ? currentKey : month}-${String(lastDay).padStart(2, "0")}`;
 
   let query = supabase
     .from("kg_transactions")
@@ -95,10 +104,9 @@ export default async function TransactionsPage({
         "kg_transaction_items(id, name, qty, unit_amount, amount, note, position)"
     )
     .eq("tenant_id", tid)
-    .gte("date", monthStart)
-    .lte("date", monthEnd)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
+  if (!allMonths) query = query.gte("date", monthStart).lte("date", monthEnd);
   if (sp.kind === "income" || sp.kind === "expense") query = query.eq("kind", sp.kind);
   if (sp.category) query = query.eq("category_id", sp.category);
   if (sp.method) query = query.eq("method", sp.method);
@@ -159,12 +167,15 @@ export default async function TransactionsPage({
   const totalExpense = rows.filter((r) => r.kind === "expense").reduce((s, r) => s + r.amount, 0);
   const netTotal = totalIncome - totalExpense;
 
-  const monthYearFmt = new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" });
-  const monthOptions = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    return { value: monthKey(d), label: monthYearFmt.format(d) };
-  });
-  const monthTitle = monthYearFmt.format(new Date(y, m - 1, 1));
+  const monthYearFmt = new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" });
+  const monthOptions = [
+    { value: "all", label: t("allMonths") },
+    ...Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      return { value: monthKey(d), label: monthYearFmt.format(d) };
+    }),
+  ];
+  const monthTitle = allMonths ? t("allMonths") : monthYearFmt.format(new Date(y, m - 1, 1));
 
   const canManage = ctx.isAdmin && month === currentKey;
 

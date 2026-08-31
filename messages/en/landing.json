@@ -1,11 +1,11 @@
 {
   "meta": {
-    "title": "Rawdati — nursery and kindergarten management for Algeria",
+    "title": "Rawdatik — nursery and kindergarten management for Algeria",
     "description": "One Algerian platform to run your nursery: online enrolment, daily attendance, dinar invoicing, accounting and payroll, and a parent space in Arabic, English and French."
   },
   "brand": {
-    "nameAr": "روضتي",
-    "nameLatin": "Rawdati",
+    "nameAr": "روضتك",
+    "nameLatin": "Rawdatik",
     "tagline": "Nursery management, made simple"
   },
   "nav": {
@@ -73,7 +73,7 @@
     }
   },
   "mockup": {
-    "label": "A look inside the Rawdati dashboard",
+    "label": "A look inside the Rawdatik dashboard",
     "monogram": "A",
     "greeting": "Good morning, Amina",
     "date": "Sunday 18 October 2026",

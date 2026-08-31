@@ -14,6 +14,8 @@ export const NOTIFICATION_TYPES = [
   "attendance_flagged", "activity_decision", "session_published",
   // 0057 — the applicant hears every admissions decision.
   "application_status",
+  // 0090 — a class event reaches that class's families and nobody else.
+  "event",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -43,6 +45,12 @@ export function notificationHref(n: Pick<KgNotification, "type" | "data">, isPar
       return isParent ? "/portal" : s("incidentId") ? `/incidents/${s("incidentId")}` : "/incidents";
     case "announcement":
       return isParent ? "/portal/announcements" : "/announcements";
+    // A LIST, never /calendar/<id>. An event can be deleted — and deleting a
+    // CLASS cascades its events away — while the notification survives, so a
+    // detail route would 404 on exactly the alert a parent taps first. The
+    // parent's "Coming up" lives on the portal home; staff have the calendar.
+    case "event":
+      return isParent ? "/portal" : "/calendar";
     case "application":
       // A parent's own application lands on their children, not on the office's
       // review queue — /applications is staff-only and would bounce them.
@@ -135,7 +143,7 @@ export function renderNotification(
   const d = (n.data ?? {}) as Record<string, unknown>;
   const str = (k: string) => (typeof d[k] === "string" ? (d[k] as string) : "");
 
-  const at = str("at");
+  const at = str("time") || str("at");
   const time = at
     ? new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : locale === "en" ? "en-GB" : "fr-DZ", {
         hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Africa/Algiers",
@@ -210,7 +218,21 @@ export function renderNotification(
     invoiceNo: str("invoiceNo"),
     plan: str("plan"),
     reason: str("reason"),
+    // Which class a trip belongs to. A guardian with children in two classes
+    // otherwise reads two identical-looking rows.
+    className: str("className"),
+    // What the event actually is. Staff type it; until now nobody read it.
+    description: str("description"),
   };
-  const fill = (s: string) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+  // A template is a plain `{var}` substitution with no conditionals, so an
+  // absent value used to leave its separator behind — "3 September · 09:00 · "
+  // for an event with no class. Collapse the empty segments instead of writing
+  // a different template for every combination that can be missing.
+  const fill = (s: string) =>
+    s
+      .replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "")
+      .replace(/\s*·\s*(?=·)/g, "")
+      .replace(/^\s*·\s*|\s*·\s*$/g, "")
+      .replace(/\s{2,}/g, " ");
   return { title: fill(tpl.title).trim(), body: fill(tpl.body).trim() };
 }

@@ -19,7 +19,7 @@ import type { InboxMessage, InboxThread } from "./types";
  * Every conversation the crèche is in, as a floating panel on the dashboard.
  *
  * Two levels: the list of conversations, and one conversation open. Families
- * first, Rawdati support last under a rule — see `loadInboxThreads`.
+ * first, Rawdatik support last under a rule — see `loadInboxThreads`.
  *
  * Four things it deliberately does not do:
  *

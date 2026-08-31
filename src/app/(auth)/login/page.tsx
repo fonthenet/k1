@@ -31,7 +31,7 @@ export default async function LoginPage({
 
       <p className="mt-7 border-t border-border pt-5 text-center text-sm text-muted-foreground">
         {t("login.noAccount")}{" "}
-        <Link href="/signup" className="font-semibold text-primary underline-offset-4 hover:underline">
+        <Link href={`/signup?next=${encodeURIComponent(next)}`} className="font-semibold text-primary underline-offset-4 hover:underline">
           {t("login.signupLink")}
         </Link>
       </p>

@@ -73,7 +73,7 @@ function isSupportMessageUnread(
 }
 
 /**
- * How many client messages are waiting on Rawdati — the operator nav badge.
+ * How many client messages are waiting on Rawdatik — the operator nav badge.
  *
  * Counted in messages, like every other badge in the product. Leaner than
  * `getSupportInbox`: no tenant names, no previews. It runs in the platform

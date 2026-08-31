@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * The platform operator — the person running Rawdati as a business, who sits
+ * The platform operator — the person running Rawdatik as a business, who sits
  * outside every crèche.
  *
  * Deliberately NOT part of TenantContext: this role has no tenant, and mixing

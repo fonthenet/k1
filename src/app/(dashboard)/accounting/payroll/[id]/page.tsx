@@ -4,7 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowLeft, Banknote, HandCoins } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { formatDate, formatDZD } from "@/lib/format";
+import { formatDZD, formatDate, intlLocale } from "@/lib/format";
 import type { PaymentMethod, PayrollStatus } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -105,8 +105,8 @@ export default async function PayrollRunPage({
 
   const status = run.status as PayrollStatus;
   const totalNet = items.reduce((s, i) => s + i.net, 0);
-  const intlLocale = locale === "ar" ? "ar-DZ" : "fr-DZ";
-  const monthLabel = new Intl.DateTimeFormat(intlLocale, {
+  const dateLocale = intlLocale(locale);
+  const monthLabel = new Intl.DateTimeFormat(dateLocale, {
     month: "long",
     year: "numeric",
   }).format(new Date(`${run.month}T00:00:00`));

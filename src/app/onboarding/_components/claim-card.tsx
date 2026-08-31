@@ -19,9 +19,11 @@ import { redeemClaimCode } from "../actions";
  * here is far more likely to be holding a code than to be opening a nursery, so
  * this sits above the wizard, not beside it.
  */
-export function ClaimCard() {
+export function ClaimCard({ initialCode = "" }: { initialCode?: string }) {
   const t = useTranslations("auth.onboarding.claim");
-  const [code, setCode] = useState("");
+  // Prefilled when the parent followed an invite link rather than being read a
+  // code down the phone. Still editable: a mistyped link should not strand them.
+  const [code, setCode] = useState(initialCode);
   const [pending, startTransition] = useTransition();
 
   function submit(e: React.FormEvent<HTMLFormElement>) {

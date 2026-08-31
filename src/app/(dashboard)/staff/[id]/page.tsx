@@ -17,7 +17,7 @@ import { CredentialCards } from "@/components/modules/credentials/credential-car
 import type { CredentialRow } from "@/components/modules/credentials/types";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
-import { formatDate, formatDZD, formatTime, initials } from "@/lib/format";
+import { formatDZD, formatDate, formatTime, initials, intlLocale } from "@/lib/format";
 import type { Membership, Timesheet } from "@/lib/types";
 import { EditMemberDialog } from "@/components/modules/staff/edit-member-dialog";
 import { MonthSelector } from "@/components/modules/staff/month-selector";
@@ -162,7 +162,7 @@ export default async function StaffMemberPage({
   );
 
   const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
-  const monthFmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  const monthFmt = new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     year: "numeric",
   });

@@ -362,5 +362,9 @@
     "perMonth": "/ mois",
     "undecided": "Je déciderai avec la crèche",
     "undecidedHint": "Le bureau vous conseillera lors de la validation du dossier."
+  },
+  "existingFamily": {
+    "body": "Vous êtes déjà inscrit chez nous en tant que {name}. Inutile de ressaisir vos informations — ajoutez simplement le nouvel enfant.",
+    "cta": "Ajouter un autre enfant"
   }
 }

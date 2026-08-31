@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
+import { intlLocale } from "@/lib/format";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -12,7 +13,7 @@ export function MonthSelector({ value, months }: { value: string; months: string
   const pathname = usePathname();
   const locale = useLocale();
 
-  const fmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     year: "numeric",
   });

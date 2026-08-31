@@ -41,8 +41,12 @@ export function StatusActions({ childId, status }: { childId: string; status: Ch
     });
   }
 
+  // A fragment, not a wrapper div. These buttons are siblings of "Badge card"
+  // and "Edit" in the page header's action row; boxing them in their own flex
+  // container made the group a second grid item that aligned on its own centre
+  // instead of on the row.
   return (
-    <div className="flex flex-wrap gap-2">
+    <>
       {isActive ? (
         <>
           <Confirm
@@ -87,14 +91,7 @@ export function StatusActions({ childId, status }: { childId: string; status: Ch
           onConfirm={() => run("reenroll", "toasts.reenrolled")}
         />
       )}
-
-      {/* Said out loud, so nobody goes hunting for a delete button: there is
-          none, and the reason is that deleting a child would take their
-          invoices with it. */}
-      <p className="w-full text-xs text-muted-foreground">
-        {t("statusActions.nothingIsDeleted")}
-      </p>
-    </div>
+    </>
   );
 }
 

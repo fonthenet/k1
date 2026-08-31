@@ -28,9 +28,42 @@ import { cn } from "@/lib/utils";
  * and a `<button>` — in the same column, which have to look like one thing.
  * Same dotted underline, same hover, same focus ring.
  */
+/**
+ * The affordance itself.
+ *
+ * Colour at rest, underline on hover AND focus — the standard technique for
+ * identifying a link without underlining it (WCAG G183). It needs the link to
+ * clear 3:1 against the text around it, which `text-primary` does against both
+ * `text-foreground` and `text-muted-foreground`.
+ *
+ * This replaced a dotted underline that was drawn on every name at rest. The
+ * dotted rule was written for the arrears and aging tables, where thirty names
+ * sit among columns of numbers and a solid underline on each would be noise —
+ * but it was the default everywhere, so it also decorated a five-row list on
+ * the dashboard that had nothing to be quiet about, and it made a name under a
+ * page title read as marked-up prose. Colour carries the same information for
+ * less ink, and unlike a hover-only treatment it is still visible on the
+ * tablet the office actually works on, where there is no hover at all.
+ */
 export const ENTITY_LINK_CLASS = cn(
-  "rounded underline decoration-dotted underline-offset-4 transition-colors",
-  "hover:text-primary hover:decoration-solid",
+  "rounded font-medium text-primary transition-colors",
+  "hover:underline hover:underline-offset-4",
+  "focus-visible:underline focus-visible:underline-offset-4",
+  "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+);
+
+/**
+ * The same door, for text that already carries a colour of its own.
+ *
+ * The arrears tables make the AMOUNT the link, and an amount is red when it is
+ * more than thirty days late. Recolouring it to the link colour would delete
+ * the one signal the column exists to give, so this inherits whatever colour
+ * it is given and offers the underline on hover instead.
+ */
+export const ENTITY_LINK_INHERIT_CLASS = cn(
+  "rounded transition-colors",
+  "hover:underline hover:underline-offset-4",
+  "focus-visible:underline focus-visible:underline-offset-4",
   "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
 );
 

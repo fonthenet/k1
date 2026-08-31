@@ -57,6 +57,18 @@ export default async function CalendarPage({
   const sp = await searchParams;
 
   const today = algiersToday();
+
+  // The time a NEW event should start at. 09:00 for any future day; for today,
+  // the next whole hour if 09:00 has already gone — otherwise the obvious act
+  // of adding something for today silently creates a past event that notifies
+  // nobody. Computed here rather than in the dialog because a client component
+  // may not read a clock during render.
+  const algiersNow = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Africa/Algiers" })
+  );
+  const nextHour = String(Math.min(23, algiersNow.getHours() + 1)).padStart(2, "0");
+  const defaultTimeFor = (day: string) =>
+    day === today && algiersNow.getHours() >= 9 ? `${nextHour}:00` : "09:00";
   const month = isValidMonthStr(sp.month) ? sp.month : monthOf(today);
 
   const gridStart = sundayOf(`${month}-01`);
@@ -160,7 +172,12 @@ export default async function CalendarPage({
         title={t("calendar.title")}
         description={t("calendar.description")}
       >
-        <EventDialog event={null} classes={classes} defaultDate={today} />
+        <EventDialog
+          event={null}
+          classes={classes}
+          defaultDate={today}
+          defaultTime={defaultTimeFor(today)}
+        />
       </PageHeader>
 
       {/* Month navigation */}
@@ -247,7 +264,12 @@ export default async function CalendarPage({
                     >
                       {Number(d.slice(8, 10))}
                     </span>
-                    <EventDialog event={null} classes={classes} defaultDate={d}>
+                    <EventDialog
+                      event={null}
+                      classes={classes}
+                      defaultDate={d}
+                      defaultTime={defaultTimeFor(d)}
+                    >
                       <button
                         type="button"
                         aria-label={t("calendar.addOn", {

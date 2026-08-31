@@ -4,7 +4,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Star, Users } from "lucide-rea
 import { requireStaff } from "@/lib/tenant";
 import { toOpeningHours } from "@/lib/week";
 import { createClient } from "@/lib/supabase/server";
-import { childDisplayName } from "@/lib/format";
+import { childDisplayName, intlLocale } from "@/lib/format";
 import type { AttendanceStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -131,15 +131,15 @@ export default async function AttendanceHistoryPage({
     groups.push({ label: null, classId: null, children });
   }
 
-  const monthLabel = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  const monthLabel = new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     year: "numeric",
   }).format(parseDateStr(`${month}-01`));
 
-  const dayFmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  const dayFmt = new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: "short",
   });
-  const fullDayFmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  const fullDayFmt = new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: "long",
     day: "numeric",
     month: "long",

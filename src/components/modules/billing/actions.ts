@@ -59,7 +59,7 @@ export async function generateMonthlyInvoices(
 
   const supabase = await createClient();
   // Produces DRAFTS (0047). Issuing is a second, deliberate step — what
-  // Rawdati emits is a legal facture, and a wrongly auto-posted one cannot be
+  // Rawdatik emits is a legal facture, and a wrongly auto-posted one cannot be
   // corrected by editing it.
   const { data, error } = await supabase.rpc("kg_generate_monthly_invoices", {
     p_tenant: ctx.tenant.id,

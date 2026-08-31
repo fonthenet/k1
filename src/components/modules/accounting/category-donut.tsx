@@ -1,7 +1,7 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { formatDZD } from "@/lib/format";
+import { formatDZD, intlLocale } from "@/lib/format";
 
 export interface DonutSlice {
   name: string;
@@ -12,12 +12,12 @@ export interface DonutSlice {
 /** Expense breakdown by category — colors come from kg_txn_categories.color. */
 export function CategoryDonut({ data, locale }: { data: DonutSlice[]; locale: string }) {
   const total = data.reduce((s, d) => s + d.value, 0);
-  const intlLocale = locale === "ar" ? "ar-DZ" : "fr-DZ";
-  const pctFmt = new Intl.NumberFormat(intlLocale, {
+  const dateLocale = intlLocale(locale);
+  const pctFmt = new Intl.NumberFormat(dateLocale, {
     style: "percent",
     maximumFractionDigits: 0,
   });
-  const compactFmt = new Intl.NumberFormat(intlLocale, {
+  const compactFmt = new Intl.NumberFormat(dateLocale, {
     notation: "compact",
     maximumFractionDigits: 1,
   });

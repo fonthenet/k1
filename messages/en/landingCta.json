@@ -192,7 +192,7 @@
     "contact": {
       "title": "Still have questions?",
       "desc": "Write to us and we'll reply the same day — in Arabic, English or French.",
-      "email": "contact@rawdati.dz",
+      "email": "contact@rawdatik.com",
       "cta": "Contact us",
       "hours": "Sunday to Thursday · 8:00 – 17:00"
     },
@@ -203,11 +203,11 @@
       },
       "cash": {
         "q": "Most of my parents pay in cash. Is that supported?",
-        "a": "Cash is the default payment method in Rawdati, because that is the reality on the ground here. Record the amount received and print the receipt on the spot; bank and postal transfers as well as instalment plans are supported too."
+        "a": "Cash is the default payment method in Rawdatik, because that is the reality on the ground here. Record the amount received and print the receipt on the spot; bank and postal transfers as well as instalment plans are supported too."
       },
       "arabic": {
         "q": "Does the platform really work in Arabic?",
-        "a": "Rawdati is Arabic-first: the right-to-left interface was designed that way from the start, not mirrored from a translation. Children's names, receipts and reports are all in Arabic, and every parent or staff member picks their own language between Arabic, English and French."
+        "a": "Rawdatik is Arabic-first: the right-to-left interface was designed that way from the start, not mirrored from a translation. Children's names, receipts and reports are all in Arabic, and every parent or staff member picks their own language between Arabic, English and French."
       },
       "multi": {
         "q": "I run more than one centre. Can I manage them all?",
@@ -215,7 +215,7 @@
       },
       "mobile": {
         "q": "Do parents have to install an app from the store?",
-        "a": "No. Rawdati runs straight in a phone or computer browser, and a parent can add it to their home screen so it opens like any regular app — no updates, no storage taken."
+        "a": "No. Rawdatik runs straight in a phone or computer browser, and a parent can add it to their home screen so it opens like any regular app — no updates, no storage taken."
       },
       "migrate": {
         "q": "My data lives in notebooks and Excel files. How do I move it?",
@@ -238,7 +238,7 @@
     "columns": {
       "features": "Features",
       "solutions": "Solutions",
-      "why": "Why Rawdati"
+      "why": "Why Rawdatik"
     },
     "links": {
       "enrollment": "Online enrollment",
@@ -255,10 +255,10 @@
       "families": "For parents"
     },
     "contact": "Contact us",
-    "email": "contact@rawdati.dz",
+    "email": "contact@rawdatik.com",
     "terms": "Terms of use",
     "privacy": "Privacy policy",
-    "copyright": "© 2026 Rawdati · Jijel, Algeria",
+    "copyright": "© 2026 Rawdatik · Jijel, Algeria",
     "parentsCta": "Parent portal — sign in"
   }
 }

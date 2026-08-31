@@ -3,7 +3,7 @@ export interface SupportMessage {
   id: string;
   body: string;
   createdAt: string;
-  /** True when Rawdati wrote it, false when the crèche did. */
+  /** True when Rawdatik wrote it, false when the crèche did. */
   fromPlatform: boolean;
   /** Absent for optimistic messages that have not been acknowledged yet. */
   pending?: boolean;
@@ -24,6 +24,6 @@ export interface SupportInboxRow {
   tenantName: string;
   lastMessageAt: string;
   preview: string | null;
-  /** The crèche spoke last and nobody at Rawdati has opened it since. */
+  /** The crèche spoke last and nobody at Rawdatik has opened it since. */
   unread: boolean;
 }

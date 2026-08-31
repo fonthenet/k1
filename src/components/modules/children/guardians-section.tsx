@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Phone, Star, Trash2, UserPlus, Users } from "lucide-react";
+import { Phone, Star, Trash2, TriangleAlert, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,10 @@ function AddGuardianDialog({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"new" | "existing">("new");
+  // A parent typed in by hand whose number already belongs to somebody. Held
+  // here rather than toasted away, because the useful thing is the record it
+  // found — one press links to it instead of making a second copy.
+  const [dupe, setDupe] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [flags, setFlags] = useState(EMPTY_FLAGS);
   const [existingId, setExistingId] = useState("");
@@ -94,7 +98,7 @@ function AddGuardianDialog({
       ? existingId !== ""
       : form.firstName.trim() && form.lastName.trim() && form.phone.trim());
 
-  function submit() {
+  function submit(force = false) {
     if (!canSubmit) return;
     startTransition(async () => {
       const res =
@@ -115,7 +119,8 @@ function AddGuardianDialog({
                 address: form.address || undefined,
                 workplace: form.workplace || undefined,
               },
-              flags
+              flags,
+              force
             );
       if (res.ok) {
         toast.success(t("toasts.linked"));
@@ -124,8 +129,29 @@ function AddGuardianDialog({
         setFlags(EMPTY_FLAGS);
         setExistingId("");
         router.refresh();
+      } else if (res.error === "existingPhone") {
+        setDupe(res.match);
       } else {
         toast.error(res.error === "duplicate" ? t("toasts.duplicate") : t("toasts.error"));
+      }
+    });
+  }
+
+  /** Attach the record we found instead of creating a second one. */
+  function linkFound() {
+    if (!dupe) return;
+    startTransition(async () => {
+      const res = await linkGuardian(childId, dupe.id, flags);
+      if (res.ok) {
+        toast.success(t("toasts.linked"));
+        setOpen(false);
+        setForm(EMPTY_FORM);
+        setFlags(EMPTY_FLAGS);
+        setExistingId("");
+        setDupe(null);
+        router.refresh();
+      } else {
+        toast.error(t("toasts.error"));
       }
     });
   }
@@ -320,11 +346,39 @@ function AddGuardianDialog({
           </label>
         </div>
 
+        {/* The number already belongs to somebody. Offer that record first —
+            making a second copy of a parent is how a family ends up with two
+            half-filled files and no portal account on the one being used. */}
+        {dupe && mode === "new" && (
+          <div className="rounded-xl bg-gold-muted/60 p-3 text-sm text-gold-ink ring-1 ring-gold/25">
+            <p className="flex items-start gap-2">
+              <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span>{t("guardians.duplicatePhone", { name: dupe.name })}</span>
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <Button size="sm" onClick={linkFound} disabled={pending}>
+                {t("guardians.linkFound", { name: dupe.name })}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  setDupe(null);
+                  submit(true);
+                }}
+              >
+                {t("guardians.createAnyway")}
+              </Button>
+            </div>
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
             {tc("actions.cancel")}
           </Button>
-          <Button onClick={submit} disabled={!canSubmit}>
+          <Button onClick={() => submit()} disabled={!canSubmit}>
             {tc("actions.add")}
           </Button>
         </DialogFooter>
@@ -341,6 +395,7 @@ export function GuardiansSection({
   credentials,
   guardianCards,
   canManageCredentials = false,
+  now,
 }: {
   /** Needed to build the guardian photo storage prefix. */
   tenantId: string;
@@ -352,6 +407,9 @@ export function GuardiansSection({
   /** guardian_id → their proximity cards. Admin-only, same as above. */
   guardianCards?: Record<string, CredentialRow[]>;
   canManageCredentials?: boolean;
+  /** The server's clock, passed down so invite expiry is computed from props
+   *  rather than a `Date.now()` read during render. */
+  now: string;
 }) {
   const t = useTranslations("children");
   const tc = useTranslations("common");
@@ -492,7 +550,14 @@ export function GuardiansSection({
                   <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                     {t("guardians.portal.label")}
                   </span>
-                  <GuardianPortalAccess guardianId={g.guardian_id} hasAccount={g.hasAccount} />
+                  <GuardianPortalAccess
+                    guardianId={g.guardian_id}
+                    guardianName={childDisplayName(g, locale)}
+                    phone={g.phone || null}
+                    hasAccount={g.hasAccount}
+                    claim={g.claim}
+                    now={now}
+                  />
                 </div>
               )}
 

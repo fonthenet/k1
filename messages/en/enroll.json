@@ -362,5 +362,9 @@
     "perMonth": "/ month",
     "undecided": "I'll decide with the crèche",
     "undecidedHint": "The office will advise you when your file is reviewed."
+  },
+  "existingFamily": {
+    "body": "You are already with us as {name}. No need to fill your own details in again — just add the new child.",
+    "cta": "Add another child"
   }
 }

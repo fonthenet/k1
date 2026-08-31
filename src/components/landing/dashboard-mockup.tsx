@@ -51,7 +51,7 @@ const CHIP =
 const PANEL = "rounded-xl border border-border/70 bg-card p-3";
 
 /**
- * The floating hero card: a believable slice of the real Rawdati dashboard,
+ * The floating hero card: a believable slice of the real Rawdatik dashboard,
  * built entirely from tokens — no screenshots, and it flips cleanly in RTL.
  */
 export async function DashboardMockup() {

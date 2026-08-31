@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Pencil, Plus, Tags, TrendingDown, TrendingUp, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -16,6 +17,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ENTITY_LINK_INHERIT_CLASS } from "@/components/shared/entity-link";
+import { cn } from "@/lib/utils";
 import { AccountingNav } from "@/components/modules/accounting/nav-tabs";
 import {
   CategoryDeleteButton,
@@ -120,9 +123,25 @@ export default async function CategoriesPage() {
                         {cat.is_system && (
                           <Badge className={TONE_PILL.muted}>{t("categories.system")}</Badge>
                         )}
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                          {t("txn.count", { count: countByCat.get(cat.id) ?? 0 })}
-                        </span>
+                        {/* The count is the question — "what ARE those twelve
+                            salary payments?" — and it had no answer. month=all
+                            because this count is all-time; the ledger's default
+                            current-month view would show 11 of the 12 it
+                            promises, which is worse than not linking at all.
+                            A category with nothing in it stays plain text
+                            rather than offering an empty list. */}
+                        {(countByCat.get(cat.id) ?? 0) > 0 ? (
+                          <Link
+                            href={`/accounting/transactions?category=${cat.id}&month=all`}
+                            className={cn(ENTITY_LINK_INHERIT_CLASS, "text-xs tabular-nums text-muted-foreground")}
+                          >
+                            {t("txn.count", { count: countByCat.get(cat.id) ?? 0 })}
+                          </Link>
+                        ) : (
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {t("txn.count", { count: 0 })}
+                          </span>
+                        )}
                         <span className="flex items-center gap-1">
                           <CategoryDialog
                             kind={kind}

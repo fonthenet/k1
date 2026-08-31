@@ -405,3 +405,43 @@ export async function notifyIncidentParent(incidentId: string): Promise<ActionRe
   revalidatePath(`/incidents/${incidentId}`);
   return { ok: true };
 }
+
+/**
+ * How many people this event would interrupt, for the dialog to show before it
+ * saves.
+ *
+ * The audience picker defaults to "all". While events notified nobody that was
+ * harmless; now it means a push to every family in the crèche, and the author
+ * is the only person positioned to notice. So the number goes on screen next to
+ * the picker — if it surprises them, they change the audience. That is the
+ * whole anti-spam mechanism, and it costs one query.
+ *
+ * Returns a count only. kg_event_recipients stays revoked from clients because
+ * it is a directory of parents; kg_event_audience_count is the narrow door.
+ */
+export async function eventAudienceCount(
+  audience: string,
+  classId: string | null,
+  /** The event's start. An event that has already started notifies nobody —
+   *  the count has to know that, or it promises an audience the insert trigger
+   *  will refuse. */
+  startAt: string | null
+): Promise<{ count: number; past: boolean }> {
+  const ctx = await requireStaff();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kg_event_audience_count", {
+    p_tenant: ctx.tenant.id,
+    p_audience: audience,
+    p_class: classId,
+    p_start_at: startAt,
+  });
+  // Decided here, not in the component: the client cannot read a clock during
+  // render without breaking React's purity rule, and the server's clock is the
+  // one the insert trigger will actually compare against.
+  const past = startAt !== null ? Date.parse(startAt) <= Date.now() : false;
+
+  // A failed count must never block saving an event — the dialog simply shows
+  // nothing rather than a wrong number.
+  if (error || typeof data !== "number") return { count: -1, past };
+  return { count: data, past };
+}

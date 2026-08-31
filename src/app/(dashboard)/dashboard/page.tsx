@@ -15,13 +15,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
-import {
-  childDisplayName,
-  formatDate,
-  formatDZD,
-  formatTime,
-  initials,
-} from "@/lib/format";
+import { childDisplayName, formatDZD, formatDate, formatTime, initials, intlLocale } from "@/lib/format";
 import type {
   AttendanceStatus,
   Audience,
@@ -241,7 +235,7 @@ export default async function DashboardPage() {
     date: string;
   }[];
   const monthFmt = new Intl.DateTimeFormat(
-    locale === "ar" ? "ar-DZ" : "fr-DZ",
+    intlLocale(locale),
     { month: "short" },
   );
   const financeData: { month: string; income: number; expense: number }[] = [];

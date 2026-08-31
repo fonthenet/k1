@@ -60,7 +60,7 @@ const ROLE_TONE: Record<KgRole, { pill: string; dot: string }> = {
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ create?: string | string[] }>;
+  searchParams: Promise<{ create?: string | string[]; claim?: string | string[] }>;
 }) {
   const t = await getTranslations("auth");
   const sp = await searchParams;
@@ -70,7 +70,16 @@ export default async function OnboardingPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/onboarding");
+  // An invite link carries the code in the query string. Redirecting a
+  // signed-out parent to a bare /onboarding threw the code away and left them
+  // on a screen with an empty box, so the destination has to survive the trip
+  // through sign-in — and through sign-up, which is where a new parent goes.
+  const rawClaim = Array.isArray(sp.claim) ? sp.claim[0] : sp.claim;
+  const claimCode = rawClaim ? rawClaim.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 16) : "";
+  if (!user) {
+    const dest = claimCode ? `/onboarding?claim=${claimCode}` : "/onboarding";
+    redirect(`/login?next=${encodeURIComponent(dest)}`);
+  }
 
   const { data, error } = await supabase
     .from("kg_memberships")
@@ -86,7 +95,13 @@ export default async function OnboardingPage({
   // submitted a request was shown the founder wizard.
   const pending = memberships.length === 0 ? await getMyPendingApplications(user.id) : [];
 
-  const showWizard = forceCreate || memberships.length === 0;
+  // A claim code has to be honoured whatever else this account already is.
+  // Without `claimCode` here, anyone who already holds a membership — an owner
+  // testing their own invite, or a parent whose second child is at another
+  // crèche — landed on the workspace chooser and the code in the URL was
+  // silently dropped. The chooser is still one link away (below), so nothing
+  // is lost for someone who followed the link by accident.
+  const showWizard = forceCreate || memberships.length === 0 || claimCode !== "";
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-background">
@@ -127,7 +142,7 @@ export default async function OnboardingPage({
             )}
             {!forceCreate && (
               <div className="mb-5">
-                <ClaimCard />
+                <ClaimCard initialCode={claimCode} />
               </div>
             )}
 

@@ -26,7 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChildLink } from "@/components/shared/entity-link";
+import Link from "next/link";
+import { ChildLink, ClassLink, ENTITY_LINK_INHERIT_CLASS } from "@/components/shared/entity-link";
 import {
   SortableHeader,
   compareValues,
@@ -36,12 +37,17 @@ import {
 import { formatDZD, formatDate, formatPhone, telHref } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { waPhone } from "./maps";
+import { owedHref } from "./owed-link";
 
 /** One family's debt, with the display name already resolved for the locale. */
 export interface ArrearsFamilyRow {
   childId: string;
   name: string;
   className: string | null;
+  classId: string | null;
+  /** This child's unsettled invoices, oldest due first. The amount links to
+   *  the invoice itself when there is exactly one. */
+  invoiceIds: string[];
   invoiceCount: number;
   outstanding: number;
   oldestDue: string | null;
@@ -54,6 +60,8 @@ export interface ArrearsAgingRow {
   childId: string;
   name: string;
   className: string | null;
+  classId: string | null;
+  invoiceIds: string[];
   buckets: number[];
   total: number;
   phone: string | null;
@@ -155,17 +163,28 @@ export function ArrearsFamiliesTable({
               <TableCell className="ps-4 font-medium">
                 <ChildLink id={f.childId}>{f.name}</ChildLink>
               </TableCell>
-              <TableCell className="text-muted-foreground">{f.className ?? "—"}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {f.className && f.classId ? (
+                  <ClassLink id={f.classId}>{f.className}</ClassLink>
+                ) : (
+                  (f.className ?? "—")
+                )}
+              </TableCell>
               <TableCell className="text-end tabular-nums">
                 {t("arrears.monthsOwed", { count: f.invoiceCount })}
               </TableCell>
+              {/* The debt goes to the debt. Reading this table with the phone
+                  in hand, the question after "they owe 10 000" is "on what?" —
+                  and the answer was three navigations away. */}
               <TableCell
                 className={cn(
                   "text-end font-bold tabular-nums",
                   f.daysOverdue > 30 && "text-destructive"
                 )}
               >
-                {formatDZD(f.outstanding, locale)}
+                <Link href={owedHref(f.childId, f.invoiceIds)} className={ENTITY_LINK_INHERIT_CLASS}>
+                  {formatDZD(f.outstanding, locale)}
+                </Link>
               </TableCell>
               <TableCell>
                 <Badge variant={badge.variant} className={badge.className}>
@@ -327,7 +346,13 @@ export function ArrearsAgingTable({
                 <ChildLink id={a.childId}>{a.name}</ChildLink>
               </div>
               {a.className && (
-                <div className="text-xs text-muted-foreground">{a.className}</div>
+                <div className="text-xs text-muted-foreground">
+                  {a.classId ? (
+                    <ClassLink id={a.classId}>{a.className}</ClassLink>
+                  ) : (
+                    a.className
+                  )}
+                </div>
               )}
             </TableCell>
             <TableCell>
@@ -356,7 +381,9 @@ export function ArrearsAgingTable({
               </TableCell>
             ))}
             <TableCell className="pe-4 text-end font-bold tabular-nums">
-              {formatDZD(a.total, locale)}
+              <Link href={owedHref(a.childId, a.invoiceIds)} className={ENTITY_LINK_INHERIT_CLASS}>
+                {formatDZD(a.total, locale)}
+              </Link>
             </TableCell>
           </TableRow>
         ))}

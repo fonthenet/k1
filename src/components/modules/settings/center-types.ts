@@ -1,6 +1,6 @@
 // Centre verticals — kg_tenants.center_type (enum kg_center_type, migration 0009).
 //
-// Rawdati is not kindergarten-only: nurseries, Montessori schools, tutoring and
+// Rawdatik is not kindergarten-only: nurseries, Montessori schools, tutoring and
 // early-intervention centres, activity clubs and holiday camps all run on the
 // same product. ONE list, ONE icon and ONE i18n key per type, consumed by both
 // the onboarding wizard (namespace `auth`) and the tenant profile form

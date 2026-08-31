@@ -19,6 +19,14 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // For a badge that brings its own palette — an allergy's severity, a
+        // class colour — and is also a link. Every other variant hard-codes a
+        // hover colour, and `[a]:hover:bg-primary/80` is an element+class
+        // selector, so it outranks anything the caller passes in `className`:
+        // a gold badge turned primary the moment you hovered it. This one
+        // states no colour at all and lifts whatever it was given, so the badge
+        // still means one thing in one colour after the pointer lands on it.
+        tinted: "[a]:hover:opacity-85",
       },
     },
     defaultVariants: {

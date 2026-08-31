@@ -315,6 +315,7 @@
     "empty": "No arrears",
     "emptyHint": "All invoices are settled. Great job!",
     "call": "Call guardian",
+    "openInvoice": "Open invoice",
     "whatsapp": "Send WhatsApp reminder",
     "totalRow": "Total",
     "waMessage": "Hello, this is {kindergarten}. This is a friendly reminder that the balance for {child} currently stands at {amount}. Could you please settle it when you can? Thank you very much.",

@@ -104,7 +104,9 @@
       "audience": "Audience",
       "class": "Class",
       "chooseClass": "Choose a class",
-      "color": "Colour"
+      "color": "Colour",
+      "willNotify": "{count, plural, =0 {Nobody will be notified} one {# person will be notified} other {# people will be notified}}",
+      "pastNoNotify": "This date has already passed — nobody will be notified. The event still appears in the calendar."
     },
     "createDialog": {
       "title": "New event",

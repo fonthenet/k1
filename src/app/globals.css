@@ -75,7 +75,7 @@
 }
 
 :root {
-  /* ── Rawdati palette — teal / sky ────────────────────────────────────────
+  /* ── Rawdatik palette — teal / sky ────────────────────────────────────────
      Deep teal primary on a soft sky wash, warm amber as the counterweight,
      pastel tints for category tiles. Every colour in the product comes from
      these tokens; never hardcode a Tailwind palette colour in a component.

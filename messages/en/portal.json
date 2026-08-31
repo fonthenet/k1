@@ -562,7 +562,7 @@
       "description": "Get a notification on this phone when the kindergarten posts something about your child.",
       "enable": "Turn on notifications",
       "enabled": "Notifications on",
-      "denied": "Notifications are off for Rawdati. Turn them on in Settings to be alerted."
+      "denied": "Notifications are off for Rawdatik. Turn them on in Settings to be alerted."
     },
     "signOut": {
       "hint": "You will need your email and password to sign back in."

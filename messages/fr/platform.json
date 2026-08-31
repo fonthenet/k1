@@ -1,5 +1,5 @@
 {
-  "brand": "Rawdati",
+  "brand": "Rawdatik",
   "badge": "Plateforme",
   "signedInAs": "Connecté en tant que {email}",
   "nav": {
@@ -48,7 +48,7 @@
   "tenants": {
     "metaTitle": "Crèches · Plateforme",
     "title": "Crèches abonnées",
-    "subtitle": "Qui utilise Rawdati, et à quelle échelle.",
+    "subtitle": "Qui utilise Rawdatik, et à quelle échelle.",
     "privacyNote": "Ce panneau n'affiche que des totaux. Les dossiers des enfants et les coordonnées des parents ne sont pas consultables ici — c'est imposé par la base de données, pas seulement masqué dans cette page.",
     "never": "Aucune activité",
     "emptyTitle": "Aucune crèche",

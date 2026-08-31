@@ -4,7 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { childDisplayName, formatDate, formatTime } from "@/lib/format";
+import { childDisplayName, formatDate, formatTime, intlLocale } from "@/lib/format";
 import type { Gender } from "@/lib/types";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,7 @@ export default async function PrintRegisterPage({
   const supabase = await createClient();
   const [t, locale] = await Promise.all([getTranslations("reports"), getLocale()]);
   const tid = ctx.tenant.id;
-  const intlLocale = locale === "ar" ? "ar-DZ" : "fr-DZ";
+  const dateLocale = intlLocale(locale);
 
   const sp = await searchParams;
   const now = new Date();
@@ -90,7 +90,7 @@ export default async function PrintRegisterPage({
   const [y, m] = month.split("-").map(Number);
   const monthStart = `${month}-01`;
   const monthEnd = isoDate(new Date(y, m, 0));
-  const monthTitle = new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" }).format(
+  const monthTitle = new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" }).format(
     new Date(y, m - 1, 1)
   );
 

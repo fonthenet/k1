@@ -17,7 +17,15 @@ async function handle(request: Request) {
     request.headers.get("x-push-secret") ??
     new URL(request.url).searchParams.get("secret");
 
-  if (!secret || provided !== secret) {
+  // Vercel Cron signs its own invocations with `Authorization: Bearer
+  // $CRON_SECRET`. Accepting that as well is what lets vercel.json name this
+  // path with no credential in it — a secret in a committed config file is a
+  // secret in the repository.
+  const cronSecret = process.env.CRON_SECRET;
+  const fromVercelCron =
+    !!cronSecret && request.headers.get("authorization") === `Bearer ${cronSecret}`;
+
+  if (!fromVercelCron && (!secret || provided !== secret)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   try {

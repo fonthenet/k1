@@ -1,4 +1,4 @@
-# Rawdati — Engineering Conventions (READ FIRST)
+# Rawdatik — Engineering Conventions (READ FIRST)
 
 Multi-tenant kindergarten management SaaS for Algeria. Next.js 15 App Router + TypeScript + Tailwind v4 + shadcn/ui (Radix, RTL-enabled) + Supabase (auth, Postgres with RLS, storage). French-first UI with full Arabic RTL.
 

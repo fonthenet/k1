@@ -315,6 +315,7 @@
     "empty": "Aucun impayé",
     "emptyHint": "Toutes les factures sont réglées. Excellent travail !",
     "call": "Appeler le tuteur",
+    "openInvoice": "Ouvrir la facture",
     "whatsapp": "Envoyer un rappel WhatsApp",
     "totalRow": "Total",
     "waMessage": "Bonjour, ici {kindergarten}. Nous nous permettons de vous rappeler aimablement que le solde de {child} s'élève à {amount}. Merci de bien vouloir régulariser la situation dès que possible. Cordialement.",

@@ -43,6 +43,12 @@ export interface ClassOption {
 }
 
 /** kg_child_guardians joined with kg_guardians, flattened. */
+/** An outstanding portal invite: the code itself and when it lapses. */
+export interface GuardianClaim {
+  code: string;
+  expiresAt: string;
+}
+
 export interface GuardianLink {
   guardian_id: string;
   is_primary: boolean;
@@ -63,6 +69,16 @@ export interface GuardianLink {
   photo_path: string | null;
   /** Signed URL for `photo_path`, resolved on the server. */
   photoUrl: string | null;
+  /**
+   * An invite that has been sent and not yet used.
+   *
+   * The code used to be returned by the RPC, printed once, and never read
+   * back — so an office that navigated away could not tell whether it had
+   * already invited this parent, let alone repeat the code down the phone.
+   * Production had exactly that: one live unclaimed code nothing could show.
+   * Admin-only, like the rest of this block.
+   */
+  claim: GuardianClaim | null;
   /**
    * Whether a portal account is attached to this record. The user id itself
    * never crosses to the client — staff only need to know whether this parent

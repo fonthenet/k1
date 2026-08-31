@@ -2,7 +2,7 @@
 //
 // The whole promise of this page is "here is the actual product, small".
 // Each miniature below is a faithful, token-driven reduction of a real
-// Rawdati screen — the admissions pipeline, the reception check-in, the
+// Rawdatik screen — the admissions pipeline, the reception check-in, the
 // parent thread, the monthly ledger — built only from the shared primitives
 // in preview-kit.tsx so the eight of them read as one designed system.
 //

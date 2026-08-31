@@ -125,7 +125,7 @@
     "kind": "Type",
     "color": "Couleur",
     "system": "Système",
-    "systemHint": "Les catégories système sont créées par Rawdati et ne peuvent pas être supprimées.",
+    "systemHint": "Les catégories système sont créées par Rawdatik et ne peuvent pas être supprimées.",
     "empty": "Aucune catégorie",
     "deleteTitle": "Supprimer la catégorie ?",
     "deleteDesc": "Les transactions existantes de « {name} » resteront dans le journal, sans catégorie.",
@@ -310,5 +310,6 @@
     "periodUnknown": "Période indisponible",
     "subtitle": "Vos bulletins et vos avances",
     "title": "Ma paie"
-  }
+  },
+  "allMonths": "Tous les mois"
 }

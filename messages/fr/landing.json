@@ -1,11 +1,11 @@
 {
   "meta": {
-    "title": "Rawdati — gestion de crèches et jardins d'enfants en Algérie",
+    "title": "Rawdatik — gestion de crèches et jardins d'enfants en Algérie",
     "description": "Une seule plateforme algérienne pour gérer votre crèche : inscription en ligne, présences du jour, facturation en dinars, comptabilité et paie, et un espace parents en arabe, anglais et français."
   },
   "brand": {
-    "nameAr": "روضتي",
-    "nameLatin": "Rawdati",
+    "nameAr": "روضتك",
+    "nameLatin": "Rawdatik",
     "tagline": "La gestion de crèche, en toute simplicité"
   },
   "nav": {
@@ -73,7 +73,7 @@
     }
   },
   "mockup": {
-    "label": "Aperçu du tableau de bord Rawdati",
+    "label": "Aperçu du tableau de bord Rawdatik",
     "monogram": "A",
     "greeting": "Bonjour Amina",
     "date": "Dimanche 18 octobre 2026",

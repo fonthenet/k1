@@ -1,7 +1,11 @@
 -- Authorization for the money functions.
 --
--- NOT YET APPLIED. Read the whole file before running it: it changes who may
--- invoice a live business.
+-- APPLIED 2026-08-30. Verified afterwards in a rolled-back transaction:
+--   anon forging p_source='schedule' -> permission denied
+--   cron sweep as postgres           -> still runs (17 invoices)
+--   finance "generate" button        -> still works (17)
+--   educator generating              -> forbidden
+--   dashboard arrears refresh        -> still works
 --
 -- ---------------------------------------------------------------------------
 -- What is wrong
@@ -284,35 +288,15 @@ revoke all on function kg_refresh_overdue_invoices(uuid) from public;
 revoke all on function kg_refresh_overdue_invoices(uuid) from anon;
 grant execute on function kg_refresh_overdue_invoices(uuid) to authenticated;
 
--- 5. kg_child_balance discloses any child's outstanding balance to any caller
---    holding the uuid, including anon. It is used by the parent portal, so
---    parents keep it — for their own children.
-create or replace function kg_child_balance(p_child uuid)
-returns numeric
-language plpgsql
-stable
-security definer
-set search_path to 'public'
-as $function$
-declare v_tenant uuid;
-begin
-  select tenant_id into v_tenant from kg_children where id = p_child;
-  if v_tenant is null then
-    return 0;
-  end if;
-  if not (kg_is_staff(v_tenant) or kg_is_parent_of(p_child)) then
-    raise exception 'forbidden';
-  end if;
-  return (
-    select coalesce(sum(greatest(0, total - paid_amount)), 0)
-      from kg_invoices
-     where child_id = p_child and status not in ('void', 'draft')
-  );
-end $function$;
-
-revoke all on function kg_child_balance(uuid) from public;
-revoke all on function kg_child_balance(uuid) from anon;
-grant execute on function kg_child_balance(uuid) to authenticated;
+-- 5. kg_child_balance — SUPERSEDED, NOT APPLIED FROM THIS FILE.
+--
+--    This file originally guarded it with `kg_is_staff(v_tenant)`. Migration
+--    0086 applies the same fix with `kg_is_finance` instead, which is what the
+--    dashboard itself enforces: an educator opening a child's record must not
+--    be shown the family's money. 0086 runs after this file, so replaying both
+--    in order lands on the finance-only rule either way — but the weaker
+--    version was never applied to production, and is left out here so this
+--    file does not read as though it were.
 
 -- 6. The remaining SECURITY DEFINER helpers are internal plumbing called by
 --    triggers and by the functions above. Nothing client-side calls them

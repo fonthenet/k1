@@ -1,7 +1,9 @@
-import { AlertCircle, CalendarDays, CalendarCheck2, Hourglass } from "lucide-react";
+import Link from "next/link";
+import { AlertCircle, ArrowLeft, ArrowRight, CalendarCheck2, CalendarDays, Hourglass } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -31,7 +33,9 @@ export default async function StaffLeavesPage() {
   const ctx = await requireStaff();
   const supabase = await createClient();
   const t = await getTranslations("staff");
+  const tc = await getTranslations("common");
   const locale = await getLocale();
+  const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
   const today = algiersToday();
 
   const [{ data: requests, error: requestsError }, { data: members }] = await Promise.all([
@@ -71,6 +75,13 @@ export default async function StaffLeavesPage() {
   return (
     <div>
       <PageHeader title={t("leaves.title")} description={t("leaves.description")}>
+        {/* Not in the sidebar, so without this the only way out is the browser. */}
+        <Button variant="ghost" asChild>
+          <Link href="/staff">
+            <BackIcon data-icon="inline-start" />
+            {tc("actions.back")}
+          </Link>
+        </Button>
         <LeaveRequestDialog defaultDate={today} />
       </PageHeader>
 

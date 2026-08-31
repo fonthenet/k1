@@ -5,7 +5,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -95,12 +96,16 @@ export function EnrollWizard({
   link,
   logoUrl,
   initialUser,
+  existingFamily,
 }: {
   token: string;
   link: EnrollLinkData;
   /** Signed URL for link.logo_url, resolved on the server. */
   logoUrl: string | null;
   initialUser: WizardUser | null;
+  /** This account is already a guardian of this crèche — their display name.
+   *  They should be adding a sibling, not filling in a new-family form. */
+  existingFamily: string | null;
 }) {
   const t = useTranslations("enroll");
   const supabase = useMemo(() => createClient(), []);
@@ -170,7 +175,7 @@ export function EnrollWizard({
   // field. It is fetched from kg_profiles, or decoded from the alias.
   //
   // The email needs the opposite care. A phone signup's auth address is an
-  // internal alias (0550123456@phone.rawdati.app) that nothing can deliver to,
+  // internal alias (0550123456@phone.rawdatik.app) that nothing can deliver to,
   // and this used to copy it straight into the guardian's contact email, where
   // it would be saved with the application and used to try to reach the family.
   // isPhoneAlias keeps it out; the field stays empty for them to fill or not.
@@ -351,7 +356,23 @@ export function EnrollWizard({
           {submitted ? (
             <StepSuccess tenantName={link.tenant_name} />
           ) : step === 0 ? (
-            <StepWelcome link={link} logoUrl={logoUrl} resumed={resumed} onStart={next} />
+            <>
+              {/* Eight steps of child-and-parent details, for someone this
+                  crèche already holds a record of, ends in a duplicate of
+                  them. The sibling form asks for the child alone. */}
+              {existingFamily && (
+                <div className="mb-4 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/20">
+                  <p className="flex items-start gap-2 text-sm">
+                    <Users className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                    <span>{t("existingFamily.body", { name: existingFamily })}</span>
+                  </p>
+                  <Button asChild size="sm" className="mt-3">
+                    <Link href="/portal/children/new">{t("existingFamily.cta")}</Link>
+                  </Button>
+                </div>
+              )}
+              <StepWelcome link={link} logoUrl={logoUrl} resumed={resumed} onStart={next} />
+            </>
           ) : step === 1 ? (
             <StepAccount
               user={user}

@@ -1,7 +1,7 @@
 // Shapes for the floating conversations panel.
 //
 // The panel shows two kinds of conversation that are stored in different
-// tables — family threads (`kg_threads`) and the crèche's own line to Rawdati
+// tables — family threads (`kg_threads`) and the crèche's own line to Rawdatik
 // (`kg_support_threads`) — so everything below is the shape they are flattened
 // into. `kind` is the discriminator every action switches on; nothing else in
 // the widget needs to know which table a row came from.

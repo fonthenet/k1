@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     // The operator panel had no way in but typing the URL. Everyone else gets
     // nothing here, so the menu never hints that /admin exists.
     getPlatformContext(),
-    // The crèche's own logo, not Rawdati's mark: staff spend their day in here
+    // The crèche's own logo, not Rawdatik's mark: staff spend their day in here
     // and it should look like their place of work.
     signedMediaUrl(ctx.tenant.logo_url),
     // Every member of staff: family conversations are everyone's business.

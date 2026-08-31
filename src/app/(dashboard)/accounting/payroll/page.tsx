@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowRight, HandCoins, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { formatDZD } from "@/lib/format";
+import { formatDZD, intlLocale } from "@/lib/format";
 import type { PayrollStatus } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -42,7 +42,7 @@ export default async function PayrollPage() {
   const supabase = await createClient();
   const [t, locale] = await Promise.all([getTranslations("accounting"), getLocale()]);
   const tid = ctx.tenant.id;
-  const intlLocale = locale === "ar" ? "ar-DZ" : "fr-DZ";
+  const dateLocale = intlLocale(locale);
 
   const { data, error } = await supabase
     .from("kg_payroll_runs")
@@ -54,7 +54,7 @@ export default async function PayrollPage() {
   const existingMonths = new Set(runs.map((r) => String(r.month).slice(0, 7)));
 
   const now = new Date();
-  const monthYearFmt = new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" });
+  const monthYearFmt = new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" });
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     return { value: monthKey(d), label: monthYearFmt.format(d) };

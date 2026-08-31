@@ -12,7 +12,7 @@ import {
 } from "@/components/modules/attendance/register-client";
 import { isPresentish } from "@/components/modules/attendance/status-config";
 import { allergenLabel } from "@/lib/allergens";
-import { childDisplayName } from "@/lib/format";
+import { childDisplayName, intlLocale } from "@/lib/format";
 import {
   isValidDateStr,
   parseDateStr,
@@ -265,7 +265,7 @@ export default async function AttendancePage({
   const openingHours = toOpeningHours(
     (ctx.tenant as { opening_hours?: unknown }).opening_hours
   );
-  const dateLabel = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  const dateLabel = new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -278,7 +278,7 @@ export default async function AttendancePage({
       <RegisterClient
         date={date}
         isClosedDay={!isOpenDay(openingHours, dateObj)}
-        dayLabel={new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+        dayLabel={new Intl.DateTimeFormat(intlLocale(locale), {
           weekday: "long",
         }).format(dateObj)}
         classes={classTabs}

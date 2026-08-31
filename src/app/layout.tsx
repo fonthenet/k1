@@ -18,8 +18,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Rawdati", statusBarStyle: "default" },
-  title: { default: "Rawdati — Gestion de crèches et jardins d'enfants", template: "%s · Rawdati" },
+  appleWebApp: { capable: true, title: "Rawdatik", statusBarStyle: "default" },
+  title: { default: "Rawdatik — Gestion de crèches et jardins d'enfants", template: "%s · Rawdatik" },
   description:
     "La plateforme tout-en-un pour gérer votre crèche ou jardin d'enfants : inscriptions, présences, facturation, comptabilité et communication avec les parents.",
 };

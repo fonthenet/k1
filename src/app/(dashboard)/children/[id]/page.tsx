@@ -24,7 +24,7 @@ import { ClassLink, InvoiceLink } from "@/components/shared/entity-link";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, signedMediaUrl } from "@/lib/tenant";
-import { ageFromDob, childDisplayName, formatDate, formatDZD, formatTime } from "@/lib/format";
+import { ageFromDob, childDisplayName, formatDZD, formatDate, formatTime, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type {
   AllergySeverity, Attendance, AttendanceStatus, Child, FeePeriod, Gender, InvoiceStatus,
@@ -49,6 +49,7 @@ import type { CredentialRow } from "@/components/modules/credentials/types";
 import { parseHealthList } from "@/components/modules/portal/health-edit-shared";
 import { algiersToday } from "@/components/modules/billing/dates";
 import { AssignFeeDialog } from "@/components/modules/billing/assign-fee-dialog";
+import { isOpenInvoice, owedHref } from "@/components/modules/billing/owed-link";
 import type { PlanOption } from "@/components/modules/billing/billing-types";
 import {
   attendanceStatusClasses,
@@ -330,6 +331,27 @@ export default async function ChildProfilePage({
     guardianJoins.map((r) => signedMediaUrl(r.kg_guardians.photo_path))
   );
 
+  // Outstanding portal invites, so the office can see one exists, read the code
+  // back down the phone, and withdraw it — none of which was possible while the
+  // code was printed once and never fetched again. Admin-only: the RLS policy on
+  // kg_guardian_claims is kg_is_admin for every command, so a non-admin simply
+  // gets nothing back rather than an error.
+  const guardianIds = guardianJoins.map((r) => r.guardian_id);
+  const { data: claimRows } = ctx.isAdmin && guardianIds.length > 0
+    ? await supabase
+        .from("kg_guardian_claims")
+        .select("guardian_id, code, expires_at")
+        .eq("tenant_id", ctx.tenant.id)
+        .in("guardian_id", guardianIds)
+        .is("claimed_at", null)
+        .gt("expires_at", new Date().toISOString())
+    : { data: [] };
+  const claimByGuardian = new Map(
+    ((claimRows ?? []) as { guardian_id: string; code: string; expires_at: string }[]).map(
+      (c) => [c.guardian_id, { code: c.code, expiresAt: c.expires_at }]
+    )
+  );
+
   const links: GuardianLink[] = guardianJoins
     .map((r, i) => ({
       guardian_id: r.guardian_id,
@@ -350,6 +372,7 @@ export default async function ChildProfilePage({
       photo_path: r.kg_guardians.photo_path,
       photoUrl: guardianPhotoUrls[i],
       hasAccount: r.kg_guardians.user_id !== null,
+      claim: claimByGuardian.get(r.guardian_id) ?? null,
     }));
 
   // Only the *presence* of a PIN crosses to the client; the digits are shown
@@ -473,6 +496,9 @@ export default async function ChildProfilePage({
   // row, and treating that as "has a fee" is what let four children look
   // billed while they were not.
   const billingToday = algiersToday();
+  // One clock for this render, handed to the client so invite expiry is a
+  // function of props rather than an impure read during render.
+  const renderedAt = new Date().toISOString();
   const planOptions = ((planRows ?? []) as PlanOption[]).map((p) => ({
     ...p,
     amount: Number(p.amount),
@@ -501,6 +527,15 @@ export default async function ChildProfilePage({
         (await supabase.rpc("kg_child_balance", { p_child: id })).data ?? 0
       )
     : 0;
+
+  // Which invoice that balance IS. `kg_child_balance` answers "how much" but
+  // not "which", and the badge below needs the second answer to be worth
+  // clicking. Oldest due first: with several open, the one the office chases is
+  // the one that has been waiting longest.
+  const openInvoices = invoices
+    .filter(isOpenInvoice)
+    .sort((a, b) => (a.due_date ?? a.issue_date).localeCompare(b.due_date ?? b.issue_date));
+  const balanceHref = owedHref(id, openInvoices.map((i) => i.id));
 
   const documents: ChildDocumentRow[] = await Promise.all(
     (documentRows ?? []).map(async (d) => ({
@@ -535,7 +570,7 @@ export default async function ChildProfilePage({
       : (child.kg_classes?.name ?? null);
 
   const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
-  const monthFmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  const monthFmt = new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long", year: "numeric",
   });
   const prevMonth = shiftMonth(month, -1);
@@ -615,7 +650,7 @@ export default async function ChildProfilePage({
                   outstanding invoice looked identical to one paid up. */}
               {balance > 0 && (
                 <Badge asChild variant="destructive">
-                  <Link href={`/billing?child=${child.id}`}>
+                  <Link href={balanceHref}>
                     <BanknoteX className="size-3.5" aria-hidden />
                     {t("billing.owes", { amount: formatDZD(balance, locale) })}
                   </Link>
@@ -652,8 +687,12 @@ export default async function ChildProfilePage({
                   {t("billing.settled")}
                 </Badge>
               )}
+              {/* The badge names a count; the answer to "which three?" is one tab
+                  away, and reading it was the reason anybody looked. */}
               {allergies.length > 0 && (
                 <Badge
+                  asChild
+                  variant="tinted"
                   className={severityClasses(
                     allergies.reduce<AllergySeverity>(
                       (worst, a) =>
@@ -665,7 +704,9 @@ export default async function ChildProfilePage({
                     )
                   )}
                 >
-                  {t("allergyBadge", { count: allergies.length })}
+                  <Link href={`/children/${child.id}?tab=health`}>
+                    {t("allergyBadge", { count: allergies.length })}
+                  </Link>
                 </Badge>
               )}
             </div>
@@ -687,13 +728,16 @@ export default async function ChildProfilePage({
                   )}
                 </span>
               )}
+              {/* The code IS the badge card — the thing you go looking for when
+                  a tag stops scanning at the door, or needs reprinting. */}
               {child.tag_code && (
-                <span
-                  className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs tracking-widest"
+                <Link
+                  href={`/children/${child.id}/card`}
+                  className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs tracking-widest transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                   dir="ltr"
                 >
                   {child.tag_code}
-                </span>
+                </Link>
               )}
             </div>
           </div>
@@ -776,6 +820,7 @@ export default async function ChildProfilePage({
             credentials={guardianCredentials}
             guardianCards={guardianCards}
             canManageCredentials={ctx.isAdmin}
+            now={renderedAt}
           />
           <PickupsSection childId={child.id} pickups={pickups ?? []} />
           {/* On the record itself, as the phone has it — not behind a tab. The

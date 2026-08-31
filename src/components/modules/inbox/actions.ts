@@ -13,7 +13,7 @@ import type { InboxKind, InboxMessage, InboxThread } from "./types";
  * Family threads come from the same helper the /messages page uses, so a row
  * here and a row there are the same row — same subject, same preview, same
  * unread verdict. The support thread is appended last and drawn under a rule:
- * it belongs to a different relationship, and sorting Rawdati in among the
+ * it belongs to a different relationship, and sorting Rawdatik in among the
  * parents by recency would put the vendor above a mother waiting on an answer.
  */
 export async function loadInboxThreads(): Promise<InboxThread[]> {

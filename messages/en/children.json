@@ -86,8 +86,7 @@
     "archiveDescription": "The child moves to \"Alumni\". Their record, invoices, attendance and health history are all kept — they simply leave the active roster.",
     "restore": "Return to enrolled",
     "restoreTitle": "Return this child to the roster?",
-    "restoreDescription": "The child returns to \"Enrolled\" and appears in the register again.",
-    "nothingIsDeleted": "Nothing is ever deleted. A child's invoices and history are kept whichever status they are in."
+    "restoreDescription": "The child returns to \"Enrolled\" and appears in the register again."
   },
   "profile": {
     "back": "All children",
@@ -173,14 +172,30 @@
       "copy": "Copy",
       "copied": "Code copied",
       "copyFailed": "Could not copy — write the code down.",
-      "hint": "Give this code to the parent. They enter it after creating their account. Valid 14 days, single use.",
       "errors": {
         "invalid": "That parent could not be found.",
         "forbidden": "You cannot invite parents.",
         "alreadyLinked": "That parent already has an account.",
-        "error": "Something went wrong. Try again."
-      }
-    }
+        "error": "Something went wrong. Try again.",
+        "duplicate": "That already exists."
+      },
+      "issued": "Invite created",
+      "cancelled": "Invite cancelled",
+      "copyLink": "Copy link",
+      "linkCopied": "Invite link copied",
+      "whatsapp": "WhatsApp",
+      "cancel": "Cancel",
+      "cancelTitle": "Cancel this invite?",
+      "cancelDescription": "The code stops working immediately. You can send a new one at any time.",
+      "cancelKeep": "Keep it",
+      "cancelConfirm": "Cancel the invite",
+      "outstanding": "{count, plural, =0 {Expires today.} one {Expires in # day.} other {Expires in # days.}} Single use.",
+      "reissue": "Send a new code",
+      "message": "Hello {name}, here is your link to the parent portal: {link}"
+    },
+    "duplicatePhone": "That number already belongs to {name}.",
+    "linkFound": "Link {name} to this child",
+    "createAnyway": "Create a new record anyway"
   },
   "photo": {
     "childTitle": "Child's photo",

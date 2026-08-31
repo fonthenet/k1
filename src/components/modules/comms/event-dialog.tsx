@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { type ReactNode, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Check, Plus, Trash2 } from "lucide-react";
+import { Check, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { DateTimePicker } from "@/components/shared/datetime-picker";
 import type { Audience } from "@/lib/types";
-import { deleteEvent, saveEvent } from "./actions";
+import { deleteEvent, eventAudienceCount, saveEvent } from "./actions";
 import { dateAtTimeInput } from "./datetime";
 import { AUDIENCES, EVENT_COLORS, type ClassOption, type EventRow } from "./types";
 
@@ -47,12 +47,27 @@ export function EventDialog({
   event,
   classes,
   defaultDate,
+  defaultTime = "09:00",
   children,
 }: {
   event: EventRow | null;
   classes: ClassOption[];
   /** YYYY-MM-DD used to seed a new event (ignored when editing). */
   defaultDate: string;
+  /**
+   * HH:mm to seed alongside `defaultDate`. Computed on the server, because the
+   * right answer depends on the current time and a component may not read a
+   * clock during render.
+   *
+   * This existed because the time was hard-coded to "09:00": creating an event
+   * for TODAY at any point after 9am produced a start that had already passed,
+   * the insert trigger skipped it, and nobody was notified. Two events were
+   * made that way before anyone noticed.
+   *
+   * Optional because the edit dialogs never seed a start at all — they read the
+   * event's own.
+   */
+  defaultTime?: string;
   children?: ReactNode;
 }) {
   const t = useTranslations("comms");
@@ -67,12 +82,45 @@ export function EventDialog({
   const [title, setTitle] = useState(event?.title ?? "");
   const [description, setDescription] = useState(event?.description ?? "");
   const [startAt, setStartAt] = useState(
-    event ? toLocalInput(event.start_at) : dateAtTimeInput(defaultDate, "09:00")
+    event ? toLocalInput(event.start_at) : dateAtTimeInput(defaultDate, defaultTime)
   );
   const [endAt, setEndAt] = useState(event?.end_at ? toLocalInput(event.end_at) : "");
   const [audience, setAudience] = useState<Audience>(event?.audience ?? "all");
   const [classId, setClassId] = useState(event?.class_id ?? "");
   const [color, setColor] = useState<string>(event?.color ?? EVENT_COLORS[0]);
+  // Who this reaches, resolved by the same rule that will actually fan it out.
+  // Stamped with the scope it was fetched for, so a count for "all" is never
+  // left on screen after the author switches to a class.
+  const [reach, setReach] = useState<{ key: string; n: number; past: boolean } | null>(null);
+
+  // Recomputed on every scope change, including while the dialog is closed-open
+  // again for a different event. A 'class' audience with no class chosen yet
+  // reaches nobody, and says so rather than showing a stale number.
+  const scopeKey = `${audience}:${audience === "class" ? classId : ""}:${startAt}`;
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    void eventAudienceCount(
+      audience,
+      audience === "class" ? classId || null : null,
+      startAt || null
+    ).then(
+      (r: { count: number; past: boolean }) => {
+        if (live) setReach({ key: scopeKey, n: r.count, past: r.past });
+      }
+    );
+    return () => {
+      live = false;
+    };
+  }, [open, scopeKey, audience, classId, startAt]);
+
+  // Only ever the number for the scope currently on screen, and only when the
+  // count actually succeeded — a failed lookup must not block saving an event.
+  const current = reach && reach.key === scopeKey ? reach : null;
+  // "Reaches nobody" and "is too late to reach anybody" are different facts and
+  // the author needs to be told which one applies.
+  const startsInPast = current?.past ?? false;
+  const willNotify = current && current.n >= 0 ? current.n : null;
 
   const endBeforeStart = !!endAt && !!startAt && Date.parse(endAt) < Date.parse(startAt);
   const canSubmit =
@@ -224,6 +272,22 @@ export function EventDialog({
               </div>
             )}
           </div>
+
+          {/* The consequence of the audience choice, in people. Saving an event
+              now notifies them, and "all" is the default nobody thinks about. */}
+          {startsInPast ? (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Users className="size-3.5 shrink-0" aria-hidden />
+              {t("calendar.form.pastNoNotify")}
+            </p>
+          ) : (
+            willNotify !== null && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Users className="size-3.5 shrink-0" aria-hidden />
+                {t("calendar.form.willNotify", { count: willNotify })}
+              </p>
+            )
+          )}
 
           <div className="grid gap-1.5">
             <Label>{t("calendar.form.color")}</Label>

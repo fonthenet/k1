@@ -1,5 +1,5 @@
 // Shared class recipes for the public landing page.
-// Reads the Rawdati teal/sky tokens (see THEME.md). No hardcoded palette colours.
+// Reads the Rawdatik teal/sky tokens (see THEME.md). No hardcoded palette colours.
 //
 // House style for this page: generous sky-washed bands, fully-rounded pill
 // buttons, soft 2xl cards, and — the signature move — every feature card

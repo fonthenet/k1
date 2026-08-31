@@ -562,7 +562,7 @@
       "description": "Recevez une notification sur ce téléphone dès que la crèche publie quelque chose au sujet de votre enfant.",
       "enable": "Activer les notifications",
       "enabled": "Notifications activées",
-      "denied": "Les notifications sont désactivées pour Rawdati. Activez-les dans Réglages pour être prévenu."
+      "denied": "Les notifications sont désactivées pour Rawdatik. Activez-les dans Réglages pour être prévenu."
     },
     "signOut": {
       "hint": "Il vous faudra votre e-mail et votre mot de passe pour vous reconnecter."

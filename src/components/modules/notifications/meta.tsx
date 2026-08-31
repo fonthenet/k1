@@ -6,6 +6,7 @@ import {
   BabyIcon,
   BanknoteX,
   Bell,
+  CalendarDays,
   CalendarX2,
   ClipboardList,
   HandCoins,
@@ -33,6 +34,7 @@ const ICONS: Record<string, LucideIcon> = {
   message: MessageCircle,
   incident: ShieldAlert,
   announcement: Megaphone,
+  event: CalendarDays,
   application: ClipboardList,
   checkin: LogIn,
   checkout: LogOut,
@@ -71,6 +73,9 @@ const TONES: Record<string, string> = {
   message: "bg-primary/10 text-primary",
   incident: "bg-destructive/10 text-destructive",
   announcement: "bg-gold-muted text-gold-ink",
+  // Primary, not gold: gold already means "an announcement" in this list, and
+  // an event sitting beside one in the same tint reads as the same thing.
+  event: "bg-primary/10 text-primary",
   application: "bg-gold-muted text-gold-ink",
   checkin: "bg-success/10 text-success",
   checkout: "bg-muted text-muted-foreground",

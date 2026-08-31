@@ -1,6 +1,8 @@
 -- Announcements: let the database decide who may read one.
 --
--- NOT YET APPLIED.
+-- APPLIED 2026-08-30. Verified afterwards with a staff-only notice inserted
+-- and rolled back: the parent saw `all` + `parents` only, the owner saw all
+-- three including `staff`.
 --
 -- ---------------------------------------------------------------------------
 -- What is wrong

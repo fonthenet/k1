@@ -4,7 +4,9 @@ export function PageHeader({
   children,
 }: {
   title: string;
-  description?: string;
+  /** Usually a sentence, but a node so a header can name a RECORD and link to
+   *  it — an invoice's subtitle is the child it bills, and that is a door. */
+  description?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (

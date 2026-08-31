@@ -174,7 +174,22 @@ export default async function InvoiceDetailPage({
 
   return (
     <div>
-      <PageHeader title={numberLabel} description={childName}>
+      {/* The name is the way back to the file. Arriving here from a child's
+          "owes" badge and then wanting the rest of their record is the common
+          path, and re-searching the roster for a name already on screen is
+          not a navigation. */}
+      <PageHeader
+        title={numberLabel}
+        description={
+          inv.kg_children ? (
+            <ChildLink id={inv.child_id}>
+              {childName}
+            </ChildLink>
+          ) : (
+            childName
+          )
+        }
+      >
         <Badge className={INVOICE_STATUS_BADGE[shown]}>{t(`status.${shown}`)}</Badge>
         <Button variant="ghost" asChild>
           <Link href="/billing">

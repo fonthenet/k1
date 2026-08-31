@@ -53,6 +53,7 @@ export default async function EnrollPage({
   } = await supabase.auth.getUser();
 
   let initialUser: WizardUser | null = null;
+  let existingFamily: string | null = null;
   if (user) {
     const metaName =
       typeof user.user_metadata?.full_name === "string"
@@ -75,7 +76,29 @@ export default async function EnrollPage({
     const phone = profile?.phone || metaPhone || aliasToPhone(user.email) || null;
 
     initialUser = { id: user.id, email: user.email ?? null, fullName, phone };
+
+    // Already one of this crèche's families? Then this form is the wrong one:
+    // /portal/children/new reuses their own guardian record and asks for the
+    // child alone, where filling this in again would create a second copy of
+    // them. RLS lets a guardian read their own row, so no elevated call.
+    const { data: mine } = await supabase
+      .from("kg_guardians")
+      .select("first_name, last_name")
+      .eq("tenant_id", link.tenant_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (mine) {
+      existingFamily = `${mine.first_name} ${mine.last_name}`.trim();
+    }
   }
 
-  return <EnrollWizard token={token} link={link} logoUrl={logoUrl} initialUser={initialUser} />;
+  return (
+    <EnrollWizard
+      token={token}
+      link={link}
+      logoUrl={logoUrl}
+      initialUser={initialUser}
+      existingFamily={existingFamily}
+    />
+  );
 }

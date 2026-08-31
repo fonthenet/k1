@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { intlLocale } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PortalChildLink } from "@/components/shared/entity-link";
@@ -19,7 +20,7 @@ import { invoiceStatusClasses, type PortalChildInvoices, type PortalInvoice } fr
 
 function monthLabel(periodMonth: string | null, locale: string): string | null {
   if (!periodMonth) return null;
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     year: "numeric",
   }).format(new Date(`${periodMonth.slice(0, 7)}-01T12:00:00`));

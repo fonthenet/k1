@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setLocale } from "@/app/actions/locale";
-import { childDisplayName, formatTime, initials } from "@/lib/format";
+import { childDisplayName, formatTime, initials, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { KioskKeypad } from "./kiosk-keypad";
 import { KioskScanner } from "./kiosk-scanner";
@@ -1096,7 +1096,7 @@ export function KioskClient({
   // ----- display helpers -----
   const timeFmt = (iso: string) => formatTime(iso, locale);
   const clockLabel = now
-    ? new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+    ? new Intl.DateTimeFormat(intlLocale(locale), {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
@@ -1104,7 +1104,7 @@ export function KioskClient({
       }).format(now)
     : "--:--:--";
   const dateLabel = now
-    ? new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+    ? new Intl.DateTimeFormat(intlLocale(locale), {
         weekday: "long",
         day: "numeric",
         month: "long",

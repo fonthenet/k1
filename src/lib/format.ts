@@ -38,16 +38,33 @@ export function groupWithSpace(n: number, maximumFractionDigits = 0): string {
     .replace(/[\u00A0\u2009\u202F ]/g, "\u202F");
 }
 
+/**
+ * The BCP-47 tag to hand Intl for a given app locale.
+ *
+ * This app has THREE locales and this map used to have two: every date and
+ * month across the dashboard was written as
+ *   locale === "ar" ? "ar-DZ" : "fr-DZ"
+ * so an English reader got "avril 2026" in the payroll dialog and "Août 2026"
+ * in the run list. It was in 25 places, which is exactly why it is now in one.
+ *
+ * en-GB rather than en-US: day-before-month matches how the rest of the
+ * product — and Algeria — writes a date, so switching language does not
+ * silently reorder it.
+ */
+export function intlLocale(locale: string): string {
+  return locale === "ar" ? "ar-DZ" : locale === "en" ? "en-GB" : "fr-DZ";
+}
+
 export function formatDate(date: string | Date, locale = "fr", opts?: Intl.DateTimeFormatOptions): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     day: "numeric", month: "short", year: "numeric", ...opts,
   }).format(d);
 }
 
 export function formatTime(date: string | Date, locale = "fr"): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     hour: "2-digit", minute: "2-digit", hour12: false,
   }).format(d);
 }

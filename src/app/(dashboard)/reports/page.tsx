@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { childDisplayName, formatDZD, formatDate, formatPhone, formatTime, telHref } from "@/lib/format";
+import { childDisplayName, formatDZD, formatDate, formatPhone, formatTime, intlLocale, telHref } from "@/lib/format";
 import { isOpenDay, toOpeningHours } from "@/lib/week";
 import type { AttendanceStatus, Gender } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
@@ -150,7 +150,7 @@ export default async function ReportsPage({
   const supabase = await createClient();
   const [t, locale] = await Promise.all([getTranslations("reports"), getLocale()]);
   const tid = ctx.tenant.id;
-  const intlLocale = locale === "ar" ? "ar-DZ" : "fr-DZ";
+  const dateLocale = intlLocale(locale);
 
   const sp = await searchParams;
   const now = new Date();
@@ -246,8 +246,8 @@ export default async function ReportsPage({
     ((profRes.data ?? []) as { id: string; full_name: string }[]).map((p) => [p.id, p.full_name])
   );
 
-  const pctFmt = new Intl.NumberFormat(intlLocale, { style: "percent", maximumFractionDigits: 0 });
-  const monthYearFmt = new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" });
+  const pctFmt = new Intl.NumberFormat(dateLocale, { style: "percent", maximumFractionDigits: 0 });
+  const monthYearFmt = new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" });
   const monthTitle = monthYearFmt.format(new Date(y, m - 1, 1));
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -328,7 +328,7 @@ export default async function ReportsPage({
     }
     weeks.push(cells);
   }
-  const dayFmt = new Intl.DateTimeFormat(intlLocale, { weekday: "short" });
+  const dayFmt = new Intl.DateTimeFormat(dateLocale, { weekday: "short" });
   const dayHeaders = Array.from({ length: 5 }, (_, i) => {
     const d = new Date(gridStart);
     d.setDate(gridStart.getDate() + i);

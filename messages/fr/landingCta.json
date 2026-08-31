@@ -192,7 +192,7 @@
     "contact": {
       "title": "Vous ne trouvez pas votre réponse ?",
       "desc": "Écrivez-nous, nous répondons le jour même — en arabe, en anglais ou en français.",
-      "email": "contact@rawdati.dz",
+      "email": "contact@rawdatik.com",
       "cta": "Nous écrire",
       "hours": "Du dimanche au jeudi · 8h00 – 17h00"
     },
@@ -203,11 +203,11 @@
       },
       "cash": {
         "q": "La plupart de mes parents paient en espèces. Est-ce géré ?",
-        "a": "Le paiement en espèces est le mode par défaut dans Rawdati, parce que c'est la réalité du terrain ici. Vous enregistrez le montant reçu et imprimez le reçu dans la foulée ; les virements bancaires et postaux ainsi que les paiements échelonnés sont également pris en charge."
+        "a": "Le paiement en espèces est le mode par défaut dans Rawdatik, parce que c'est la réalité du terrain ici. Vous enregistrez le montant reçu et imprimez le reçu dans la foulée ; les virements bancaires et postaux ainsi que les paiements échelonnés sont également pris en charge."
       },
       "arabic": {
         "q": "La plateforme fonctionne-t-elle vraiment en arabe ?",
-        "a": "Rawdati est pensée en arabe d'abord : l'interface de droite à gauche a été conçue ainsi dès le départ, ce n'est pas une traduction retournée. Les noms des enfants, les reçus et les rapports sont en arabe, et chaque parent ou employé choisit sa langue entre l'arabe, l'anglais et le français."
+        "a": "Rawdatik est pensée en arabe d'abord : l'interface de droite à gauche a été conçue ainsi dès le départ, ce n'est pas une traduction retournée. Les noms des enfants, les reçus et les rapports sont en arabe, et chaque parent ou employé choisit sa langue entre l'arabe, l'anglais et le français."
       },
       "multi": {
         "q": "Je gère plusieurs structures. Puis-je toutes les réunir ?",
@@ -215,7 +215,7 @@
       },
       "mobile": {
         "q": "Faut-il installer une application depuis le store ?",
-        "a": "Non. Rawdati fonctionne directement dans le navigateur du téléphone ou de l'ordinateur, et un parent peut l'ajouter à son écran d'accueil pour qu'elle s'ouvre comme n'importe quelle application — sans mises à jour ni espace de stockage."
+        "a": "Non. Rawdatik fonctionne directement dans le navigateur du téléphone ou de l'ordinateur, et un parent peut l'ajouter à son écran d'accueil pour qu'elle s'ouvre comme n'importe quelle application — sans mises à jour ni espace de stockage."
       },
       "migrate": {
         "q": "Mes données sont dans des cahiers et des fichiers Excel. Comment les transférer ?",
@@ -238,7 +238,7 @@
     "columns": {
       "features": "Fonctionnalités",
       "solutions": "Solutions",
-      "why": "Pourquoi Rawdati"
+      "why": "Pourquoi Rawdatik"
     },
     "links": {
       "enrollment": "Inscriptions en ligne",
@@ -255,10 +255,10 @@
       "families": "Pour les parents"
     },
     "contact": "Nous contacter",
-    "email": "contact@rawdati.dz",
+    "email": "contact@rawdatik.com",
     "terms": "Conditions d'utilisation",
     "privacy": "Politique de confidentialité",
-    "copyright": "© 2026 Rawdati · Jijel, Algérie",
+    "copyright": "© 2026 Rawdatik · Jijel, Algérie",
     "parentsCta": "Espace parents — se connecter"
   }
 }

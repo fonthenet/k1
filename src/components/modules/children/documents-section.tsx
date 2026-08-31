@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { ExternalLink, FileText, Trash2, Upload } from "lucide-react";
+import { FileText, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -175,39 +176,64 @@ export function DocumentsSection({
             {documents.map((d) => (
               <div
                 key={d.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-muted/40"
+                className="group/doc flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-muted/40"
               >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <FileText className="size-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate font-semibold">{d.title}</span>
-                      <Badge variant="secondary">
-                        {t(
-                          `documents.types.${
-                            (DOC_TYPES as readonly string[]).includes(d.doc_type)
-                              ? d.doc_type
-                              : "other"
-                          }`
-                        )}
-                      </Badge>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {t("documents.addedOn", { date: formatDate(d.created_at, locale) })}
-                    </div>
-                  </div>
-                </div>
+                {/* The row already lit up on hover but only the small "Open"
+                    button actually opened anything, so the obvious target — the
+                    document's own name — did nothing. The whole left block is
+                    the link now; the buttons stay outside it, because a
+                    full-row overlay would swallow the delete. A document whose
+                    signed URL failed to mint stays inert rather than becoming a
+                    dead link. */}
+                {(() => {
+                  const inner = (
+                    <>
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <FileText className="size-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={cn(
+                              "truncate font-semibold",
+                              d.url &&
+                                "text-primary group-hover/doc:underline group-hover/doc:underline-offset-4"
+                            )}
+                          >
+                            {d.title}
+                          </span>
+                          <Badge variant="secondary">
+                            {t(
+                              `documents.types.${
+                                (DOC_TYPES as readonly string[]).includes(d.doc_type)
+                                  ? d.doc_type
+                                  : "other"
+                              }`
+                            )}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {t("documents.addedOn", { date: formatDate(d.created_at, locale) })}
+                        </div>
+                      </div>
+                    </>
+                  );
+                  return d.url ? (
+                    <a
+                      href={d.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                    >
+                      {inner}
+                    </a>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 items-center gap-3">{inner}</div>
+                  );
+                })()}
+                {/* No "Open" button: the row itself is the link now, and two
+                    controls for one action is how a row starts looking busy. */}
                 <div className="flex items-center gap-1">
-                  {d.url && (
-                    <Button variant="ghost" size="sm" asChild>
-                      <a href={d.url} target="_blank" rel="noreferrer">
-                        <ExternalLink data-icon="inline-start" />
-                        {t("documents.view")}
-                      </a>
-                    </Button>
-                  )}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon-sm" aria-label={tc("actions.delete")}>

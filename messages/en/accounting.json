@@ -125,7 +125,7 @@
     "kind": "Kind",
     "color": "Color",
     "system": "System",
-    "systemHint": "System categories are created by Rawdati and cannot be deleted.",
+    "systemHint": "System categories are created by Rawdatik and cannot be deleted.",
     "empty": "No categories",
     "deleteTitle": "Delete this category?",
     "deleteDesc": "Existing \"{name}\" transactions will stay in the ledger, uncategorized.",
@@ -310,5 +310,6 @@
     "periodUnknown": "Period unavailable",
     "subtitle": "Your payslips and your advances",
     "title": "My pay"
-  }
+  },
+  "allMonths": "All months"
 }

@@ -127,6 +127,10 @@
     "advance_requested": {
       "body": "{name} has asked for a salary advance.",
       "title": "Advance requested — {amount}"
+    },
+    "event": {
+      "title": "{name}",
+      "body": "{date} · {time} · {className} · {description}"
     }
   },
   "push": {

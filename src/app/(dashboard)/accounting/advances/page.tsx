@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { BadgeCheck, HandCoins, Hourglass, TriangleAlert, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { formatDate, formatDZD } from "@/lib/format";
+import { formatDZD, formatDate, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -92,7 +92,7 @@ export default async function AdvancesPage({
   const supabase = await createClient();
   const [t, locale] = await Promise.all([getTranslations("accounting"), getLocale()]);
   const tid = ctx.tenant.id;
-  const collator = new Intl.Collator(locale === "ar" ? "ar-DZ" : "fr-DZ");
+  const collator = new Intl.Collator(intlLocale(locale));
 
   const [memberRes, advanceRes] = await Promise.all([
     // Every staff membership, not just the active ones: a member who has left can still

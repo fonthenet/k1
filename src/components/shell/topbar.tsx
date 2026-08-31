@@ -31,7 +31,7 @@ export function Topbar({
   title?: string;
   /** Saves the bell a session round-trip; it falls back to auth.getUser(). */
   userId?: string;
-  /** Runs Rawdati as a business. Almost nobody; the entry is hidden otherwise. */
+  /** Runs Rawdatik as a business. Almost nobody; the entry is hidden otherwise. */
   isPlatformAdmin?: boolean;
   /** For the mobile drawer, which is the only navigation below `md`. */
   role: KgRole;

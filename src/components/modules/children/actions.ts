@@ -402,11 +402,28 @@ const guardianSchema = z.object({
   workplace: optionalText,
 });
 
+/**
+ * What `addGuardian` returns when the number typed already belongs to someone.
+ *
+ * Approval has deduped by normalised phone since 0017 — a family who applies is
+ * matched to their existing record rather than duplicated. Typing a parent in
+ * by hand had no such check, so the same person could be created twice, and the
+ * second copy is the one with no portal account, no claim code and no history.
+ * Every unlinked guardian in production got there by this path.
+ */
+export type AddGuardianResult =
+  | { ok: true; id: string }
+  | { ok: false; error: "invalid" | "duplicate" | "forbidden" | "error" }
+  | { ok: false; error: "existingPhone"; match: { id: string; name: string } };
+
 export async function addGuardian(
   childId: string,
   guardian: z.input<typeof guardianSchema>,
-  flags: z.input<typeof guardianFlagsSchema>
-): Promise<ActionResult> {
+  flags: z.input<typeof guardianFlagsSchema>,
+  /** Set once the office has seen the match and chosen to create anyway —
+   *  two siblings' parents really can share a household number. */
+  force = false
+): Promise<AddGuardianResult> {
   const ctx = await requireStaff();
   if (!z.uuid().safeParse(childId).success) return { ok: false, error: "invalid" };
   const g = guardianSchema.safeParse(guardian);
@@ -414,6 +431,30 @@ export async function addGuardian(
   if (!g.success || !f.success) return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
+
+  // Same rule the approval path uses: compare digits only, because a number is
+  // written +213, 0550 and 0550 12 34 56 by three different people.
+  if (!force) {
+    const digits = g.data.phone.replace(/\D/g, "");
+    if (digits.length > 0) {
+      const { data: existing } = await supabase
+        .from("kg_guardians")
+        .select("id, first_name, last_name, phone")
+        .eq("tenant_id", ctx.tenant.id);
+      const hit = (existing ?? []).find(
+        (row: { phone: string | null }) =>
+          (row.phone ?? "").replace(/\D/g, "") === digits
+      ) as { id: string; first_name: string; last_name: string } | undefined;
+      if (hit) {
+        return {
+          ok: false,
+          error: "existingPhone",
+          match: { id: hit.id, name: `${hit.first_name} ${hit.last_name}`.trim() },
+        };
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from("kg_guardians")
     .insert({
@@ -432,7 +473,12 @@ export async function addGuardian(
     })
     .select("id")
     .single();
-  if (error) return mapDbError(error);
+  // mapDbError only ever returns a failure; narrowing keeps this function's
+  // richer result type honest rather than widening it back to ActionResult.
+  if (error) {
+    const mapped = mapDbError(error);
+    return mapped.ok ? { ok: false, error: "error" } : mapped;
+  }
 
   const { error: linkErr } = await supabase.from("kg_child_guardians").insert({
     child_id: childId,
@@ -441,7 +487,10 @@ export async function addGuardian(
     can_pickup: f.data.canPickup,
     is_financial: f.data.isFinancial,
   });
-  if (linkErr) return mapDbError(linkErr);
+  if (linkErr) {
+    const mapped = mapDbError(linkErr);
+    return mapped.ok ? { ok: false, error: "error" } : mapped;
+  }
   revalidateChild(childId);
   return { ok: true, id: data.id };
 }
@@ -771,6 +820,33 @@ export async function setConsent(
 export type ClaimResult =
   | { ok: true; code: string }
   | { ok: false; error: "invalid" | "forbidden" | "alreadyLinked" | "error" };
+
+/**
+ * Withdraws an unclaimed invite without minting a replacement.
+ *
+ * Re-issuing already supersedes an old code, but that is not the same action:
+ * "this parent should no longer be able to join" had no button at all, so the
+ * only way to stop a code that had gone to the wrong person was to issue
+ * another one and never use it. RLS on kg_guardian_claims is `kg_is_admin` for
+ * ALL commands, so the delete is authorized by the database as well as here.
+ */
+export async function cancelGuardianClaim(guardianId: string): Promise<ActionResult> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(guardianId).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("kg_guardian_claims")
+    .delete()
+    .eq("guardian_id", guardianId)
+    .eq("tenant_id", ctx.tenant.id)
+    .is("claimed_at", null);
+  if (error) return { ok: false, error: "error" };
+
+  revalidatePath("/children", "layout");
+  return { ok: true };
+}
 
 /** Mints a single-use code for one guardian. Admin-only, enforced in SQL too. */
 export async function issueGuardianClaim(guardianId: string): Promise<ClaimResult> {

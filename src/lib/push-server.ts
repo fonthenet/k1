@@ -60,7 +60,7 @@ function configure(): boolean {
   const priv = process.env.VAPID_PRIVATE_KEY;
   if (!pub || !priv) return false;
   if (!configured) {
-    webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:contact@rawdati.dz", pub, priv);
+    webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:contact@rawdatik.com", pub, priv);
     configured = true;
   }
   return true;

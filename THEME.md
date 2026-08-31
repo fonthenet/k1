@@ -1,4 +1,4 @@
-# Rawdati Theme — "Algiers" (emerald + gold)
+# Rawdatik Theme — "Algiers" (emerald + gold)
 
 ONE palette, defined once in `src/app/globals.css`. Every surface consumes tokens.
 **Never hardcode a Tailwind palette colour** (`bg-indigo-600`, `text-amber-500`, `from-violet-500`…).

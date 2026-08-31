@@ -97,8 +97,11 @@ type AnnouncementRow = {
 type EventRow = {
   id: string;
   title: string;
+  description: string | null;
   start_at: string;
   end_at: string | null;
+  audience: Audience;
+  class_id: string | null;
 };
 
 type HolidayRow = {
@@ -178,14 +181,19 @@ export default async function PortalHomePage() {
         .lte("publish_at", nowIso)
         .order("publish_at", { ascending: false })
         .limit(5),
+      // Class events were dropped here by `.in("audience", ["all","parents"])`,
+      // so a trip organised for a child's own class was invisible to their
+      // parent — the opposite failure to the RLS one, and it hid exactly the
+      // events that matter most. The audience filter now happens below, against
+      // the parent's own classes, the same way `pinned` already does it.
+      // Limit raised because class rows now compete for the same slots.
       supabase
         .from("kg_events")
-        .select("id, title, start_at, end_at")
+        .select("id, title, description, start_at, end_at, audience, class_id")
         .eq("tenant_id", ctx.tenant.id)
-        .in("audience", ["all", "parents"])
         .gte("start_at", `${today}T00:00:00+01:00`)
         .order("start_at")
-        .limit(5),
+        .limit(12),
       supabase
         .from("kg_holidays")
         .select("id, date, end_date, name, name_ar, tentative")
@@ -228,7 +236,41 @@ export default async function PortalHomePage() {
       (a.audience === "class" && !!a.class_id && myClassIds.has(a.class_id))
   );
 
-  const events = (eventsRes.data ?? []) as EventRow[];
+  // RLS already refuses another class's events (0089); this keeps the page
+  // honest on its own terms rather than trusting the database to have been
+  // migrated, and drops staff-audience rows for a parent who is also staff.
+  // Which class an event belongs to, in the reader's language. Built from the
+  // children already loaded — a parent only ever sees their own classes' events,
+  // so their own children are a complete source and this costs no query.
+  const classLabelById = new Map<string, string>();
+  for (const c of children) {
+    const label = classLabel(c, locale);
+    if (c.class_id && label) classLabelById.set(c.class_id, label);
+  }
+
+  // "Coming up" starts from NOW, not from midnight — but an event is judged by
+  // when it ENDS, not when it starts. A trip running 09:00–13:15 is still the
+  // thing happening to your child at noon; one that finished at 10:00 is not.
+  //
+  // Filtering on start_at alone gave both wrong answers at once: this morning's
+  // finished visits sat under "Coming up" hours after they were over, while an
+  // all-day outing would have vanished the moment it began. The finished ones
+  // were also, confusingly, events that had notified nobody precisely BECAUSE
+  // they had already started.
+  // Reuses the timestamp this render already took for the announcements query,
+  // rather than reading the clock a second time — one render, one "now".
+  const nowMs = Date.parse(nowIso);
+  const stillRelevant = (e: EventRow) => Date.parse(e.end_at ?? e.start_at) >= nowMs;
+
+  const events = ((eventsRes.data ?? []) as EventRow[])
+    .filter(
+      (e) =>
+        e.audience === "all" ||
+        e.audience === "parents" ||
+        (e.audience === "class" && !!e.class_id && myClassIds.has(e.class_id))
+    )
+    .filter(stillRelevant)
+    .slice(0, 5);
   const holidays = (holidaysRes.data ?? []) as HolidayRow[];
 
   const childName = (id: string): string => {
@@ -593,10 +635,31 @@ export default async function PortalHomePage() {
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <CalendarDays className="size-4" />
                   </span>
-                  <span className="min-w-0 flex-1 truncate font-medium">{event.title}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{event.title}</span>
+                    {/* Which child this concerns. A guardian with children in two
+                        classes cannot tell two trips apart without it. */}
+                    {event.audience === "class" && event.class_id && (
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {classLabelById.get(event.class_id) ?? ""}
+                      </span>
+                    )}
+                    {/* What it actually is. Staff type this into the event and
+                        it reached the family nowhere at all. */}
+                    {event.description && (
+                      <span className="mt-0.5 block text-xs leading-relaxed text-pretty text-muted-foreground">
+                        {event.description}
+                      </span>
+                    )}
+                  </span>
                   <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {formatDate(event.start_at, locale, { weekday: "short" })} ·{" "}
-                    {formatTime(event.start_at, locale)}
+                    {formatDate(event.start_at, locale, { weekday: "short" })}
+                    {" · "}
+                    {/* Both ends when the event has one: "drop off at 09:00" and
+                        "collect at 13:15" are two different questions. */}
+                    {event.end_at
+                      ? `${formatTime(event.start_at, locale)} – ${formatTime(event.end_at, locale)}`
+                      : formatTime(event.start_at, locale)}
                   </span>
                 </div>
               ))}
