@@ -12,6 +12,24 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // The media kit is a static page in public/, deliberately UNLISTED: nothing
+  // on the site links to it. The rewrite is only so the URL is /media-kit
+  // rather than /media-kit.html — it is handed to a rep or a print shop by
+  // hand, and a clean one survives being read down a phone.
+  //
+  // The page carries a noindex meta; the header repeats it because a crawler
+  // fetching the file directly may never parse the document.
+  async rewrites() {
+    return [{ source: "/media-kit", destination: "/media-kit.html" }];
+  },
+  async headers() {
+    return [
+      {
+        source: "/media-kit:path(.*)",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "qekibejzwpphzzyqigzo.supabase.co" },

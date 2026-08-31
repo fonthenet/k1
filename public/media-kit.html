@@ -1,0 +1,1777 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  UNLISTED, NOT SECRET. Nothing on the site links here and the page asks not
+  to be indexed, but the URL is guessable and the repository is public, so
+  this must never carry anything that would matter if a competitor read it.
+  It holds prices that are already on the pricing page, and print
+  instructions. Keep it that way.
+-->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="description" content="Rawdatik — kit média : formats à imprimer et visuels pour le téléphone.">
+<title>Rawdatik Media Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Cairo:wght@400;600;800;900&family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   RAWDATIK — MEDIA KIT
+   Print + digital sales assets for Algerian crèches.
+
+   COMMITTED LIGHT. This is print material: it is going onto paper, and
+   the screen view is a proof of what the paper will look like. So there
+   is no dark variant — every colour is painted explicitly and the body
+   background is set from a token, so the page holds its own ground
+   whatever theme the viewer is in. That is a decision, not an omission.
+
+   The palette is NOT invented. It is lifted from the product's own
+   globals.css (oklch there, converted to hex here so a print shop gets
+   predictable ink) — a director who sees the flyer and then the app
+   should recognise the second from the first.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* — brand, from src/app/globals.css — */
+  --teal:       #19819A;   /* --primary                                  */
+  --teal-deep:  #006F8F;   /* --brand-from, for large type and rules      */
+  --teal-mid:   #008DA1;   /* --brand-via                                 */
+  --teal-lift:  #31B7BC;   /* --brand-to, gradient tail only              */
+  --teal-mist:  #EAF4F6;   /* pale ground                                 */
+  --teal-veil:  #F4F9FA;   /* paler ground                                */
+
+  /* Gold is the ACCENT AND IS SPENT ONCE PER PIECE — on the price or on
+     the call to action, never both. Repeating it makes neither loud.    */
+  --gold:       #EDAC2B;
+  --gold-ink:   #895909;   /* text on gold tints, ~5:1                    */
+  --gold-veil:  #FFF6E2;
+
+  /* Neutrals carry a teal bias so they read as chosen, not inherited.   */
+  --ink:        #12303A;
+  --ink-mid:    #3E5964;
+  --ink-soft:   #6A828C;
+  --rule:       #D3E3E7;
+  --rule-soft:  #E8F0F2;
+  --paper:      #FFFFFF;
+  --room:       #EEF4F6;   /* the surround the sheets sit on             */
+
+  --ar: "Cairo", "Noto Naskh Arabic", system-ui, sans-serif;
+  --display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--room);
+  color: var(--ink);
+  font-family: var(--body);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ── screen-only guidance ─────────────────────────────────────────── */
+.guide {
+  max-width: 210mm; margin: 0 auto; padding: 28px 22px 6px;
+}
+.guide h1 {
+  font-family: var(--display); font-size: 2rem; font-weight: 800;
+  letter-spacing: -.02em; margin: 0 0 .3rem; color: var(--teal-deep);
+  text-wrap: balance;
+}
+.guide .sub { margin: 0 0 1.4rem; color: var(--ink-mid); font-size: .98rem; line-height: 1.65; }
+.guide h2 {
+  font-family: var(--display); font-size: 1.05rem; font-weight: 700;
+  margin: 1.6rem 0 .5rem; color: var(--ink);
+}
+.guide p, .guide li { font-size: .92rem; line-height: 1.75; color: var(--ink-mid); }
+.guide ol, .guide ul { margin: .3rem 0 .9rem; padding-inline-start: 1.15rem; }
+.guide code {
+  font-family: ui-monospace, Menlo, monospace; font-size: .85em;
+  background: var(--teal-mist); color: var(--teal-deep);
+  padding: .1em .4em; border-radius: 4px;
+}
+.printbtn {
+  font: 600 .92rem var(--body); cursor: pointer;
+  background: var(--teal); color: #fff; border: 0;
+  padding: .7rem 1.4rem; border-radius: 8px; margin-top: .5rem;
+}
+.printbtn:hover { background: var(--teal-deep); }
+
+.legend {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px; margin: 1rem 0 .4rem;
+}
+.legend div {
+  background: var(--paper); border: 1px solid var(--rule-soft);
+  border-radius: 9px; padding: 9px 11px;
+}
+.legend b { display: block; font-size: .82rem; color: var(--teal-deep); }
+.legend span { font-size: .74rem; color: var(--ink-soft); line-height: 1.5; }
+
+/* ── sheet: one A4 page, the unit a print shop runs ───────────────── */
+.sheetlabel {
+  max-width: 210mm; margin: 30px auto 6px; padding: 0 2px;
+  font-size: .78rem; font-weight: 600; color: var(--ink-soft);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.sheet {
+  width: 210mm; min-height: 297mm; margin: 0 auto 18px;
+  background: var(--paper); position: relative; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(18,48,58,.10), 0 10px 30px rgba(18,48,58,.07);
+}
+.sheet.a3 { width: 297mm; min-height: 420mm; }
+
+/* Corner cut marks — hairlines outside the trim, the way a printer
+   expects them, rather than a row of scissors emoji. */
+.trim { position: absolute; inset: 0; pointer-events: none; }
+.trim i {
+  position: absolute; background: #9FBAC2;
+}
+.trim i.h { height: .2mm; width: 4mm; }
+.trim i.v { width: .2mm; height: 4mm; }
+
+.foldline {
+  position: absolute; left: 0; right: 0; height: 0;
+  border-top: .2mm dashed #BDD2D8;
+}
+
+/* ═══ shared piece furniture ══════════════════════════════════════ */
+.mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--teal); color: #fff; font-family: var(--ar);
+  font-weight: 900; border-radius: 26%; flex: 0 0 auto;
+}
+.wordmark { font-family: var(--ar); font-weight: 900; letter-spacing: -.01em; color: var(--ink); }
+.wordmark-lat { font-family: var(--display); font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+
+/* The trilingual signal: three script samples of the SAME word, which
+   demonstrates the feature instead of asserting it. */
+.trilingual {
+  display: inline-flex; align-items: center; gap: .5em;
+  font-size: .72rem; color: var(--ink-soft); font-weight: 600;
+}
+.trilingual b {
+  font-weight: 700; color: var(--teal-deep);
+  padding: .15em .5em; border-radius: 999px; background: var(--teal-mist);
+}
+
+.price-amt {
+  font-family: var(--display); font-weight: 800; direction: ltr;
+  font-variant-numeric: tabular-nums; color: var(--gold-ink);
+}
+.url {
+  font-family: var(--display); font-weight: 700; direction: ltr;
+  color: var(--teal-deep); letter-spacing: -.01em;
+}
+
+.qr-slot {
+  border: .35mm dashed var(--rule); border-radius: 2mm;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; color: #93AEB6; font-size: 2.4mm; line-height: 1.35;
+  padding: 1.5mm; flex: 0 0 auto;
+}
+
+/* RTL / LTR pieces sit side by side in one document, so direction is
+   set per piece and never on the body. */
+[dir="rtl"] { font-family: var(--ar); }
+
+/* ═══ digital assets — screen only, exact pixel sizes ═════════════ */
+.digital-wrap { max-width: 1180px; margin: 0 auto; padding: 10px 22px 60px; }
+.asset-head {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  margin: 30px 0 8px;
+}
+.asset-head b { font-family: var(--display); font-size: 1rem; color: var(--ink); }
+.asset-head span { font-size: .8rem; color: var(--ink-soft); }
+.asset-head em {
+  font-style: normal; font-size: .72rem; font-weight: 600;
+  background: var(--teal-mist); color: var(--teal-deep);
+  padding: .16em .55em; border-radius: 999px;
+}
+/* Shown scaled to fit the page, but the asset itself is authored at its
+   true export size, so a screenshot at 1:1 is the deliverable. */
+.scaler { transform-origin: top left; }
+.asset {
+  background: var(--paper); overflow: hidden; position: relative;
+  box-shadow: 0 1px 3px rgba(18,48,58,.10), 0 8px 26px rgba(18,48,58,.08);
+}
+
+@media print {
+  body { background: #fff; }
+  .guide, .sheetlabel, .digital-wrap, .digital-title { display: none !important; }
+  .sheet { box-shadow: none; margin: 0; break-after: page; }
+  .sheet:last-of-type { break-after: auto; }
+  @page { size: A4 portrait; margin: 0; }
+}
+
+/* ── phone number lockup ──────────────────────────────────────────
+   Grouping is 0XXX XX XX XX — the Algerian mobile shape, and exactly
+   what formatPhone() in src/lib/format.ts renders (4-digit head, then
+   pairs). The flyer and the app must not print a number differently. */
+.phone {
+  display: inline-flex; align-items: center; gap: .55em;
+  direction: ltr; font-weight: 700; color: var(--teal-deep);
+  font-variant-numeric: tabular-nums; letter-spacing: .01em;
+}
+.phone svg { width: 1.05em; height: 1.05em; flex: 0 0 auto; fill: #25A366; }
+.phone .num { white-space: nowrap; }
+
+/* ═══ brand mark ══════════════════════════════════════════════════
+   The seedling from src/components/landing/wordmark.tsx, not a letter
+   I invented. روضة means garden, so the mark is a sprout: two leaves
+   off one stem under a sun. It carries no script, which is the point
+   for a product sold in three languages.
+
+   Tile geometry copied from the app: size-10 rounded-xl computes to a
+   40px box with a 19.6px radius — 49%, a squircle that reads round.
+   Gradient is --brand-from → --brand-via → --brand-to, to bottom-right. */
+.mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(to bottom right, #006F8F 0%, #008DA1 52%, #31B7BC 100%);
+  color: #fff; flex: 0 0 auto; border-radius: 49%;
+}
+.mark svg { width: 56%; height: 56%; display: block; }
+
+/* Bilingual lockup, stacked the way the app stacks it: Arabic name over
+   the Latin transliteration, in EVERY locale. The app's own comment is
+   explicit that this is Arabic-first by design and not by fallback, so
+   the French and English sheets keep the same order. */
+.lockup { display: flex; flex-direction: column; justify-content: center; line-height: 1; }
+.lockup .ar {
+  font-family: var(--ar); font-weight: 800; color: var(--ink); letter-spacing: -.01em;
+}
+.lockup .lat {
+  font-family: var(--body); font-weight: 700; color: var(--ink-soft);
+  text-transform: uppercase; letter-spacing: .24em;
+}
+</style>
+</head>
+<body>
+
+
+<div class="guide">
+  <h1>Rawdatik — kit média</h1>
+  <p class="sub">
+    Tout ce qu'il faut pour vendre Rawdatik en Algérie : six formats à imprimer et
+    six visuels pour le téléphone. Les pièces sont trilingues — arabe, français,
+    anglais — parce que le produit l'est. المجموعة ثلاثية اللغة، لأن البرنامج كذلك.
+  </p>
+
+  <div class="legend">
+    <div><b>Carte de visite · 85 × 55</b><span>10 par feuille A4. La pièce qu'on laisse toujours.</span></div>
+    <div><b>Tract DL · 99 × 210</b><span>2 par feuille. Boîte aux lettres, comptoir.</span></div>
+    <div><b>Handout A6 · 105 × 148</b><span>4 par feuille. À donner à la porte.</span></div>
+    <div><b>Flyer A5 · 210 × 148,5</b><span>2 par feuille, recto-verso. Le vrai argumentaire.</span></div>
+    <div><b>Fiche A4 · 210 × 297</b><span>FR, AR, EN. À laisser à la directrice.</span></div>
+    <div><b>Affiche · A4 → A3</b><span>Panneau d'affichage. Agrandir à 141 %.</span></div>
+  </div>
+
+  <h2>Imprimer</h2>
+  <ol>
+    <li>Format <b>A4</b>, marges <b>aucune</b>, et cochez <b>Imprimer les couleurs et images d'arrière-plan</b> — sans cette case, les aplats sortent blancs.</li>
+    <li>Papier <b>170 g</b> pour les cartes et l'affiche, <b>120–150 g</b> pour le reste. Les couleurs restent lisibles sur papier ordinaire.</li>
+    <li>Les feuilles recto-verso sont marquées : choisissez <b>retournement sur le bord court</b>.</li>
+    <li>Les traits d'angle gris sont les repères de coupe. Le massicot du magasin fait le reste.</li>
+    <li>L'affiche est en A4 : demandez un agrandissement à <b>141 %</b> pour obtenir un A3.</li>
+  </ol>
+  <button class="printbtn" onclick="window.print()">Imprimer le kit</button>
+
+  <h2>Avant d'imprimer : deux choses à remplacer</h2>
+  <p>
+    Les cadres en pointillés attendent un <b>QR code</b> (pointez-le sur
+    <code>rawdatik.com</code> ou sur une démo) et votre <b>numéro de téléphone</b>.
+    Tant qu'ils sont vides, ne lancez pas un gros tirage.
+  </p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SHEET 1 — business cards, 10-up, bilingual FR/AR
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="sheetlabel">Feuille 1 — cartes de visite · 10 par A4 · 85 × 55 mm</div>
+<div class="sheet" style="padding:11mm 20mm;">
+  <div style="display:grid;grid-template-columns:85mm 85mm;grid-auto-rows:55mm;gap:0;">
+
+
+    <!-- 5 rows alternating face / dos so a single-sided print still gives
+         a usable card, and a double-sided print aligns front to back. -->
+    <div style="padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:2mm;">
+        <span class="mark" style="width:7mm;height:7mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.3em;">Rawdatik</span></span>
+      </div>
+      <div style="font-size:2.75mm;line-height:1.5;color:var(--ink-mid);">
+        Gestion de crèches et jardins d'enfants<br>
+        <span dir="rtl" style="font-family:var(--ar);">تسيير الحضانات ورياض الأطفال</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;">
+        <div>
+          <div style="font-size:3.1mm;font-weight:600;color:var(--ink);">_______________</div>
+          <div style="font-size:2.5mm;color:var(--ink-soft);margin-top:.6mm;">Nom · fonction</div>
+          <div style="margin-top:1.2mm;"><span class="phone" style="font-size:3mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+        </div>
+        <div style="text-align:end;">
+          <div class="url" style="font-size:3.3mm;">rawdatik.com</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--teal-deep);color:#fff;padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:center;gap:2.4mm;">
+      <div style="font-family:var(--ar);font-size:3.7mm;font-weight:800;line-height:1.4;" dir="rtl">
+        كل ما يجري في روضتك، في شاشة واحدة
+      </div>
+      <div style="font-family:var(--display);font-size:3.5mm;font-weight:700;line-height:1.35;">
+        Toute la crèche, sur un seul écran
+      </div>
+      <div style="font-family:var(--display);font-size:3.1mm;font-weight:600;line-height:1.35;opacity:.82;">
+        Your whole nursery, on one screen
+      </div>
+      <div style="margin-top:1mm;font-size:2.6mm;opacity:.78;letter-spacing:.02em;">
+        عربية · Français · English
+      </div>
+    </div>
+
+
+    <!-- 5 rows alternating face / dos so a single-sided print still gives
+         a usable card, and a double-sided print aligns front to back. -->
+    <div style="padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:2mm;">
+        <span class="mark" style="width:7mm;height:7mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.3em;">Rawdatik</span></span>
+      </div>
+      <div style="font-size:2.75mm;line-height:1.5;color:var(--ink-mid);">
+        Gestion de crèches et jardins d'enfants<br>
+        <span dir="rtl" style="font-family:var(--ar);">تسيير الحضانات ورياض الأطفال</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;">
+        <div>
+          <div style="font-size:3.1mm;font-weight:600;color:var(--ink);">_______________</div>
+          <div style="font-size:2.5mm;color:var(--ink-soft);margin-top:.6mm;">Nom · fonction</div>
+          <div style="margin-top:1.2mm;"><span class="phone" style="font-size:3mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+        </div>
+        <div style="text-align:end;">
+          <div class="url" style="font-size:3.3mm;">rawdatik.com</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--teal-deep);color:#fff;padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:center;gap:2.4mm;">
+      <div style="font-family:var(--ar);font-size:3.7mm;font-weight:800;line-height:1.4;" dir="rtl">
+        كل ما يجري في روضتك، في شاشة واحدة
+      </div>
+      <div style="font-family:var(--display);font-size:3.5mm;font-weight:700;line-height:1.35;">
+        Toute la crèche, sur un seul écran
+      </div>
+      <div style="font-family:var(--display);font-size:3.1mm;font-weight:600;line-height:1.35;opacity:.82;">
+        Your whole nursery, on one screen
+      </div>
+      <div style="margin-top:1mm;font-size:2.6mm;opacity:.78;letter-spacing:.02em;">
+        عربية · Français · English
+      </div>
+    </div>
+
+
+    <!-- 5 rows alternating face / dos so a single-sided print still gives
+         a usable card, and a double-sided print aligns front to back. -->
+    <div style="padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:2mm;">
+        <span class="mark" style="width:7mm;height:7mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.3em;">Rawdatik</span></span>
+      </div>
+      <div style="font-size:2.75mm;line-height:1.5;color:var(--ink-mid);">
+        Gestion de crèches et jardins d'enfants<br>
+        <span dir="rtl" style="font-family:var(--ar);">تسيير الحضانات ورياض الأطفال</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;">
+        <div>
+          <div style="font-size:3.1mm;font-weight:600;color:var(--ink);">_______________</div>
+          <div style="font-size:2.5mm;color:var(--ink-soft);margin-top:.6mm;">Nom · fonction</div>
+          <div style="margin-top:1.2mm;"><span class="phone" style="font-size:3mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+        </div>
+        <div style="text-align:end;">
+          <div class="url" style="font-size:3.3mm;">rawdatik.com</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--teal-deep);color:#fff;padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:center;gap:2.4mm;">
+      <div style="font-family:var(--ar);font-size:3.7mm;font-weight:800;line-height:1.4;" dir="rtl">
+        كل ما يجري في روضتك، في شاشة واحدة
+      </div>
+      <div style="font-family:var(--display);font-size:3.5mm;font-weight:700;line-height:1.35;">
+        Toute la crèche, sur un seul écran
+      </div>
+      <div style="font-family:var(--display);font-size:3.1mm;font-weight:600;line-height:1.35;opacity:.82;">
+        Your whole nursery, on one screen
+      </div>
+      <div style="margin-top:1mm;font-size:2.6mm;opacity:.78;letter-spacing:.02em;">
+        عربية · Français · English
+      </div>
+    </div>
+
+
+    <!-- 5 rows alternating face / dos so a single-sided print still gives
+         a usable card, and a double-sided print aligns front to back. -->
+    <div style="padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:2mm;">
+        <span class="mark" style="width:7mm;height:7mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.3em;">Rawdatik</span></span>
+      </div>
+      <div style="font-size:2.75mm;line-height:1.5;color:var(--ink-mid);">
+        Gestion de crèches et jardins d'enfants<br>
+        <span dir="rtl" style="font-family:var(--ar);">تسيير الحضانات ورياض الأطفال</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;">
+        <div>
+          <div style="font-size:3.1mm;font-weight:600;color:var(--ink);">_______________</div>
+          <div style="font-size:2.5mm;color:var(--ink-soft);margin-top:.6mm;">Nom · fonction</div>
+          <div style="margin-top:1.2mm;"><span class="phone" style="font-size:3mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+        </div>
+        <div style="text-align:end;">
+          <div class="url" style="font-size:3.3mm;">rawdatik.com</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--teal-deep);color:#fff;padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:center;gap:2.4mm;">
+      <div style="font-family:var(--ar);font-size:3.7mm;font-weight:800;line-height:1.4;" dir="rtl">
+        كل ما يجري في روضتك، في شاشة واحدة
+      </div>
+      <div style="font-family:var(--display);font-size:3.5mm;font-weight:700;line-height:1.35;">
+        Toute la crèche, sur un seul écran
+      </div>
+      <div style="font-family:var(--display);font-size:3.1mm;font-weight:600;line-height:1.35;opacity:.82;">
+        Your whole nursery, on one screen
+      </div>
+      <div style="margin-top:1mm;font-size:2.6mm;opacity:.78;letter-spacing:.02em;">
+        عربية · Français · English
+      </div>
+    </div>
+
+
+    <!-- 5 rows alternating face / dos so a single-sided print still gives
+         a usable card, and a double-sided print aligns front to back. -->
+    <div style="padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:2mm;">
+        <span class="mark" style="width:7mm;height:7mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.3em;">Rawdatik</span></span>
+      </div>
+      <div style="font-size:2.75mm;line-height:1.5;color:var(--ink-mid);">
+        Gestion de crèches et jardins d'enfants<br>
+        <span dir="rtl" style="font-family:var(--ar);">تسيير الحضانات ورياض الأطفال</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;">
+        <div>
+          <div style="font-size:3.1mm;font-weight:600;color:var(--ink);">_______________</div>
+          <div style="font-size:2.5mm;color:var(--ink-soft);margin-top:.6mm;">Nom · fonction</div>
+          <div style="margin-top:1.2mm;"><span class="phone" style="font-size:3mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+        </div>
+        <div style="text-align:end;">
+          <div class="url" style="font-size:3.3mm;">rawdatik.com</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--teal-deep);color:#fff;padding:5mm 5.5mm;border:.15mm solid #E4EEF1;display:flex;flex-direction:column;justify-content:center;gap:2.4mm;">
+      <div style="font-family:var(--ar);font-size:3.7mm;font-weight:800;line-height:1.4;" dir="rtl">
+        كل ما يجري في روضتك، في شاشة واحدة
+      </div>
+      <div style="font-family:var(--display);font-size:3.5mm;font-weight:700;line-height:1.35;">
+        Toute la crèche, sur un seul écran
+      </div>
+      <div style="font-family:var(--display);font-size:3.1mm;font-weight:600;line-height:1.35;opacity:.82;">
+        Your whole nursery, on one screen
+      </div>
+      <div style="margin-top:1mm;font-size:2.6mm;opacity:.78;letter-spacing:.02em;">
+        عربية · Français · English
+      </div>
+    </div>
+  </div>
+
+  <div class="trim">
+    <i class="h" style="left:14mm;top:11mm;"></i><i class="v" style="left:20mm;top:5mm;"></i>
+    <i class="h" style="left:14mm;top:286mm;"></i><i class="v" style="left:20mm;top:280mm;"></i>
+    <i class="h" style="right:14mm;top:11mm;"></i><i class="v" style="right:20mm;top:5mm;"></i>
+    <i class="h" style="right:14mm;top:286mm;"></i><i class="v" style="right:20mm;top:280mm;"></i>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SHEET 2 — DL tract, 2-up: one French, one Arabic.
+     The rep carries the sheet and hands over whichever language the
+     director opened the conversation in.
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="sheetlabel">Feuille 2 — tract DL · 2 par A4 · 99 × 210 mm · FR + AR</div>
+<div class="sheet" style="padding:43.5mm 6mm;">
+  <div style="display:grid;grid-template-columns:99mm 99mm;gap:0;">
+
+    <!-- ── FR ── -->
+    <div style="height:210mm;padding:9mm 8mm;border-inline-end:.15mm solid #E4EEF1;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:2.4mm;">
+        <span class="mark" style="width:8mm;height:8mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5.72mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+      </div>
+
+      <h2 style="font-family:var(--display);font-size:8.4mm;font-weight:800;line-height:1.16;
+                 letter-spacing:-.02em;margin:8mm 0 0;color:var(--ink);text-wrap:balance;">
+        Qui a payé,<br>qui est en retard,<br><span style="color:var(--teal-deep);">maintenant.</span>
+      </h2>
+      <p style="margin:4mm 0 0;font-size:3.5mm;line-height:1.72;color:var(--ink-mid);">
+        Le logiciel de gestion pour crèches et jardins d'enfants en Algérie.
+        En dinars, du dimanche au jeudi, en arabe comme en français.
+      </p>
+
+      <div style="margin-top:7mm;display:grid;gap:3.6mm;">
+        <div style="border-inline-start:.7mm solid var(--teal-lift);padding-inline-start:3mm;">
+          <b style="display:block;font-size:3.4mm;color:var(--ink);">Les impayés en tête de liste</b>
+          <span style="font-size:3.1mm;line-height:1.6;color:var(--ink-mid);">Classés du plus ancien, avec le téléphone de la famille à côté.</span>
+        </div>
+        <div style="border-inline-start:.7mm solid var(--teal-lift);padding-inline-start:3mm;">
+          <b style="display:block;font-size:3.4mm;color:var(--ink);">Les présences sans cahier</b>
+          <span style="font-size:3.1mm;line-height:1.6;color:var(--ink-mid);">Arrivées et départs pointés à l'accueil, allergies affichées au pointage.</span>
+        </div>
+        <div style="border-inline-start:.7mm solid var(--teal-lift);padding-inline-start:3mm;">
+          <b style="display:block;font-size:3.4mm;color:var(--ink);">Les parents cessent d'appeler</b>
+          <span style="font-size:3.1mm;line-height:1.6;color:var(--ink-mid);">Ils voient l'arrivée, la facture et le message de l'équipe sur leur téléphone.</span>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;padding-top:7mm;">
+        <div style="background:var(--gold-veil);border-radius:2.5mm;padding:4mm 4.5mm;">
+          <div style="font-size:2.9mm;font-weight:600;color:var(--gold-ink);">À partir de</div>
+          <div class="price-amt" style="font-size:9mm;line-height:1.05;">4 900 <span style="font-size:3.6mm;font-weight:600;">DA / mois</span></div>
+          <div style="font-size:2.9mm;color:var(--gold-ink);margin-top:.8mm;">
+            par structure — jamais par enfant. Enfants et personnel illimités.
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:3mm;margin-top:4.5mm;">
+          <div>
+            <div class="url" style="font-size:5mm;">rawdatik.com</div>
+            <div style="font-size:2.9mm;color:var(--ink-soft);margin-top:1mm;">Démonstration gratuite dans votre crèche</div>
+            <div style="font-size:2.8mm;color:var(--teal-deep);font-weight:600;margin-top:2mm;">عربية · Français · English</div>
+          </div>
+          <div class="qr-slot" style="width:19mm;height:19mm;">QR<br>WhatsApp</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AR ── -->
+    <div dir="rtl" style="height:210mm;padding:9mm 8mm;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:2.4mm;">
+        <span class="mark" style="width:8mm;height:8mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5.6mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+      </div>
+
+      <h2 style="font-family:var(--ar);font-size:8.2mm;font-weight:900;line-height:1.32;
+                 margin:8mm 0 0;color:var(--ink);">
+        تعرف من دفع ومن تأخّر،<br><span style="color:var(--teal-deep);">في هذه اللحظة.</span>
+      </h2>
+      <p style="margin:4mm 0 0;font-size:3.5mm;line-height:1.9;color:var(--ink-mid);">
+        برنامج تسيير الحضانات ورياض الأطفال في الجزائر.
+        بالدينار، ومن الأحد إلى الخميس، بالعربية كما بالفرنسية.
+      </p>
+
+      <div style="margin-top:7mm;display:grid;gap:3.6mm;">
+        <div style="border-inline-start:.7mm solid var(--teal-lift);padding-inline-start:3mm;">
+          <b style="display:block;font-size:3.4mm;color:var(--ink);">المتأخرات في أول القائمة</b>
+          <span style="font-size:3.1mm;line-height:1.85;color:var(--ink-mid);">مرتّبة من الأقدم، ورقم هاتف العائلة إلى جانبها.</span>
+        </div>
+        <div style="border-inline-start:.7mm solid var(--teal-lift);padding-inline-start:3mm;">
+          <b style="display:block;font-size:3.4mm;color:var(--ink);">الحضور دون دفتر</b>
+          <span style="font-size:3.1mm;line-height:1.85;color:var(--ink-mid);">الدخول والخروج يُسجَّلان عند الاستقبال، والحساسيات تظهر عند تسجيل الدخول.</span>
+        </div>
+        <div style="border-inline-start:.7mm solid var(--teal-lift);padding-inline-start:3mm;">
+          <b style="display:block;font-size:3.4mm;color:var(--ink);">الأولياء يكفّون عن الاتصال</b>
+          <span style="font-size:3.1mm;line-height:1.85;color:var(--ink-mid);">يرون وصول طفلهم وفاتورتهم ورسالة المربية في هواتفهم.</span>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;padding-top:7mm;">
+        <div style="background:var(--gold-veil);border-radius:2.5mm;padding:4mm 4.5mm;">
+          <div style="font-size:2.9mm;font-weight:600;color:var(--gold-ink);">ابتداءً من</div>
+          <div class="price-amt" style="font-size:9mm;line-height:1.05;">4 900 <span style="font-size:3.6mm;font-weight:600;font-family:var(--ar);">دج / شهريا</span></div>
+          <div style="font-size:2.9mm;color:var(--gold-ink);margin-top:.8mm;">
+            للمؤسسة الواحدة — لا على كل طفل. عدد غير محدود من الأطفال والموظفين.
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:3mm;margin-top:4.5mm;">
+          <div>
+            <div class="url" style="font-size:5mm;">rawdatik.com</div>
+            <div style="font-size:2.9mm;color:var(--ink-soft);margin-top:1mm;">عرض مجاني داخل روضتك</div>
+            <div style="font-size:2.8mm;color:var(--teal-deep);font-weight:600;margin-top:2mm;">عربية · Français · English</div>
+          </div>
+          <div class="qr-slot" style="width:19mm;height:19mm;">رمز<br>واتساب</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="trim">
+    <i class="h" style="left:0;top:43.5mm;"></i><i class="v" style="left:6mm;top:37.5mm;"></i>
+    <i class="h" style="left:0;top:253.5mm;"></i><i class="v" style="left:6mm;top:249.5mm;"></i>
+    <i class="h" style="right:0;top:43.5mm;"></i><i class="v" style="right:6mm;top:37.5mm;"></i>
+    <i class="h" style="right:0;top:253.5mm;"></i><i class="v" style="right:6mm;top:249.5mm;"></i>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SHEET 3 — A6 handout, 4-up (2 FR + 2 AR), 105 × 148 mm.
+     The door piece: one hand, five seconds, one number.
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="sheetlabel">Feuille 3 — handout A6 · 4 par A4 · 105 × 148 mm · 2 FR + 2 AR</div>
+<div class="sheet" style="padding:.5mm 0;">
+  <div style="display:grid;grid-template-columns:105mm 105mm;grid-auto-rows:148mm;">
+
+    <!-- FR ×2, AR ×2 -->
+    <div style="padding:9mm 9mm;border:.15mm solid #E9F1F3;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:2.2mm;">
+        <span class="mark" style="width:7.4mm;height:7.4mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5.3mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+      </div>
+      <h2 style="font-family:var(--display);font-size:7.2mm;font-weight:800;line-height:1.15;
+                 letter-spacing:-.02em;margin:6.5mm 0 0;color:var(--ink);text-wrap:balance;">
+        Votre crèche tient<br>sur un écran.
+      </h2>
+      <p style="margin:3.5mm 0 0;font-size:3.3mm;line-height:1.7;color:var(--ink-mid);">
+        Inscriptions, présences, factures en dinars et application parents.
+        En arabe, en français, en anglais.
+      </p>
+      <ul style="margin:5mm 0 0;padding:0;list-style:none;display:grid;gap:2.2mm;">
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Impayés classés du plus ancien</li>
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Pointage à l'accueil, allergies affichées</li>
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Les parents suivent depuis leur téléphone</li>
+      </ul>
+      <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;">
+        <div>
+          <div class="price-amt" style="font-size:6mm;line-height:1;">4 900 <span style="font-size:2.9mm;font-weight:600;">DA / mois</span></div>
+          <div style="font-size:2.7mm;color:var(--ink-soft);margin-top:.8mm;">par structure · sans engagement</div>
+          <div class="url" style="font-size:4.2mm;margin-top:2mm;">rawdatik.com</div>
+        </div>
+        <div class="qr-slot" style="width:16mm;height:16mm;">QR</div>
+      </div>
+    </div>
+
+    <div dir="rtl" style="padding:9mm 9mm;border:.15mm solid #E9F1F3;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:2.2mm;">
+        <span class="mark" style="width:7.4mm;height:7.4mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5.2mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+      </div>
+      <h2 style="font-family:var(--ar);font-size:7mm;font-weight:900;line-height:1.34;
+                 margin:6.5mm 0 0;color:var(--ink);">
+        روضتك كلها<br>في شاشة واحدة.
+      </h2>
+      <p style="margin:3.5mm 0 0;font-size:3.3mm;line-height:1.85;color:var(--ink-mid);">
+        التسجيل والحضور والفواتير بالدينار وتطبيق الأولياء.
+        بالعربية والفرنسية والإنجليزية.
+      </p>
+      <ul style="margin:5mm 0 0;padding:0;list-style:none;display:grid;gap:2.2mm;">
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>المتأخرات مرتّبة من الأقدم</li>
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>الحضور بالبطاقة، والحساسيات تظهر عند التسجيل</li>
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>الأولياء يتابعون من هواتفهم</li>
+      </ul>
+      <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;">
+        <div>
+          <div class="price-amt" style="font-size:6mm;line-height:1;">4 900 <span style="font-size:2.9mm;font-weight:600;font-family:var(--ar);">دج / شهريا</span></div>
+          <div style="font-size:2.7mm;color:var(--ink-soft);margin-top:.8mm;">للمؤسسة · بدون التزام</div>
+          <div class="url" style="font-size:4.2mm;margin-top:2mm;">rawdatik.com</div>
+        </div>
+        <div class="qr-slot" style="width:16mm;height:16mm;">QR</div>
+      </div>
+    </div>
+
+    <div style="padding:9mm 9mm;border:.15mm solid #E9F1F3;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:2.2mm;">
+        <span class="mark" style="width:7.4mm;height:7.4mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5.3mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+      </div>
+      <h2 style="font-family:var(--display);font-size:7.2mm;font-weight:800;line-height:1.15;
+                 letter-spacing:-.02em;margin:6.5mm 0 0;color:var(--ink);text-wrap:balance;">
+        Votre crèche tient<br>sur un écran.
+      </h2>
+      <p style="margin:3.5mm 0 0;font-size:3.3mm;line-height:1.7;color:var(--ink-mid);">
+        Inscriptions, présences, factures en dinars et application parents.
+        En arabe, en français, en anglais.
+      </p>
+      <ul style="margin:5mm 0 0;padding:0;list-style:none;display:grid;gap:2.2mm;">
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Impayés classés du plus ancien</li>
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Pointage à l'accueil, allergies affichées</li>
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Les parents suivent depuis leur téléphone</li>
+      </ul>
+      <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;">
+        <div>
+          <div class="price-amt" style="font-size:6mm;line-height:1;">4 900 <span style="font-size:2.9mm;font-weight:600;">DA / mois</span></div>
+          <div style="font-size:2.7mm;color:var(--ink-soft);margin-top:.8mm;">par structure · sans engagement</div>
+          <div class="url" style="font-size:4.2mm;margin-top:2mm;">rawdatik.com</div>
+        </div>
+        <div class="qr-slot" style="width:16mm;height:16mm;">QR</div>
+      </div>
+    </div>
+
+    <div dir="rtl" style="padding:9mm 9mm;border:.15mm solid #E9F1F3;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:2.2mm;">
+        <span class="mark" style="width:7.4mm;height:7.4mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+        <span class="lockup"><span class="ar" style="font-size:5.2mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+      </div>
+      <h2 style="font-family:var(--ar);font-size:7mm;font-weight:900;line-height:1.34;
+                 margin:6.5mm 0 0;color:var(--ink);">
+        روضتك كلها<br>في شاشة واحدة.
+      </h2>
+      <p style="margin:3.5mm 0 0;font-size:3.3mm;line-height:1.85;color:var(--ink-mid);">
+        التسجيل والحضور والفواتير بالدينار وتطبيق الأولياء.
+        بالعربية والفرنسية والإنجليزية.
+      </p>
+      <ul style="margin:5mm 0 0;padding:0;list-style:none;display:grid;gap:2.2mm;">
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>المتأخرات مرتّبة من الأقدم</li>
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>الحضور بالبطاقة، والحساسيات تظهر عند التسجيل</li>
+        <li style="font-size:3.1mm;color:var(--ink-mid);padding-inline-start:4mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>الأولياء يتابعون من هواتفهم</li>
+      </ul>
+      <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;">
+        <div>
+          <div class="price-amt" style="font-size:6mm;line-height:1;">4 900 <span style="font-size:2.9mm;font-weight:600;font-family:var(--ar);">دج / شهريا</span></div>
+          <div style="font-size:2.7mm;color:var(--ink-soft);margin-top:.8mm;">للمؤسسة · بدون التزام</div>
+          <div class="url" style="font-size:4.2mm;margin-top:2mm;">rawdatik.com</div>
+        </div>
+        <div class="qr-slot" style="width:16mm;height:16mm;">QR</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SHEET 4 — A4 one-pager, FRENCH. The leave-behind.
+     Pricing is quoted verbatim from the live site's own copy
+     (messages/fr/landingCta.json) so the paper and the web can never
+     disagree in front of a customer.
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="sheetlabel">Feuille 4 — fiche A4 · français · à laisser à la directrice</div>
+<div class="sheet" style="padding:16mm 17mm 13mm;display:flex;flex-direction:column;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:4mm;">
+    <div style="display:flex;align-items:center;gap:2.8mm;">
+      <span class="mark" style="width:9mm;height:9mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+      <span>
+        <span class="lockup"><span class="ar" style="font-size:6.36mm;">روضتك</span><span class="lat" style="font-size:1.91mm;margin-top:.28em;">Rawdatik</span></span>
+        <span style="font-size:2.9mm;color:var(--ink-soft);">Gestion de crèches et jardins d'enfants · Algérie</span>
+      </span>
+    </div>
+    <span class="trilingual" style="font-size:2.9mm;">
+      <b style="font-family:var(--ar);">عربية</b><b>Français</b><b>English</b>
+    </span>
+  </div>
+
+  <h1 style="font-family:var(--display);font-size:12mm;font-weight:800;line-height:1.1;
+             letter-spacing:-.025em;margin:9mm 0 0;color:var(--ink);text-wrap:balance;max-width:150mm;">
+    Une crèche qui se dirige<br>avec des chiffres,<br>
+    <span style="color:var(--teal-deep);">pas avec la mémoire.</span>
+  </h1>
+  <p style="margin:4.5mm 0 0;font-size:3.9mm;line-height:1.75;color:var(--ink-mid);max-width:145mm;">
+    De l'inscription à la facture, de la présence à l'application des parents.
+    En dinars, du dimanche au jeudi — et dans la langue de chacun.
+  </p>
+
+  <!-- what it does, split by who benefits -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:9mm;margin-top:9mm;">
+    <section>
+      <h3 style="font-size:3.5mm;font-weight:700;color:var(--teal-deep);margin:0 0 3mm;
+                 letter-spacing:.03em;text-transform:uppercase;">Dans la crèche</h3>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:2.4mm;">
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Pointage des arrivées et départs à l'accueil, par badge ou par code</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Les allergies de l'enfant s'affichent au moment du pointage</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Factures et paiements en dinars, espèces comprises</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Inscriptions en ligne et validation des dossiers avant la rentrée</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Comptabilité, dépenses et fiches de paie</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Menus de la semaine, avec alerte automatique sur les allergies</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Registres prêts à imprimer pour l'inspection</li>
+      </ul>
+    </section>
+    <section>
+      <h3 style="font-size:3.5mm;font-weight:700;color:var(--teal-deep);margin:0 0 3mm;
+                 letter-spacing:.03em;text-transform:uppercase;">Chez les parents</h3>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:2.4mm;">
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Si l'enfant est bien arrivé, et à quelle heure il est reparti</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Leurs factures et ce qui reste à payer, au même endroit</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Les annonces de la classe de leur enfant — et pas des autres</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Un message direct à l'équipe, sans groupe WhatsApp</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Signaler une absence depuis le téléphone</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          S'installe depuis le navigateur — aucun magasin d'applications</li>
+        <li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;">
+          <span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>
+          Chaque parent choisit sa langue : arabe, français ou anglais</li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- pricing, quoted from the site -->
+  <div style="margin-top:9mm;">
+    <h3 style="font-size:3.5mm;font-weight:700;color:var(--teal-deep);margin:0 0 1.5mm;
+               letter-spacing:.03em;text-transform:uppercase;">Un seul prix par structure</h3>
+    <p style="margin:0 0 3.5mm;font-size:3.2mm;color:var(--ink-soft);">
+      Ni par enfant, ni par employé. Enfants et personnel illimités, sans engagement. Le détail des formules est sur rawdatik.com.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3mm;">
+      <div style="border:.3mm solid var(--rule);border-radius:2.5mm;padding:4mm;">
+        <b style="font-size:3.4mm;color:var(--ink);">Essentiel</b>
+        <div class="price-amt" style="font-size:7mm;margin:1.5mm 0 .5mm;color:var(--ink);">4 900 <span style="font-size:2.9mm;font-weight:600;color:var(--ink-soft);">DA / mois</span></div>
+        <span style="font-size:2.9mm;line-height:1.55;color:var(--ink-soft);display:block;">
+          Une crèche. Vous démarrez et vous gérez au quotidien.</span>
+      </div>
+      <div style="border:.5mm solid var(--gold);background:var(--gold-veil);border-radius:2.5mm;padding:4mm;position:relative;">
+        <span style="position:absolute;top:-2.2mm;inset-inline-end:3mm;background:var(--gold);color:#3B2704;
+                     font-size:2.4mm;font-weight:700;padding:.6mm 2mm;border-radius:999px;">Le plus choisi</span>
+        <b style="font-size:3.4mm;color:var(--ink);">Pro</b>
+        <div class="price-amt" style="font-size:7mm;margin:1.5mm 0 .5mm;">9 900 <span style="font-size:2.9mm;font-weight:600;">DA / mois</span></div>
+        <span style="font-size:2.9mm;line-height:1.55;color:var(--gold-ink);display:block;">
+          Une crèche, accompagnement complet : installation, formation de l'équipe, assistance.</span>
+      </div>
+      <div style="border:.3mm solid var(--rule);border-radius:2.5mm;padding:4mm;">
+        <b style="font-size:3.4mm;color:var(--ink);">Réseau</b>
+        <div class="price-amt" style="font-size:7mm;margin:1.5mm 0 .5mm;color:var(--ink);">19 900 <span style="font-size:2.9mm;font-weight:600;color:var(--ink-soft);">DA / mois</span></div>
+        <span style="font-size:2.9mm;line-height:1.55;color:var(--ink-soft);display:block;">
+          Plusieurs crèches sous une même direction, chacune avec ses propres comptes.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- start -->
+  <div style="margin-top:8mm;background:var(--teal-veil);border-radius:2.5mm;padding:5mm 5.5mm;">
+    <b style="font-size:3.5mm;color:var(--ink);">Comment ça commence</b>
+    <ol style="margin:2.5mm 0 0;padding-inline-start:5mm;font-size:3.2mm;line-height:1.75;color:var(--ink-mid);">
+      <li>Nous ouvrons votre compte et réglons vos classes et vos tarifs avec vous.</li>
+      <li>Nous saisissons vos listes d'enfants et de parents avec vous — c'est offert à l'ouverture.</li>
+      <li>Vous invitez les parents par un lien, et vous travaillez dès le lendemain.</li>
+    </ol>
+  </div>
+
+  <div style="margin-top:auto;padding-top:7mm;display:flex;align-items:flex-end;justify-content:space-between;gap:5mm;">
+    <div>
+      <div class="url" style="font-size:6.4mm;">rawdatik.com</div>
+      <div style="font-size:3.1mm;color:var(--ink-soft);margin-top:1.2mm;">
+        Appelez-nous pour une démonstration gratuite, dans votre crèche.
+      </div>
+      <div style="margin-top:2mm;"><span class="phone" style="font-size:3.6mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+    </div>
+    <div class="qr-slot" style="width:24mm;height:24mm;">QR vers<br>WhatsApp</div>
+  </div>
+</div>
+
+<div class="sheetlabel">Feuille 5 — flyer A5 FRANÇAIS · RECTO · 2 par A4 · 210 × 148,5 mm</div>
+<div class="sheet">
+    <div style="height:148.5mm;padding:11mm 13mm;display:flex;flex-direction:column;border-bottom:.15mm solid #E9F1F3;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:4mm;">
+        <div style="display:flex;align-items:center;gap:2.6mm;">
+          <span class="mark" style="width:8.4mm;height:8.4mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+          <span class="lockup"><span class="ar" style="font-size:5.94mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+        </div>
+        <span class="trilingual" style="font-size:2.7mm;">
+          <b style="font-family:var(--ar);">عربية</b><b>Français</b><b>English</b>
+        </span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:10mm;margin-top:8mm;flex:1;">
+        <div style="display:flex;flex-direction:column;">
+          <h2 style="font-family:var(--display);font-size:9.6mm;font-weight:800;line-height:1.12;
+                     letter-spacing:-.025em;margin:0;color:var(--ink);text-wrap:balance;">
+            Qui a payé.<br>Qui doit encore.<br>
+            <span style="color:var(--teal-deep);">Sur un seul écran.</span>
+          </h2>
+          <p style="margin:4mm 0 0;font-size:3.5mm;line-height:1.72;color:var(--ink-mid);">
+            Le pointage, les paiements, la comptabilité, les registres et les parents
+            de votre crèche, dans un seul outil.
+          </p>
+          <div style="margin-top:auto;padding-top:5mm;">
+            <div class="url" style="font-size:5.6mm;">rawdatik.com</div>
+            <div style="font-size:2.9mm;color:var(--ink-soft);margin-top:1mm;">
+              Démonstration gratuite, chez vous, dans votre crèche.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:3.4mm;">
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">Vous savez où en est l'argent</b>
+            <span style="font-size:3mm;line-height:1.6;color:var(--ink-mid);">
+              Les impayés commencent par la dette la plus ancienne, avec le nom et le numéro de la famille.</span>
+          </div>
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">Le pointage se fait à la porte</b>
+            <span style="font-size:3mm;line-height:1.6;color:var(--ink-mid);">
+              Badge ou code au comptoir. Les allergies de l'enfant s'affichent au pointage.</span>
+          </div>
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">Les parents suivent, dans leur langue</b>
+            <span style="font-size:3mm;line-height:1.6;color:var(--ink-mid);">
+              Arrivée, départ, factures, annonces de sa classe. Arabe, français ou anglais.</span>
+          </div>
+          <div style="margin-top:auto;background:var(--gold-veil);border-radius:2.5mm;padding:3.4mm 4mm;
+                      display:flex;align-items:baseline;justify-content:space-between;gap:2mm;">
+            <span style="font-size:2.9mm;font-weight:600;color:var(--gold-ink);">À partir de</span>
+            <span class="price-amt" style="font-size:6.4mm;">4 900 <span style="font-size:2.9mm;font-weight:600;">DA / mois</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:148.5mm;padding:11mm 13mm;display:flex;flex-direction:column;border-bottom:.15mm solid #E9F1F3;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:4mm;">
+        <div style="display:flex;align-items:center;gap:2.6mm;">
+          <span class="mark" style="width:8.4mm;height:8.4mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+          <span class="lockup"><span class="ar" style="font-size:5.94mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+        </div>
+        <span class="trilingual" style="font-size:2.7mm;">
+          <b style="font-family:var(--ar);">عربية</b><b>Français</b><b>English</b>
+        </span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:10mm;margin-top:8mm;flex:1;">
+        <div style="display:flex;flex-direction:column;">
+          <h2 style="font-family:var(--display);font-size:9.6mm;font-weight:800;line-height:1.12;
+                     letter-spacing:-.025em;margin:0;color:var(--ink);text-wrap:balance;">
+            Qui a payé.<br>Qui doit encore.<br>
+            <span style="color:var(--teal-deep);">Sur un seul écran.</span>
+          </h2>
+          <p style="margin:4mm 0 0;font-size:3.5mm;line-height:1.72;color:var(--ink-mid);">
+            Le pointage, les paiements, la comptabilité, les registres et les parents
+            de votre crèche, dans un seul outil.
+          </p>
+          <div style="margin-top:auto;padding-top:5mm;">
+            <div class="url" style="font-size:5.6mm;">rawdatik.com</div>
+            <div style="font-size:2.9mm;color:var(--ink-soft);margin-top:1mm;">
+              Démonstration gratuite, chez vous, dans votre crèche.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:3.4mm;">
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">Vous savez où en est l'argent</b>
+            <span style="font-size:3mm;line-height:1.6;color:var(--ink-mid);">
+              Les impayés commencent par la dette la plus ancienne, avec le nom et le numéro de la famille.</span>
+          </div>
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">Le pointage se fait à la porte</b>
+            <span style="font-size:3mm;line-height:1.6;color:var(--ink-mid);">
+              Badge ou code au comptoir. Les allergies de l'enfant s'affichent au pointage.</span>
+          </div>
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">Les parents suivent, dans leur langue</b>
+            <span style="font-size:3mm;line-height:1.6;color:var(--ink-mid);">
+              Arrivée, départ, factures, annonces de sa classe. Arabe, français ou anglais.</span>
+          </div>
+          <div style="margin-top:auto;background:var(--gold-veil);border-radius:2.5mm;padding:3.4mm 4mm;
+                      display:flex;align-items:baseline;justify-content:space-between;gap:2mm;">
+            <span style="font-size:2.9mm;font-weight:600;color:var(--gold-ink);">À partir de</span>
+            <span class="price-amt" style="font-size:6.4mm;">4 900 <span style="font-size:2.9mm;font-weight:600;">DA / mois</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<div class="sheetlabel">Feuille 6 — flyer A5 FRANÇAIS · VERSO (retournement bord court)</div>
+<div class="sheet">
+    <div style="height:148.5mm;padding:11mm 13mm;display:flex;flex-direction:column;border-bottom:.15mm solid #E9F1F3;">
+      <h2 style="font-family:var(--display);font-size:6mm;font-weight:800;letter-spacing:-.02em;
+                 margin:0;color:var(--ink);">Concrètement, il fait quoi ?</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:5.5mm;">
+        <section>
+          <h3 style="font-size:3.1mm;font-weight:700;color:var(--teal-deep);margin:0 0 2.4mm;
+                     letter-spacing:.04em;text-transform:uppercase;">Dans la crèche</h3>
+          <ul style="margin:0;padding:0;list-style:none;display:grid;gap:1.9mm;">
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Arrivées et départs pointés par badge ou par code</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Les allergies s'affichent au moment du pointage</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Factures et reçus numérotés, en dinars, espèces comprises</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Inscriptions en ligne : le parent remplit, vous validez</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Comptabilité, dépenses et fiches de paie</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Menus de la semaine et alerte allergies automatique</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Registres prêts à imprimer pour l'inspection</li>
+          </ul>
+        </section>
+        <section>
+          <h3 style="font-size:3.1mm;font-weight:700;color:var(--teal-deep);margin:0 0 2.4mm;
+                     letter-spacing:.04em;text-transform:uppercase;">Chez les parents</h3>
+          <ul style="margin:0;padding:0;list-style:none;display:grid;gap:1.9mm;">
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>L'enfant est arrivé, et il est reparti à telle heure</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Leurs factures et ce qui reste à payer</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Les annonces de la classe de leur enfant, pas des autres</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Un message direct à l'équipe, sans groupe WhatsApp</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Signaler une absence depuis le téléphone</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>S'installe depuis le navigateur, sans magasin d'applications</li>
+          </ul>
+        </section>
+      </div>
+
+      <div style="margin-top:5.5mm;background:var(--teal-veil);border-radius:2.5mm;padding:4mm 4.5mm;">
+        <b style="font-size:3.2mm;color:var(--ink);">Trois questions qu'on nous pose toujours</b>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:2.5mm;">
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">« Et mes cahiers ? »</b>
+            <span style="font-size:2.8mm;line-height:1.55;color:var(--ink-mid);">On saisit vos listes avec vous à l'ouverture. C'est offert.</span></div>
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">« Mon équipe n'est pas informaticienne. »</b>
+            <span style="font-size:2.8mm;line-height:1.55;color:var(--ink-mid);">L'écran d'accueil se limite à un badge et un code. On forme sur place.</span></div>
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">« Et si j'arrête ? »</b>
+            <span style="font-size:2.8mm;line-height:1.55;color:var(--ink-mid);">Sans engagement, et vos données restent exportables.</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;padding-top:5mm;display:flex;align-items:flex-end;justify-content:space-between;gap:4mm;">
+        <div>
+          <div class="url" style="font-size:5.2mm;">rawdatik.com</div>
+          <div style="margin-top:1.4mm;"><span class="phone" style="font-size:3.4mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+        </div>
+        <div class="qr-slot" style="width:20mm;height:20mm;">QR WhatsApp</div>
+      </div>
+    </div>
+
+    <div style="height:148.5mm;padding:11mm 13mm;display:flex;flex-direction:column;border-bottom:.15mm solid #E9F1F3;">
+      <h2 style="font-family:var(--display);font-size:6mm;font-weight:800;letter-spacing:-.02em;
+                 margin:0;color:var(--ink);">Concrètement, il fait quoi ?</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:5.5mm;">
+        <section>
+          <h3 style="font-size:3.1mm;font-weight:700;color:var(--teal-deep);margin:0 0 2.4mm;
+                     letter-spacing:.04em;text-transform:uppercase;">Dans la crèche</h3>
+          <ul style="margin:0;padding:0;list-style:none;display:grid;gap:1.9mm;">
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Arrivées et départs pointés par badge ou par code</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Les allergies s'affichent au moment du pointage</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Factures et reçus numérotés, en dinars, espèces comprises</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Inscriptions en ligne : le parent remplit, vous validez</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Comptabilité, dépenses et fiches de paie</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Menus de la semaine et alerte allergies automatique</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Registres prêts à imprimer pour l'inspection</li>
+          </ul>
+        </section>
+        <section>
+          <h3 style="font-size:3.1mm;font-weight:700;color:var(--teal-deep);margin:0 0 2.4mm;
+                     letter-spacing:.04em;text-transform:uppercase;">Chez les parents</h3>
+          <ul style="margin:0;padding:0;list-style:none;display:grid;gap:1.9mm;">
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>L'enfant est arrivé, et il est reparti à telle heure</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Leurs factures et ce qui reste à payer</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Les annonces de la classe de leur enfant, pas des autres</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Un message direct à l'équipe, sans groupe WhatsApp</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>Signaler une absence depuis le téléphone</li>
+            <li style="font-size:3.05mm;line-height:1.55;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>S'installe depuis le navigateur, sans magasin d'applications</li>
+          </ul>
+        </section>
+      </div>
+
+      <div style="margin-top:5.5mm;background:var(--teal-veil);border-radius:2.5mm;padding:4mm 4.5mm;">
+        <b style="font-size:3.2mm;color:var(--ink);">Trois questions qu'on nous pose toujours</b>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:2.5mm;">
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">« Et mes cahiers ? »</b>
+            <span style="font-size:2.8mm;line-height:1.55;color:var(--ink-mid);">On saisit vos listes avec vous à l'ouverture. C'est offert.</span></div>
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">« Mon équipe n'est pas informaticienne. »</b>
+            <span style="font-size:2.8mm;line-height:1.55;color:var(--ink-mid);">L'écran d'accueil se limite à un badge et un code. On forme sur place.</span></div>
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">« Et si j'arrête ? »</b>
+            <span style="font-size:2.8mm;line-height:1.55;color:var(--ink-mid);">Sans engagement, et vos données restent exportables.</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;padding-top:5mm;display:flex;align-items:flex-end;justify-content:space-between;gap:4mm;">
+        <div>
+          <div class="url" style="font-size:5.2mm;">rawdatik.com</div>
+          <div style="margin-top:1.4mm;"><span class="phone" style="font-size:3.4mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+        </div>
+        <div class="qr-slot" style="width:20mm;height:20mm;">QR WhatsApp</div>
+      </div>
+    </div>
+</div>
+
+<div class="sheetlabel">الورقة 7 — مطوية A5 بالعربية · الوجه · نسختان في A4</div>
+<div class="sheet">
+    <div dir="rtl" style="height:148.5mm;padding:11mm 13mm;display:flex;flex-direction:column;border-bottom:.15mm solid #E9F1F3;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:4mm;">
+        <div style="display:flex;align-items:center;gap:2.6mm;">
+          <span class="mark" style="width:8.4mm;height:8.4mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+          <span class="lockup"><span class="ar" style="font-size:5.8mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+        </div>
+        <span class="trilingual" style="font-size:2.7mm;">
+          <b style="font-family:var(--ar);">عربية</b><b>Français</b><b>English</b>
+        </span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:10mm;margin-top:8mm;flex:1;">
+        <div style="display:flex;flex-direction:column;">
+          <h2 style="font-family:var(--ar);font-size:9.2mm;font-weight:900;line-height:1.34;
+                     margin:0;color:var(--ink);">
+            كم بقي لك<br>عند الأولياء اليوم؟<br>
+            <span style="color:var(--teal-deep);">الجواب أمامك في ثانية.</span>
+          </h2>
+          <p style="margin:4mm 0 0;font-size:3.5mm;line-height:1.9;color:var(--ink-mid);">
+            الحضور والفواتير والمحاسبة والسجلات وتطبيق الأولياء،
+            في أداة واحدة.
+          </p>
+          <div style="margin-top:auto;padding-top:5mm;">
+            <div class="url" style="font-size:5.6mm;">rawdatik.com</div>
+            <div style="font-size:2.9mm;color:var(--ink-soft);margin-top:1mm;">
+              عرض مجاني داخل روضتك.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:3.4mm;">
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">تعرف أين أموالك بالضبط</b>
+            <span style="font-size:3mm;line-height:1.8;color:var(--ink-mid);">
+              المتأخرات تبدأ بالأقدم، مع اسم العائلة ورقم هاتفها.</span>
+          </div>
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">تسجيل الحضور عند الباب</b>
+            <span style="font-size:3mm;line-height:1.8;color:var(--ink-mid);">
+              بالبطاقة أو بالرمز عند الاستقبال، وحساسية الطفل تظهر عند التسجيل.</span>
+          </div>
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">الأولياء يتابعون بلغتهم</b>
+            <span style="font-size:3mm;line-height:1.8;color:var(--ink-mid);">
+              الوصول والخروج والفواتير وإعلانات قسمه. بالعربية أو الفرنسية أو الإنجليزية.</span>
+          </div>
+          <div style="margin-top:auto;background:var(--gold-veil);border-radius:2.5mm;padding:3.4mm 4mm;
+                      display:flex;align-items:baseline;justify-content:space-between;gap:2mm;">
+            <span style="font-size:2.9mm;font-weight:600;color:var(--gold-ink);">ابتداءً من</span>
+            <span class="price-amt" style="font-size:6.4mm;">4 900 <span style="font-size:2.9mm;font-weight:600;font-family:var(--ar);">دج / شهريا</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div dir="rtl" style="height:148.5mm;padding:11mm 13mm;display:flex;flex-direction:column;border-bottom:.15mm solid #E9F1F3;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:4mm;">
+        <div style="display:flex;align-items:center;gap:2.6mm;">
+          <span class="mark" style="width:8.4mm;height:8.4mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+          <span class="lockup"><span class="ar" style="font-size:5.8mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+        </div>
+        <span class="trilingual" style="font-size:2.7mm;">
+          <b style="font-family:var(--ar);">عربية</b><b>Français</b><b>English</b>
+        </span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:10mm;margin-top:8mm;flex:1;">
+        <div style="display:flex;flex-direction:column;">
+          <h2 style="font-family:var(--ar);font-size:9.2mm;font-weight:900;line-height:1.34;
+                     margin:0;color:var(--ink);">
+            كم بقي لك<br>عند الأولياء اليوم؟<br>
+            <span style="color:var(--teal-deep);">الجواب أمامك في ثانية.</span>
+          </h2>
+          <p style="margin:4mm 0 0;font-size:3.5mm;line-height:1.9;color:var(--ink-mid);">
+            الحضور والفواتير والمحاسبة والسجلات وتطبيق الأولياء،
+            في أداة واحدة.
+          </p>
+          <div style="margin-top:auto;padding-top:5mm;">
+            <div class="url" style="font-size:5.6mm;">rawdatik.com</div>
+            <div style="font-size:2.9mm;color:var(--ink-soft);margin-top:1mm;">
+              عرض مجاني داخل روضتك.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:3.4mm;">
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">تعرف أين أموالك بالضبط</b>
+            <span style="font-size:3mm;line-height:1.8;color:var(--ink-mid);">
+              المتأخرات تبدأ بالأقدم، مع اسم العائلة ورقم هاتفها.</span>
+          </div>
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">تسجيل الحضور عند الباب</b>
+            <span style="font-size:3mm;line-height:1.8;color:var(--ink-mid);">
+              بالبطاقة أو بالرمز عند الاستقبال، وحساسية الطفل تظهر عند التسجيل.</span>
+          </div>
+          <div style="background:var(--teal-veil);border-radius:2.5mm;padding:3.6mm 4mm;">
+            <b style="display:block;font-size:3.2mm;color:var(--teal-deep);">الأولياء يتابعون بلغتهم</b>
+            <span style="font-size:3mm;line-height:1.8;color:var(--ink-mid);">
+              الوصول والخروج والفواتير وإعلانات قسمه. بالعربية أو الفرنسية أو الإنجليزية.</span>
+          </div>
+          <div style="margin-top:auto;background:var(--gold-veil);border-radius:2.5mm;padding:3.4mm 4mm;
+                      display:flex;align-items:baseline;justify-content:space-between;gap:2mm;">
+            <span style="font-size:2.9mm;font-weight:600;color:var(--gold-ink);">ابتداءً من</span>
+            <span class="price-amt" style="font-size:6.4mm;">4 900 <span style="font-size:2.9mm;font-weight:600;font-family:var(--ar);">دج / شهريا</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<div class="sheetlabel">الورقة 8 — مطوية A5 بالعربية · الظهر (القلب على الحافة القصيرة)</div>
+<div class="sheet">
+    <div dir="rtl" style="height:148.5mm;padding:11mm 13mm;display:flex;flex-direction:column;border-bottom:.15mm solid #E9F1F3;">
+      <h2 style="font-family:var(--ar);font-size:6mm;font-weight:900;margin:0;color:var(--ink);">ماذا يفعل بالضبط؟</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7mm;margin-top:4.4mm;">
+        <section>
+          <h3 style="font-size:3.1mm;font-weight:700;color:var(--teal-deep);margin:0 0 2.4mm;letter-spacing:.04em;">داخل الروضة</h3>
+          <ul style="margin:0;padding:0;list-style:none;display:grid;gap:1.9mm;">
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>الدخول والخروج بالبطاقة أو بالرمز</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>الحساسيات تظهر لحظة تسجيل الدخول</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>فواتير ووصولات مرقّمة بالدينار، والدفع نقدا</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>التسجيل عبر الإنترنت: الولي يملأ الملف وأنت تقبله</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>المحاسبة والمصاريف وكشوف الأجور</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>قوائم الطعام الأسبوعية مع تنبيه آلي للحساسيات</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>سجلات جاهزة للطباعة عند التفتيش</li>
+          </ul>
+        </section>
+        <section>
+          <h3 style="font-size:3.1mm;font-weight:700;color:var(--teal-deep);margin:0 0 2.4mm;letter-spacing:.04em;">عند الأولياء</h3>
+          <ul style="margin:0;padding:0;list-style:none;display:grid;gap:1.9mm;">
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>وصل الطفل، ومتى خرج</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>فواتيرهم وما تبقّى عليهم</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>إعلانات قسم طفلهم وحده، لا أقسام الآخرين</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>رسالة مباشرة للطاقم، دون مجموعة واتساب</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>التبليغ عن الغياب من الهاتف</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>يُثبَّت من المتصفح، دون متجر تطبيقات</li>
+          </ul>
+        </section>
+      </div>
+
+      <div style="margin-top:4.4mm;background:var(--teal-veil);border-radius:2.5mm;padding:3.4mm 4.5mm;">
+        <b style="font-size:3.2mm;color:var(--ink);">ثلاثة أسئلة تتكرّر دائما</b>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:2.5mm;">
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">«وماذا عن دفاتري؟»</b>
+            <span style="font-size:2.8mm;line-height:1.62;color:var(--ink-mid);">ندخل قوائمك معك عند الفتح، وهذا مجاني.</span></div>
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">«طاقمي لا يتقن الإعلام الآلي.»</b>
+            <span style="font-size:2.8mm;line-height:1.62;color:var(--ink-mid);">شاشة الاستقبال بطاقة ورمز فقط، وندرّبهم في المكان.</span></div>
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">«وإن توقّفت؟»</b>
+            <span style="font-size:2.8mm;line-height:1.62;color:var(--ink-mid);">بدون التزام، وبياناتك تبقى قابلة للتصدير.</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;padding-top:5mm;display:flex;align-items:flex-end;justify-content:space-between;gap:4mm;">
+        <div>
+          <div class="url" style="font-size:5.2mm;">rawdatik.com</div>
+          <div style="margin-top:1.4mm;"><span class="phone" style="font-size:3.4mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+        </div>
+        <div class="qr-slot" style="width:20mm;height:20mm;">رمز واتساب</div>
+      </div>
+    </div>
+
+    <div dir="rtl" style="height:148.5mm;padding:11mm 13mm;display:flex;flex-direction:column;border-bottom:.15mm solid #E9F1F3;">
+      <h2 style="font-family:var(--ar);font-size:6mm;font-weight:900;margin:0;color:var(--ink);">ماذا يفعل بالضبط؟</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7mm;margin-top:4.4mm;">
+        <section>
+          <h3 style="font-size:3.1mm;font-weight:700;color:var(--teal-deep);margin:0 0 2.4mm;letter-spacing:.04em;">داخل الروضة</h3>
+          <ul style="margin:0;padding:0;list-style:none;display:grid;gap:1.9mm;">
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>الدخول والخروج بالبطاقة أو بالرمز</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>الحساسيات تظهر لحظة تسجيل الدخول</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>فواتير ووصولات مرقّمة بالدينار، والدفع نقدا</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>التسجيل عبر الإنترنت: الولي يملأ الملف وأنت تقبله</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>المحاسبة والمصاريف وكشوف الأجور</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>قوائم الطعام الأسبوعية مع تنبيه آلي للحساسيات</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>سجلات جاهزة للطباعة عند التفتيش</li>
+          </ul>
+        </section>
+        <section>
+          <h3 style="font-size:3.1mm;font-weight:700;color:var(--teal-deep);margin:0 0 2.4mm;letter-spacing:.04em;">عند الأولياء</h3>
+          <ul style="margin:0;padding:0;list-style:none;display:grid;gap:1.9mm;">
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>وصل الطفل، ومتى خرج</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>فواتيرهم وما تبقّى عليهم</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>إعلانات قسم طفلهم وحده، لا أقسام الآخرين</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>رسالة مباشرة للطاقم، دون مجموعة واتساب</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>التبليغ عن الغياب من الهاتف</li>
+            <li style="font-size:3.05mm;line-height:1.58;color:var(--ink-mid);padding-inline-start:4mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);">·</span>يُثبَّت من المتصفح، دون متجر تطبيقات</li>
+          </ul>
+        </section>
+      </div>
+
+      <div style="margin-top:4.4mm;background:var(--teal-veil);border-radius:2.5mm;padding:3.4mm 4.5mm;">
+        <b style="font-size:3.2mm;color:var(--ink);">ثلاثة أسئلة تتكرّر دائما</b>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:2.5mm;">
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">«وماذا عن دفاتري؟»</b>
+            <span style="font-size:2.8mm;line-height:1.62;color:var(--ink-mid);">ندخل قوائمك معك عند الفتح، وهذا مجاني.</span></div>
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">«طاقمي لا يتقن الإعلام الآلي.»</b>
+            <span style="font-size:2.8mm;line-height:1.62;color:var(--ink-mid);">شاشة الاستقبال بطاقة ورمز فقط، وندرّبهم في المكان.</span></div>
+          <div><b style="display:block;font-size:2.9mm;color:var(--teal-deep);">«وإن توقّفت؟»</b>
+            <span style="font-size:2.8mm;line-height:1.62;color:var(--ink-mid);">بدون التزام، وبياناتك تبقى قابلة للتصدير.</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;padding-top:5mm;display:flex;align-items:flex-end;justify-content:space-between;gap:4mm;">
+        <div>
+          <div class="url" style="font-size:5.2mm;">rawdatik.com</div>
+          <div style="margin-top:1.4mm;"><span class="phone" style="font-size:3.4mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+        </div>
+        <div class="qr-slot" style="width:20mm;height:20mm;">رمز واتساب</div>
+      </div>
+    </div>
+</div>
+
+<div class="sheetlabel">الورقة 9 — ورقة تعريف A4 بالعربية · تُترك للمديرة</div>
+<div class="sheet" dir="rtl" style="padding:16mm 17mm 13mm;display:flex;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:4mm;">
+    <div style="display:flex;align-items:center;gap:2.8mm;">
+      <span class="mark" style="width:9mm;height:9mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+      <span>
+        <span class="lockup"><span class="ar" style="font-size:6.2mm;">روضتك</span><span class="lat" style="font-size:1.9mm;margin-top:.28em;">Rawdatik</span></span>
+        <span style="font-size:2.9mm;color:var(--ink-soft);">برنامج تسيير الحضانات ورياض الأطفال · الجزائر</span>
+      </span>
+    </div>
+    <span class="trilingual" style="font-size:2.9mm;">
+      <b style="font-family:var(--ar);">عربية</b><b>Français</b><b>English</b>
+    </span>
+  </div>
+
+  <h1 style="font-family:var(--ar);font-size:11mm;font-weight:900;line-height:1.36;
+             margin:9mm 0 0;color:var(--ink);max-width:155mm;">
+    روضة تُدار بالأرقام،<br><span style="color:var(--teal-deep);">لا بالذاكرة.</span>
+  </h1>
+  <p style="margin:4.5mm 0 0;font-size:3.9mm;line-height:1.9;color:var(--ink-mid);max-width:150mm;">
+    من التسجيل إلى الفاتورة، ومن الحضور إلى تطبيق الأولياء.
+    بالدينار، ومن الأحد إلى الخميس — وبلغة كل واحد.
+  </p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:9mm;margin-top:9mm;">
+    <section>
+      <h3 style="font-size:3.5mm;font-weight:700;color:var(--teal-deep);margin:0 0 3mm;letter-spacing:.03em;">داخل الروضة</h3>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:2.4mm;"><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>تسجيل الدخول والخروج عند الاستقبال، بالبطاقة أو بالرمز</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>حساسيات الطفل تظهر لحظة تسجيل دخوله</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>فواتير ومدفوعات بالدينار، والدفع نقدا</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>التسجيل عبر الإنترنت وقبول الملفات قبل الدخول المدرسي</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>المحاسبة والمصاريف وكشوف الأجور</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>قوائم الطعام الأسبوعية مع تنبيه آلي للحساسيات</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>سجلات جاهزة للطباعة عند التفتيش</li></ul>
+    </section>
+    <section>
+      <h3 style="font-size:3.5mm;font-weight:700;color:var(--teal-deep);margin:0 0 3mm;letter-spacing:.03em;">عند الأولياء</h3>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:2.4mm;"><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>هل وصل الطفل، وفي أي ساعة خرج</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>فواتيرهم وما تبقّى عليهم، في مكان واحد</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>إعلانات قسم طفلهم — لا أقسام الآخرين</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>رسالة مباشرة للطاقم، دون مجموعة واتساب</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>التبليغ عن الغياب من الهاتف</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>يُثبَّت من المتصفح — دون متجر تطبيقات</li><li style="font-size:3.3mm;line-height:1.75;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>كل ولي يختار لغته: عربية أو فرنسية أو إنجليزية</li></ul>
+    </section>
+  </div>
+
+  <div style="margin-top:9mm;">
+    <h3 style="font-size:3.5mm;font-weight:700;color:var(--teal-deep);margin:0 0 1.5mm;letter-spacing:.03em;">سعر واحد للمؤسسة</h3>
+    <p style="margin:0 0 3.5mm;font-size:3.2mm;color:var(--ink-soft);">
+      لا على كل طفل، ولا على كل موظف. عدد غير محدود من الأطفال والموظفين، وبدون التزام. تفاصيل العروض على rawdatik.com.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3mm;">
+      <div style="border:.3mm solid var(--rule);border-radius:2.5mm;padding:4mm;">
+        <b style="font-size:3.4mm;color:var(--ink);">الأساسي</b>
+        <div class="price-amt" style="font-size:7mm;margin:1.5mm 0 .5mm;color:var(--ink);">4 900 <span style="font-size:2.9mm;font-weight:600;color:var(--ink-soft);font-family:var(--ar);">دج / شهريا</span></div>
+        <span style="font-size:2.9mm;line-height:1.7;color:var(--ink-soft);display:block;">روضة واحدة. تنطلق معنا وتسيّر يومك بنفسك.</span>
+      </div>
+      <div style="border:.5mm solid var(--gold);background:var(--gold-veil);border-radius:2.5mm;padding:4mm;position:relative;">
+        <span style="position:absolute;top:-2.2mm;inset-inline-end:3mm;background:var(--gold);color:#3B2704;
+                     font-size:2.4mm;font-weight:700;padding:.6mm 2mm;border-radius:999px;">الأكثر اختيارا</span>
+        <b style="font-size:3.4mm;color:var(--ink);">المحترف</b>
+        <div class="price-amt" style="font-size:7mm;margin:1.5mm 0 .5mm;">9 900 <span style="font-size:2.9mm;font-weight:600;font-family:var(--ar);">دج / شهريا</span></div>
+        <span style="font-size:2.9mm;line-height:1.7;color:var(--gold-ink);display:block;">روضة واحدة مع مرافقة كاملة: التركيب، وتدريب الطاقم، والدعم.</span>
+      </div>
+      <div style="border:.3mm solid var(--rule);border-radius:2.5mm;padding:4mm;">
+        <b style="font-size:3.4mm;color:var(--ink);">الشبكة</b>
+        <div class="price-amt" style="font-size:7mm;margin:1.5mm 0 .5mm;color:var(--ink);">19 900 <span style="font-size:2.9mm;font-weight:600;color:var(--ink-soft);font-family:var(--ar);">دج / شهريا</span></div>
+        <span style="font-size:2.9mm;line-height:1.7;color:var(--ink-soft);display:block;">عدة روضات تحت إدارة واحدة، لكل واحدة حساباتها المستقلة.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:8mm;background:var(--teal-veil);border-radius:2.5mm;padding:5mm 5.5mm;">
+    <b style="font-size:3.5mm;color:var(--ink);">كيف تبدأ؟</b>
+    <ol style="margin:2.5mm 0 0;padding-inline-start:5mm;font-size:3.2mm;line-height:1.95;color:var(--ink-mid);">
+      <li>نفتح حسابك ونضبط أقسامك وتعريفاتك معك.</li>
+      <li>ندخل قوائم الأطفال والأولياء معك — وهذا مجاني عند فتح الحساب.</li>
+      <li>تدعو الأولياء برابط، وتشتغل من الغد.</li>
+    </ol>
+  </div>
+
+  <div style="margin-top:auto;padding-top:7mm;display:flex;align-items:flex-end;justify-content:space-between;gap:5mm;">
+    <div>
+      <div class="url" style="font-size:6.4mm;">rawdatik.com</div>
+      <div style="font-size:3.1mm;color:var(--ink-soft);margin-top:1.2mm;">اتصل بنا لعرض مجاني، داخل روضتك.</div>
+      <div style="margin-top:2mm;"><span class="phone" style="font-size:3.6mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">0___ __ __ __</span></span></div>
+    </div>
+    <div class="qr-slot" style="width:24mm;height:24mm;">رمز واتساب</div>
+  </div>
+</div>
+
+<div class="sheetlabel">Sheet 10 — A4 one-pager · English · international schools &amp; partners</div>
+<div class="sheet" style="padding:16mm 17mm 13mm;display:flex;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:4mm;">
+    <div style="display:flex;align-items:center;gap:2.8mm;">
+      <span class="mark" style="width:9mm;height:9mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+      <span>
+        <span class="lockup"><span class="ar" style="font-size:6.36mm;">روضتك</span><span class="lat" style="font-size:1.91mm;margin-top:.28em;">Rawdatik</span></span>
+        <span style="font-size:2.9mm;color:var(--ink-soft);">Nursery &amp; kindergarten management · Algeria</span>
+      </span>
+    </div>
+    <span class="trilingual" style="font-size:2.9mm;">
+      <b style="font-family:var(--ar);">عربية</b><b>Français</b><b>English</b>
+    </span>
+  </div>
+
+  <h1 style="font-family:var(--display);font-size:12mm;font-weight:800;line-height:1.1;
+             letter-spacing:-.025em;margin:9mm 0 0;color:var(--ink);text-wrap:balance;max-width:150mm;">
+    Everything your centre<br>runs on — in Arabic,<br>
+    <span style="color:var(--teal-deep);">French and English.</span>
+  </h1>
+  <p style="margin:4.5mm 0 0;font-size:3.9mm;line-height:1.75;color:var(--ink-mid);max-width:148mm;">
+    Attendance at the door, fees in dinars, payroll, menus and a parent app —
+    built for the Algerian working week, Sunday to Thursday.
+  </p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:9mm;margin-top:9mm;">
+    <section>
+      <h3 style="font-size:3.5mm;font-weight:700;color:var(--teal-deep);margin:0 0 3mm;letter-spacing:.03em;text-transform:uppercase;">In the centre</h3>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:2.4mm;"><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Check-in and check-out at the front desk, by badge or PIN</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>A child's allergies appear the moment they are checked in</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Numbered invoices and receipts in dinars, cash included</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Online enrolment and file approval before the new term</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Accounting, expenses and payslips</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Weekly menus with an automatic allergy cross-check</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Registers ready to print for inspection</li></ul>
+    </section>
+    <section>
+      <h3 style="font-size:3.5mm;font-weight:700;color:var(--teal-deep);margin:0 0 3mm;letter-spacing:.03em;text-transform:uppercase;">For parents</h3>
+      <ul style="margin:0;padding:0;list-style:none;display:grid;gap:2.4mm;"><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Whether their child arrived, and when they left</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Their invoices and what is still owed, in one place</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Announcements for their child's class — and no one else's</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>A direct message to staff, without a WhatsApp group</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Report an absence from their phone</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Installs from the browser — no app store needed</li><li style="font-size:3.3mm;line-height:1.6;color:var(--ink-mid);padding-inline-start:4.5mm;position:relative;"><span style="position:absolute;inset-inline-start:0;color:var(--teal);font-weight:700;">·</span>Each parent picks their own language</li></ul>
+    </section>
+  </div>
+
+  <div style="margin-top:9mm;">
+    <h3 style="font-size:3.5mm;font-weight:700;color:var(--teal-deep);margin:0 0 1.5mm;letter-spacing:.03em;text-transform:uppercase;">One price per centre</h3>
+    <p style="margin:0 0 3.5mm;font-size:3.2mm;color:var(--ink-soft);">
+      Never per child, never per seat. Unlimited children and staff, no commitment. Full plan details on rawdatik.com.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3mm;">
+      <div style="border:.3mm solid var(--rule);border-radius:2.5mm;padding:4mm;">
+        <b style="font-size:3.4mm;color:var(--ink);">Essential</b>
+        <div class="price-amt" style="font-size:7mm;margin:1.5mm 0 .5mm;color:var(--ink);">4 900 <span style="font-size:2.9mm;font-weight:600;color:var(--ink-soft);">DA / month</span></div>
+        <span style="font-size:2.9mm;line-height:1.55;color:var(--ink-soft);display:block;">One centre. You start with us and run it day to day.</span>
+      </div>
+      <div style="border:.5mm solid var(--gold);background:var(--gold-veil);border-radius:2.5mm;padding:4mm;position:relative;">
+        <span style="position:absolute;top:-2.2mm;inset-inline-end:3mm;background:var(--gold);color:#3B2704;
+                     font-size:2.4mm;font-weight:700;padding:.6mm 2mm;border-radius:999px;">Most chosen</span>
+        <b style="font-size:3.4mm;color:var(--ink);">Pro</b>
+        <div class="price-amt" style="font-size:7mm;margin:1.5mm 0 .5mm;">9 900 <span style="font-size:2.9mm;font-weight:600;">DA / month</span></div>
+        <span style="font-size:2.9mm;line-height:1.55;color:var(--gold-ink);display:block;">One centre, fully supported: setup, staff training, assistance.</span>
+      </div>
+      <div style="border:.3mm solid var(--rule);border-radius:2.5mm;padding:4mm;">
+        <b style="font-size:3.4mm;color:var(--ink);">Network</b>
+        <div class="price-amt" style="font-size:7mm;margin:1.5mm 0 .5mm;color:var(--ink);">19 900 <span style="font-size:2.9mm;font-weight:600;color:var(--ink-soft);">DA / month</span></div>
+        <span style="font-size:2.9mm;line-height:1.55;color:var(--ink-soft);display:block;">Several centres under one management, each with its own separate books.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:8mm;background:var(--teal-veil);border-radius:2.5mm;padding:5mm 5.5mm;">
+    <b style="font-size:3.5mm;color:var(--ink);">How it starts</b>
+    <ol style="margin:2.5mm 0 0;padding-inline-start:5mm;font-size:3.2mm;line-height:1.75;color:var(--ink-mid);">
+      <li>We open your account and set up your classes and fees with you.</li>
+      <li>We enter your children and parents with you — free when you open the account.</li>
+      <li>You invite parents with a link, and you are working the next morning.</li>
+    </ol>
+  </div>
+
+  <div style="margin-top:auto;padding-top:7mm;display:flex;align-items:flex-end;justify-content:space-between;gap:5mm;">
+    <div>
+      <div class="url" style="font-size:6.4mm;">rawdatik.com</div>
+      <div style="font-size:3.1mm;color:var(--ink-soft);margin-top:1.2mm;">Ask us for a free demonstration at your centre.</div>
+      <div style="margin-top:2mm;"><span class="phone" style="font-size:3.6mm;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span class="num">+213 ___ __ __ __</span></span></div>
+    </div>
+    <div class="qr-slot" style="width:24mm;height:24mm;">QR to<br>WhatsApp</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SHEET 11 — activation poster, A4 to be enlarged to A3.
+     NOT a B2B poster. A poster selling software to a director who is
+     standing in her own hallway is the weakest piece in a pack like
+     this — she is not the passer-by. So this one is aimed at the people
+     who DO walk past it: the parents. It is the piece a signed client
+     hangs by the door to get families onto the app, which is what makes
+     the subscription stick.
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="sheetlabel">Feuille 11 — affiche d'activation parents · A4 → agrandir à 141 % pour un A3</div>
+<div class="sheet" dir="rtl" style="padding:22mm 20mm;display:flex;flex-direction:column;
+     background:linear-gradient(168deg,#FFFFFF 0%, #F4F9FA 58%, #EAF4F6 100%);">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:5mm;">
+    <div style="display:flex;align-items:center;gap:3mm;">
+      <span class="mark" style="width:11mm;height:11mm;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+      <span class="lockup"><span class="ar" style="font-size:7.4mm;">روضتك</span><span class="lat" style="font-size:2.22mm;margin-top:.28em;">Rawdatik</span></span>
+    </div>
+    <span class="trilingual" style="font-size:3.2mm;">
+      <b style="font-family:var(--ar);">عربية</b><b>Français</b><b>English</b>
+    </span>
+  </div>
+
+  <h1 style="font-family:var(--ar);font-size:17mm;font-weight:900;line-height:1.3;
+             margin:16mm 0 0;color:var(--ink);">
+    روضتك صارت<br><span style="color:var(--teal-deep);">في هاتفك.</span>
+  </h1>
+  <p style="margin:6mm 0 0;font-size:5mm;line-height:1.85;color:var(--ink-mid);max-width:135mm;">
+    تعرف متى وصل طفلك ومتى خرج، وترى فواتيرك وإعلانات قسمه،
+    وتراسل الطاقم مباشرة — من هاتفك، وبلغتك.
+  </p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5mm;margin-top:12mm;">
+    <div style="background:#fff;border-radius:3mm;padding:6mm 5mm;">
+      <div style="width:9mm;height:9mm;border-radius:50%;background:var(--teal);color:#fff;
+                  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:5mm;">1</div>
+      <b style="display:block;font-size:4mm;margin-top:3.5mm;color:var(--ink);">امسح الرمز</b>
+      <span style="font-size:3.4mm;line-height:1.8;color:var(--ink-mid);">بكاميرا هاتفك، من هذه الورقة.</span>
+    </div>
+    <div style="background:#fff;border-radius:3mm;padding:6mm 5mm;">
+      <div style="width:9mm;height:9mm;border-radius:50%;background:var(--teal);color:#fff;
+                  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:5mm;">2</div>
+      <b style="display:block;font-size:4mm;margin-top:3.5mm;color:var(--ink);">أضفه إلى الشاشة</b>
+      <span style="font-size:3.4mm;line-height:1.8;color:var(--ink-mid);">دون متجر تطبيقات، ودون تحميل ثقيل.</span>
+    </div>
+    <div style="background:#fff;border-radius:3mm;padding:6mm 5mm;">
+      <div style="width:9mm;height:9mm;border-radius:50%;background:var(--teal);color:#fff;
+                  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:5mm;">3</div>
+      <b style="display:block;font-size:4mm;margin-top:3.5mm;color:var(--ink);">اختر لغتك</b>
+      <span style="font-size:3.4mm;line-height:1.8;color:var(--ink-mid);">عربية أو فرنسية أو إنجليزية.</span>
+    </div>
+  </div>
+
+  <div style="margin-top:12mm;display:flex;align-items:center;gap:9mm;">
+    <div class="qr-slot" style="width:52mm;height:52mm;border-width:.5mm;border-radius:3mm;font-size:3.4mm;background:#fff;">
+      رمز الدعوة<br>الخاص بالروضة
+    </div>
+    <div>
+      <b style="display:block;font-size:4.6mm;color:var(--ink);">لم تصلك الدعوة بعد؟</b>
+      <span style="font-size:3.8mm;line-height:1.85;color:var(--ink-mid);display:block;margin-top:2mm;max-width:75mm;">
+        رابط الدخول متوفّر لدى الإدارة. لكل ولي حسابه الخاص،
+        ولا يرى إلا ما يخص طفله.
+      </span>
+      <!-- Left blank on purpose: the poster is printed once and used by
+           many centres, so the crèche writes its own name here. -->
+      <div style="margin-top:6mm;border-top:.3mm solid var(--rule);padding-top:3.5mm;">
+        <span style="font-size:3.2mm;color:var(--ink-soft);">روضة</span>
+        <div style="font-size:5mm;font-weight:700;color:var(--ink);margin-top:1.5mm;">________________________</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:auto;padding-top:10mm;display:flex;align-items:flex-end;
+              justify-content:space-between;gap:5mm;border-top:.3mm solid var(--rule);">
+    <div style="font-size:3.4mm;color:var(--ink-soft);line-height:1.7;">
+      Votre crèche est désormais sur votre téléphone.<br>
+      Arrivée, départ, factures et annonces — en arabe, en français ou en anglais.
+    </div>
+    <div class="url" style="font-size:6mm;">rawdatik.com</div>
+  </div>
+</div>
+
+<div class="digital-title" style="max-width:1180px;margin:46px auto 0;padding:0 22px;">
+  <h2 style="font-family:var(--display);font-size:1.5rem;font-weight:800;color:var(--teal-deep);
+             margin:0 0 .3rem;letter-spacing:-.02em;">Visuels pour le téléphone</h2>
+  <p style="margin:0;font-size:.92rem;line-height:1.7;color:var(--ink-mid);max-width:62ch;">
+    Ces visuels ne s'impriment pas — ils se partagent. Chacun est dessiné à sa
+    taille réelle d'export : capturez-le à l'écran à 100 % et vous avez le
+    fichier. Le premier, le visuel WhatsApp, est celui qui compte le plus :
+    en Algérie les directrices se le renvoient entre elles, et il doit donc se
+    suffire à lui-même — marque, promesse, prix, numéro — même reçu sans un mot
+    d'accompagnement.
+  </p>
+</div>
+
+<div class="digital-wrap">
+
+  <!-- ── WhatsApp forwardable, AR ── -->
+  <div class="asset-head">
+    <b>Visuel WhatsApp · arabe</b><span>1080 × 1350 px</span><em>à faire en premier</em>
+  </div>
+  <div style="width:378px;height:472px;">
+    <div class="scaler" style="transform:scale(.35);">
+      <div class="asset" dir="rtl" style="width:1080px;height:1350px;padding:88px 80px;display:flex;flex-direction:column;
+                  background:linear-gradient(160deg,#FFFFFF 0%, #EAF4F6 100%);">
+        <div style="display:flex;align-items:center;gap:20px;">
+          <span class="mark" style="width:74px;height:74px;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+          <span class="lockup"><span class="ar" style="font-size:52.0px;">روضتك</span><span class="lat" style="font-size:15.6px;margin-top:.28em;">Rawdatik</span></span>
+        </div>
+        <h2 style="font-family:var(--ar);font-size:86px;font-weight:900;line-height:1.32;
+                   margin:70px 0 0;color:var(--ink);">
+          شحال راهم يسالوك<br>الأولياء اليوم؟
+        </h2>
+        <p style="margin:36px 0 0;font-size:38px;line-height:1.75;color:var(--ink-mid);">
+          روضتك تعطيك الجواب في ثانية: المتأخرات مرتّبة من الأقدم،
+          مع اسم العائلة ورقم هاتفها.
+        </p>
+        <div style="margin-top:52px;display:grid;gap:20px;">
+          <div style="background:#fff;border-radius:22px;padding:26px 30px;font-size:33px;color:var(--ink-mid);">
+            الحضور والفواتير بالدينار والمحاسبة والأجور</div>
+          <div style="background:#fff;border-radius:22px;padding:26px 30px;font-size:33px;color:var(--ink-mid);">
+            تطبيق للأولياء — بالعربية والفرنسية والإنجليزية</div>
+        </div>
+        <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;">
+          <div>
+            <div class="price-amt" style="font-size:76px;line-height:1;">4 900 <span style="font-size:32px;font-weight:600;font-family:var(--ar);">دج / شهريا</span></div>
+            <div style="font-size:28px;color:var(--gold-ink);margin-top:10px;">للمؤسسة — لا على كل طفل</div>
+            <div class="url" style="font-size:46px;margin-top:26px;">rawdatik.com</div>
+          </div>
+          <div class="qr-slot" style="width:190px;height:190px;border-width:3px;border-radius:18px;font-size:24px;">رمز<br>واتساب</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WhatsApp forwardable, FR ── -->
+  <div class="asset-head">
+    <b>Visuel WhatsApp · français</b><span>1080 × 1350 px</span>
+  </div>
+  <div style="width:378px;height:472px;">
+    <div class="scaler" style="transform:scale(.35);">
+      <div class="asset" style="width:1080px;height:1350px;padding:88px 80px;display:flex;flex-direction:column;
+                  background:linear-gradient(160deg,#FFFFFF 0%, #EAF4F6 100%);">
+        <div style="display:flex;align-items:center;gap:20px;">
+          <span class="mark" style="width:74px;height:74px;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+          <span class="lockup"><span class="ar" style="font-size:53.0px;">روضتك</span><span class="lat" style="font-size:15.9px;margin-top:.28em;">Rawdatik</span></span>
+        </div>
+        <h2 style="font-family:var(--display);font-size:88px;font-weight:800;line-height:1.1;
+                   letter-spacing:-.03em;margin:70px 0 0;color:var(--ink);text-wrap:balance;">
+          Combien vous<br>doivent les familles,<br>aujourd'hui ?
+        </h2>
+        <p style="margin:36px 0 0;font-size:37px;line-height:1.6;color:var(--ink-mid);">
+          Rawdatik répond en une seconde : les impayés du plus ancien,
+          avec le nom et le numéro de la famille.
+        </p>
+        <div style="margin-top:52px;display:grid;gap:20px;">
+          <div style="background:#fff;border-radius:22px;padding:26px 30px;font-size:32px;color:var(--ink-mid);">
+            Présences, factures en dinars, comptabilité, paie</div>
+          <div style="background:#fff;border-radius:22px;padding:26px 30px;font-size:32px;color:var(--ink-mid);">
+            Application parents — arabe, français, anglais</div>
+        </div>
+        <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;">
+          <div>
+            <div class="price-amt" style="font-size:76px;line-height:1;">4 900 <span style="font-size:32px;font-weight:600;">DA / mois</span></div>
+            <div style="font-size:28px;color:var(--gold-ink);margin-top:10px;">par crèche — pas par enfant</div>
+            <div class="url" style="font-size:46px;margin-top:26px;">rawdatik.com</div>
+          </div>
+          <div class="qr-slot" style="width:190px;height:190px;border-width:3px;border-radius:18px;font-size:24px;">QR<br>WhatsApp</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── square post ── -->
+  <div class="asset-head"><b>Post Instagram / Facebook</b><span>1080 × 1080 px</span></div>
+  <div style="width:378px;height:378px;">
+    <div class="scaler" style="transform:scale(.35);">
+      <div class="asset" style="width:1080px;height:1080px;padding:80px;display:flex;flex-direction:column;
+                  justify-content:center;background:var(--teal-deep);color:#fff;">
+        <!-- The trilingual claim demonstrated rather than asserted: the same
+             sentence, three scripts, is the whole idea of the product. -->
+        <div style="font-family:var(--ar);font-size:66px;font-weight:900;line-height:1.4;" dir="rtl">
+          روضتك كلها في شاشة واحدة.
+        </div>
+        <div style="font-family:var(--display);font-size:62px;font-weight:700;line-height:1.15;margin-top:34px;">
+          Toute la crèche,<br>sur un seul écran.
+        </div>
+        <div style="font-family:var(--display);font-size:52px;font-weight:600;line-height:1.15;margin-top:30px;opacity:.72;">
+          Your whole nursery,<br>on one screen.
+        </div>
+        <div style="margin-top:64px;display:flex;align-items:center;justify-content:space-between;gap:20px;">
+          <span style="font-family:var(--display);font-weight:700;font-size:46px;direction:ltr;">rawdatik.com</span>
+          <span style="font-size:28px;opacity:.8;">عربية · Français · English</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── story ── -->
+  <div class="asset-head"><b>Story Instagram / statut WhatsApp</b><span>1080 × 1920 px</span></div>
+  <div style="width:270px;height:480px;">
+    <div class="scaler" style="transform:scale(.25);">
+      <div class="asset" dir="rtl" style="width:1080px;height:1920px;padding:150px 90px;display:flex;flex-direction:column;
+                  background:linear-gradient(170deg,#FFFFFF 0%,#EAF4F6 55%,#DCEDF0 100%);">
+        <div style="display:flex;align-items:center;gap:22px;">
+          <span class="mark" style="width:84px;height:84px;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+          <span class="lockup"><span class="ar" style="font-size:58.0px;">روضتك</span><span class="lat" style="font-size:17.4px;margin-top:.28em;">Rawdatik</span></span>
+        </div>
+        <h2 style="font-family:var(--ar);font-size:104px;font-weight:900;line-height:1.34;margin:120px 0 0;color:var(--ink);">
+          بلا دفتر.<br>بلا مجموعات<br>واتساب.
+        </h2>
+        <p style="margin:56px 0 0;font-size:44px;line-height:1.8;color:var(--ink-mid);">
+          الحضور، الفواتير بالدينار، المحاسبة والأجور،
+          وتطبيق للأولياء بثلاث لغات.
+        </p>
+        <div style="margin-top:auto;">
+          <div class="price-amt" style="font-size:96px;line-height:1;">4 900 <span style="font-size:40px;font-weight:600;font-family:var(--ar);">دج / شهريا</span></div>
+          <div style="font-size:36px;color:var(--gold-ink);margin-top:14px;">للمؤسسة الواحدة · بدون التزام</div>
+          <div class="url" style="font-size:60px;margin-top:44px;">rawdatik.com</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LinkedIn banner ── -->
+  <div class="asset-head"><b>Bannière LinkedIn</b><span>1584 × 396 px</span></div>
+  <div style="width:713px;height:178px;">
+    <div class="scaler" style="transform:scale(.45);">
+      <div class="asset" style="width:1584px;height:396px;padding:0 80px;display:flex;align-items:center;
+                  justify-content:space-between;gap:40px;background:var(--teal-deep);color:#fff;">
+        <div>
+          <div style="font-family:var(--display);font-size:58px;font-weight:800;letter-spacing:-.02em;">
+            Rawdatik — <span style="font-family:var(--ar);">روضتك</span>
+          </div>
+          <div style="font-size:29px;margin-top:16px;opacity:.85;">
+            Nursery &amp; kindergarten management, built for Algeria · عربية · Français · English
+          </div>
+        </div>
+        <div style="font-family:var(--display);font-weight:700;font-size:38px;direction:ltr;opacity:.9;">rawdatik.com</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── email signature ── -->
+  <div class="asset-head"><b>Bandeau de signature e-mail</b><span>600 × 120 px</span></div>
+  <div style="width:600px;height:120px;">
+    <div class="asset" style="width:600px;height:120px;padding:0 26px;display:flex;align-items:center;gap:18px;
+                border-inline-start:5px solid var(--teal);">
+      <span class="mark" style="width:44px;height:44px;"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="currentColor" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="currentColor"/><circle cx="12" cy="4.4" r="1.9" fill="currentColor" opacity=".85"/></svg></span>
+      <div style="flex:1;">
+        <div style="font-family:var(--display);font-weight:800;font-size:19px;color:var(--ink);">Rawdatik · <span style="font-family:var(--ar);">روضتك</span></div>
+        <div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px;">Gestion de crèches et jardins d'enfants · Algérie</div>
+      </div>
+      <div style="text-align:end;">
+        <div class="url" style="font-size:15px;">rawdatik.com</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:3px;">عربية · Français · English</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── the one thing still missing ── -->
+  <div style="margin-top:44px;background:var(--paper);border:1px solid var(--rule-soft);
+              border-radius:12px;padding:22px 24px;max-width:760px;">
+    <b style="font-family:var(--display);font-size:1rem;color:var(--ink);">La pièce qui manque encore : une capture d'écran</b>
+    <p style="margin:.5rem 0 0;font-size:.9rem;line-height:1.72;color:var(--ink-mid);">
+      Pour une directrice qui n'est pas informaticienne, la capture d'écran
+      <em>est</em> l'argument — c'est la seule chose sur la page qui prouve que
+      le produit existe. Prenez-la vous-même sur la démonstration, en arabe,
+      à la page <code>/billing/arrears</code> : la liste des impayés, du plus
+      ancien, avec les montants en dinars. Elle prouve aussi l'arabe de droite
+      à gauche sans dépenser une phrase pour le dire. Placez-la sur la fiche A4
+      et sur le visuel WhatsApp, à la place du bloc gris.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>
