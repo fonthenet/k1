@@ -60,8 +60,17 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        // Centred with -translate-y-1/2 and no height limit, a dialog taller
+        // than the screen grows equally in BOTH directions: the top half ends
+        // up above the viewport edge with nothing able to scroll it back, so
+        // the title and the first fields are simply unreachable. Only 8 of 55
+        // dialogs remembered to guard themselves; the other 47 were broken on
+        // any phone. The constraint belongs here, once.
+        //
+        // dvh, not vh: on mobile Safari and Chrome the URL bar is part of vh,
+        // so a vh-based cap still overflows while the bar is showing.
         className={cn(
-          "fixed top-1/2 start-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain fixed top-1/2 start-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
