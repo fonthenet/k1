@@ -12,6 +12,7 @@ import { formatDZD } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Activity } from "@/lib/types";
 import { ActivityActiveToggle } from "@/components/modules/classes/activity-active-toggle";
+import { ACTIVITY_CATEGORIES } from "@/components/modules/classes/class-types";
 import { ActivityDialog } from "@/components/modules/classes/activity-dialog";
 import { CategoryIcon } from "@/components/modules/classes/category-icon";
 import {
@@ -117,7 +118,16 @@ export default async function ActivitiesPage() {
                         {displayName}
                       </Link>
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
-                        <span>{t(`categories.${a.category}`)}</span>
+                        <span>
+                          {/* A category the messages do not carry would throw
+                              MISSING_MESSAGE and take the page with it. The edit
+                              dialog already guards this way; the list did not. */}
+                          {t(`categories.${
+                            (ACTIVITY_CATEGORIES as readonly string[]).includes(a.category)
+                              ? a.category
+                              : "general"
+                          }`)}
+                        </span>
                         <span aria-hidden>·</span>
                         {fee > 0 ? (
                           <>

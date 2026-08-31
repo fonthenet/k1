@@ -73,6 +73,18 @@ leaving at 09:15). Rules:
 - Anything inherently left-to-right — phone numbers, tag codes, PINs, emails,
   invoice numbers, times — carries `dir="ltr"`. The codebase already does this
   in 100+ places; follow it.
+- Anything a PERSON typed — an announcement, a message, an event title, a note,
+  a child's name — carries **`dir="auto"` AND `text-start`**, together. They fix
+  two different things and neither is sufficient alone:
+    - `dir="auto"` sets the direction from the first strong character, so the
+      bidi algorithm orders the run correctly and a trailing full stop stays at
+      the end. Without it, "…الأسبوع القادم." renders as ".الأسبوع القادم".
+    - `text-start` makes the alignment resolve against that direction instead of
+      the page's. Without it the text reads correctly but hugs the wrong edge —
+      an Arabic title left-aligned in an English UI, which is what the owner
+      reported after `dir="auto"` alone had "fixed" it.
+  Do NOT put these on translated UI labels: those already match the interface
+  direction, and marking them hides the cases that genuinely need it.
 - Numbers that open a translated Arabic string need a leading U+200F, and Arabic
   thousands separators should be U+00A0 so the digits cannot reorder.
 - A `dir="ltr"` island cuts BOTH ways. Put one Arabic word inside it and the

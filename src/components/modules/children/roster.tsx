@@ -102,7 +102,7 @@ function DualName({ child, locale }: { child: RosterChild; locale: string }) {
     <div className="min-w-0">
       <div className="truncate font-semibold">{primary}</div>
       {secondary && (
-        <div className="truncate text-xs text-muted-foreground" dir="auto">
+        <div className="truncate text-xs text-muted-foreground text-start" dir="auto">
           {secondary}
         </div>
       )}

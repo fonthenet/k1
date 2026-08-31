@@ -756,7 +756,7 @@ export default async function PortalChildDetailPage({
                           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             {t("child.journal.activities")}
                           </div>
-                          <p className="mt-1 whitespace-pre-wrap leading-relaxed">
+                          <p className="mt-1 whitespace-pre-wrap leading-relaxed text-start" dir="auto">
                             {report.activities_text}
                           </p>
                         </div>
@@ -768,7 +768,7 @@ export default async function PortalChildDetailPage({
                         <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {t("child.journal.notes")}
                         </div>
-                        <p className="mt-1 whitespace-pre-wrap leading-relaxed">{report.notes}</p>
+                        <p className="mt-1 whitespace-pre-wrap leading-relaxed text-start" dir="auto">{report.notes}</p>
                       </div>
                     )}
                   </CardContent>
@@ -973,7 +973,7 @@ export default async function PortalChildDetailPage({
                     >
                       <div className="font-semibold">{activityName(activity, locale)}</div>
                       {activity.description && (
-                        <p className="text-sm leading-relaxed text-muted-foreground">
+                        <p className="text-sm leading-relaxed text-muted-foreground text-start" dir="auto">
                           {activity.description}
                         </p>
                       )}

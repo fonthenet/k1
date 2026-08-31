@@ -156,7 +156,7 @@ export function CheckinClient({
                 <span className="flex flex-wrap items-baseline gap-x-2">
                   <span className="font-semibold">{child.name}</span>
                   {child.secondaryName && (
-                    <span className="text-xs text-muted-foreground" dir="auto">
+                    <span className="text-xs text-muted-foreground text-start" dir="auto">
                       {child.secondaryName}
                     </span>
                   )}

@@ -98,7 +98,7 @@ export default async function PortalAnnouncementsPage() {
                     </span>
                   )}
                   <div className="grid min-w-0 flex-1 gap-2">
-                    <h3 className="min-w-0 font-semibold leading-snug">{a.title}</h3>
+                    <h3 className="min-w-0 font-semibold leading-snug text-start" dir="auto">{a.title}</h3>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <Badge
                         variant="outline"
@@ -116,7 +116,7 @@ export default async function PortalAnnouncementsPage() {
                       </span>
                     </div>
                     {a.body && (
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground text-start" dir="auto">
                         {a.body}
                       </p>
                     )}

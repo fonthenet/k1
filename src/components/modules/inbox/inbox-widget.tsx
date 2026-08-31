@@ -335,11 +335,11 @@ export function InboxWidget({
               </span>
             )}
             <div className="min-w-0 flex-1">
-              {/* dir="auto" on everything anyone typed. A French subject or a
+              {/* dir="auto" + text-start on everything anyone typed. A French subject or a
                   French message in the Arabic UI is an LTR run in an RTL
                   paragraph, and its trailing full stop lands at the wrong end
                   without this — see CONVENTIONS.md, "Bidi". */}
-              <div dir="auto" className="truncate text-sm font-semibold text-foreground">
+              <div dir="auto" className="truncate text-sm font-semibold text-foreground text-start">
                 {title}
               </div>
               {subtitle && (
@@ -412,7 +412,7 @@ export function InboxWidget({
                             {m.authorName && (
                               <p
                                 dir="auto"
-                                className="mb-0.5 text-[11px] font-medium text-muted-foreground"
+                                className="mb-0.5 text-start text-[11px] font-medium text-muted-foreground"
                               >
                                 {m.authorName}
                               </p>
@@ -427,7 +427,7 @@ export function InboxWidget({
                                 m.failed && "ring-1 ring-destructive"
                               )}
                             >
-                              <p dir="auto" className="whitespace-pre-wrap break-words">
+                              <p dir="auto" className="whitespace-pre-wrap break-words text-start">
                                 {m.body}
                               </p>
                               <div
@@ -567,7 +567,7 @@ function ThreadList({
                 <span
                   dir="auto"
                   className={cn(
-                    "min-w-0 flex-1 truncate text-sm",
+                    "min-w-0 flex-1 truncate text-start text-sm",
                     th.unreadCount > 0
                       ? "font-semibold text-foreground"
                       : "font-medium text-foreground/90"
@@ -594,7 +594,7 @@ function ThreadList({
                 <span
                   dir="auto"
                   className={cn(
-                    "min-w-0 flex-1 truncate text-xs",
+                    "min-w-0 flex-1 truncate text-start text-xs",
                     th.unreadCount > 0 ? "text-foreground/80" : "text-muted-foreground"
                   )}
                 >

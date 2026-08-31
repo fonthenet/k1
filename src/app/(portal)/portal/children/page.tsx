@@ -109,7 +109,7 @@ export default async function PortalChildrenPage() {
                       <div className="flex flex-wrap items-baseline gap-x-2">
                         <span className="font-semibold">{name}</span>
                         {secondaryName && (
-                          <span className="text-sm text-muted-foreground" dir="auto">
+                          <span className="text-sm text-muted-foreground text-start" dir="auto">
                             {secondaryName}
                           </span>
                         )}

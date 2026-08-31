@@ -72,7 +72,7 @@ export async function PendingApplications({ rows }: { rows: PortalApplicationRow
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <span className="font-semibold" dir="auto">
+                  <span className="font-semibold text-start" dir="auto">
                     {name}
                   </span>
                   <p className="mt-1 text-xs text-muted-foreground">

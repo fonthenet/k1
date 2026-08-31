@@ -745,12 +745,12 @@ export default async function DashboardPage() {
                           {a.pinned && (
                             <Pin className="size-3.5 shrink-0 fill-gold text-gold" />
                           )}
-                          <span className="truncate text-sm font-semibold text-foreground group-hover:underline">
+                          <span className="truncate text-sm font-semibold text-foreground group-hover:underline text-start" dir="auto">
                             {a.title}
                           </span>
                         </div>
                         {a.body && (
-                          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground text-start" dir="auto">
                             {a.body}
                           </p>
                         )}

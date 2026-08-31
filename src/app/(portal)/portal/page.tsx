@@ -443,7 +443,7 @@ export default async function PortalHomePage() {
                     {formatDate(incident.occurred_at, locale)} · {formatTime(incident.occurred_at, locale)}
                   </span>
                 </div>
-                <p className="text-sm leading-relaxed">{incident.description}</p>
+                <p className="text-sm leading-relaxed text-start" dir="auto">{incident.description}</p>
                 {incident.action_taken && (
                   <p className="text-sm leading-relaxed text-muted-foreground">
                     {t("home.incidents.actionTaken")} : {incident.action_taken}
@@ -503,7 +503,7 @@ export default async function PortalHomePage() {
                       <div className="flex flex-wrap items-baseline gap-x-2">
                         <span className="font-semibold">{name}</span>
                         {secondaryName && (
-                          <span className="text-sm text-muted-foreground" dir="auto">
+                          <span className="text-sm text-muted-foreground text-start" dir="auto">
                             {secondaryName}
                           </span>
                         )}
@@ -598,12 +598,12 @@ export default async function PortalHomePage() {
                 </span>
                 <div className="grid min-w-0 flex-1 gap-1">
                   <div className="flex items-baseline gap-2">
-                    <span className="min-w-0 flex-1 truncate font-semibold">{a.title}</span>
+                    <span className="min-w-0 flex-1 truncate font-semibold text-start" dir="auto">{a.title}</span>
                     <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                       {formatDate(a.publish_at, locale)}
                     </span>
                   </div>
-                  <p className="line-clamp-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  <p className="line-clamp-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground text-start" dir="auto">
                     {a.body}
                   </p>
                 </div>
@@ -636,7 +636,7 @@ export default async function PortalHomePage() {
                     <CalendarDays className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{event.title}</span>
+                    <span className="block truncate font-medium text-start" dir="auto">{event.title}</span>
                     {/* Which child this concerns. A guardian with children in two
                         classes cannot tell two trips apart without it. */}
                     {event.audience === "class" && event.class_id && (
@@ -647,7 +647,7 @@ export default async function PortalHomePage() {
                     {/* What it actually is. Staff type this into the event and
                         it reached the family nowhere at all. */}
                     {event.description && (
-                      <span className="mt-0.5 block text-xs leading-relaxed text-pretty text-muted-foreground">
+                      <span className="mt-0.5 block text-xs leading-relaxed text-pretty text-muted-foreground text-start" dir="auto">
                         {event.description}
                       </span>
                     )}

@@ -176,11 +176,12 @@ export default async function PortalThreadPage({
                 </p>
                 <div
                   className={cn(
-                    "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
+                    "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap shadow-sm text-start",
                     mine
                       ? "rounded-ee-sm bg-primary text-primary-foreground"
                       : "rounded-es-sm bg-card text-foreground ring-1 ring-border"
                   )}
+                  dir="auto"
                 >
                   {m.body}
                 </div>

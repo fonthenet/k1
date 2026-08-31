@@ -28,6 +28,7 @@ import {
   EndEnrollmentButton,
   RequestActions,
 } from "@/components/modules/classes/enrollment-actions";
+import { ACTIVITY_CATEGORIES } from "@/components/modules/classes/class-types";
 import {
   algiersToday,
   asScheduleSlots,
@@ -201,7 +202,11 @@ export default async function ActivityDetailPage({
   const revenue = activeCount * fee;
 
   const headerMeta = [
-    t(`categories.${activity.category}` as Parameters<typeof t>[0]),
+    t(`categories.${
+      (ACTIVITY_CATEGORIES as readonly string[]).includes(activity.category)
+        ? activity.category
+        : "general"
+    }` as Parameters<typeof t>[0]),
     fee > 0 ? `${formatDZD(fee, locale)} · ${t(`periods.${activity.fee_period}`)}` : t("list.free"),
   ].join(" · ");
 

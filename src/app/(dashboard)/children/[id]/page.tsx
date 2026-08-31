@@ -638,7 +638,7 @@ export default async function ChildProfilePage({
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xl font-bold tracking-tight">{name}</span>
               {secondaryName && (
-                <span className="text-base text-muted-foreground" dir="auto">
+                <span className="text-base text-muted-foreground text-start" dir="auto">
                   {secondaryName}
                 </span>
               )}
