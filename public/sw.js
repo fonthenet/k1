@@ -1,4 +1,4 @@
-/* Rawdati service worker — web push delivery.
+/* Rawdatik service worker — web push delivery.
    Kept deliberately tiny: it must keep working for a device that installed it
    months ago, so it holds no app logic and no cached routes. */
 
@@ -10,10 +10,10 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { title: "Rawdati", body: event.data ? event.data.text() : "" };
+    payload = { title: "Rawdatik", body: event.data ? event.data.text() : "" };
   }
 
-  const title = payload.title || "Rawdati";
+  const title = payload.title || "Rawdatik";
   const options = {
     body: payload.body || "",
     icon: "/icon-192.png",
