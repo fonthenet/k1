@@ -31,6 +31,8 @@ export interface PortalThreadItem {
   subject: string;
   /** Locale-aware display name of the child the thread is about, if any. */
   childName: string | null;
+  /** For linking the child badge to the profile. Null when there is no child. */
+  childId: string | null;
   /** Timestamp the row is sorted and stamped with. */
   sortedAt: string;
   /** One-line preview of the newest message. */
@@ -157,6 +159,7 @@ export async function getMyThreads(
         id: th.id,
         subject: th.subject,
         childName: th.kg_children ? childDisplayName(th.kg_children, locale) : null,
+        childId: th.child_id,
         sortedAt,
         preview: last ? last.body.replace(/\s+/g, " ").trim() || null : null,
         awaitingParent:

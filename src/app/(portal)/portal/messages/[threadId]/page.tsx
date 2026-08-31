@@ -12,6 +12,7 @@ import { childDisplayName, formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { algiersToday, getMyChildren } from "@/components/modules/portal/data";
 import { algiersDateStr, isMyFamilyThread } from "@/components/modules/portal/messages-data";
+import { fetchThreadSenderRoles, roleLabelKey } from "@/components/modules/comms/sender-roles";
 import { PortalReplyForm } from "@/components/modules/portal/portal-reply-form";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -44,6 +45,7 @@ export default async function PortalThreadPage({
   const { threadId } = await params;
   const ctx = await getTenantContext();
   const t = await getTranslations("portal");
+  const tRoles = await getTranslations("staff");
   const locale = await getLocale();
   const supabase = await createClient();
 
@@ -109,9 +111,15 @@ export default async function PortalThreadPage({
   const senderIds = [...new Set(messages.map((m) => m.sender_id))].filter(
     (id) => id !== ctx.user.id
   );
-  const { data: profileRows } = senderIds.length
-    ? await supabase.from("kg_profiles").select("id, full_name").in("id", senderIds)
-    : { data: [] as { id: string; full_name: string | null }[] };
+  const [{ data: profileRows }, roleById] = await Promise.all([
+    senderIds.length
+      ? supabase.from("kg_profiles").select("id, full_name").in("id", senderIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+    // Roles come through a definer function: RLS lets a parent read only their
+    // own membership row, so this is the one way the portal can say which of
+    // these people is the director and which is the accountant. See 0099.
+    fetchThreadSenderRoles(supabase, threadId),
+  ]);
   const nameById = new Map(
     (profileRows ?? []).map((p) => [p.id, (p.full_name ?? "").trim()])
   );
@@ -158,6 +166,7 @@ export default async function PortalThreadPage({
           const senderName = mine
             ? t("messages.you")
             : nameById.get(m.sender_id) || ctx.tenant.name;
+          const roleKey = mine ? null : roleLabelKey(roleById.get(m.sender_id));
           const sameDay = algiersDateStr(m.created_at) === today;
           const timeLabel = sameDay
             ? formatTime(m.created_at, locale)
@@ -172,6 +181,7 @@ export default async function PortalThreadPage({
                   )}
                 >
                   <span className="font-medium">{senderName}</span>
+                  {roleKey && <span className="opacity-75">{tRoles(roleKey)}</span>}
                   <span className="tabular-nums">{timeLabel}</span>
                 </p>
                 <div

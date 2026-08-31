@@ -15,6 +15,8 @@ export interface InboxThread {
   /** Null for the support row, which the widget titles from its translations. */
   subject: string | null;
   childName: string | null;
+  /** Null for the support row, and for family threads not about one child. */
+  childId: string | null;
   preview: string | null;
   lastMessageAt: string | null;
   /**
@@ -36,6 +38,12 @@ export interface InboxMessage {
    * sides and naming them on every bubble is noise.
    */
   authorName: string | null;
+  /**
+   * `kg_memberships.role` of the author, for the caption beside their name.
+   * Null when the message is mine, on the support thread, and whenever the
+   * role could not be read.
+   */
+  authorRole: string | null;
   /** Optimistic message the server has not acknowledged yet. */
   pending?: boolean;
   /** The send failed. Kept on screen so nothing anyone typed is lost. */

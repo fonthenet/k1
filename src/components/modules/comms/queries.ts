@@ -111,6 +111,7 @@ export async function fetchThreadItems(
       id: th.id,
       subject: th.subject,
       childName: th.kg_children ? childDisplayName(th.kg_children, locale) : null,
+      childId: th.child_id,
       lastMessageAt: th.last_message_at,
       preview: last?.body ?? null,
       unreadCount: unreadByThread.get(th.id) ?? 0,

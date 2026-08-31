@@ -22,7 +22,8 @@
     "admin": "مدير إداري",
     "educator": "مربّي(ة)",
     "staff": "عون",
-    "accountant": "محاسب"
+    "accountant": "محاسب",
+    "parent": "ولي الأمر"
   },
   "roleDescriptions": {
     "owner": "صلاحية كاملة: يتحكم في كل شيء بما في ذلك الإعدادات والفريق.",

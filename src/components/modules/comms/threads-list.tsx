@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Baby } from "lucide-react";
 import { formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ChildBadge } from "@/components/shared/child-badge";
 import { algiersDateStr } from "./dates";
 import type { ThreadListItem } from "./types";
 
@@ -29,15 +28,23 @@ export async function ThreadsList({
             ? formatTime(th.lastMessageAt, locale)
             : formatDate(th.lastMessageAt, locale);
           return (
-            <Link
+            <div
               key={th.id}
-              href={`/messages/${th.id}`}
               className={cn(
-                "relative block px-4 py-3.5 transition-colors hover:bg-muted/60",
+                "relative transition-colors hover:bg-muted/60",
                 th.id === activeId &&
                   "bg-primary/8 before:absolute before:inset-y-0 before:start-0 before:w-1 before:bg-primary"
               )}
             >
+              {/* Target behind the content, not around it: the child badge is
+                  a link and links cannot nest. */}
+              <Link
+                href={`/messages/${th.id}`}
+                className="absolute inset-0 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                <span className="sr-only">{th.subject || t("messages.noSubject")}</span>
+              </Link>
+              <div className="pointer-events-none relative px-4 py-3.5">
               <div className="flex items-center justify-between gap-2">
                 <span
                   className={cn(
@@ -53,12 +60,7 @@ export async function ThreadsList({
                 </span>
               </div>
               <div className="mt-1 flex items-center gap-2">
-                {th.childName && (
-                  <Badge className="shrink-0 border-transparent bg-primary/10 font-medium text-primary">
-                    <Baby data-icon="inline-start" />
-                    {th.childName}
-                  </Badge>
-                )}
+                {th.childName && <ChildBadge id={th.childId} name={th.childName} />}
                 {th.preview && (
                   <span
                     className={cn(
@@ -70,7 +72,8 @@ export async function ThreadsList({
                   </span>
                 )}
               </div>
-            </Link>
+              </div>
+            </div>
           );
         })}
       </div>

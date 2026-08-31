@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Baby, ChevronLeft, ChevronRight, MessagesSquare } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ChildBadge } from "@/components/shared/child-badge";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/tenant";
 import { childDisplayName, formatDate, formatTime } from "@/lib/format";
@@ -76,8 +76,16 @@ export default async function PortalMessagesPage() {
       ) : (
         <div className="grid gap-3">
           {threads.map((th) => (
-            <Link key={th.id} href={`/portal/messages/${th.id}`} className="block">
-              <Card className="shadow-sm transition-shadow hover:shadow-md">
+            <div key={th.id} className="group relative">
+              {/* Target behind the card rather than around it, so the child
+                  badge can be its own link without nesting one inside another. */}
+              <Link
+                href={`/portal/messages/${th.id}`}
+                className="absolute inset-0 z-0 rounded-xl focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                <span className="sr-only">{th.subject || t("messages.noSubject")}</span>
+              </Link>
+              <Card className="pointer-events-none shadow-sm transition-shadow group-hover:shadow-md">
                 <CardContent className="flex items-center gap-3">
                   <div className="grid min-w-0 flex-1 gap-1.5">
                     <div className="flex items-center gap-2">
@@ -105,10 +113,7 @@ export default async function PortalMessagesPage() {
                     </div>
                     <div className="flex min-w-0 items-center gap-2">
                       {th.childName && (
-                        <Badge className="shrink-0 border-transparent bg-primary/10 font-medium text-primary">
-                          <Baby data-icon="inline-start" />
-                          {th.childName}
-                        </Badge>
+                        <ChildBadge id={th.childId} name={th.childName} portal />
                       )}
                       {th.preview && (
                         <span
@@ -127,7 +132,7 @@ export default async function PortalMessagesPage() {
                   </span>
                 </CardContent>
               </Card>
-            </Link>
+            </div>
           ))}
         </div>
       )}

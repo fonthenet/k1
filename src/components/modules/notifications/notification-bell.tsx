@@ -7,7 +7,7 @@
 // first page rather than forcing the server layout to await a query the rest of
 // the chrome does not need.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -24,7 +24,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationRow } from "./notification-row";
-import { markNotificationsRead, onNotificationsRead } from "./read-sync";
+import {
+  markNotificationsRead,
+  onNotificationsChanged,
+  onNotificationsRead,
+} from "./read-sync";
 import { useNotificationStream } from "@/components/shared/use-notification-stream";
 
 /** The dropdown is a peek, not an archive — the rest lives at /notifications. */
@@ -39,16 +43,14 @@ export function NotificationBell({ userId }: { userId?: string }) {
   // Falls back to the session when the shell cannot hand the id down.
   const [uid, setUid] = useState<string | null>(userId ?? null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
+  const load = useCallback(
+    async (isStale: () => boolean) => {
       let id = userId;
       if (!id) {
         const { data } = await supabase.auth.getUser();
         id = data.user?.id;
       }
-      if (!id || cancelled) return;
+      if (!id || isStale()) return;
       setUid(id);
 
       // RLS (policy n_sel) already limits both queries to this user's rows.
@@ -63,15 +65,33 @@ export function NotificationBell({ userId }: { userId?: string }) {
           .select("id", { count: "exact", head: true })
           .is("read_at", null),
       ]);
-      if (cancelled) return;
+      if (isStale()) return;
       setItems((rows.data ?? []) as KgNotification[]);
       setUnread(count.count ?? 0);
-    })();
+    },
+    [supabase, userId]
+  );
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      await load(() => cancelled);
+    })();
     return () => {
       cancelled = true;
     };
-  }, [supabase, userId]);
+  }, [load]);
+
+  // A write that could not name the rows it moved — reading a conversation
+  // clears its message notifications server-side. Re-read rather than guess.
+  useEffect(() => {
+    let cancelled = false;
+    const off = onNotificationsChanged(() => void load(() => cancelled));
+    return () => {
+      cancelled = true;
+      off();
+    };
+  }, [load]);
 
   // Live arrivals come over Realtime Broadcast on the shared per-user topic —
   // postgres_changes never fires on this project (see the hook's note).

@@ -22,7 +22,8 @@
     "admin": "Administrator",
     "educator": "Educator",
     "staff": "Staff",
-    "accountant": "Accountant"
+    "accountant": "Accountant",
+    "parent": "Parent"
   },
   "roleDescriptions": {
     "owner": "Full access: manages everything, including settings and the team.",

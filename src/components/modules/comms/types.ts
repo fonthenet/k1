@@ -57,6 +57,8 @@ export interface ThreadListItem {
   id: string;
   subject: string;
   childName: string | null;
+  /** For linking the child badge to the profile. Null on threads with no child. */
+  childId: string | null;
   lastMessageAt: string;
   preview: string | null;
   /** Messages from other people since this person last opened the thread. */

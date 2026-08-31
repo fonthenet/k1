@@ -4,6 +4,7 @@ import { getLocale } from "next-intl/server";
 import { requireStaff } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { fetchThreadItems } from "../comms/queries";
+import { fetchThreadSenderRoles } from "../comms/sender-roles";
 import { getSupportMessages, getSupportSummary } from "../support/data";
 import type { InboxKind, InboxMessage, InboxThread } from "./types";
 
@@ -30,6 +31,7 @@ export async function loadInboxThreads(): Promise<InboxThread[]> {
     id: th.id,
     subject: th.subject,
     childName: th.childName,
+    childId: th.childId,
     preview: th.preview,
     lastMessageAt: th.lastMessageAt,
     unreadCount: th.unreadCount,
@@ -52,6 +54,7 @@ export async function loadInboxThreads(): Promise<InboxThread[]> {
     id: support.threadId,
     subject: null,
     childName: null,
+    childId: null,
     preview: lastRow ? lastRow.body.replace(/\s+/g, " ").trim() || null : null,
     lastMessageAt: lastRow?.created_at ?? null,
     unreadCount: support.unread,
@@ -78,6 +81,7 @@ export async function loadInboxMessages(
       createdAt: m.createdAt,
       mine: !m.fromPlatform,
       authorName: null,
+      authorRole: null,
     }));
   }
 
@@ -102,9 +106,12 @@ export async function loadInboxMessages(
   // side and parents on the other, and both sides may be several people, so
   // "who said this" is not answerable from the alignment alone.
   const senderIds = [...new Set(messages.map((m) => m.sender_id).filter((id) => id !== ctx.user.id))];
-  const { data: profileRows } = senderIds.length
-    ? await supabase.from("kg_profiles").select("id, full_name").in("id", senderIds)
-    : { data: [] as { id: string; full_name: string }[] };
+  const [{ data: profileRows }, roleById] = await Promise.all([
+    senderIds.length
+      ? supabase.from("kg_profiles").select("id, full_name").in("id", senderIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+    fetchThreadSenderRoles(supabase, threadId),
+  ]);
   const nameById = new Map((profileRows ?? []).map((p) => [p.id, p.full_name]));
 
   return messages.map((m) => ({
@@ -113,5 +120,6 @@ export async function loadInboxMessages(
     createdAt: m.created_at,
     mine: m.sender_id === ctx.user.id,
     authorName: m.sender_id === ctx.user.id ? null : (nameById.get(m.sender_id) ?? null),
+    authorRole: m.sender_id === ctx.user.id ? null : (roleById.get(m.sender_id) ?? null),
   }));
 }

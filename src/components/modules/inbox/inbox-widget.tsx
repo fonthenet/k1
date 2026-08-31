@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, ArrowRight, Baby, Headset, MessagesSquare, Send, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Headset, MessagesSquare, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatDate, formatTime } from "@/lib/format";
 import { useNotificationStream } from "@/components/shared/use-notification-stream";
+import { announceNotificationsChanged } from "../notifications/read-sync";
+import { ChildBadge } from "@/components/shared/child-badge";
+import { roleLabelKey } from "../comms/sender-roles";
 import { markThreadRead, sendThreadMessage } from "../comms/actions";
 import { algiersDateStr } from "../comms/dates";
 import { markSupportRead, sendSupportMessage } from "../support/actions";
@@ -53,6 +55,24 @@ export function InboxWidget({
 }) {
   const t = useTranslations("comms");
   const ts = useTranslations("support");
+  const tRoles = useTranslations("staff");
+  /**
+   * Mark a family thread read, and refresh if that changed anything.
+   *
+   * The announcement is for the BELL, not for this panel: reading here also
+   * clears the thread's message notifications (see migration 0100), and the
+   * bell is a client island holding its own count — no revalidate reaches into
+   * it. The clearing happens server-side in one statement, so there are no ids
+   * to hand over; `announceNotificationsChanged` tells it to re-read.
+   *
+   * `kg_mark_thread_read` returns false once there is nothing left to clear,
+   * so a second read is inert and this cannot loop.
+   */
+  const readThread = useCallback((threadId: string) => {
+    void markThreadRead(threadId).then((changed) => {
+      if (changed) announceNotificationsChanged();
+    });
+  }, []);
   const locale = useLocale();
 
   const [open, setOpen] = useState(false);
@@ -124,7 +144,7 @@ export function InboxWidget({
 
     if (current?.kind === "family" && threadId && current.id === threadId) {
       void refreshMessages(current);
-      void markThreadRead(current.id);
+      readThread(current.id);
       return;
     }
     if (open && !current) {
@@ -150,6 +170,7 @@ export function InboxWidget({
             createdAt: m.createdAt,
             mine: !m.fromPlatform,
             authorName: null,
+            authorRole: null,
           },
         ];
       });
@@ -204,7 +225,8 @@ export function InboxWidget({
     // Clear the dot here rather than waiting for the server: opening it is the
     // act that reads it, and the badge should fall as the panel opens.
     setThreads((prev) => prev?.map((x) => (x.id === th.id ? { ...x, unreadCount: 0 } : x)) ?? prev);
-    void (th.kind === "support" ? markSupportRead(th.id) : markThreadRead(th.id));
+    if (th.kind === "support") void markSupportRead(th.id);
+    else readThread(th.id);
   }
 
   function back() {
@@ -235,6 +257,7 @@ export function InboxWidget({
       createdAt: new Date().toISOString(),
       mine: true,
       authorName: null,
+      authorRole: null,
       pending: true,
     };
     setPending((prev) => [...prev, optimistic]);
@@ -256,6 +279,7 @@ export function InboxWidget({
               createdAt: res.message.createdAt,
               mine: !res.message.fromPlatform,
               authorName: null,
+              authorRole: null,
             },
           ];
         });
@@ -347,10 +371,7 @@ export function InboxWidget({
               )}
             </div>
             {active?.childName && (
-              <Badge className="shrink-0 border-transparent bg-primary/10 font-medium text-primary">
-                <Baby data-icon="inline-start" />
-                {active.childName}
-              </Badge>
+              <ChildBadge id={active.childId} name={active.childName} />
             )}
           </header>
 
@@ -409,14 +430,21 @@ export function InboxWidget({
                         )}
                         <div className={cn("flex", m.mine ? "justify-end" : "justify-start")}>
                           <div className="max-w-[85%]">
-                            {m.authorName && (
-                              <p
-                                dir="auto"
-                                className="mb-0.5 text-start text-[11px] font-medium text-muted-foreground"
-                              >
-                                {m.authorName}
-                              </p>
-                            )}
+                            {m.authorName &&
+                              (() => {
+                                // Name first, role after: the person is who you
+                                // answer, the role is only how to read them.
+                                const rk = roleLabelKey(m.authorRole);
+                                return (
+                                  <p
+                                    dir="auto"
+                                    className="mb-0.5 text-start text-[11px] text-muted-foreground"
+                                  >
+                                    <span className="font-medium">{m.authorName}</span>
+                                    {rk && <span className="opacity-75"> · {tRoles(rk)}</span>}
+                                  </p>
+                                );
+                              })()}
                             <div
                               className={cn(
                                 "rounded-2xl px-3 py-2 text-sm leading-relaxed",
@@ -549,15 +577,26 @@ function ThreadList({
             : null;
 
           return (
-            <button
+            <div
               key={`${th.kind}:${th.id}`}
-              type="button"
-              onClick={() => onSelect(th)}
               className={cn(
-                "block w-full px-3 py-3 text-start transition-colors hover:bg-muted/60",
+                "relative transition-colors hover:bg-muted/60",
                 rule && "border-t-4 border-t-border"
               )}
             >
+              {/* The row's target sits behind the content instead of wrapping
+                  it. The child badge is a link, and a link nested inside a
+                  button is invalid HTML that fires both handlers at once. */}
+              <button
+                type="button"
+                onClick={() => onSelect(th)}
+                className="absolute inset-0 w-full focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                <span className="sr-only">
+                  {isSupport ? labels.supportTitle : th.subject || labels.noSubject}
+                </span>
+              </button>
+              <div className="pointer-events-none relative px-3 py-3 text-start">
               <div className="flex items-center gap-2">
                 {isSupport && (
                   <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -585,12 +624,7 @@ function ThreadList({
                 </span>
               </div>
               <div className="mt-1 flex items-center gap-2">
-                {th.childName && (
-                  <Badge className="shrink-0 border-transparent bg-primary/10 font-medium text-primary">
-                    <Baby data-icon="inline-start" />
-                    {th.childName}
-                  </Badge>
-                )}
+                {th.childName && <ChildBadge id={th.childId} name={th.childName} />}
                 <span
                   dir="auto"
                   className={cn(
@@ -601,7 +635,8 @@ function ThreadList({
                   {th.preview ?? (isSupport ? labels.supportSubtitle : null)}
                 </span>
               </div>
-            </button>
+              </div>
+            </div>
           );
         })}
       </div>

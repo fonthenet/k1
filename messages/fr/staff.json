@@ -22,7 +22,8 @@
     "admin": "Administrateur",
     "educator": "Éducateur·rice",
     "staff": "Personnel",
-    "accountant": "Comptable"
+    "accountant": "Comptable",
+    "parent": "Parent"
   },
   "roleDescriptions": {
     "owner": "Accès total : gère tout, y compris les paramètres et l'équipe.",

@@ -16,6 +16,7 @@ import { ThreadsList } from "@/components/modules/comms/threads-list";
 import { fetchThreadItems } from "@/components/modules/comms/queries";
 import { MarkThreadRead } from "@/components/modules/comms/mark-thread-read";
 import { algiersDateStr } from "@/components/modules/comms/dates";
+import { fetchThreadSenderRoles, roleLabelKey } from "@/components/modules/comms/sender-roles";
 import type { ChildOption } from "@/components/modules/comms/types";
 
 interface ThreadRow {
@@ -45,6 +46,7 @@ export default async function ThreadPage({
   const { threadId } = await params;
   const ctx = await requireStaff();
   const t = await getTranslations("comms");
+  const tRoles = await getTranslations("staff");
   const locale = await getLocale();
   const supabase = await createClient();
 
@@ -80,9 +82,12 @@ export default async function ThreadPage({
   const childrenOptions: ChildOption[] = childRows ?? [];
 
   const senderIds = [...new Set(messages.map((m) => m.sender_id))];
-  const { data: profileRows } = senderIds.length
-    ? await supabase.from("kg_profiles").select("id, full_name").in("id", senderIds)
-    : { data: [] as { id: string; full_name: string }[] };
+  const [{ data: profileRows }, roleById] = await Promise.all([
+    senderIds.length
+      ? supabase.from("kg_profiles").select("id, full_name").in("id", senderIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+    fetchThreadSenderRoles(supabase, threadId),
+  ]);
   const nameById = new Map((profileRows ?? []).map((p) => [p.id, p.full_name]));
 
   const childName = thread.kg_children ? childDisplayName(thread.kg_children, locale) : null;
@@ -134,6 +139,9 @@ export default async function ThreadPage({
               const senderName = mine
                 ? t("messages.you")
                 : (nameById.get(m.sender_id) ?? "—");
+              // Who they are to this crèche, so a colleague and a parent do not
+              // read identically above two adjacent bubbles.
+              const roleKey = mine ? null : roleLabelKey(roleById.get(m.sender_id));
               const sameDay = algiersDateStr(new Date(m.created_at)) === today;
               const timeLabel = sameDay
                 ? formatTime(m.created_at, locale)
@@ -148,6 +156,7 @@ export default async function ThreadPage({
                       )}
                     >
                       <span className="font-medium">{senderName}</span>
+                      {roleKey && <span className="opacity-75">{tRoles(roleKey)}</span>}
                       <span>{timeLabel}</span>
                     </p>
                     <div
