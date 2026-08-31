@@ -160,7 +160,8 @@
     "nextWeek": "الأسبوع التالي",
     "thisWeek": "هذا الأسبوع",
     "editDay": "تعديل قائمة يوم {date}",
-    "allergyChildrenLabel": "الأطفال المعنيون:"
+    "allergyChildrenLabel": "الأطفال المعنيون:",
+    "allergyEveryDay": "كل الأيام"
   },
   "incidents": {
     "title": "الحوادث",

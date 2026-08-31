@@ -160,7 +160,8 @@
     "nextWeek": "Semaine suivante",
     "thisWeek": "Cette semaine",
     "editDay": "Modifier le menu du {date}",
-    "allergyChildrenLabel": "Enfants concernés :"
+    "allergyChildrenLabel": "Enfants concernés :",
+    "allergyEveryDay": "tous les jours"
   },
   "incidents": {
     "title": "Incidents",

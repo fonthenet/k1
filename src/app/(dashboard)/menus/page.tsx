@@ -22,6 +22,7 @@ import {
 import { conflictsFor, type ChildAllergy } from "@/components/modules/comms/allergens";
 import { type MenuDayRow } from "@/components/modules/comms/types";
 import { allergenLabel as allergenLabelFor } from "@/lib/allergens";
+import { ChildLink } from "@/components/shared/entity-link";
 
 interface AllergyRow {
   child_id: string;
@@ -97,6 +98,17 @@ export default async function MenusPage({
 
   const allergenLabel = (value: string) => allergenLabelFor(value, tc);
 
+  // Weekday alone. `formatDate` spreads day/month/year BEFORE the caller's
+  // options, so weekday has to be asked for and the rest explicitly unasked —
+  // otherwise the day list reads "mercredi 2 sept. 2026" five times over.
+  const weekdayLabel = (d: string) =>
+    formatDate(`${d}T12:00:00Z`, locale, {
+      weekday: "long",
+      day: undefined,
+      month: undefined,
+      year: undefined,
+    });
+
   const dayLabel = (d: string) =>
     formatDate(`${d}T12:00:00Z`, locale, { weekday: "long", day: "numeric", month: "long" });
 
@@ -113,6 +125,40 @@ export default async function MenusPage({
     const set = new Set(w.conflicts.map((c) => c.allergen));
     conflictingAllergens.set(w.date, set);
   }
+
+  // One row per ALLERGEN, not per day.
+  //
+  // Grouped by day, this printed the same allergen and the same three names
+  // once for every day of the week: milk and gluten are on a crèche menu every
+  // single day, so five days of menus produced ten near-identical lines and
+  // the one that mattered — the fish on Wednesday — was buried among them.
+  //
+  // Grouped this way each allergen is stated once, and the day list carries
+  // the part that actually varies.
+  const menuDayCount = days.filter((d) => menuByDate.has(d)).length;
+  const byAllergen = new Map<string, { children: Map<string, string>; dates: string[] }>();
+  for (const w of warnings) {
+    for (const c of w.conflicts) {
+      let entry = byAllergen.get(c.allergen);
+      if (!entry) {
+        entry = { children: new Map(), dates: [] };
+        byAllergen.set(c.allergen, entry);
+      }
+      for (const child of c.children) entry.children.set(child.id, child.name);
+      entry.dates.push(w.date);
+    }
+  }
+  const alerts = [...byAllergen.entries()]
+    .map(([allergen, e]) => ({
+      allergen,
+      children: [...e.children].map(([id, name]) => ({ id, name })),
+      dates: e.dates,
+      // "Every day" only when it really is every day the menu covers — an
+      // unpublished Thursday must not turn four days into "all week".
+      everyDay: menuDayCount > 1 && e.dates.length === menuDayCount,
+    }))
+    // Widest exposure first; the cook reads the top line and knows the worst.
+    .sort((a, b) => b.children.length - a.children.length || a.allergen.localeCompare(b.allergen));
 
   const href = (w: string) => `/menus?week=${w}`;
 
@@ -165,40 +211,41 @@ export default async function MenusPage({
           facts, and framing it as a panel only put a second box around three
           lines of text. What has to be loud is the allergen and the names, so
           those are what carry the colour. */}
-      {warnings.length > 0 && (
+      {alerts.length > 0 && (
         <div className="mb-5">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-destructive">
             <TriangleAlert className="size-4 shrink-0" aria-hidden />
             {t("menus.allergyWarning")}
           </p>
-          <ul className="mt-1.5 space-y-1 text-sm">
-            {warnings.map((w) =>
-              w.conflicts.map((c) => (
-                <li key={`${w.date}-${c.allergen}`}>
-                  <span className="font-medium capitalize text-foreground">{dayLabel(w.date)}</span>
-                  {" — "}
-                  <span className="font-semibold text-destructive">{allergenLabel(c.allergen)}</span>
-                  {" · "}
-                  <span className="text-muted-foreground">
-                    {t("menus.allergyChildrenLabel")}{" "}
-                    {c.children.map((child, i) => (
-                      <span key={child.id}>
-                        {i > 0 && (locale === "ar" ? "، " : ", ")}
-                        {/* Straight to the child: the next thing anyone does
-                            after reading this is check what that child is
-                            actually allergic to. */}
-                        <Link
-                          href={`/children/${child.id}`}
-                          className="rounded underline decoration-dotted underline-offset-4 transition-colors hover:text-destructive hover:decoration-solid focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                        >
-                          {child.name}
-                        </Link>
-                      </span>
-                    ))}
-                  </span>
-                </li>
-              ))
-            )}
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {alerts.map((a) => (
+              <li key={a.allergen} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                {/* The accent is spent once, on the allergen. The names are
+                    ordinary links and the days are quiet: three shades of red
+                    in one line would say "urgent" three times and mean it
+                    less each time. */}
+                <span className="font-semibold capitalize text-destructive">
+                  {allergenLabel(a.allergen)}
+                </span>
+                <span className="min-w-0">
+                  <span className="sr-only">{t("menus.allergyChildrenLabel")} </span>
+                  {a.children.map((child, i) => (
+                    <span key={child.id}>
+                      {i > 0 && (locale === "ar" ? "، " : ", ")}
+                      {/* Straight to the child: the next thing anyone does
+                          after reading this is check what that child is
+                          actually allergic to. */}
+                      <ChildLink id={child.id}>{child.name}</ChildLink>
+                    </span>
+                  ))}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {a.everyDay
+                    ? t("menus.allergyEveryDay")
+                    : a.dates.map((d) => weekdayLabel(d)).join(" · ")}
+                </span>
+              </li>
+            ))}
           </ul>
         </div>
       )}
