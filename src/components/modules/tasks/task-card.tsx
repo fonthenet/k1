@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Baby, CalendarDays, Check, Pencil, Receipt, UserRound } from "lucide-react";
-import { formatDate } from "@/lib/format";
+import { formatDate, initialsFromName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,15 +18,6 @@ import {
   type ChildOption,
   type TaskCardData,
 } from "./types";
-
-/** Two-letter monogram from a display name (works for Arabic and Latin). */
-function monogram(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  const first = [...parts[0]][0] ?? "";
-  const second = parts.length > 1 ? ([...parts[parts.length - 1]][0] ?? "") : "";
-  return (first + second).toUpperCase();
-}
 
 export async function TaskCard({
   task,
@@ -147,7 +138,7 @@ export async function TaskCard({
                 title={task.assigneeName}
                 className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-[10px] font-bold text-primary"
               >
-                {monogram(task.assigneeName)}
+                {initialsFromName(task.assigneeName)}
                 <span className="sr-only">{task.assigneeName}</span>
               </span>
             ) : (

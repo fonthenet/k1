@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import type { KgRole } from "@/lib/types";
+import { latinInitial } from "@/lib/format";
 import { NavLinks } from "./nav-links";
 
 
@@ -39,7 +40,7 @@ export function Sidebar({
           </div>
         ) : (
           <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-from via-brand-via to-brand-to text-base font-bold text-primary-foreground shadow-sm">
-            {tenantName.trim().charAt(0).toUpperCase() || "R"}
+            {latinInitial(tenantName) || "R"}
           </div>
         )}
         <div className="min-w-0">

@@ -1,6 +1,8 @@
 // Shared vocabulary for the sessions module (kg_sessions / kg_programs / kg_program_goals).
 // Tone maps are token-only — see THEME.md. Never a raw Tailwind palette colour.
 
+import { initialsFromName } from "@/lib/format";
+
 export const SESSION_TYPES = [
   "speech",
   "occupational",
@@ -131,10 +133,11 @@ export interface ProgramGoalRecord {
   sort_order: number;
 }
 
-/** Two-letter monogram, Arabic-aware (falls back to the Latin name). */
+/**
+ * Initials for a session avatar. Delegates so that Arabic names come back
+ * transliterated — two Arabic letters on an avatar can spell something
+ * crude. See initialsFromName in src/lib/format.ts.
+ */
 export function monogram(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "—";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return initialsFromName(name) || "—";
 }

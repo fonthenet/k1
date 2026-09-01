@@ -92,8 +92,47 @@ export function childDisplayName(
   return `${c.first_name} ${c.last_name}`;
 }
 
+/**
+ * Arabic letter → its Latin initial.
+ *
+ * WHY INITIALS ARE NEVER ARABIC. Two Arabic letters set side by side form a
+ * word, and often not one you would put next to a child's face: ordinary
+ * Algerian names produce crude pairings on an avatar with no warning. A
+ * transliterated initial cannot do that, and it still tells two members of
+ * staff apart, which is the whole point of a monogram.
+ *
+ * Digraphs are stored in full (خ → "Kh") but only their first letter is used;
+ * keeping them whole documents the sound rather than implying خ is a K.
+ */
+const ARABIC_INITIALS: Record<string, string> = {
+  "ا": "A", "أ": "A", "إ": "I", "آ": "A", "ٱ": "A",
+  "ب": "B", "ت": "T", "ث": "Th", "ج": "J", "ح": "H", "خ": "Kh",
+  "د": "D", "ذ": "Dh", "ر": "R", "ز": "Z", "س": "S", "ش": "Ch",
+  "ص": "S", "ض": "D", "ط": "T", "ظ": "Z", "ع": "A", "غ": "Gh",
+  "ف": "F", "ق": "K", "ك": "K", "ل": "L", "م": "M", "ن": "N",
+  "ه": "H", "ة": "H", "و": "W", "ي": "Y", "ى": "Y", "ئ": "Y", "ؤ": "W",
+};
+
+/** The Latin initial for one name, whatever script it is written in. */
+export function latinInitial(name: string | null | undefined): string {
+  const ch = [...(name ?? "").trim()][0];
+  if (!ch) return "";
+  return (ARABIC_INITIALS[ch] ?? ch)[0]!.toUpperCase();
+}
+
+/**
+ * Two initials for an avatar — always Latin. See ARABIC_INITIALS for why.
+ */
 export function initials(first: string, last: string): string {
-  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
+  return `${latinInitial(first)}${latinInitial(last)}`;
+}
+
+/** Initials from a single full name, e.g. a profile's `full_name`. */
+export function initialsFromName(name: string | null | undefined): string {
+  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return latinInitial(parts[0]);
+  return `${latinInitial(parts[0])}${latinInitial(parts[parts.length - 1])}`;
 }
 
 /**

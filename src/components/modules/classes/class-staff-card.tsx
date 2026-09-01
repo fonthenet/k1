@@ -18,14 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { initialsFromName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { addClassStaff, removeClassStaff, setMainClassStaff } from "./actions";
 import type { AssignedStaff, StaffOption } from "./class-types";
-
-function nameInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
-}
 
 /** Staff assignment card for a class: list, add, remove, mark main educator. */
 export function ClassStaffCard({
@@ -95,7 +91,7 @@ export function ClassStaffCard({
           >
             <Avatar className="size-9 ring-1 ring-border">
               <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                {nameInitials(s.name)}
+                {initialsFromName(s.name) || "?"}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 basis-24">
