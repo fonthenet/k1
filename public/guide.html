@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="description" content="Rawdatik — guide de démarrage : les premières étapes, pour chaque rôle.">
+<title>Rawdatik — Guide de démarrage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Cairo:wght@400;600;800;900&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   RAWDATIK — GUIDE DE DÉMARRAGE
+
+   Same tokens as the media kit, which takes them from the product's own
+   globals.css. A director who sees the app, then the flyer, then this
+   should not be able to tell they were made separately.
+
+   COMMITTED LIGHT, like the kit: every role section is meant to be
+   printed and pinned up, and the screen is a proof of the paper.
+
+   Two languages live in one document and are switched by a data
+   attribute rather than by a route, because a director hands her phone
+   to an educator who reads the other one.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --teal:       #19819A;
+  --teal-deep:  #006F8F;
+  --teal-lift:  #31B7BC;
+  --teal-mist:  #EAF4F6;
+  --teal-veil:  #F4F9FA;
+  --gold:       #EDAC2B;
+  --gold-ink:   #895909;
+  --gold-veil:  #FFF6E2;
+  --ink:        #12303A;
+  --ink-mid:    #3E5964;
+  --ink-soft:   #6A828C;
+  --rule:       #D3E3E7;
+  --rule-soft:  #E8F0F2;
+  --paper:      #FFFFFF;
+  --room:       #EEF4F6;
+
+  --ar: "Cairo", "Noto Naskh Arabic", system-ui, sans-serif;
+  --display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0; background: var(--room); color: var(--ink);
+  font-family: var(--body); line-height: 1.6;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+
+/* language switching: one document, two languages, no round trip */
+[data-lang] { display: none; }
+/* French shows before the script runs, and still shows if it never does —
+   with no fallback rule a JS failure leaves a blank page, not a degraded one. */
+html:not([data-active]) [data-lang="fr"] { display: revert; }
+html[data-active="fr"] [data-lang="fr"] { display: revert; }
+html[data-active="ar"] [data-lang="ar"] { display: revert; }
+[data-lang="ar"] { font-family: var(--ar); }
+
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rule-soft);
+}
+.topbar-in {
+  max-width: 1120px; margin: 0 auto; padding: 12px 22px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand .tile {
+  width: 34px; height: 34px; border-radius: 49%; flex: 0 0 auto;
+  background: linear-gradient(to bottom right, #006F8F 0%, #008DA1 52%, #31B7BC 100%);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.brand .tile svg { width: 56%; height: 56%; }
+.brand .names { display: flex; flex-direction: column; line-height: 1; }
+.brand .ar { font-family: var(--ar); font-weight: 800; font-size: 1rem; color: var(--ink); }
+.brand .lat {
+  font-weight: 700; font-size: .58rem; letter-spacing: .24em;
+  text-transform: uppercase; color: var(--ink-soft); margin-top: .3em;
+}
+
+.langs { display: flex; gap: 4px; }
+.langs button {
+  font: 600 .82rem var(--body); cursor: pointer;
+  border: 1px solid var(--rule); background: var(--paper); color: var(--ink-mid);
+  padding: .38rem .8rem; border-radius: 999px;
+}
+.langs button[aria-pressed="true"] {
+  background: var(--teal); border-color: var(--teal); color: #fff;
+}
+.langs button:nth-child(2) { font-family: var(--ar); }
+
+main { max-width: 1120px; margin: 0 auto; padding: 0 22px 80px; }
+/* The column widened for the screenshots, so the TEXT is capped separately —
+   prose at 1120px would be unreadable, and the pictures are the reason for
+   the extra width, not the sentences. */
+.lede p, .firstday .txt, .steps p, .daily, .gotcha, .gloss dd { max-width: 72ch; }
+
+.lede { padding: 40px 0 8px; }
+.lede h1 {
+  font-family: var(--display); font-size: 2.4rem; font-weight: 800;
+  letter-spacing: -.03em; margin: 0 0 .5rem; color: var(--ink);
+  text-wrap: balance;
+}
+[data-lang="ar"] .lede h1 { font-family: var(--ar); font-weight: 900; letter-spacing: 0; line-height: 1.35; }
+.lede p { margin: 0; font-size: 1.02rem; color: var(--ink-mid); max-width: 60ch; }
+[data-lang="ar"] .lede p { line-height: 1.95; }
+
+/* ── the first-day sequence: the part that earns the guide ────────── */
+.firstday {
+  margin: 30px 0 0; background: var(--paper); border-radius: 16px;
+  border: 1px solid var(--rule-soft); overflow: hidden;
+}
+.firstday > h2 {
+  margin: 0; padding: 18px 24px 16px;
+  font-family: var(--display); font-size: 1.15rem; font-weight: 700;
+  background: var(--teal-deep); color: #fff;
+}
+[data-lang="ar"] .firstday > h2 { font-family: var(--ar); font-weight: 800; }
+.firstday ol { margin: 0; padding: 6px 0; list-style: none; counter-reset: fd; }
+.firstday li {
+  counter-increment: fd; display: grid;
+  grid-template-columns: 34px 1fr; gap: 14px;
+  padding: 13px 24px; align-items: start;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.firstday li:last-child { border-bottom: 0; }
+.firstday li::before {
+  content: counter(fd);
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--teal-mist); color: var(--teal-deep);
+  display: grid; place-items: center;
+  font: 700 .8rem var(--body); font-variant-numeric: tabular-nums;
+}
+.firstday .who {
+  display: inline-block; font-size: .68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em;
+  color: var(--gold-ink); background: var(--gold-veil);
+  padding: .12em .5em; border-radius: 4px; margin-inline-end: .5em;
+  vertical-align: 1px;
+}
+[data-lang="ar"] .firstday .who { text-transform: none; letter-spacing: 0; }
+.firstday .txt { font-size: .93rem; color: var(--ink-mid); }
+[data-lang="ar"] .firstday .txt { line-height: 1.9; }
+
+/* ── one card per party ───────────────────────────────────────────── */
+.role {
+  margin: 22px 0 0; background: var(--paper);
+  border: 1px solid var(--rule-soft); border-radius: 16px; overflow: hidden;
+  break-inside: avoid;
+}
+.role > header {
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--rule-soft);
+  background: var(--teal-veil);
+}
+.role h2 {
+  margin: 0; font-family: var(--display); font-size: 1.3rem; font-weight: 800;
+  letter-spacing: -.02em; color: var(--ink);
+}
+[data-lang="ar"] .role h2 { font-family: var(--ar); font-weight: 900; letter-spacing: 0; }
+.role .forwhom { margin: .35rem 0 0; font-size: .88rem; color: var(--ink-soft); }
+
+.steps { margin: 0; padding: 4px 0; list-style: none; counter-reset: st; }
+.steps li {
+  counter-increment: st; padding: 14px 24px;
+  border-bottom: 1px solid var(--rule-soft);
+  display: grid; grid-template-columns: 28px 1fr; gap: 13px; align-items: start;
+}
+.steps li:last-child { border-bottom: 0; }
+.steps li::before {
+  content: counter(st);
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--teal); color: #fff;
+  display: grid; place-items: center;
+  font: 700 .72rem var(--body); font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+.steps b { display: block; font-size: .95rem; color: var(--ink); font-weight: 700; }
+.steps .where {
+  display: inline-block; font-size: .72rem; font-weight: 600;
+  color: var(--teal-deep); background: var(--teal-mist);
+  padding: .14em .5em; border-radius: 5px; margin: .3em 0;
+}
+.steps p { margin: .25rem 0 0; font-size: .9rem; color: var(--ink-mid); }
+[data-lang="ar"] .steps p { line-height: 1.9; }
+
+.role footer { padding: 16px 24px 20px; display: grid; gap: 12px; }
+.daily, .gotcha { border-radius: 10px; padding: 12px 15px; font-size: .88rem; }
+.daily { background: var(--teal-veil); color: var(--ink-mid); }
+.gotcha { background: var(--gold-veil); color: var(--gold-ink); }
+.daily b, .gotcha b { display: block; margin-bottom: .25rem; font-size: .78rem;
+  text-transform: uppercase; letter-spacing: .06em; }
+[data-lang="ar"] .daily b, [data-lang="ar"] .gotcha b { text-transform: none; letter-spacing: 0; }
+[data-lang="ar"] .daily, [data-lang="ar"] .gotcha { line-height: 1.9; }
+
+/* ── dependency list ──────────────────────────────────────────────── */
+.deps { margin: 22px 0 0; background: var(--paper); border: 1px solid var(--rule-soft);
+  border-radius: 16px; padding: 20px 24px; }
+.deps h2 { margin: 0 0 .3rem; font-family: var(--display); font-size: 1.05rem; font-weight: 700; }
+[data-lang="ar"] .deps h2 { font-family: var(--ar); font-weight: 800; }
+.deps > p { margin: 0 0 .9rem; font-size: .88rem; color: var(--ink-soft); }
+.deps ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.deps li {
+  font-size: .89rem; color: var(--ink-mid);
+  padding-inline-start: 20px; position: relative;
+}
+.deps li::before {
+  content: ""; position: absolute; inset-inline-start: 0; top: .55em;
+  width: 9px; height: 9px; border-radius: 2px;
+  border: 2px solid var(--teal-lift); border-block-start: 0; border-inline-end: 0;
+  transform: rotate(-45deg);
+}
+.deps em { font-style: normal; font-weight: 700; color: var(--ink); }
+
+/* ── glossary ─────────────────────────────────────────────────────── */
+.gloss { margin: 22px 0 0; }
+.gloss h2 { font-family: var(--display); font-size: 1.05rem; font-weight: 700; margin: 0 0 .7rem; }
+[data-lang="ar"] .gloss h2 { font-family: var(--ar); font-weight: 800; }
+.gloss dl { margin: 0; display: grid; gap: 10px; }
+.gloss div { background: var(--paper); border: 1px solid var(--rule-soft);
+  border-radius: 10px; padding: 12px 15px; }
+.gloss dt { font-weight: 700; font-size: .9rem; color: var(--teal-deep); }
+.gloss dd { margin: .2rem 0 0; font-size: .88rem; color: var(--ink-mid); }
+[data-lang="ar"] .gloss dd { line-height: 1.9; }
+
+.foot { margin: 34px 0 0; font-size: .84rem; color: var(--ink-soft); text-align: center; }
+.foot a { color: var(--teal-deep); font-weight: 600; text-decoration: none; }
+.foot a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+@media print {
+  body { background: #fff; }
+  .topbar { display: none; }
+  main { max-width: none; padding: 0; }
+  /* Each party gets its own sheet: the director prints this once and
+     hands one page to the educator and one to the accountant. */
+  .role { break-before: page; border: 0; border-radius: 0; }
+  .firstday { break-after: page; border: 0; border-radius: 0; }
+  @page { size: A4 portrait; margin: 14mm; }
+}
+
+/* ── screenshots ──────────────────────────────────────────────────
+   Captured from the running app by scripts/capture-guide-shots.mjs.
+   Bordered rather than shadowed: these sit inside a step, and a drop
+   shadow would make each one read as a floating card competing with
+   the card it is already inside. */
+.shot { margin: .9rem 0 .2rem; }
+/* A step is a two-column grid (number | text). The figure is a third grid
+   item, so without this it lands in the 28px number column and renders as a
+   69px thumbnail. Span both columns, then pull back under the gutter so the
+   image uses the full card width instead of sitting indented with the text. */
+.steps .shot { grid-column: 1 / -1; margin-inline-start: 0; }
+.shot img {
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--rule); border-radius: 8px;
+  background: var(--paper);
+}
+@media print { .shot img { border-color: #C7D9DE; } }
+
+.lede .shot { margin: 1.4rem 0 0; }
+.lede .shot img { border-radius: 12px; }
+.lede .shot figcaption {
+  margin-top: .5rem; font-size: .8rem; color: var(--ink-soft); text-align: center;
+}
+</style>
+</head>
+<body>
+
+
+
+<div class="topbar">
+  <div class="topbar-in">
+    <span class="brand">
+      <span class="tile"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="#fff" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="#fff"/><circle cx="12" cy="4.4" r="1.9" fill="#fff" opacity=".85"/></svg></span>
+      <span class="names"><span class="ar">روضتك</span><span class="lat">Rawdatik</span></span>
+    </span>
+    <span class="langs">
+      <button type="button" data-set="fr" aria-pressed="true">Français</button>
+      <button type="button" data-set="ar" aria-pressed="false">العربية</button>
+    </span>
+  </div>
+</div>
+
+<main>
+<div data-lang="fr">
+    <div class="lede">
+      <h1>Guide de démarrage</h1>
+      <p>Ce guide est le mode d'emploi de Rawdatik pour le premier jour et les premières semaines, écrit dans l'ordre où les choses doivent être faites. La première partie est pour la directrice, les suivantes pour l'éducatrice, pour la personne qui tient la caisse, pour les parents et pour la tablette de l'entrée : chacune peut être imprimée et remise telle quelle.</p>
+    </div><figure class="shot"><img src="/guide-shots/web/fr-dashboard.png" alt="" width="1100" height="728"><figcaption>Le tableau de bord, une fois la crèche en marche.</figcaption></figure>
+
+    <section class="firstday">
+      <h2>Le premier jour, dans l'ordre</h2>
+      <ol><li><span class="txt"><span class="who">Prestataire technique</span>Avant tout le reste : renseigner l'adresse du site et la clé des notifications, et servir le site en HTTPS. Sans cela, les liens d'inscription et d'invitation partent incomplets, aucune alerte n'arrive et la caméra de la borne ne démarre jamais.</span></li><li><span class="txt"><span class="who">Directrice</span>Créer l'établissement : le formulaire est la première chose à l'écran après l'inscription. Le nom et l'adresse rawdatik.com/… doivent être libres ; le formulaire vous le dit pendant la saisie.</span></li><li><span class="txt"><span class="who">Directrice</span>Dans « Paramètres » : logo, adresse, point sur la carte, puis les vrais jours et horaires d'ouverture. Retapez la commune et le type d'établissement, qui ne suivent pas toujours depuis la création.</span></li><li><span class="txt"><span class="who">Directrice</span>Dans « Paramètres → Jours fériés » : ajouter l'Aïd el-Fitr, l'Aïd el-Adha, le Mawlid et Achoura, puis confirmer chaque date dès l'annonce officielle. Une date non confirmée ne ferme pas la crèche : la borne accepte les arrivées comme un jour normal.</span></li><li><span class="txt"><span class="who">Directrice</span>Dans « Classes » : créer au moins une classe avant le premier enfant. Un enfant inscrit avant reste « Sans classe » partout, y compris dans le registre et dans les rapports.</span></li><li><span class="txt"><span class="who">Directrice</span>Dans « Facturation → Formules » : au moins une formule « Mensuel » active, plus une formule « Unique » si vous prenez des frais d'inscription. C'est l'étape dont dépendent le formulaire d'inscription, l'approbation des dossiers et la facture de chaque mois.</span></li><li><span class="txt"><span class="who">Directrice</span>Dans « Personnel » : ajouter l'équipe, avec « Créer directement » pour celles qui n'ont pas d'e-mail, en notant le code et le PIN affichés une seule fois. Puis rattacher les éducatrices à leur classe dans « Classes → Équipe pédagogique ».</span></li><li><span class="txt"><span class="who">Directrice</span>En dernier seulement, dans « Paramètres → Inscriptions » : créer le lien, imprimer l'affiche QR et partager. Ouvrez le lien vous-même pour vérifier qu'on vous demande bien la formule — sinon revenez à l'étape des tarifs.</span></li></ol>
+    </section>
+
+    <section class="role">
+      <header>
+        <h2>Directrice / propriétaire</h2>
+        <p class="forwhom">Pour la personne qui a ouvert le compte de la crèche. À faire seule, dans cet ordre, avant que quiconque d'autre ouvre le logiciel.</p>
+      </header>
+      <ol class="steps"><li><div><b>Créer votre établissement</b><span class="where">Page de démarrage</span><p>Le formulaire s'ouvre directement après l'inscription. Remplissez « Créez votre jardin d'enfants » — type, nom, adresse rawdatik.com/…, wilaya, téléphone — puis « Créer mon établissement ».</p></div></li><li data-shot="settings"><div><b>Renseigner la fiche et les horaires</b><span class="where">Paramètres</span><p>Dans « Informations générales » : logo, adresse, e-mail, point sur la carte, et retapez la commune et le type d'établissement même si vous les aviez déjà saisis à la création. Puis, dans « Jours et horaires d'ouverture », donnez vos vrais jours et vos vraies heures : la borne d'entrée refuse toute arrivée en dehors de cette plage.</p></div><figure class="shot"><img src="/guide-shots/web/fr-settings.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="holidays"><div><b>Entrer les jours fériés</b><span class="where">Paramètres → Jours fériés</span><p>Seules cinq fêtes civiles sont déjà là ; l'Aïd el-Fitr, l'Aïd el-Adha, le Mawlid et Achoura ne le sont pas — ajoutez-les avec « Ajouter un jour férié ». Une date laissée en « Date non encore confirmée » ne ferme rien : revenez appuyer sur « Confirmer la date » dès l'annonce officielle.</p></div><figure class="shot"><img src="/guide-shots/web/fr-holidays.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="classes"><div><b>Créer les classes</b><span class="where">Classes</span><p>« Nouvelle classe » : nom en français et en arabe, tranche d'âge en mois, capacité, salle, couleur. Faites-le avant d'inscrire le moindre enfant, sinon l'enfant restera « Sans classe » dans le registre, dans les onglets et dans les rapports.</p></div><figure class="shot"><img src="/guide-shots/web/fr-classes.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="plans"><div><b>Fixer les tarifs</b><span class="where">Facturation → Formules</span><p>« Nouvelle formule » : créez au moins une formule active en « Mensuel » (par exemple garde à plein temps, 12 000 DA / mois) et, si vous prenez des frais d'inscription, une formule « Unique ». C'est l'étape qui porte tout le reste : sans formule mensuelle, le formulaire d'inscription ne demande pas son tarif à la famille et personne n'est facturé.</p></div><figure class="shot"><img src="/guide-shots/web/fr-plans.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="staff"><div><b>Ajouter l'équipe</b><span class="where">Personnel</span><p>« Ajouter un membre » → onglet « Créer directement » pour toute personne sans e-mail : le code personnel (S-001) et le code PIN s'affichent une seule fois, notez-les immédiatement. L'onglet « Inviter par e-mail » n'envoie aucun message : copiez le lien affiché et transmettez-le vous-même.</p></div><figure class="shot"><img src="/guide-shots/web/fr-staff.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="classes"><div><b>Rattacher les éducatrices aux classes</b><span class="where">Classes → la classe → « Équipe pédagogique »</span><p>« Ajouter », puis « Définir comme principal » pour l'éducatrice référente. Seules les personnes déjà membres apparaissent : une invitation par e-mail reste invisible ici tant que la personne n'a pas ouvert le lien et ne s'est pas connectée.</p></div></li><li data-shot="enrollment"><div><b>Publier le lien d'inscription — en dernier</b><span class="where">Paramètres → Inscriptions</span><p>« Nouveau lien » avec un libellé (par exemple « Rentrée 2026 »), puis « Copier le lien », « Partager sur WhatsApp » ou imprimez l'« Affiche QR ». Ouvrez le lien vous-même une fois : si le formulaire ne vous demande pas la formule, c'est que l'étape des tarifs n'est pas faite.</p></div><figure class="shot"><img src="/guide-shots/web/fr-enrollment.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="settings"><div><b>Classer les papiers et allumer vos alertes</b><span class="where">Paramètres → Documents, puis Paramètres → Notifications</span><p>« Ajouter un document » pour l'agrément, l'assurance et le certificat de conformité avec leurs dates : la page vous prévient 60 jours avant l'expiration. Activez ensuite les alertes sur cet appareil — l'autorisation vaut pour un seul navigateur et un seul appareil, donc refaites-le sur votre téléphone.</p></div></li></ol>
+      <footer>
+        <div class="daily"><b>Au quotidien</b>Chaque jour : les demandes d'inscription à approuver, les notifications, les tâches et la liste « À traiter » du tableau de bord (incidents sans accusé de réception des parents, jours fériés à confirmer). Faites passer toutes les familles par le lien d'inscription, même celles que vous connaissez déjà : « Approuver » crée d'un seul coup l'enfant, les tuteurs, la fiche santé, l'accès des parents, la formule, les frais d'inscription, la première facture et le badge. Confirmez les dates religieuses au fur et à mesure des annonces, entrez vous-même les fêtes de l'année suivante, et renouvelez les documents dès l'alerte des 60 jours.</div>
+        <div class="gotcha"><b>L'erreur classique</b>L'erreur : publier le lien d'inscription, ou approuver une famille, avant d'avoir créé une formule « Mensuel ». Le formulaire saute alors la question du tarif sans rien signaler, et l'approbation passe quand même : vous obtenez un enfant inscrit que le logiciel ne facturera jamais, sans le moindre avertissement. Créez la formule dans « Facturation → Formules » d'abord, puis surveillez le bandeau doré « … enfants inscrits ne sont pas facturés chaque mois » sur la page Facturation après chaque journée d'approbations.</div>
+      </footer>
+    </section>
+    <section class="role">
+      <header>
+        <h2>Éducatrice</h2>
+        <p class="forwhom">Pour l'équipe pédagogique : celles qui accueillent les enfants, tiennent le registre et parlent aux familles.</p>
+      </header>
+      <ol class="steps"><li><div><b>Relever vos deux codes</b><span class="where">Mon profil (menu de votre photo, en haut de l'écran)</span><p>Dans « Compte et accès », notez le « Code personnel » et le « Code PIN » : c'est avec eux que vous pointez à la borne d'accueil. S'il est écrit « Non défini », vous ne pouvez pas pointer — demandez-les à la direction.</p></div></li><li data-shot="dashboard"><div><b>Lire la journée</b><span class="where">Tableau de bord</span><p>Regardez « Enfants présents », la carte « Aujourd'hui » avec ses onglets « Arrivées » et « Absents », la liste « À traiter » et les « Annonces ». Trente secondes ici vous disent ce qui manque encore au registre.</p></div><figure class="shot"><img src="/guide-shots/web/fr-dashboard.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="staff"><div><b>Pointer votre arrivée</b><span class="where">Mode kiosque → onglet « Personnel »</span><p>Tapez votre code personnel ou votre PIN, validez, puis choisissez « Arrivée », « Pause déjeuner », « Retour de pause » ou « Fin de journée ». Ce pointage est ce qui alimente vos heures et votre fiche de paie.</p></div></li><li data-shot="children"><div><b>Accueillir les enfants à la porte</b><span class="where">Mode kiosque → onglet « Enfants »</span><p>Le parent présente son QR devant la caméra ou tape son PIN ; vérifiez la photo affichée avec la personne devant vous, cochez les enfants, puis « Enregistrer ». Un enfant scanné avec sa propre carte est enregistré sans adulte : l'écran affiche alors « Aucun adulte identifié pour ce scan ».</p></div><figure class="shot"><img src="/guide-shots/web/fr-children.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="attendance"><div><b>Terminer le registre à la main</b><span class="where">Présences</span><p>« Tout marquer présent » pour ceux qui ne sont pas encore pointés, puis corrigez ligne par ligne avec « Présent », « En retard », « Absent », « Malade », « Excusé » et le motif. Le crayon à côté de l'heure permet de saisir une arrivée ou une sortie oubliée.</p></div><figure class="shot"><img src="/guide-shots/web/fr-attendance.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="attendance"><div><b>Enregistrer les sorties</b><span class="where">Présences → « Pointer la sortie »</span><p>Choisissez qui vient chercher l'enfant parmi les personnes déjà connues : c'est la seule trace de qui est reparti avec lui. Le champ de saisie libre n'est là que pour une personne qui n'est pas dans la liste.</p></div></li><li data-shot="children"><div><b>Ouvrir la fiche d'un enfant</b><span class="where">Enfants → l'enfant → onglet « Santé »</span><p>Vous y lisez et modifiez les antécédents médicaux, les médicaments, les restrictions alimentaires, le médecin traitant et les consignes d'urgence. C'est ce que vous écrivez ici qui fait apparaître le badge rouge « Allergie » sur le registre.</p></div></li><li data-shot="menus"><div><b>Préparer les menus de la semaine</b><span class="where">Menus</span><p>Remplissez petit-déjeuner, déjeuner et goûter, cochez les allergènes, puis basculez « Publié aux parents » ; « Copier la semaine dernière » remplit une semaine vide d'un seul geste. Le bloc rouge « Alerte allergies » ne se déclenche que sur les allergies déjà notées dans les fiches des enfants.</p></div><figure class="shot"><img src="/guide-shots/web/fr-menus.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="incidents"><div><b>Signaler un incident, puis raconter la séance</b><span class="where">Incidents, puis Séances</span><p>Dans « Incidents », « Signaler un incident » et cochez « Notifier le parent maintenant » : l'accusé de réception ne démarre qu'à cet instant. Dans « Séances », « Notes internes » reste pour l'équipe et « Résumé pour le parent » est ce que la famille lira — le bouton « Publier au parent » reste bloqué tant que le résumé n'est pas écrit.</p></div><figure class="shot"><img src="/guide-shots/web/fr-incidents.png" alt="" loading="lazy" width="1100" height="728"></figure></li></ol>
+      <footer>
+        <div class="daily"><b>Au quotidien</b>Le matin : le tableau de bord, puis la porte, puis « Présences » — « Tout marquer présent » et correction ligne par ligne. Dans la journée : les incidents au moment où ils arrivent, les réponses aux familles dans « Messages » (une conversation liée à un enfant est lue par ses parents, une conversation générale reste dans l'équipe), les tâches de l'équipe. Le soir : les sorties, avec le nom de la personne venue chercher chaque enfant. Une fois par semaine : le menu de la semaine suivante, et « Historique » dans Présences pour repérer les absences qui reviennent toujours le même jour.</div>
+        <div class="gotcha"><b>L'erreur classique</b>L'erreur la plus fréquente est à la sortie : la personne qui vient chercher l'enfant est bien dans la liste, mais on tape quand même son nom dans « Ou saisissez un autre nom ». Le lien avec la fiche du tuteur est alors perdu et le registre ne garde plus qu'un nom écrit à la main. Touchez la pastille de la personne quand elle existe ; la saisie libre est réservée à la grand-mère que personne n'a encore ajoutée.</div>
+      </footer>
+    </section>
+    <section class="role">
+      <header>
+        <h2>Comptable / tenue de la caisse</h2>
+        <p class="forwhom">Pour la personne qui facture, encaisse et tient la caisse : la directrice elle-même, ou la comptable à qui elle a donné ce rôle.</p>
+      </header>
+      <ol class="steps"><li data-shot="plans"><div><b>Créer les formules</b><span class="where">Facturation → Formules</span><p>Une formule « Mensuel » active par tarif pratiqué, et une formule « Unique » pour les frais d'inscription, prélevés automatiquement à chaque nouvelle admission. Une formule enregistrée en « Trimestriel » ou « Annuel » n'est jamais reprise par la facturation du mois.</p></div></li><li data-shot="plans"><div><b>Donner une formule à chaque enfant</b><span class="where">Facturation → Formules → tableau « Assignations »</span><p>« Assigner », ou « Modifier » pour un enfant qui en a déjà une : formule, montant particulier si besoin, remise en pourcentage et son motif. L'assignation complète aussi la facture du mois en cours — sans elle, l'enfant n'est facturé qu'à partir du mois suivant.</p></div></li><li data-shot="billing"><div><b>Générer les factures du mois</b><span class="where">Facturation</span><p>Choisissez le mois, puis « Générer les factures du mois » : les enfants déjà facturés sont ignorés. Lisez les deux messages qui reviennent — le nombre de factures créées, et surtout la liste des enfants sans formule qui n'ont pas été facturés.</p></div><figure class="shot"><img src="/guide-shots/web/fr-billing.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="billing"><div><b>Vider les deux bandeaux d'avertissement</b><span class="where">Facturation</span><p>Le bandeau doré liste les enfants inscrits que personne ne facture : cliquez sur chaque nom et donnez-lui une formule. Le second liste les factures incomplètes ; « Compléter les factures » ajoute ce qui manque et ne touche jamais une facture déjà réglée.</p></div></li><li data-shot="payroll"><div><b>Encaisser et remettre le reçu</b><span class="where">Facturation → « Encaisser un paiement »</span><p>Montant, mode de paiement (espèces, carte CIB, Edahabia, virement, chèque), référence, puis enregistrez : le numéro de reçu s'affiche aussitôt. Ouvrez le reçu et imprimez la feuille A5 bilingue, avec le montant en toutes lettres, à signer et à cacheter.</p></div><figure class="shot"><img src="/guide-shots/web/fr-payroll.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="arrears"><div><b>Relancer les impayés</b><span class="where">Facturation → Impayés</span><p>L'onglet par famille donne le téléphone du tuteur et un rappel WhatsApp déjà rédigé dans la langue de la famille ; l'autre onglet montre la dette par ancienneté, jusqu'à plus de 90 jours. Ouvrez cette page chaque jour : c'est son ouverture qui fait basculer les factures dépassées en retard.</p></div><figure class="shot"><img src="/guide-shots/web/fr-arrears.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="transactions"><div><b>Tenir la caisse</b><span class="where">Comptabilité → Transactions (et Comptabilité → Catégories)</span><p>« Ajouter une dépense » ou « Ajouter une recette » avec la date, la catégorie, le mode et le montant — ou la liste des achats, dont la somme fait le total. Saisissez chaque dépense dans le mois où elle a lieu : seule la direction peut corriger une écriture, et uniquement celles du mois en cours.</p></div><figure class="shot"><img src="/guide-shots/web/fr-transactions.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="transactions"><div><b>Traiter les avances sur salaire</b><span class="where">Comptabilité → Avances</span><p>Les demandes de l'équipe attendent en haut avec leur motif ; « Approuver » est le moment où l'argent sort et où la dépense « Salaires » est écrite. Une avance déjà portée sur une paie finalisée ne se solde pas ici : elle se règle quand cette paie est payée.</p></div></li><li data-shot="payroll"><div><b>Faire la paie</b><span class="where">Comptabilité → Paie</span><p>« Nouvelle paie » crée un brouillon par membre actif, avec son salaire et ses avances non remboursées ; corrigez les lignes, puis « Finaliser », puis « Marquer comme payée » avec le mode de paiement. Faites saisir les salaires par la direction avant : un salaire non renseigné sort à 0 et vous ne pouvez pas le corriger dans la fiche.</p></div></li></ol>
+      <footer>
+        <div class="daily"><b>Au quotidien</b>Le 1er du mois, les factures du mois sont préparées automatiquement à l'aube ; ouvrez ensuite Facturation pour vider les deux bandeaux, encaisser et imprimer les reçus. Chaque jour : les impayés et les relances. Chaque mois : les avances, la paie et ses fiches imprimées, puis « Rapports » pour le mois écoulé — recettes par type, créances par ancienneté, export à télécharger, et l'impression du « Registre matricule » et du « Registre des entrées et sorties » pour le dossier de la DAS.</div>
+        <div class="gotcha"><b>L'erreur classique</b>L'erreur : croire que la génération du mois a facturé les familles. Elle ne crée que des brouillons — la famille n'est pas prévenue, la facture ne compte pas dans les impayés et son numéro s'affiche « F-2026-null ». Pour le premier mois, facturez en assignant la formule dans « Facturation → Formules », ce qui produit une vraie facture numérotée et notifiée, et signalez le stock de brouillons à votre prestataire technique. Vérifiez aussi l'enfant et le montant avant d'enregistrer un paiement : aucun paiement ne peut être annulé depuis l'écran.</div>
+      </footer>
+    </section>
+    <section class="role">
+      <header>
+        <h2>Parents</h2>
+        <p class="forwhom">Pour les familles — à envoyer avec le code d'invitation ou avec le lien d'inscription.</p>
+      </header>
+      <ol class="steps"><li><div><b>Ouvrir l'invitation de la crèche</b><span class="where">Lien d'invitation reçu par WhatsApp</span><p>La page montre le nom et le logo de la crèche, et le code écrit en bas pour ceux qui n'ont reçu qu'une capture d'écran. Choisissez « Créer un compte », ou « J'ai déjà un compte ».</p></div></li><li><div><b>Créer le compte</b><span class="where">Page d'inscription</span><p>Nom complet, puis un seul champ « E-mail ou numéro de téléphone » — un 0550 12 34 56 est accepté — et un mot de passe de 8 caractères au minimum. Il n'y a pas de « mot de passe oublié » : en cas d'oubli, c'est la crèche qui le réinitialise.</p></div></li><li><div><b>Valider le code</b><span class="where">Page de démarrage — carte « Votre crèche vous a donné un code ? »</span><p>Le code est déjà rempli : appuyez sur « Rejoindre » et votre espace parent s'ouvre. Le code ne sert qu'une fois et expire au bout de 14 jours ; si la crèche en réédite un, l'ancien cesse de fonctionner.</p></div></li><li><div><b>Ou faire une demande d'inscription</b><span class="where">Lien ou affiche QR de la crèche</span><p>Un formulaire en 8 étapes : enfant, tuteurs, santé, photo, activités et formule. Ensuite s'affiche « Votre demande est en cours d'examen » — l'espace parent s'ouvre tout seul dès que la crèche accepte le dossier.</p></div></li><li data-shot="portal"><div><b>Installer l'espace parent sur le téléphone</b><span class="where">Menu Partager du navigateur → « Sur l'écran d'accueil »</span><p>Il n'y a rien à télécharger sur un magasin d'applications : ajoutez le site à l'écran d'accueil et il s'ouvre comme une application. Sur iPhone, c'est aussi ce qui rend les notifications possibles — sans cela, le bouton des alertes répond que votre navigateur ne les gère pas.</p></div><figure class="shot"><img src="/guide-shots/web/fr-portal.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="portal"><div><b>Lire la journée de votre enfant</b><span class="where">Accueil de l'espace parent</span><p>Sur la carte de chaque enfant : « Pas encore arrivé », « Arrivé à 08:12 » ou « Parti à 16:00 avec Amina », le dernier journal publié, les annonces épinglées et le montant à payer s'il y en a un. Tout le reste est à un clic de cette page.</p></div></li><li data-shot="children"><div><b>Tenir la fiche de votre enfant à jour</b><span class="where">Mes enfants → l'enfant</span><p>Les onglets Journal, Présences, Santé, Activités et Autorisations : vous saisissez vous-même les allergies, la liste des personnes autorisées à venir le chercher et les trois consentements (photos, sorties, urgence médicale). Chaque modification s'applique immédiatement et la crèche en est prévenue ; les autorisations et les consentements se font depuis le site, pas depuis l'application.</p></div></li><li data-shot="portal"><div><b>Montrer le badge à l'entrée</b><span class="where">Accueil → bouton badge sur la carte de l'enfant</span><p>Un seul QR pour toute la famille, et l'écran reste allumé le temps du passage. L'équipe compare votre photo avec vous avant d'enregistrer l'arrivée : c'est la sécurité de votre enfant.</p></div></li><li data-shot="portal-payments"><div><b>Voir ce que vous devez</b><span class="where">Paiements</span><p>Le montant dû, la date limite, le détail de chaque facture et les paiements déjà enregistrés avec leur numéro de reçu. Le règlement se fait en espèces au bureau : il n'y a pas de paiement en ligne.</p></div><figure class="shot"><img src="/guide-shots/web/fr-portal-payments.png" alt="" loading="lazy" width="1100" height="728"></figure></li></ol>
+      <footer>
+        <div class="daily"><b>Au quotidien</b>Ouvrez l'accueil le matin et le soir : le statut du jour et le montant dû y sont tout de suite. « Messages » pour écrire au bureau et pour vos déclarations d'absence, « Actualités » pour les annonces de la crèche, la cloche pour les notifications. Dans « Mon profil », gardez votre numéro à jour — c'est celui que la crèche appelle en premier si votre enfant est malade — et choisissez votre langue : arabe, français ou anglais.</div>
+        <div class="gotcha"><b>L'erreur classique</b>L'erreur : croire que « Signaler une absence » met l'enfant absent. Le bouton ouvre en réalité une conversation avec le bureau, intitulée « Absence — prénom — date », avec votre motif en premier message ; tant que l'équipe n'a rien saisi, la carte de votre enfant continue d'afficher « Pas encore arrivé ». Prévenez tôt, et allez lire la réponse dans « Messages ».</div>
+      </footer>
+    </section>
+    <section class="role">
+      <header>
+        <h2>Accueil / tablette d'entrée</h2>
+        <p class="forwhom">Pour la tablette posée à la porte et pour la personne qui tient l'entrée, le matin et le soir.</p>
+      </header>
+      <ol class="steps"><li data-shot="kiosk"><div><b>Connecter la tablette</b><span class="where">Page de connexion, puis « Mode kiosque » dans le menu</span><p>Connectez-vous avec un compte d'éducatrice ou de personnel — jamais celui de la directrice — et décochez « Rester connecté sur cet appareil ». Ouvrez ensuite « Mode kiosque » : l'écran passe en plein écran, avec le compteur d'enfants présents, l'heure et le choix de la langue.</p></div><figure class="shot"><img src="/guide-shots/web/fr-kiosk.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="children"><div><b>Imprimer les cartes des enfants</b><span class="where">Enfants → l'enfant → « Carte badge »</span><p>Chaque enfant reçoit tout seul un code K-001 avec son QR ; la carte porte sa photo, son nom en français et en arabe, et sa classe. Imprimez-les avant d'en avoir besoin.</p></div></li><li data-shot="children"><div><b>Émettre les badges des parents</b><span class="where">Enfants → l'enfant → ligne du tuteur → « Émettre un badge »</span><p>Le code PIN s'affiche une seule fois : notez-le tout de suite, il ne sera plus jamais affiché en entier. La carte imprimée ne porte que le QR — c'est voulu, pour qu'une carte perdue ne donne pas les deux codes.</p></div></li><li data-shot="children"><div><b>Dire qui a le droit de récupérer l'enfant</b><span class="where">Enfants → l'enfant → section des tuteurs</span><p>Cochez « Autorisé à récupérer l'enfant » sur chaque tuteur concerné, avant la première sortie. Déposer l'enfant reste possible pour tout tuteur ; c'est la sortie qui est bloquée.</p></div></li><li data-shot="staff"><div><b>Préparer les badges du personnel</b><span class="where">Personnel → la personne</span><p>Le code S-001 et le PIN ne sont créés automatiquement que pour les membres ajoutés par « Créer directement » ; pour une personne invitée par e-mail, la direction doit saisir un code, sinon elle ne peut pas pointer. La page d'impression du badge existe mais aucun bouton n'y mène : ajoutez /badge à la fin de l'adresse de sa fiche dans le navigateur.</p></div></li><li data-shot="children"><div><b>Enregistrer une arrivée</b><span class="where">Mode kiosque → onglet « Enfants »</span><p>Le parent présente son QR devant la caméra ou tape son PIN ; comparez la photo affichée avec la personne devant vous, cochez les enfants, puis « Enregistrer ». Si un bandeau rouge « ALLERGIES » apparaît, signalez-le à l'éducatrice avant de laisser passer.</p></div></li><li data-shot="children"><div><b>Enregistrer une sortie</b><span class="where">Mode kiosque → onglet « Enfants »</span><p>Même geste : le badge du parent ouvre la liste et la tuile de l'enfant indique « Sortie · arrivé à … ». Une tuile encadrée en rouge « Non autorisé à récupérer » ne se coche pas — rien n'est enregistré, voyez la direction, n'improvisez pas.</p></div></li><li data-shot="kiosk"><div><b>Répondre aux questions de la borne</b><span class="where">Mode kiosque</span><p>Si la carte « Vérifiez avant d'enregistrer » s'affiche (enfant déjà entré, déjà sorti, ou revenu dans la journée), rien n'est écrit tant que vous n'avez pas répondu. « Non, annuler » n'enregistre rien du tout ; pour enregistrer quand même, appuyez sur le bouton qui le dit.</p></div></li><li data-shot="staff"><div><b>Le pointage du personnel</b><span class="where">Mode kiosque → onglet « Personnel »</span><p>Chaque membre tape son code personnel ou son PIN et choisit « Arrivée », « Pause déjeuner », « Retour de pause » ou « Fin de journée ». À la fin de la journée, l'écran indique les minutes de pause déduites, pour éviter toute surprise sur la paie.</p></div></li></ol>
+      <footer>
+        <div class="daily"><b>Au quotidien</b>Matin et soir : badge du parent, photo vérifiée, enfants cochés, « Enregistrer ». Le compteur vert en haut donne le nombre d'enfants présents. Si Internet tombe, la borne cesse simplement de fonctionner et ne met rien en attente : notez les passages sur papier et saisissez-les ensuite dans « Présences ». Une arrivée refusée avec « En dehors des heures d'ouverture » ou « La crèche est fermée aujourd'hui » se rattrape de la même façon dans « Présences », qui n'est pas bloqué.</div>
+        <div class="gotcha"><b>L'erreur classique</b>L'erreur : connecter la tablette avec le compte de la directrice. La croix en haut de l'écran est une simple sortie du mode kiosque, sans code ni confirmation : n'importe qui à la porte se retrouve alors dans la facturation, la comptabilité et les paramètres. Connectez la tablette avec un compte d'éducatrice ou de personnel, décochez « Rester connecté sur cet appareil », et ne laissez jamais le kiosque ouvert sur votre propre téléphone — le suivant à la porte agirait sous votre nom.</div>
+      </footer>
+    </section>
+
+    <section class="gloss">
+      <h2>Les mots qui reviennent</h2>
+      <dl><div><dt>Formule (tarifaire)</dt><dd>Le tarif que vous appliquez. « Mensuel » est celui qui déclenche la facture de chaque mois ; « Unique » sert aux frais d'inscription, prélevés automatiquement quand vous approuvez un dossier.</dd></div><div><dt>Brouillon de facture</dt><dd>Une facture préparée mais pas encore émise : la famille ne la voit pas, elle ne compte pas dans les impayés et son numéro s'affiche « F-2026-null ». La génération automatique du 1er du mois ne produit que cela.</dd></div><div><dt>Code badge / QR</dt><dd>Le code scanné à la porte. K-001 pour un enfant, créé automatiquement ; un code commençant par G- pour un parent et S-001 pour un membre du personnel, tous deux émis par la direction.</dd></div><div><dt>Code PIN</dt><dd>Les quatre chiffres tapés sur la borne quand on n'a pas son QR sous la main. Il n'est affiché qu'une seule fois, à sa création : s'il est perdu, il faut en émettre un nouveau.</dd></div><div><dt>Code d'invitation (espace parent)</dt><dd>Le code de 8 caractères remis à une famille pour ouvrir son espace parent. Valable 14 jours, utilisable une seule fois, et un nouveau code annule le précédent.</dd></div><div><dt>Jour férié non confirmé</dt><dd>Un jour férié saisi avec « Date non encore confirmée » : il s'affiche dans le calendrier mais ne ferme pas la crèche. Il faut appuyer sur « Confirmer la date » pour que la borne refuse les arrivées ce jour-là.</dd></div></dl>
+    </section>
+  </div>
+<div data-lang="ar" dir="rtl">
+    <div class="lede">
+      <h1>دليل الانطلاق</h1>
+      <p>هذا الدليل يمشي معك خطوة بخطوة في أيامك الأولى مع روضتك، ويقول لك ما تفعله أنت على الشاشة، لا ما يفعله البرنامج. القسم الأول للمديرة وحدها في اليوم الأول، ثم قسم للمربية، وقسم لمن يمسك المال، وقسم لمن يقف عند الباب، وقسم أخير تسلّمينه للأولياء.</p>
+    </div><figure class="shot"><img src="/guide-shots/web/ar-dashboard.png" alt="" width="1100" height="728"><figcaption>لوحة القيادة بعد أن تنطلق الروضة.</figcaption></figure>
+
+    <section class="firstday">
+      <h2>اليوم الأول، بالترتيب</h2>
+      <ol><li><span class="txt"><span class="who">من نصّب المنصة</span>قبل كل شيء: افتح رابط التسجيل ورابط دعوة موظف من هاتف خارج المكتب وتأكد أنهما يفتحان فعلًا، وأن الموقع يعمل باتصال آمن (https)، وأن مفتاح التنبيهات مضبوط. إن كانت الروابط المنسوخة لا تعمل خارج المكتب فالإعداد ناقص، وكاميرا الكشك لا تشتغل بدون اتصال آمن.</span></li><li><span class="txt"><span class="who">المديرة</span>أنشئي المؤسسة: الاستمارة هي أول ما يظهر لك بعد التسجيل. الاسم وعنوان المساحة لا يتكرران في المنصة كلها.</span></li><li><span class="txt"><span class="who">المديرة</span>في «الإعدادات» ضعي الشعار والعنوان ونقطة الخريطة، ثم أيام وساعات الفتح الحقيقية. الافتراضي هو الأحد إلى الخميس من 08:00 إلى 16:30، والباب يرفض كل ما هو خارجه.</span></li><li><span class="txt"><span class="who">المديرة</span>في «أيام العطل» أضيفي الأعياد الدينية بيدك وأكّدي تواريخها. المسجَّل تلقائيًا خمسة أعياد مدنية فقط، والتاريخ غير المؤكَّد لا يغلق الروضة.</span></li><li><span class="txt"><span class="who">المديرة</span>أنشئي قسمًا واحدًا على الأقل في «الأقسام»، وإلا بقي كل طفل «بدون قسم» في السجل والتقارير.</span></li><li><span class="txt"><span class="who">المديرة</span>أنشئي صيغة «شهري» (Mensuel) نشطة في صفحة الصيغ، وصيغة «مرة واحدة» (Unique) لحق التسجيل إن كنتِ تأخذينه. كل ما بعد هذه الخطوة يعتمد عليها؛ بدونها لا تُفوتَر عائلة واحدة ولا يظهر أي خطأ.</span></li><li><span class="txt"><span class="who">المديرة</span>أدخلي فريقك في «الموظفون» — «إنشاء مباشر» (Créer directement) لمن ليس عنده بريد، مع كتابة الرمز السري على ورقة لأنه يُعرض مرة واحدة — ثم عيّني كل مربية على قسمها من بطاقة القسم.</span></li><li><span class="txt"><span class="who">المديرة</span>في الأخير أنشئي رابط التسجيل في «الإعدادات ← التسجيل»، وافتحيه بنفسك من هاتفك: لازم يسأل العائلة عن الصيغة الشهرية. إن لم يسأل، ارجعي إلى صفحة الصيغ.</span></li></ol>
+    </section>
+
+    <section class="role">
+      <header>
+        <h2>المديرة (صاحبة الروضة)</h2>
+        <p class="forwhom">لك أنتِ، في اليوم الذي فتحتِ فيه الحساب — قبل أن يدخل أي شخص آخر إلى النظام.</p>
+      </header>
+      <ol class="steps"><li><div><b>أنشئي روضتك</b><span class="where">الصفحة الأولى بعد التسجيل</span><p>الاستمارة تفتح مباشرة بعد التسجيل: نوع المؤسسة، الاسم، عنوان مساحتك على الإنترنت، الولاية، البلدية، الهاتف، ثم «إنشاء مؤسستي» (Créer mon établissement). الاسم والعنوان لا يتكرران في المنصة كلها؛ إن ظهر «déjà pris» غيّري الاسم قليلًا.</p></div></li><li data-shot="settings"><div><b>املئي بطاقة الروضة، وقبل كل شيء أيام وساعات الفتح</b><span class="where">الإعدادات (Paramètres)</span><p>ارفعي الشعار، اكتبي العنوان والهاتف، وضعي نقطة الخريطة برابط Google Maps أو بزر «موقعي» (Ma position). ثم انزلي إلى «أيام وساعات العمل» (Jours et horaires d'ouverture) وضعي أيامك وساعاتك الحقيقية. الافتراضي هو الأحد إلى الخميس من 08:00 إلى 16:30، والباب يرفض أي دخول خارج هذا الوقت. وأعيدي كتابة «البلدية» و«نوع المؤسسة» هنا حتى لو كتبتِهما عند الإنشاء، فهما لا يصلان دائمًا.</p></div><figure class="shot"><img src="/guide-shots/web/ar-settings.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="holidays"><div><b>أضيفي الأعياد بيدك</b><span class="where">الإعدادات ← أيام العطل (Paramètres → Jours fériés)</span><p>النظام سجّل خمسة أعياد مدنية فقط. عيد الفطر وعيد الأضحى والمولد وعاشوراء غير موجودة أصلًا: أضيفي كل واحد باسمه بالعربية والفرنسية وتاريخه. والتاريخ الذي يحمل «التاريخ غير مؤكد (يُحدَّد لاحقًا)» (Date non encore confirmée) لا يغلق الروضة أبدًا — اضغطي «تأكيد التاريخ» (Confirmer la date) يوم الإعلان الرسمي.</p></div><figure class="shot"><img src="/guide-shots/web/ar-holidays.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="classes"><div><b>أنشئي الأقسام قبل وصول الأطفال</b><span class="where">الأقسام (Classes)</span><p>«قسم جديد» (Nouvelle classe): الاسم بالعربية والفرنسية، السن من وإلى بالأشهر، الطاقة، القاعة واللون. الطفل الذي يُسجَّل قبل وجود قسم يبقى «بدون قسم» في السجل وفي التقارير. وانتبهي: الطاقة تُعرض ولا تمنع أحدًا — الشاشة تكتب «مكتمل» (Complète) ثم تقبل طفلًا زائدًا.</p></div><figure class="shot"><img src="/guide-shots/web/ar-classes.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="billing"><div><b>اضبطي الصيغ التعريفية — أهم خطوة في اليوم</b><span class="where">الفوترة (Facturation) ← صفحة الصيغ</span><p>«صيغة جديدة» (Nouvelle formule): الاسم، المبلغ بالدينار، والدورية. أنشئي على الأقل صيغة واحدة نشطة بدورية «شهري» (Mensuel) (مثلاً: حضانة كاملة، 12 000 DA في الشهر). وإن كنتِ تأخذين حق تسجيل، أنشئي صيغة بدورية «مرة واحدة» (Unique) باسم «رسوم التسجيل» (Frais d'inscription) — تُحتسب وحدها عند قبول كل ملف. بدون صيغة شهرية لا تُفوتَر عائلة واحدة، ولا يظهر أي خطأ.</p></div><figure class="shot"><img src="/guide-shots/web/ar-billing.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="staff"><div><b>أدخلي فريقك</b><span class="where">الموظفون (Personnel)</span><p>«إضافة عضو» (Ajouter un membre). لمن ليس عنده بريد إلكتروني استعملي «إنشاء مباشر» (Créer directement): يدخل الفريق في نفس اللحظة، ويخرج له «رمز الموظف» (Code personnel) و«الرمز السري» (Code PIN). الرمز السري يُعرض مرة واحدة ولا يعود أبدًا — اكتبيه على ورقة. أما الدعوة بالبريد فلا تُرسل أي رسالة: انسخي الرابط وأرسليه بنفسك، والشخص لا يصير عضوًا حتى يفتحه.</p></div><figure class="shot"><img src="/guide-shots/web/ar-staff.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="classes"><div><b>عيّني المربية على قسمها</b><span class="where">الأقسام ← بطاقة القسم ← «الفريق التربوي» (Équipe pédagogique)</span><p>افتحي القسم، «إضافة» (Ajouter)، ثم «تعيينه رئيسيا» (Définir comme principal) للمربية الأساسية. لا تظهر في القائمة إلا الأسماء التي دخلت الفريق فعلًا؛ من دُعي بالبريد ولم يفتح رابطه لا يظهر هنا ولا في أي مكان آخر.</p></div></li><li data-shot="enrollment"><div><b>انشري رابط التسجيل — في الأخير</b><span class="where">الإعدادات ← التسجيل (Paramètres → Inscriptions)</span><p>«رابط جديد» (Nouveau lien)، اكتبي له عنوانًا مثل «الدخول المدرسي 2026» (Rentrée 2026)، ثم «نسخ الرابط» (Copier le lien) أو «المشاركة عبر واتساب» (Partager sur WhatsApp) أو اطبعي «ملصق رمز QR» (Affiche QR) لتعلّقيه على الباب. الصفحة التي تفتحها العائلة مبنية على كل ما فعلتِه قبل: شعارك، عنوانك، صيغك ونشاطاتك. افتحي الرابط بنفسك من هاتفك وتأكدي أنه يسأل العائلة عن الصيغة الشهرية.</p></div><figure class="shot"><img src="/guide-shots/web/ar-enrollment.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li><div><b>الوثائق الإدارية وتنبيهاتك</b><span class="where">الإعدادات ← الوثائق / التنبيهات</span><p>ضعي الاعتماد والتأمين وشهادة المطابقة في «الوثائق» (Documents) مع تاريخ الانتهاء؛ الصفحة تنبّهك قبل 60 يومًا. ثم في «الإشعارات» (Notifications) فعّلي التنبيهات على هذا الجهاز — التفعيل يخصّ متصفحًا واحدًا وجهازًا واحدًا، فأعيدي نفس الخطوة على هاتفك. وعلى الآيفون لا تعمل إلا بعد إضافة الموقع إلى الشاشة الرئيسية.</p></div></li></ol>
+      <footer>
+        <div class="daily"><b>كل يوم</b>كل صباح: صفحة طلبات التسجيل لقبول الملفات الجديدة، ثم قائمة «للمعالجة» (À traiter) في لوحة التحكم — حوادث لم يؤكد الأولياء اطّلاعهم عليها، وأعياد تنتظر التأكيد. مرّري كل عائلة من رابط التسجيل حتى العائلات التي تعرفينها: هذا الطريق وحده يُنشئ الطفل والأولياء وحساب فضاء الولي والفاتورة الأولى دفعة واحدة. وبعد كل يوم قبول، مرّي على صفحة الفوترة وتأكدي أن التنبيه الذهبي «أطفال غير مفوترين شهريًا» فارغ.</div>
+        <div class="gotcha"><b>الخطأ الشائع</b>الخطأ الأكثر تكرارًا: قبول عائلة قبل إنشاء صيغة شهرية. عندما لا توجد أي صيغة، لا تظهر في نافذة القبول أي كلمة عن المال ولا أي تحذير — الطفل يُسجَّل ويدخل من الباب ويظهر في السجلات، ولا تُصدر له فاتورة أبدًا، شهرًا بعد شهر، في صمت. العلاج: أنشئي صيغة «شهري» (Mensuel) نشطة قبل أول قبول؛ وإن كان الأمر قد وقع، افتحي صفحة الصيغ ← جدول «الإسنادات» (Assignations) واضغطي «إسناد» (Assigner) لكل طفل — هذا يصنع أيضًا فاتورة الشهر الجاري.</div>
+      </footer>
+    </section>
+    <section class="role">
+      <header>
+        <h2>المربية</h2>
+        <p class="forwhom">لك أنتِ ولمساعدتك: من رمزك عند الباب صباحًا إلى خروج آخر طفل.</p>
+      </header>
+      <ol class="steps"><li><div><b>اعرفي رمزك أنتِ</b><span class="where">ملفي الشخصي (Mon profil) — من صورتك في أعلى الشاشة</span><p>في بطاقة الحساب اقرئي «رمز الموظف» (Code personnel) و«الرمز السري» (Code PIN) واحفظيهما. إن كُتب «غير محدد» (Non défini) فأنتِ لا تستطيعين تسجيل ساعاتك عند الباب: اطلبي من الإدارة أن تكتب لك رمزًا في ملفك. هذه الأرقام تضبطها الإدارة، لا أنتِ.</p></div></li><li data-shot="dashboard"><div><b>اقرئي اليوم في نصف دقيقة</b><span class="where">لوحة التحكم (Tableau de bord)</span><p>عدد الحاضرين من عدد المسجّلين، ثم تبويب «الوصول» (Arrivées) وتبويب «الغياب» (Absents)، ثم قائمة «للمعالجة» (À traiter) والإعلانات. خانة المال لا تُعرض لك أصلًا، وهذا طبيعي.</p></div><figure class="shot"><img src="/guide-shots/web/ar-dashboard.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="staff"><div><b>سجّلي دخولك عند الباب</b><span class="where">وضع الكشك (Mode kiosque) ← تبويب «الموظفون» (Personnel)</span><p>اكتبي رمزك على لوحة الأرقام واضغطي العلامة الخضراء. الشاشة تعرض عليك فقط ما هو ممكن الآن: «الوصول» (Arrivée)، «استراحة الغداء» (Pause déjeuner)، «العودة من الاستراحة» (Retour de pause)، «نهاية الدوام» (Fin de journée). هذه الساعات هي التي تُحسب في راتبك، فلا تنسي تسجيل نهاية اليوم.</p></div></li><li data-shot="children"><div><b>استقبلي الأطفال</b><span class="where">وضع الكشك ← تبويب «الأطفال» (Enfants)</span><p>الولي يقرّب رمز هاتفه من الكاميرا أو يكتب رقمه السري. تظهر لك صورته: قارنيها بالشخص الواقف أمامك قبل أي تسجيل، ثم علّمي أطفاله واضغطي التسجيل. وإن ظهر شريط أحمر مكتوب فيه «تنبيه — حساسية» (ATTENTION — ALLERGIES) فاقرئيه في اللحظة نفسها.</p></div><figure class="shot"><img src="/guide-shots/web/ar-children.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="attendance"><div><b>أكملي السجل بيدك</b><span class="where">سجل الحضور (Registre des présences)</span><p>«تسجيل الجميع حاضرين» (Tout marquer présent) لمن بقي بلا علامة، ثم صحّحي سطرًا سطرًا: «حاضر» (Présent)، «متأخر» (En retard)، «غائب» (Absent)، «مريض» (Malade)، «بعذر» (Excusé)، واكتبي سبب الغياب في خانة «السبب» (Motif). وإن نسي أحدهم شارته صباحًا، علّميه حاضرًا من هنا — هذه الصفحة لا ترفض أي وقت.</p></div><figure class="shot"><img src="/guide-shots/web/ar-attendance.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="children"><div><b>افتحي ملف الطفل عند أي سؤال</b><span class="where">الأطفال (Enfants) ← تبويب «الصحة» (Santé)</span><p>هنا الأمراض السابقة والأدوية والممنوعات الغذائية والطبيب وتعليمات الطوارئ، وتستطيعين تعديلها كلها. وما تكتبينه هنا هو الذي يُشعل شارة «حساسية» (Allergie) في السجل وتنبيه القوائم.</p></div></li><li data-shot="menus"><div><b>حضّري قائمة الأسبوع</b><span class="where">القوائم (Menus)</span><p>افتحي اليوم واكتبي الفطور والغداء والوجبة الخفيفة، وعلّمي مسبّبات الحساسية الموجودة فيه. «نسخ الأسبوع الماضي» (Copier la semaine dernière) يملأ أسبوعًا فارغًا دفعة واحدة. التنبيه الأحمر فوق الجدول لا يقارن إلا مع الحساسيات المكتوبة في ملفات الأطفال، والقائمة لا يراها الأولياء حتى تفعّلي «منشورة للأولياء» (Publié aux parents).</p></div><figure class="shot"><img src="/guide-shots/web/ar-menus.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="incidents"><div><b>بلّغي عن الحادث في لحظته</b><span class="where">الحوادث (Incidents)</span><p>«التبليغ عن حادث» (Signaler un incident): الطفل، الخطورة، المكان، الوقت، ما حدث، وما فعلتِه. وضعي علامة «إشعار الولي الآن» (Notifier le parent maintenant) — من هذه اللحظة يبدأ انتظار ردّ الولي، ويبقى الحادث في قائمة «للمعالجة» (À traiter) حتى يؤكد أنه اطّلع.</p></div><figure class="shot"><img src="/guide-shots/web/ar-incidents.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="attendance"><div><b>سجّلي الخروج مع اسم من أخذ الطفل</b><span class="where">سجل الحضور ← «تسجيل الخروج الآن» (Pointer la sortie)</span><p>الزر الذهبي يفتح سؤالًا واحدًا: من جاء يأخذ الطفل؟ اختاري الاسم من القائمة، أو اكتبي اسم الجدة التي ليست مسجّلة. هذه هي المعلومة الوحيدة التي لا يمكن استرجاعها بعد أن تُغلق الروضة أبوابها.</p></div></li></ol>
+      <footer>
+        <div class="daily"><b>كل يوم</b>الصباح: لوحة التحكم، ثم الكشك، ثم السجل. خلال النهار: الحوادث في وقتها، والردّ على العائلات في «الرسائل» (Messages) (المحادثة المرتبطة بطفل يقرأها أولياؤه، والعامة للفريق فقط). بعد كل حصة فردية في «الجلسات» (Séances) اكتبي ملاحظاتك الداخلية وملخّص الولي في خانتين منفصلتين — زر «نشر لولي الأمر» (Publier au parent) لا يعمل قبل كتابة الملخص. آخر النهار: الخروج مع اسم المرافق. وفي الأسبوع: قائمة الأسبوع القادم، ونظرة على «السجل الشهري» (Historique) لتري من يتأخر أو يغيب كل أسبوع في نفس اليوم.</div>
+        <div class="gotcha"><b>الخطأ الشائع</b>الخطأ الأكثر تكرارًا: الظنّ أن السجل يعرض قسمك أنتِ. حتى لو كنتِ المربية الأساسية على قسم، صفحة الحضور تعرض أطفال الروضة كلها، فتبدو الأرقام غريبة. الحل: استعملي ألسنة الأقسام في أعلى الصفحة لتضييق العرض بنفسك. وانتبهي: الطفل الذي لم يوضع في قسم يختفي من كل تبويب — تجدينه في «كل الأقسام» (Toutes les classes)، أو في صفحة «الأطفال» بمرشّح «بدون قسم».</div>
+      </footer>
+    </section>
+    <section class="role">
+      <header>
+        <h2>المحاسب (مسك المال)</h2>
+        <p class="forwhom">لمن يمسك الصندوق والفواتير — ومعه المديرة، لأن بعض الأزرار لا تفتح إلا لها.</p>
+      </header>
+      <ol class="steps"><li data-shot="billing"><div><b>تأكد أن الصيغ صحيحة</b><span class="where">الفوترة (Facturation) ← صفحة الصيغ</span><p>لازم صيغة واحدة على الأقل نشطة ودوريتها «شهري» (Mensuel) بالضبط. الصيغة الفصلية أو السنوية لا يراها التوليد الشهري إطلاقًا. وكل صيغة «مرة واحدة» (Unique) نشطة تُحتسب وحدها عند قبول كل ملف جديد، فلا أحد يعيد كتابة حق التسجيل بيده.</p></div></li><li><div><b>اربط كل طفل مسجّل بصيغته</b><span class="where">الفوترة ← صفحة الصيغ ← جدول «الإسنادات» (Assignations)</span><p>زر «إسناد» (Assigner) لكل طفل بلا صيغة، و«تغيير الشعار» (Changer le logo) لمن تغيّر سعره. تقدر على مبلغ خاص أو تخفيض بالنسبة مع سببه (مثلاً: إخوة). الربط يصنع أيضًا فاتورة الشهر الجاري — وهذا هو الطريق المنصوح به في شهرك الأول، لأنه ينتج فاتورة مرقّمة يصل إشعارها إلى الولي.</p></div></li><li data-shot="billing"><div><b>نظّف التنبيهين قبل أي شيء آخر</b><span class="where">الفوترة (Facturation)</span><p>فوق الأرقام يظهر تنبيهان. الذهبي: «أطفال مسجّلون بلا فوترة شهرية» — كل اسم زر يفتح ملفه. والثاني: «فواتير ناقصة هذا الشهر» ومعه زر يكمّلها دفعة واحدة. ما دام أحدهما مكتوبًا، رقم مداخيل الشهر أقلّ من الحقيقة.</p></div></li><li><div><b>خذ النقود واطبع الوصل</b><span class="where">الفوترة ← سطر الفاتورة</span><p>زر التحصيل يفتح المبلغ جاهزًا بالباقي، وطريقة الدفع: نقدًا، CIB، الذهبية، تحويل، شيك. تحقّق من اسم الطفل ومن المبلغ قبل الحفظ: لا يوجد في الشاشات أي زر لإلغاء دفعة أو تصحيحها بعد تسجيلها. بعد الحفظ يظهر رقم الوصل، ويُطبع بالعربية والفرنسية على ورقة A5.</p></div></li><li><div><b>تابع من لم يدفع</b><span class="where">الفوترة ← المتأخرات</span><p>افتح الصفحة كل يوم: فتحها هو نفسه ما ينقل الفواتير الفائتة إلى حالة «متأخر». عندك عرضان: حسب العائلة، وحسب عمر الدين. من كل سطر تتصل بالولي مباشرة أو ترسل رسالة واتساب جاهزة بلغته. أما التحصيل نفسه فيتم من الفاتورة، لا من هذه الصفحة.</p></div></li><li data-shot="transactions"><div><b>سجّل مصاريف الشهر في شهره</b><span class="where">المحاسبة (Comptabilité) ← العمليات</span><p>أضف كل مصروف بتاريخه وفئته وطريقة دفعه، ومع قائمة مشتريات إن أردت التفصيل. سجّلها في نفس الشهر: بعده لا يمكن تصحيحها. والمحاسب لا يستطيع التعديل ولا الحذف أصلًا — المديرة وحدها، وفي الشهر الجاري فقط.</p></div><figure class="shot"><img src="/guide-shots/web/ar-transactions.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li><div><b>التسبيقات على الراتب</b><span class="where">المحاسبة ← التسبيقات</span><p>الطلبات الواقفة تظهر في الأعلى بسبب كل موظف بكلماته. الموافقة هي لحظة خروج النقود من الصندوق وتسجيلها في الدفتر، فلا توافق قبل أن تدفع فعلًا. والتسبيق الذي دخل في كشف راتب مقفل لا يمكن وضع علامة «مسدّد» عليه — يُسدَّد وحده يوم دفع ذلك الكشف.</p></div></li><li><div><b>أجور الشهر</b><span class="where">المحاسبة ← الأجور</span><p>أنشئ كشفًا للشهر، فتخرج مسودة لكل موظف نشط بأجره وتسبيقاته غير المسدّدة. عدّل ما يلزم وهو مسودة، ثم «إنهاء» (Finaliser)، ثم «وضع علامة مدفوعة» (Marquer payé) مع طريقة الدفع. واطلب من المديرة أن تُدخل الأجر الأساسي أو أجر الساعة في ملف كل موظف قبل أول كشف، وإلا خرج السطر بـ 0 — أنت ترى الأجور لكن لا تستطيع كتابتها.</p></div></li><li data-shot="reports"><div><b>أغلق الشهر على الورق</b><span class="where">التقارير (Rapports)</span><p>اختر الشهر: المداخيل المفوترة حسب النوع، والديون مرتّبة حسب التأخر مع تصدير ملف، وساعات الفريق، ثم «السجلات» (Registres) — سجل المتمدرسين وسجل الدخول والخروج، جاهزان للطباعة بترويسة الجمهورية وخانة الإمضاء والختم لمفتّش مديرية النشاط الاجتماعي.</p></div><figure class="shot"><img src="/guide-shots/web/ar-reports.png" alt="" loading="lazy" width="1100" height="728"></figure></li></ol>
+      <footer>
+        <div class="daily"><b>كل يوم</b>كل يوم: صفحة المتأخرات، وتحصيل ما يدخل من نقود مع طباعة الوصل في نفس اللحظة. كل أسبوع: مصاريف الأسبوع في دفتر العمليات. أول كل شهر: النظام يحضّر الفواتير وحده في الليل، فمرّ على صفحة الفوترة، نظّف التنبيهين، ثم اشتغل على الفواتير واحدة واحدة. آخر الشهر: الأجور، ثم التقارير وسجلات التفتيش.</div>
+        <div class="gotcha"><b>الخطأ الشائع</b>الخطأ الأكثر تكرارًا: الاعتقاد أن فواتير أول الشهر وصلت إلى العائلات. ما يُنشأ تلقائيًا مسوّدات فقط: بلا رقم (تظهر «F-2026-null»)، لا يراها الولي، ولا تدخل في المتأخرات — ولا يوجد في الشاشات زر لإصدارها. والأسوأ أن تسجيل دفعة على مسودة هو ما يصدرها بأثر رجعي، فيصل الولي إشعار «فاتورة جديدة» بعد أن يكون قد دفع. العلاج العملي في شهرك الأول: فوتر بالربط — «إسناد» (Assigner) في جدول Assignations — لأن هذا الطريق ينتج فاتورة مرقّمة يُعلَم بها الولي في حينها. وأخبر من يطوّر النظام بأن المسوّدات تنتظر زر إصدار.</div>
+      </footer>
+    </section>
+    <section class="role">
+      <header>
+        <h2>باب الاستقبال (اللوحة عند المدخل)</h2>
+        <p class="forwhom">لمن يقف عند الباب صباحًا ومساءً، وللوحة الموضوعة عند المدخل.</p>
+      </header>
+      <ol class="steps"><li data-shot="children"><div><b>اطبع بطاقات الأطفال</b><span class="where">الأطفال ← ملف الطفل ← «بطاقة الطفل» (Carte badge)</span><p>كل طفل يحصل على رمزه (K-001) وحده من يوم تسجيله. افتح بطاقته واطبعها: فيها اسمه بالعربية واللاتينية، صورته، قسمه، والرمز المربّع. البطاقة تكفي لتسجيل الدخول، لكن الخروج بها وحدها يُكتب «بلا مرافق معروف».</p></div></li><li><div><b>أصدر شارات الأولياء</b><span class="where">ملف الطفل ← سطر الولي ← «إصدار بطاقة» (Émettre un badge)</span><p>هذا الزر يفتحه المدير فقط. يظهر رقم سري من 4 أرقام مرة واحدة ولا يعود أبدًا — اكتبه وسلّمه للولي شفويًا. البطاقة المطبوعة تحمل الرمز المربّع فقط، بلا الرقم السري، حتى لا تكون البطاقة الضائعة مفتاحًا كاملًا.</p></div></li><li><div><b>حدّد من يحق له أخذ الطفل</b><span class="where">ملف الطفل ← قائمة الأولياء</span><p>ضع علامة السماح بأخذ الطفل على كل ولي يحق له ذلك، واتركها فارغة عند غيره. الإيداع صباحًا مفتوح لكل ولي مرتبط بالطفل، أما الخروج فمقفل: من ليس مسموحًا له تظهر بطاقته حمراء ومقفلة عند الباب، ولا يمكن تجاوزها بأي زر — ارجع للإدارة.</p></div></li><li data-shot="kiosk"><div><b>افتح الكشك على اللوحة</b><span class="where">وضع الكشك (Mode kiosque)</span><p>الشاشة تصير كاملة بلا قوائم: اسم الروضة، عدد الحاضرين الآن، الساعة، وتبويبان في الأسفل: «الأطفال» (Enfants) و«عامل» (Personnel). اتركها مفتوحة طول اليوم. وهي تحتاج اتصالًا بالإنترنت في كل مسحة — إن انقطع، لا شيء يُسجَّل ولا يبقى في الانتظار، وعدد الحاضرين في الأعلى يظل معلّقًا على آخر رقم صحيح.</p></div><figure class="shot"><img src="/guide-shots/web/ar-kiosk.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="children"><div><b>الصباح: تسجيل الدخول</b><span class="where">وضع الكشك ← تبويب «الأطفال» (Enfants)</span><p>الولي يقرّب رمز هاتفه من الكاميرا أو يكتب رقمه السري على اللوحة. تظهر صورته: قارنها بالشخص أمامك، ثم علّم أطفاله واضغط التسجيل. وإن لم تكن له صورة في الملف، اطلب بطاقة تعريف قبل تسليم أي طفل.</p></div></li><li data-shot="children"><div><b>المساء: تسجيل الخروج</b><span class="where">وضع الكشك ← تبويب «الأطفال» (Enfants)</span><p>نفس الحركة، والشاشة تفهم وحدها أن هذا خروج وتسجّل اسم من أخذ الطفل. أما إذا مسح الطفل بطاقته وحده، فالخروج يُكتب «بلا مرافق معروف» — لا تستعمل هذا إلا عند الضرورة.</p></div></li><li data-shot="kiosk"><div><b>حين تظهر شاشة «تحقّق قبل التسجيل»</b><span class="where">وضع الكشك</span><p>معناها أن هذا الطفل مسجّل الدخول من قبل، أو أنه خرج ثم رجع، أو أن المسح تكرّر خلال أقل من دقيقتين. لا يُكتب أي شيء حتى تجيب أنت. الزر الكبير هو «لا، ألغِ» لأن الحالة الغالبة غلطة؛ وإن كان التسجيل مقصودًا فعلًا اضغط الزر الثاني.</p></div></li><li data-shot="kiosk"><div><b>حين يُرفض المسح</b><span class="where">وضع الكشك</span><p>«رمز غير معروف» تعني بطاقة موقوفة أو طفلًا خرج من الروضة أو حساب موظف معطّلًا: لا تعد المحاولة، ارجع للإدارة. و«الروضة مغلقة اليوم» أو «خارج ساعات العمل» تعني أن الساعات في الإعدادات لا تطابق الواقع: سجّل الطفل يدويًا في «سجل الحضور» فهو لا يرفض أي وقت، وأخبر المديرة لتصحّح الساعات. الخروج لا يُرفض أبدًا.</p></div></li></ol>
+      <footer>
+        <div class="daily"><b>كل يوم</b>صباحًا: افتح الكشك على تبويب «الأطفال» (Enfants)، امسح، قارن الصورة، سجّل. الفريق يسجّل ساعاته على تبويب «الموظفون» (Personnel). اقرأ الشريط الأحمر «تنبيه — حساسية» (ATTENTION — ALLERGIES) متى ظهر. مساءً: نفس الحركة، مع اسم من أخذ الطفل. وكل شاشة تُغلق وحدها بعد وقت قصير حتى لا ترى العائلة التالية أطفال العائلة السابقة؛ زر Échap يلغي كل شيء بلا تسجيل.</div>
+        <div class="gotcha"><b>الخطأ الشائع</b>الخطأ الأكثر تكرارًا: تسجيل اللوحة بحساب المديرة مع ترك علامة البقاء متصلًا على هذا الجهاز. العلامة ✕ في زاوية الكشك مجرّد رابط نحو لوحة التحكم: بلا رمز ولا سؤال. من يقف عند الباب يضغطها فيجد نفسه في الفوترة والمحاسبة والإعدادات. الحل: سجّل اللوحة بحساب مربية أو موظف عادي، وأزل علامة البقاء متصلًا عند الدخول حتى تنتهي الجلسة بإغلاق المتصفح.</div>
+      </footer>
+    </section>
+    <section class="role">
+      <header>
+        <h2>الأولياء</h2>
+        <p class="forwhom">الورقة التي تُسلَّم للعائلات، أو تُرسل لهم في رسالة واتساب.</p>
+      </header>
+      <ol class="steps"><li><div><b>افتح الرابط الذي أرسلته الروضة</b><span class="where">رسالة الروضة — صفحة الدعوة</span><p>تفتح صفحة عليها شعار الروضة واسمها، وزران: «حساب جديد» أو «عندي حساب». وإن وصلك الرمز في صورة فقط، افتح صفحة الروضة واكتبه في خانة «هل أعطتك الروضة رمزًا؟». الرمز صالح 14 يومًا ويُستعمل مرة واحدة.</p></div></li><li data-shot="signup"><div><b>أنشئ حسابك برقم هاتفك</b><span class="where">صفحة إنشاء الحساب</span><p>الاسم الكامل، ثم خانة واحدة تقبل البريد الإلكتروني أو رقم الهاتف: رقم مثل 0550 12 34 56 يكفي. كلمة السر 8 أحرف على الأقل، واحفظها في مكان مضمون — لا يوجد في النظام زر «نسيت كلمة السر»، والروضة وحدها تعيدها لك.</p></div><figure class="shot"><img src="/guide-shots/web/ar-signup.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="kiosk"><div><b>أدخل الرمز وادخل</b><span class="where">صفحة الاستقبال ← زر الانضمام</span><p>الرمز يكون مكتوبًا سلفًا إن جئت من الرابط. اضغط الزر فيفتح فضاء الولي في نفس اللحظة. أما إذا ملأت استمارة تسجيل جديدة، فسترى بطاقة انتظار حتى تجيب الروضة: ملفك عندها، لا تعِد الإرسال.</p></div></li><li><div><b>ضع الصفحة على شاشة هاتفك</b><span class="where">متصفح الهاتف ← مشاركة ← إضافة إلى الشاشة الرئيسية</span><p>لا يوجد تطبيق في متاجر التطبيقات. افتح الصفحة في Safari أو Chrome وأضفها إلى الشاشة الرئيسية، فتصير أيقونة تُفتح مثل أي تطبيق. وعلى الآيفون هذه الخطوة شرط لوصول التنبيهات؛ قبلها يقول لك المتصفح إنه لا يدعمها.</p></div></li><li data-shot="portal"><div><b>صفحتك الأولى</b><span class="where">فضاء الولي (Espace parent)</span><p>من فوق إلى تحت: تحية اليوم، شريط بالمبلغ المستحق إن وُجد، ثم بطاقة لكل طفل فيها حالته الآن: «لم يصل بعد»، «وصل على 08:12»، «خرج على 16:00 مع أمينة». وتحتها الإعلانات والمواعيد وعنوان الروضة مع زر الاتجاهات.</p></div><figure class="shot"><img src="/guide-shots/web/ar-portal.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="portal-child"><div><b>شارة الباب</b><span class="where">بطاقة الطفل ← زر الشارة</span><p>رمز مربّع واحد للعائلة كلها، لا رمز لكل طفل. اعرضه على الموظف عند الباب وارفع إضاءة شاشتك. الموظف يقارن صورتك بوجهك قبل التسجيل — هذه حماية طفلك. والشاشة عندك لا تسجّل شيئًا بنفسها.</p></div><figure class="shot"><img src="/guide-shots/web/ar-portal-child.png" alt="" loading="lazy" width="1100" height="728"></figure></li><li data-shot="portal-child"><div><b>الإبلاغ عن الغياب</b><span class="where">بطاقة الطفل ← زر الإبلاغ عن غياب</span><p>اختر اليوم واكتب السبب في سطر: مرض، موعد عند الطبيب، سفر عائلي. هذا يفتح محادثة مع الروضة، وتجد ردّها في «الرسائل» (Messages).</p></div></li><li data-shot="portal-child"><div><b>ملف طفلك</b><span class="where">فضاء الولي ← بطاقة الطفل</span><p>الحساسيات والملف الصحي وقائمة من يحق لهم أخذ طفلك والأذونات الثلاثة (الصور، الخرجات، الطوارئ الطبية) — كلها تعدّلها بنفسك، وكل تعديل يُطبَّق في نفس اللحظة وتُشعَر به الروضة باسمك وتاريخه. وقائمة من يأخذ الطفل تُقرأ عند الباب فعلًا، فراجعها بهدوء.</p></div></li><li><div><b>ما عليك</b><span class="where">فضاء الولي ← المدفوعات</span><p>مبلغ واحد واضح وتاريخ استحقاقه، وتحته فواتير كل طفل بتفاصيلها والدفعات المسجّلة بأرقام وصولها. الدفع نقدًا في مكتب الروضة، وتأخذ وصلًا مرقّمًا في يدك — لا يوجد دفع عبر الإنترنت في هذا النظام.</p></div></li></ol>
+      <footer>
+        <div class="daily"><b>كل يوم</b>في الصباح: نظرة على بطاقة طفلك لترى أنه سُجّل عند الباب. خلال النهار: تصلك تنبيهات عند الوصول والخروج، وعند أي حادث أو رسالة. إن غاب طفلك فبلّغ من بطاقته، وإن ظهر لك مبلغ مستحق فمرّ على المكتب. وكل ما يخصّ الصحة والأذونات ومن يأخذ الطفل يُعدَّل من صفحة الروضة في المتصفح.</div>
+        <div class="gotcha"><b>الخطأ الشائع</b>الخطأ الأكثر تكرارًا: الظنّ أن الإبلاغ عن الغياب يسجّل الطفل غائبًا. لا. الإبلاغ يفتح محادثة مع الروضة فقط، وسجل الحضور يبقى مكتوبًا فيه «لم يصل بعد» حتى تفتحه المربية وتعلّمه بيدها — وبطاقة طفلك عندك ستظل تعرض «لم يصل بعد» كذلك. أرسل الإبلاغ باكرًا، وإن كان الأمر مستعجلًا (دواء، تأخّر، تغيير من سيأخذ الطفل) فاتصل بالروضة بالهاتف.</div>
+      </footer>
+    </section>
+
+    <section class="gloss">
+      <h2>خمس كلمات تتكرّر</h2>
+      <dl><div><dt>الصيغة التعريفية (Formule)</dt><dd>سعر ودوريته: شهري، مرة واحدة، فصلي، سنوي أو بالحصة. الشهرية هي التي تُصدر فاتورة كل شهر، وصيغة «مرة واحدة» هي حق التسجيل ويُحتسب وحده عند قبول الملف.</dd></div><div><dt>مسوّدة فاتورة</dt><dd>فاتورة أنشأها النظام ولم تُصدَر بعد: بلا رقم (تظهر «F-2026-null»)، لا يراها الولي، ولا تدخل في المتأخرات. ما دامت مسوّدة، لا أحد يعرف أنه مدين.</dd></div><div><dt>الشارة والرقم السري</dt><dd>لكل طفل رمز على بطاقته (K-001)، ولكل ولي رمز مربّع ورقم سري من 4 أرقام. البطاقة المطبوعة تحمل الرمز المربّع فقط. الرقم السري يُعرض مرة واحدة، وإن ضاع يُصدَر غيره.</dd></div><div><dt>الكشك (Mode kiosque)</dt><dd>الشاشة الكاملة عند الباب: تبويب للأطفال وتبويب للفريق. تشتغل بحساب الموظف الذي سجّل الدخول على اللوحة، فاختر حسابًا بصلاحيات قليلة.</dd></div><div><dt>رمز الدعوة</dt><dd>8 أحرف تعطيها الروضة للولي ليفتح حسابه: صالح 14 يومًا، ويُستعمل مرة واحدة، وإصدار رمز جديد يُبطل القديم. لا تسلّميه قبل يوم استعماله.</dd></div><div><dt>ملف تسجيل</dt><dd>الاستمارة التي تملؤها العائلة من رابط التسجيل. تبقى واقفة حتى تضغطي «الموافقة» (Approuver)، وعندها يُنشأ الطفل والأولياء وحساب فضاء الولي والفاتورة الأولى دفعة واحدة.</dd></div></dl>
+    </section>
+  </div>
+  <p class="foot">rawdatik.com — <a href="https://www.rawdatik.com/media-kit">kit média</a></p>
+</main>
+
+<script>
+  // Language lives on the root element, not in the URL: a director hands her
+  // phone to an educator who reads the other one, and a round trip would lose
+  // her place on the page.
+  var root = document.documentElement;
+  function setLang(l) {
+    root.dataset.active = l;
+    root.lang = l;
+    document.querySelectorAll('.langs button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.set === l));
+    });
+    try { localStorage.setItem('rawdatik-guide-lang', l); } catch (e) {}
+  }
+  document.querySelectorAll('.langs button').forEach(function (b) {
+    b.addEventListener('click', function () { setLang(b.dataset.set); });
+  });
+  var saved = null;
+  try { saved = localStorage.getItem('rawdatik-guide-lang'); } catch (e) {}
+  setLang(saved || ((navigator.language || '').slice(0, 2) === 'ar' ? 'ar' : 'fr'));
+</script>
+
+</body>
+</html>

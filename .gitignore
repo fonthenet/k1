@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Guide screenshots: the full-size retina captures are regenerable by
+# scripts/capture-guide-shots.mjs and would put ~9 MB of PNGs into a public
+# repo. Only the downscaled copies the guide actually references are kept.
+public/guide-shots/*.png

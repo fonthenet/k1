@@ -20,12 +20,15 @@ const nextConfig: NextConfig = {
   // The page carries a noindex meta; the header repeats it because a crawler
   // fetching the file directly may never parse the document.
   async rewrites() {
-    return [{ source: "/media-kit", destination: "/media-kit.html" }];
+    return [
+      { source: "/media-kit", destination: "/media-kit.html" },
+      { source: "/guide", destination: "/guide.html" },
+    ];
   },
   async headers() {
     return [
       {
-        source: "/media-kit:path(.*)",
+        source: "/:page(media-kit|guide):rest(.*)",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
       },
     ];
