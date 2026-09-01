@@ -135,14 +135,22 @@ export default async function OnboardingPage({
                 screen better than anything else, so it goes first. Then the
                 claim code. The create-a-business wizard is last because it is
                 the least likely reason a person with no membership is here. */}
-            {!forceCreate && pending.length > 0 && (
+            {/* A person with no membership is here for one of two reasons,
+                and the product is sold to one of them. Creating an
+                establishment is therefore the page, not a door off it.
+
+                The previous order put the parent card and a code box first
+                and hid the founder wizard behind ?create=1, because generic
+                signup used to drop confused parents onto a
+                CREATE-A-KINDERGARTEN form. That risk is handled here by
+                keeping the parent route plainly visible underneath rather
+                than by demoting the founder — and by leading the parent with
+                the LINK, which is how they actually arrive. The code is a
+                fallback, so it now sits behind a disclosure instead of being
+                the first thing a parent is asked for. */}
+            {pending.length > 0 && (
               <div className="mb-5">
                 <PendingApplicationsNotice rows={pending} />
-              </div>
-            )}
-            {!forceCreate && (
-              <div className="mb-5">
-                <ClaimCard initialCode={claimCode} />
               </div>
             )}
 
@@ -155,59 +163,7 @@ export default async function OnboardingPage({
                 {t("onboarding.backToWorkspaces")}
               </Link>
             )}
-            {/* A brand-new account with no context is far more often a parent
-                than a founder — so the founder wizard only renders when they
-                explicitly walk through the "I run an establishment" door.
-                Before this gate, generic signup landed every confused parent
-                on a CREATE-A-KINDERGARTEN form. */}
-            {!forceCreate && (
-              <div className="grid gap-5">
-                <Card className="border border-border shadow-sm ring-0">
-                  <CardContent className="flex items-start gap-3.5">
-                    <span
-                      aria-hidden
-                      className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary"
-                    >
-                      <BabyIcon className="size-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-foreground">
-                        {t("onboarding.parentPath.title")}
-                      </div>
-                      <p className="mt-0.5 text-sm leading-relaxed text-pretty text-muted-foreground">
-                        {t("onboarding.parentPath.body")}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                <Link
-                  href="/onboarding?create=1"
-                  className="group flex items-center gap-3.5 rounded-xl border border-dashed border-border p-4 transition-colors hover:border-primary/40 hover:bg-primary/5"
-                >
-                  <span
-                    aria-hidden
-                    className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gold-muted text-gold-ink"
-                  >
-                    <SchoolIcon className="size-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-foreground">
-                      {t("onboarding.ownerPath.title")}
-                    </span>
-                    <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                      {t("onboarding.ownerPath.body")}
-                    </span>
-                  </span>
-                  <ArrowLeftIcon
-                    className="size-4 shrink-0 rotate-180 text-muted-foreground transition-transform group-hover:translate-x-0.5 rtl:rotate-0"
-                    aria-hidden
-                  />
-                </Link>
-              </div>
-            )}
-
-            {forceCreate && (
             <Card className="gap-0 overflow-hidden py-0 shadow-sm ring-border">
               <CardHeader className="border-b border-border/60 bg-shell/45 py-5">
                 <div className="flex items-start gap-3.5">
@@ -232,7 +188,40 @@ export default async function OnboardingPage({
                 <CreateWizard />
               </CardContent>
             </Card>
-            )}
+
+            {/* Not a founder. Quiet, but never hidden — and open already if
+                they followed a link that carries their code. */}
+            <Card className="mt-5 border border-border shadow-sm ring-0">
+              <CardContent className="flex items-start gap-3.5">
+                <span
+                  aria-hidden
+                  className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary"
+                >
+                  <BabyIcon className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-foreground">
+                    {t("onboarding.parentPath.title")}
+                  </div>
+                  <p className="mt-0.5 text-sm leading-relaxed text-pretty text-muted-foreground">
+                    {t("onboarding.parentPath.body")}
+                  </p>
+                  <details className="group/claim mt-3" open={Boolean(claimCode)}>
+                    <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded text-sm font-medium text-primary hover:underline hover:underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none">
+                      <ArrowLeftIcon
+                        className="size-3.5 -rotate-90 transition-transform group-open/claim:rotate-0 rtl:rotate-90 rtl:group-open/claim:rotate-180"
+                        aria-hidden
+                      />
+                      {t("onboarding.claim.toggle")}
+                    </summary>
+                    <div className="mt-3">
+                      <ClaimCard initialCode={claimCode} />
+                    </div>
+                  </details>
+                </div>
+              </CardContent>
+            </Card>
+
             <p className="mt-6 flex justify-center">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
                 <SchoolIcon className="size-3.5 text-primary" aria-hidden />

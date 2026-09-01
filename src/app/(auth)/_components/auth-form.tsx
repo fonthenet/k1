@@ -156,7 +156,9 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
     <form onSubmit={handleSubmit} className="grid gap-5" noValidate={false}>
       {mode === "signup" && (
         <div className="grid gap-2">
-          <Label htmlFor={`${idPrefix}-fullname`}>{t("signup.fullName")}</Label>
+          <Label htmlFor={`${idPrefix}-fullname`} required>
+            {t("signup.fullName")}
+          </Label>
           <Input
             id={`${idPrefix}-fullname`}
             name="fullName"
@@ -174,7 +176,9 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
           a toggle and THEN type it is a step that exists only because the form
           could not be bothered to look at what they wrote. */}
       <div className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-email`}>{t(`${mode}.identifier`)}</Label>
+        <Label htmlFor={`${idPrefix}-email`} required>
+          {t(`${mode}.identifier`)}
+        </Label>
         <Input
           id={`${idPrefix}-email`}
           name="email"
@@ -203,7 +207,9 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
           with their number has already given it. */}
       {mode === "signup" && identifierKind !== "phone" && (
         <div className="grid gap-2">
-          <Label htmlFor={`${idPrefix}-phone`}>{t("signup.phone")}</Label>
+          <Label htmlFor={`${idPrefix}-phone`} optional>
+            {t("signup.phone")}
+          </Label>
           <Input
             id={`${idPrefix}-phone`}
             name="phone"
@@ -219,7 +225,9 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
       )}
 
       <div className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-password`}>{t(`${mode}.password`)}</Label>
+        <Label htmlFor={`${idPrefix}-password`} required>
+          {t(`${mode}.password`)}
+        </Label>
         {/* dir on the WRAPPER, not on the input alone.
             The password itself must read left-to-right in every language, but
             when only the input carried dir="ltr" the two halves of this row

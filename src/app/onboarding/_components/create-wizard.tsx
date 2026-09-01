@@ -63,7 +63,6 @@ function AvailabilityNote({ state, free, taken }: { state: Availability; free: s
 
 export function CreateWizard() {
   const t = useTranslations("auth");
-  const tc = useTranslations("common");
   const locale = useLocale();
   const [isPending, startTransition] = useTransition();
 
@@ -137,7 +136,9 @@ export function CreateWizard() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor="kg-name">{t("onboarding.name")}</Label>
+          <Label htmlFor="kg-name" required>
+            {t("onboarding.name")}
+          </Label>
           <Input
             id="kg-name"
             required
@@ -155,7 +156,9 @@ export function CreateWizard() {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="kg-slug">{t("onboarding.slug")}</Label>
+          <Label htmlFor="kg-slug" required>
+            {t("onboarding.slug")}
+          </Label>
           <InputGroup dir="ltr" className="h-10 overflow-hidden">
             <InputGroupAddon
               align="inline-start"
@@ -189,7 +192,9 @@ export function CreateWizard() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="grid gap-2">
-          <Label htmlFor="kg-wilaya">{t("onboarding.wilaya")}</Label>
+          <Label htmlFor="kg-wilaya" required>
+            {t("onboarding.wilaya")}
+          </Label>
           <Select value={wilaya} onValueChange={setWilaya}>
             <SelectTrigger id="kg-wilaya" className="h-10 w-full">
               <SelectValue placeholder={t("onboarding.wilayaPlaceholder")} />
@@ -208,9 +213,8 @@ export function CreateWizard() {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="kg-commune">
-            {t("onboarding.commune")}{" "}
-            <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+          <Label htmlFor="kg-commune" optional>
+            {t("onboarding.commune")}
           </Label>
           <Input
             id="kg-commune"
@@ -222,7 +226,9 @@ export function CreateWizard() {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="kg-phone">{t("onboarding.phone")}</Label>
+          <Label htmlFor="kg-phone" optional>
+            {t("onboarding.phone")}
+          </Label>
           <Input
             id="kg-phone"
             type="tel"

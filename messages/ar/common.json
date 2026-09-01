@@ -66,7 +66,9 @@
     "no": "لا",
     "optional": "اختياري",
     "years": "{count, plural, zero {# سنة} one {سنة} two {سنتان} few {# سنوات} many {# سنة} other {# سنة}}",
-    "months": "{count, plural, zero {# شهر} one {شهر} two {شهران} few {# أشهر} many {# شهرًا} other {# شهر}}"
+    "months": "{count, plural, zero {# شهر} one {شهر} two {شهران} few {# أشهر} many {# شهرًا} other {# شهر}}",
+    "required": "إجباري",
+    "requiredLegend": "الخانات المعلَّمة بـ * إجبارية."
   },
   "toasts": {
     "saved": "تم الحفظ بنجاح",

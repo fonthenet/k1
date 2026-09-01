@@ -66,7 +66,9 @@
     "no": "No",
     "optional": "optional",
     "years": "{count, plural, one {# year} other {# years}}",
-    "months": "{count, plural, one {# month} other {# months}}"
+    "months": "{count, plural, one {# month} other {# months}}",
+    "required": "required",
+    "requiredLegend": "Fields marked * are required."
   },
   "toasts": {
     "saved": "Saved successfully",
