@@ -154,14 +154,31 @@
     "toasts": {
       "saved": "Menu saved",
       "copied": "{count, plural, =0 {No menus to copy from last week} one {1 day copied} other {# days copied}}",
-      "error": "Something went wrong. Try again."
+      "error": "Something went wrong. Try again.",
+      "publishedWeek": "{count, plural, =0 {No menu to publish} one {1 menu published} other {# menus published}}"
     },
     "prevWeek": "Previous week",
     "nextWeek": "Next week",
     "thisWeek": "This week",
     "editDay": "Edit the menu for {date}",
     "allergyChildrenLabel": "Children affected:",
-    "allergyEveryDay": "every day"
+    "allergyEveryDay": "every day",
+    "descriptionDays": "This week's menus, {days}",
+    "daysRange": "{from} to {to}",
+    "closed": "Closed",
+    "closedAll": "No opening days are set. Add your hours in Settings.",
+    "publishWeek": "Publish the week",
+    "copyConfirm": {
+      "title": "Overwrite this week's menus?",
+      "body": "This week already has menus. The days copied from last week will replace them, and will arrive as drafts.",
+      "confirm": "Copy and overwrite",
+      "cancel": "Cancel"
+    },
+    "upcoming": {
+      "title": "Allergens flagged in the weeks ahead",
+      "hint": "These menus were planned before those allergies were recorded.",
+      "week": "Week of {date}"
+    }
   },
   "incidents": {
     "title": "Incidents",

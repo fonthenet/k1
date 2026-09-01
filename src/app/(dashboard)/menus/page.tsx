@@ -8,7 +8,10 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
-import { CopyPreviousWeekButton } from "@/components/modules/comms/copy-week-button";
+import {
+  CopyPreviousWeekButton,
+  PublishWeekButton,
+} from "@/components/modules/comms/copy-week-button";
 import { MenuDayDialog } from "@/components/modules/comms/menu-day-dialog";
 import {
   addDaysStr,
@@ -23,6 +26,8 @@ import { conflictsFor, type ChildAllergy } from "@/components/modules/comms/alle
 import { type MenuDayRow } from "@/components/modules/comms/types";
 import { allergenLabel as allergenLabelFor } from "@/lib/allergens";
 import { ChildLink } from "@/components/shared/entity-link";
+import { DAY_KEYS, isOpenDayStr, openDays, toOpeningHours } from "@/lib/week";
+import { EmptyState } from "@/components/shared/empty-state";
 
 interface AllergyRow {
   child_id: string;
@@ -52,12 +57,30 @@ export default async function MenusPage({
   const today = algiersToday();
   const currentWeek = sundayOf(today);
   const weekStart = sundayOf(isValidDateStr(sp.week) ? sp.week : today);
-  const weekEnd = addDaysStr(weekStart, 4); // Sunday → Thursday
-  const days = dateRange(weekStart, weekEnd, 5);
+
+  // THE WEEK BELONGS TO THE CRÈCHE, NOT TO THIS FILE.
+  //
+  // This page used to take `weekStart + 4` and render five cards, Sunday
+  // through Thursday, hardcoded. src/lib/week.ts exists precisely to end that
+  // — its header lists the six copies of the same assumption it replaced —
+  // and this page was a seventh it did not reach. The cost was real and
+  // silent: a crèche open on Saturday could not write a Saturday menu at all,
+  // and one closed on Thursday was invited to plan meals for a day it shuts.
+  const openingHours = toOpeningHours(
+    (ctx.tenant as { opening_hours?: unknown }).opening_hours
+  );
+  const weekEnd = addDaysStr(weekStart, 6);
+  const days = dateRange(weekStart, weekEnd, 7).filter((d) => isOpenDayStr(openingHours, d));
 
   const supabase = await createClient();
 
-  const [menusRes, allergiesRes] = await Promise.all([
+  // Everything planned from today onward, in one read, so the allergy check
+  // can see past the week on screen — see `upcoming` below for why that
+  // matters. kg_menus is one row per day per tenant; a year of them is 260
+  // rows, which is not worth a second round trip to avoid.
+  const aheadFrom = addDaysStr(today, 1) > weekEnd ? addDaysStr(today, 1) : addDaysStr(weekEnd, 1);
+
+  const [menusRes, allergiesRes, holidayRes, aheadRes] = await Promise.all([
     supabase
       .from("kg_menus")
       .select("date, breakfast, lunch, snack, allergens, published")
@@ -70,10 +93,36 @@ export default async function MenusPage({
         "child_id, allergen, kg_children(first_name, last_name, first_name_ar, last_name_ar, status)"
       )
       .eq("tenant_id", ctx.tenant.id),
+    // closure only: a tentative or non-closing entry (a school photo, an open
+    // day) is a note on the calendar, not a day the kitchen stands down.
+    supabase
+      .from("kg_holidays")
+      .select("date, end_date, name, name_ar")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("closure", true)
+      .lte("date", weekEnd)
+      .or(`end_date.gte.${weekStart},and(end_date.is.null,date.gte.${weekStart})`),
+    supabase
+      .from("kg_menus")
+      .select("date, allergens")
+      .eq("tenant_id", ctx.tenant.id)
+      .gte("date", aheadFrom)
+      .order("date"),
   ]);
 
-  const firstError = menusRes.error ?? allergiesRes.error;
+  const firstError = menusRes.error ?? allergiesRes.error ?? holidayRes.error ?? aheadRes.error;
   if (firstError) throw new Error(firstError.message);
+
+  // A holiday may be a single date or a range; both close every day they cover.
+  const closedBy = new Map<string, string>();
+  for (const h of (holidayRes.data ?? []) as {
+    date: string; end_date: string | null; name: string; name_ar: string | null;
+  }[]) {
+    const label = (locale === "ar" && h.name_ar) || h.name;
+    for (const d of dateRange(h.date, h.end_date ?? h.date, 60)) {
+      if (d >= weekStart && d <= weekEnd) closedBy.set(d, label);
+    }
+  }
 
   const menuByDate = new Map<string, MenuDayRow>();
   for (const row of menusRes.data ?? []) {
@@ -97,6 +146,30 @@ export default async function MenusPage({
     }));
 
   const allergenLabel = (value: string) => allergenLabelFor(value, tc);
+
+  /**
+   * "du dimanche au jeudi", read off the stored hours rather than asserted.
+   *
+   * A contiguous run gets the range form; anything else is listed, because
+   * "du dimanche au samedi" for a crèche that shuts on Wednesday names two
+   * days it does not open. Runs are not allowed to wrap Saturday into Sunday
+   * for the same reason summariseOpeningHours forbids it.
+   */
+  const open = openDays(openingHours);
+  const dayName = (k: (typeof DAY_KEYS)[number]) => weekdayName(DAY_KEYS.indexOf(k), locale, "long");
+  const contiguous =
+    open.length > 1 &&
+    DAY_KEYS.indexOf(open[open.length - 1]) - DAY_KEYS.indexOf(open[0]) === open.length - 1;
+  const openDaysLabel = open.length
+    ? t("menus.descriptionDays", {
+        days: contiguous
+          ? t("menus.daysRange", {
+              from: dayName(open[0]),
+              to: dayName(open[open.length - 1]),
+            })
+          : open.map(dayName).join(locale === "ar" ? "، " : ", "),
+      })
+    : t("menus.description");
 
   // Weekday alone. `formatDate` spreads day/month/year BEFORE the caller's
   // options, so weekday has to be asked for and the rest explicitly unasked —
@@ -162,10 +235,47 @@ export default async function MenusPage({
 
   const href = (w: string) => `/menus?week=${w}`;
 
+  const hasContentOn = (d: string) => {
+    const m = menuByDate.get(d);
+    return !!(m?.breakfast || m?.lunch || m?.snack);
+  };
+  const weekHasContent = days.some(hasContentOn);
+  const weekHasDrafts = days.some((d) => hasContentOn(d) && !menuByDate.get(d)?.published);
+
+  /**
+   * Conflicts in weeks the kitchen has already planned but nobody is looking at.
+   *
+   * The per-week check above is a snapshot taken at render, against the
+   * children enrolled right now. Plan three weeks ahead today and a child who
+   * enrols next week with a nut allergy never retro-flags the menu already
+   * written for them — nothing re-runs, nothing notifies, and the conflict
+   * surfaces only if a human happens to page forward to that week. The further
+   * ahead the kitchen plans, the wider that blind spot gets.
+   *
+   * So the same check runs over every future menu, and anything outside the
+   * displayed week is named here with a link to the week it is in. It costs
+   * one extra column on a query this page was making anyway.
+   */
+  const upcoming = new Map<string, Set<string>>();
+  for (const row of (aheadRes.data ?? []) as { date: string; allergens: unknown }[]) {
+    if (!isOpenDayStr(openingHours, row.date)) continue;
+    const list = Array.isArray(row.allergens) ? (row.allergens as string[]) : [];
+    for (const c of conflictsFor(list, allergies)) {
+      const week = sundayOf(row.date);
+      const set = upcoming.get(week) ?? new Set<string>();
+      set.add(c.allergen);
+      upcoming.set(week, set);
+    }
+  }
+  const upcomingWeeks = [...upcoming.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, 6);
+
   return (
     <div>
-      <PageHeader title={t("menus.title")} description={t("menus.description")}>
-        <CopyPreviousWeekButton weekStart={weekStart} />
+      <PageHeader title={t("menus.title")} description={openDaysLabel}>
+        {weekHasDrafts && <PublishWeekButton weekStart={weekStart} />}
+        <CopyPreviousWeekButton weekStart={weekStart} hasExisting={weekHasContent} />
       </PageHeader>
 
       {/* Week navigation */}
@@ -181,9 +291,13 @@ export default async function MenusPage({
             </Link>
           </Button>
           <span className="min-w-52 text-center text-sm font-semibold">
+            {/* The OPEN days, not the calendar week. weekEnd is now Saturday
+                so the queries cover the whole seven days; labelling the header
+                with it would read "30 Aug – 5 Sept" for a crèche that shuts on
+                Friday and Saturday. */}
             {t("menus.weekOf", {
-              start: dayMonthLabel(weekStart, locale),
-              end: dayMonthLabel(weekEnd, locale),
+              start: dayMonthLabel(days[0] ?? weekStart, locale),
+              end: dayMonthLabel(days[days.length - 1] ?? weekEnd, locale),
             })}
           </span>
           <Button variant="outline" size="icon" asChild>
@@ -250,13 +364,71 @@ export default async function MenusPage({
         </div>
       )}
 
-      {/* Sunday → Thursday */}
+      {/* Weeks already planned that nobody is currently looking at. Quieter
+          than the alert above on purpose — that one is about food being served
+          this week; this is a "go and check" for a week still in the future. */}
+      {upcomingWeeks.length > 0 && (
+        <div className="mb-5 rounded-xl border border-gold/40 bg-gold-veil px-4 py-3">
+          <p className="text-sm font-semibold text-gold-ink">{t("menus.upcoming.title")}</p>
+          <p className="mt-0.5 text-xs text-gold-ink/80">{t("menus.upcoming.hint")}</p>
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            {upcomingWeeks.map(([week, allergens]) => (
+              <li key={week}>
+                <Link
+                  href={href(week)}
+                  className="font-medium text-gold-ink underline-offset-2 hover:underline"
+                >
+                  {t("menus.upcoming.week", { date: dayMonthLabel(week, locale) })}
+                </Link>
+                {/* capitalize, as the alert above does: allergen values are
+                    free text a director typed, so the same allergen arrives as
+                    "lactose", "Lactose" and "Milk" and a raw list reads ragged. */}
+                <span className="ms-1.5 text-xs capitalize text-gold-ink/80">
+                  {[...allergens].map(allergenLabel).join(locale === "ar" ? "، " : ", ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* The crèche's open days. Never a fixed Sunday→Thursday — see above. */}
+      {days.length === 0 ? (
+        <EmptyState icon={<CalendarDays />} title={t("menus.closedAll")} />
+      ) : (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {days.map((d, col) => {
+        {days.map((d) => {
           const menu = menuByDate.get(d) ?? null;
           const isToday = d === today;
           const conflicts = conflictingAllergens.get(d);
           const hasContent = !!(menu?.breakfast || menu?.lunch || menu?.snack);
+          const closure = closedBy.get(d);
+
+          // A closure the crèche has already declared. Rendered rather than
+          // dropped, so the gap in the week reads as "Aïd, we are shut" and
+          // not as "somebody forgot Wednesday" — and not as an invitation to
+          // plan meals for a day nobody is coming to eat them.
+          if (closure && !hasContent) {
+            return (
+              <div
+                key={d}
+                className="flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-border bg-muted/30"
+              >
+                <div className="border-b border-dashed bg-muted px-4 py-3">
+                  <p className="text-sm font-bold capitalize text-muted-foreground">
+                    {weekdayLabel(d)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{dayMonthLabel(d, locale)}</p>
+                </div>
+                <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {t("menus.closed")}
+                  </span>
+                  <span className="text-xs text-muted-foreground/80">{closure}</span>
+                </div>
+              </div>
+            );
+          }
 
           return (
             /* The whole card opens the editor. It used to be a 28px pencil in
@@ -284,7 +456,7 @@ export default async function MenusPage({
                 >
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-1.5 text-sm font-bold capitalize">
-                      {weekdayName(col, locale, "long")}
+                      {weekdayLabel(d)}
                       {conflicts && (
                         <TriangleAlert
                           className="size-3.5 shrink-0 text-destructive"
@@ -366,6 +538,7 @@ export default async function MenusPage({
           );
         })}
       </div>
+      )}
     </div>
   );
 }

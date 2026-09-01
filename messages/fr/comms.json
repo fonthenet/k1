@@ -154,14 +154,31 @@
     "toasts": {
       "saved": "Menu enregistré",
       "copied": "{count, plural, =0 {Aucun menu à copier la semaine dernière} one {1 jour copié} other {# jours copiés}}",
-      "error": "Une erreur est survenue. Réessayez."
+      "error": "Une erreur est survenue. Réessayez.",
+      "publishedWeek": "{count, plural, =0 {Aucun menu à publier} one {1 menu publié} other {# menus publiés}}"
     },
     "prevWeek": "Semaine précédente",
     "nextWeek": "Semaine suivante",
     "thisWeek": "Cette semaine",
     "editDay": "Modifier le menu du {date}",
     "allergyChildrenLabel": "Enfants concernés :",
-    "allergyEveryDay": "tous les jours"
+    "allergyEveryDay": "tous les jours",
+    "descriptionDays": "Menus de la semaine, {days}",
+    "daysRange": "du {from} au {to}",
+    "closed": "Fermé",
+    "closedAll": "Aucun jour d'ouverture n'est défini. Renseignez les horaires dans Paramètres.",
+    "publishWeek": "Publier la semaine",
+    "copyConfirm": {
+      "title": "Écraser les menus de cette semaine ?",
+      "body": "Cette semaine contient déjà des menus. Les jours copiés de la semaine précédente les remplaceront, et arriveront en brouillon.",
+      "confirm": "Copier et écraser",
+      "cancel": "Annuler"
+    },
+    "upcoming": {
+      "title": "Allergènes signalés dans les semaines à venir",
+      "hint": "Ces menus ont été planifiés avant que ces allergies ne soient enregistrées.",
+      "week": "Semaine du {date}"
+    }
   },
   "incidents": {
     "title": "Incidents",

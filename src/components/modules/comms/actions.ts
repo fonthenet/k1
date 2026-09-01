@@ -5,7 +5,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { flushPush } from "@/app/actions/push";
-import { addDaysStr } from "./dates";
+import { addDaysStr, dateRange } from "./dates";
+import { isOpenDayStr, toOpeningHours, type OpeningHours } from "@/lib/week";
 
 export type ActionResult =
   | { ok: true; id?: string; count?: number }
@@ -311,33 +312,66 @@ export async function saveMenuDay(input: z.infer<typeof menuDaySchema>): Promise
   return { ok: true };
 }
 
-/** Copy the previous week's menus (Sun–Thu) onto the week starting at `weekStart`. */
+/** The crèche's own week, not a hardcoded one. See src/lib/week.ts. */
+function tenantHours(tenant: unknown): OpeningHours {
+  return toOpeningHours((tenant as { opening_hours?: unknown }).opening_hours);
+}
+
+/** Dates in [start, start+6] the crèche actually opens on. */
+function openDatesOfWeek(hours: OpeningHours, start: string): string[] {
+  return dateRange(start, addDaysStr(start, 6), 7).filter((d) => isOpenDayStr(hours, d));
+}
+
+/**
+ * Copy the previous week's menus onto the week starting at `weekStart`.
+ *
+ * Two rules that are easy to get wrong, and were:
+ *
+ * DRAFTS. The copy lands unpublished, whatever the source week was. Copying
+ * forward is how a kitchen plans ahead, and the whole point of planning ahead
+ * is that somebody checks it before parents read it — carrying `published`
+ * across meant a fortnight of menus went live the instant the button was
+ * pressed, allergens and all, with nobody having looked. Publishing is now a
+ * separate, deliberate act: publishWeekMenus.
+ *
+ * THE WEEK IS THE TENANT'S. This used to read Sunday→Thursday out of the
+ * previous week and write it five days later, which silently dropped a
+ * Saturday-opening crèche's Saturday and invented menus for a Thursday-closed
+ * one. Both ends now follow the stored opening hours.
+ */
 export async function copyPreviousWeekMenus(weekStart: string): Promise<ActionResult> {
   const ctx = await requireStaff();
   if (!dateStr.safeParse(weekStart).success) return { ok: false, error: "invalid" };
 
-  const prevStart = addDaysStr(weekStart, -7);
-  const prevEnd = addDaysStr(weekStart, -3);
+  const hours = tenantHours(ctx.tenant);
+  const targets = new Set(openDatesOfWeek(hours, weekStart));
+  if (targets.size === 0) return { ok: true, count: 0 };
 
   const supabase = await createClient();
+  const prevStart = addDaysStr(weekStart, -7);
   const { data: prevRows, error } = await supabase
     .from("kg_menus")
-    .select("date, breakfast, lunch, snack, allergens, published")
+    .select("date, breakfast, lunch, snack, allergens")
     .eq("tenant_id", ctx.tenant.id)
     .gte("date", prevStart)
-    .lte("date", prevEnd);
+    .lte("date", addDaysStr(prevStart, 6));
   if (error) return mapDbError(error);
   if (!prevRows || prevRows.length === 0) return { ok: true, count: 0 };
 
-  const rows = prevRows.map((r) => ({
-    tenant_id: ctx.tenant.id,
-    date: addDaysStr(r.date, 7),
-    breakfast: r.breakfast,
-    lunch: r.lunch,
-    snack: r.snack,
-    allergens: r.allergens,
-    published: r.published,
-  }));
+  const rows = prevRows
+    .map((r) => ({ ...r, date: addDaysStr(r.date, 7) }))
+    // A source day whose mirror is a closed day this week has nowhere to go.
+    .filter((r) => targets.has(r.date))
+    .map((r) => ({
+      tenant_id: ctx.tenant.id,
+      date: r.date,
+      breakfast: r.breakfast,
+      lunch: r.lunch,
+      snack: r.snack,
+      allergens: r.allergens,
+      published: false,
+    }));
+  if (rows.length === 0) return { ok: true, count: 0 };
 
   const { error: upErr } = await supabase
     .from("kg_menus")
@@ -345,6 +379,37 @@ export async function copyPreviousWeekMenus(weekStart: string): Promise<ActionRe
   if (upErr) return mapDbError(upErr);
   revalidatePath("/menus");
   return { ok: true, count: rows.length };
+}
+
+/**
+ * Publish every day of a week that has something on it.
+ *
+ * The counterpart to copying as drafts: without this, making the copy a draft
+ * would mean opening five dialogs and flipping five switches to undo it.
+ *
+ * Empty days are left alone deliberately. "Published" on a day with no meals
+ * tells a parent the kitchen has decided there is nothing to eat, which is a
+ * different statement from "we have not filled this in yet".
+ */
+export async function publishWeekMenus(weekStart: string): Promise<ActionResult> {
+  const ctx = await requireStaff();
+  if (!dateStr.safeParse(weekStart).success) return { ok: false, error: "invalid" };
+
+  const dates = openDatesOfWeek(tenantHours(ctx.tenant), weekStart);
+  if (dates.length === 0) return { ok: true, count: 0 };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("kg_menus")
+    .update({ published: true })
+    .eq("tenant_id", ctx.tenant.id)
+    .in("date", dates)
+    .eq("published", false)
+    .or("breakfast.not.is.null,lunch.not.is.null,snack.not.is.null")
+    .select("date");
+  if (error) return mapDbError(error);
+  revalidatePath("/menus");
+  return { ok: true, count: data?.length ?? 0 };
 }
 
 // ===== Incidents =====
