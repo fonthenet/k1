@@ -1,0 +1,31 @@
+{
+  "title": "Weather",
+  "today": "Today",
+  "now": "Now",
+  "week": "Next 7 days",
+  "feelsWind": "Wind",
+  "humidity": "Humidity",
+  "uv": "UV index",
+  "unavailable": "Weather unavailable",
+  "approx": "Approximate — wilaya location",
+  "pinHint": "Drop your crèche's pin in Settings for exact weather.",
+  "credit": "Weather data from MET Norway",
+  "conditions": {
+    "clear": "Clear sky",
+    "fair": "Fair",
+    "partlycloudy": "Partly cloudy",
+    "cloudy": "Overcast",
+    "fog": "Fog",
+    "rain": "Rain",
+    "heavyrain": "Heavy rain",
+    "sleet": "Sleet",
+    "snow": "Snow",
+    "thunder": "Thunderstorm"
+  },
+  "advice": {
+    "heat": "Very hot: keep the children in the shade and offer water often.",
+    "rain": "Rain expected: tell parents to send a raincoat.",
+    "wind": "Strong wind: avoid the yard and bring in anything loose.",
+    "cold": "Cold: ask parents for a warm coat."
+  }
+}

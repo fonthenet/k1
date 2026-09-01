@@ -13,6 +13,7 @@ import { setLocale } from "@/app/actions/locale";
 import { createClient } from "@/lib/supabase/client";
 import { initials } from "@/lib/format";
 import { NotificationBell } from "@/components/modules/notifications/notification-bell";
+import { WeatherChip } from "@/components/modules/weather/weather-chip";
 import { MobileNav } from "./mobile-nav";
 import type { KgRole } from "@/lib/types";
 
@@ -78,6 +79,7 @@ export function Topbar({
         </h1>
       </div>
       <div className="flex items-center gap-1">
+        <WeatherChip className={headerControl} />
         <NotificationBell userId={userId} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

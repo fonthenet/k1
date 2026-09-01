@@ -1,0 +1,31 @@
+{
+  "title": "Météo",
+  "today": "Aujourd'hui",
+  "now": "Maintenant",
+  "week": "Les 7 prochains jours",
+  "feelsWind": "Vent",
+  "humidity": "Humidité",
+  "uv": "Indice UV",
+  "unavailable": "Météo indisponible",
+  "approx": "Approximatif — position de la wilaya",
+  "pinHint": "Placez le repère de votre crèche dans Paramètres pour une météo exacte.",
+  "credit": "Données météo de MET Norway",
+  "conditions": {
+    "clear": "Ciel dégagé",
+    "fair": "Beau temps",
+    "partlycloudy": "Partiellement nuageux",
+    "cloudy": "Couvert",
+    "fog": "Brouillard",
+    "rain": "Pluie",
+    "heavyrain": "Fortes pluies",
+    "sleet": "Neige fondue",
+    "snow": "Neige",
+    "thunder": "Orage"
+  },
+  "advice": {
+    "heat": "Forte chaleur : gardez les enfants à l'ombre et faites boire souvent.",
+    "rain": "Pluie annoncée : prévenez les parents pour l'imperméable.",
+    "wind": "Vent fort : évitez la cour et rentrez ce qui peut s'envoler.",
+    "cold": "Temps froid : demandez aux parents un vêtement chaud."
+  }
+}
