@@ -3,6 +3,7 @@
 // this surface: kg_tasks RLS is staff-scoped and the route sits behind
 // requireStaff().
 
+import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { AlarmClock, CircleCheck, ListChecks, Plus, Timer, TriangleAlert } from "lucide-react";
@@ -36,11 +37,6 @@ import {
 /** The done lane is a recent tail, not an archive — the rest sits behind the
  *  status filter. */
 const DONE_LANE_LIMIT = 10;
-
-interface ProfileLite {
-  id: string;
-  full_name: string | null;
-}
 
 interface ChildLite {
   id: string;
@@ -77,7 +73,7 @@ export default async function TasksPage({
       .order("created_at", { ascending: false }),
     supabase
       .from("kg_memberships")
-      .select("id, user_id, role, job_title")
+      .select("id, user_id, full_name, role, job_title")
       .eq("tenant_id", tid)
       .eq("status", "active")
       .neq("role", "parent"),
@@ -91,20 +87,17 @@ export default async function TasksPage({
 
   const members = (membersRes.data ?? []) as Pick<
     Membership,
-    "id" | "user_id" | "role" | "job_title"
+    "id" | "user_id" | "full_name" | "role" | "job_title"
   >[];
-  const userIds = members.map((m) => m.user_id);
-  const { data: profiles } = userIds.length
-    ? await supabase.from("kg_profiles").select("id, full_name").in("id", userIds)
-    : { data: [] as ProfileLite[] };
-  const nameByUser = new Map(
-    ((profiles ?? []) as ProfileLite[]).map((p) => [p.id, p.full_name ?? ""])
-  );
+  const nameByUser = await fetchProfileNames(supabase, members.map((m) => m.user_id));
 
   const assignees: AssigneeOption[] = members
     .map((m) => ({
       id: m.id,
-      name: nameByUser.get(m.user_id) || m.job_title || t("form.unnamedMember"),
+      // The job title was standing in for the name of everyone without an
+      // account, so a task list read "Cuisine · Ménage · Aide" instead of
+      // naming the three people it was assigned to.
+      name: memberNameIn(m, nameByUser) || m.job_title || t("form.unnamedMember"),
       role: m.role,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));

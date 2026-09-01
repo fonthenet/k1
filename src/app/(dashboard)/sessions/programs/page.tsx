@@ -1,3 +1,4 @@
+import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ChevronLeft, ChevronRight, Target } from "lucide-react";
@@ -77,7 +78,7 @@ export default async function ProgramsPage({
       .eq("tenant_id", ctx.tenant.id),
     supabase
       .from("kg_memberships")
-      .select("id, user_id")
+      .select("id, user_id, full_name")
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "active")
       .neq("role", "parent"),
@@ -94,14 +95,13 @@ export default async function ProgramsPage({
 
   const programs = (programsRes.data ?? []) as unknown as ProgramRow[];
 
-  const members = (membersRes.data ?? []) as Pick<Membership, "id" | "user_id">[];
-  const userIds = members.map((m) => m.user_id);
-  const { data: profiles } = userIds.length
-    ? await supabase.from("kg_profiles").select("id, full_name").in("id", userIds)
-    : { data: [] as { id: string; full_name: string }[] };
-  const nameByUser = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+  const members = (membersRes.data ?? []) as Pick<
+    Membership,
+    "id" | "user_id" | "full_name"
+  >[];
+  const nameByUser = await fetchProfileNames(supabase, members.map((m) => m.user_id));
   const therapists: TherapistOption[] = members
-    .map((m) => ({ id: m.id, name: nameByUser.get(m.user_id) || "—" }))
+    .map((m) => ({ id: m.id, name: memberNameIn(m, nameByUser) ?? "—" }))
     .sort((a, b) => a.name.localeCompare(b.name, locale));
   const therapistById = new Map(therapists.map((th) => [th.id, th.name]));
 

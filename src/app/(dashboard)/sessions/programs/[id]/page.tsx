@@ -1,3 +1,4 @@
+import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
@@ -130,18 +131,18 @@ export default async function ProgramDetailPage({
   if (program.therapist_id) {
     const { data: membership } = await supabase
       .from("kg_memberships")
-      .select("user_id")
+      // full_name as well as user_id: a therapist the director typed in has no
+      // account and therefore no profile row, and asking only for the profile
+      // left both the name and the link below empty.
+      .select("user_id, full_name")
       .eq("id", program.therapist_id)
       .eq("tenant_id", ctx.tenant.id)
       .maybeSingle();
     if (membership) {
-      const { data: profile } = await supabase
-        .from("kg_profiles")
-        .select("full_name")
-        .eq("id", membership.user_id)
-        .maybeSingle();
-      if (profile?.full_name) {
-        therapistName = profile.full_name;
+      const names = await fetchProfileNames(supabase, [membership.user_id]);
+      const resolved = memberNameIn(membership, names);
+      if (resolved) {
+        therapistName = resolved;
         therapistLinkId = program.therapist_id;
       }
     }

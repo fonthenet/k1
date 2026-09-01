@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
-import { memberName } from "@/components/modules/staff/dates";
+import { memberName } from "@/lib/member-names";
 import { StaffBadgeCard } from "@/components/modules/staff/staff-badge-card";
 import type { Membership } from "@/lib/types";
 
@@ -59,7 +59,7 @@ export default async function StaffBadgePage({
     <StaffBadgeCard
       data={{
         membershipId: member.id,
-        name: memberName(member, profile?.full_name),
+        name: memberName(member, profile?.full_name) ?? "—",
         jobTitle: member.job_title,
         roleLabel: t(`roles.${member.role}`),
         staffCode: member.staff_code,

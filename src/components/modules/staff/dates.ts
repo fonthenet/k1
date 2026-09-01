@@ -67,13 +67,8 @@ export function recentMonths(n: number): string[] {
   return out;
 }
 
-/**
- * What to call a member. Local staff (no login) carry their name on the
- * membership; everyone else has a profile. Mirrors kg_member_name (0044).
- */
-export function memberName(
-  member: { user_id: string | null; full_name?: string | null },
-  profileName?: string | null
-): string {
-  return (profileName || "").trim() || (member.full_name || "").trim() || "—";
-}
+// memberName moved to src/lib/member-names.ts. It lived here, in a module of
+// date helpers, while eight OTHER screens hand-rolled a profile-only lookup and
+// never found it — see that file for what that cost. It now returns null rather
+// than "—" so a caller can tell "no name" from a name, and it sits beside
+// fetchProfileNames, which is the half that has to be right for it to work.

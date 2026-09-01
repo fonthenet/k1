@@ -44,7 +44,18 @@ type StaffJoinRow = {
   kg_memberships: { id: string; user_id: string; role: string; job_title: string | null } | null;
 };
 
-type MembershipRow = { id: string; user_id: string; role: string; job_title: string | null };
+type MembershipRow = {
+  id: string;
+  // NULLABLE, and usually null: a membership only gains a user_id once the
+  // person accepts an invite and creates an account. The cook, the cleaner
+  // and most educators never do — they are typed into the team list by the
+  // director and paid in cash. This was declared `string`, which is what let
+  // the profile-only name lookup below type-check.
+  user_id: string | null;
+  full_name: string | null;
+  role: string;
+  job_title: string | null;
+};
 
 type CandidateRow = {
   id: string;
@@ -156,11 +167,11 @@ export default async function ClassDetailPage({
       .order("first_name"),
     supabase
       .from("kg_class_staff")
-      .select("is_main, kg_memberships(id, user_id, role, job_title)")
+      .select("is_main, kg_memberships(id, user_id, full_name, role, job_title)")
       .eq("class_id", id),
     supabase
       .from("kg_memberships")
-      .select("id, user_id, role, job_title")
+      .select("id, user_id, full_name, role, job_title")
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "active")
       .neq("role", "parent"),
@@ -181,6 +192,8 @@ export default async function ClassDetailPage({
   const pool = (poolRows ?? []) as MembershipRow[];
   const today = algiersToday();
 
+  const poolUserIds = [...new Set(pool.map((m) => m.user_id).filter((v): v is string => !!v))];
+
   const [{ data: allergyRows }, { data: attendanceRows }, { data: profiles }] = await Promise.all([
     childIds.length
       ? supabase
@@ -197,11 +210,16 @@ export default async function ClassDetailPage({
           .eq("date", today)
           .in("child_id", childIds)
       : Promise.resolve({ data: [] as { child_id: string; status: AttendanceStatus }[] }),
-    pool.length
+    // The nulls MUST come out before this goes over the wire. PostgREST renders
+    // the array literally as id=in.(null,<uuid>,…) and Postgres rejects that as
+    // an invalid uuid, so a single accountless member failed the whole request
+    // and left nameByUser empty — every name on the card, including those of
+    // staff who do have accounts, fell back to the dash.
+    poolUserIds.length
       ? supabase
           .from("kg_profiles")
           .select("id, full_name")
-          .in("id", [...new Set(pool.map((m) => m.user_id))])
+          .in("id", poolUserIds)
       : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
   ]);
 
@@ -224,7 +242,9 @@ export default async function ClassDetailPage({
   const assignedIds = new Set(assignedRows.map((r) => r.kg_memberships!.id));
   const toOption = (m: MembershipRow): StaffOption => ({
     membershipId: m.id,
-    name: nameByUser.get(m.user_id) ?? "—",
+    // Profile first (a person with an account may have corrected their own
+    // name), then the name the director typed. The dash is for neither.
+    name: (m.user_id ? nameByUser.get(m.user_id) : null) || (m.full_name ?? "").trim() || "—",
     subtitle: m.job_title ?? t(`roles.${m.role}` as Parameters<typeof t>[0]),
   });
   const assigned: AssignedStaff[] = assignedRows

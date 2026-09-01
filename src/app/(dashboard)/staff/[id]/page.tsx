@@ -24,8 +24,9 @@ import { MonthSelector } from "@/components/modules/staff/month-selector";
 import { TimesheetApprove } from "@/components/modules/staff/timesheet-approve";
 import { TimesheetEntryDialog } from "@/components/modules/staff/timesheet-entry-dialog";
 import {
-  algiersMonth, algiersToday, durationMinutes, memberName, monthRange, recentMonths,
+  algiersMonth, algiersToday, durationMinutes, monthRange, recentMonths,
 } from "@/components/modules/staff/dates";
+import { memberName } from "@/lib/member-names";
 import { LEAVE_STATUS_BADGE, MEMBER_STATUS_BADGE, ROLE_BADGE } from "@/components/modules/staff/maps";
 import type {
   LeaveRequest, MemberStatus, PayrollItemWithRun, ProfileLite, SalaryAdvance, StaffRole,
@@ -122,7 +123,7 @@ export default async function StaffMemberPage({
         : Promise.resolve({ data: [] as PayrollItemWithRun[] }),
     ]);
 
-  const name = memberName(member, profile?.full_name);
+  const name = memberName(member, profile?.full_name) ?? "—";
   const parts = name.split(" ");
   const role = member.role as StaffRole;
   const status = (member.status === "disabled" ? "disabled" : member.status) as MemberStatus;

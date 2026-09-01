@@ -18,7 +18,8 @@ import type { Membership, Timesheet } from "@/lib/types";
 import { ClockButton } from "@/components/modules/staff/clock-button";
 import { EditMemberDialog } from "@/components/modules/staff/edit-member-dialog";
 import { InviteDialog } from "@/components/modules/staff/invite-dialog";
-import { algiersToday, memberName } from "@/components/modules/staff/dates";
+import { algiersToday } from "@/components/modules/staff/dates";
+import { memberName } from "@/lib/member-names";
 import { MEMBER_STATUS_BADGE, ROLE_BADGE, STAFF_ROLES } from "@/components/modules/staff/maps";
 import type { MemberStatus, ProfileLite, StaffRole } from "@/components/modules/staff/staff-types";
 
@@ -73,8 +74,8 @@ export default async function StaffPage() {
     const ra = roleRank.get(a.role as StaffRole) ?? 99;
     const rb = roleRank.get(b.role as StaffRole) ?? 99;
     if (ra !== rb) return ra - rb;
-    const na = memberName(a, a.user_id ? profileById.get(a.user_id)?.full_name : null);
-    const nb = memberName(b, b.user_id ? profileById.get(b.user_id)?.full_name : null);
+    const na = memberName(a, a.user_id ? profileById.get(a.user_id)?.full_name : null) ?? "—";
+    const nb = memberName(b, b.user_id ? profileById.get(b.user_id)?.full_name : null) ?? "—";
     return na.localeCompare(nb);
   });
 
@@ -145,7 +146,7 @@ export default async function StaffPage() {
               <TableBody>
                 {sorted.map((m) => {
                   const profile = m.user_id ? profileById.get(m.user_id) : undefined;
-                  const name = memberName(m, profile?.full_name);
+                  const name = memberName(m, profile?.full_name) ?? "—";
                   const parts = name.split(" ");
                   const state = todayState(tsByMember.get(m.id) ?? []);
                   const role = m.role as StaffRole;

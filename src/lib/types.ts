@@ -33,7 +33,18 @@ export interface Profile {
 }
 
 export interface Membership {
-  id: string; tenant_id: string; user_id: string; role: KgRole;
+  id: string; tenant_id: string;
+  /**
+   * NULL until the person accepts an invitation and creates an account — which
+   * most crèche staff never do. Declaring this `string` is what let eight
+   * screens resolve a name from kg_profiles alone and render an em-dash for
+   * the cook, the cleaner and most educators. Resolve names through
+   * src/lib/member-names.ts, never by a bare profile lookup.
+   */
+  user_id: string | null;
+  /** The name the director typed. Present even with no account. */
+  full_name: string | null;
+  role: KgRole;
   status: "active" | "invited" | "disabled"; job_title: string | null;
   hire_date: string | null;
   /** Monthly gross when pay_type = 'monthly'; ignored when 'hourly'. */

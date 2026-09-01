@@ -1,3 +1,4 @@
+import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -49,7 +50,7 @@ export default async function PayslipPage({
   const { data: rawItem } = await supabase
     .from("kg_payroll_items")
     .select(
-      "id, base_amount, bonuses, deductions, advances_deducted, net_amount, paid_at, method, kg_memberships(user_id, job_title, hire_date)"
+      "id, base_amount, bonuses, deductions, advances_deducted, net_amount, paid_at, method, kg_memberships(user_id, full_name, job_title, hire_date)"
     )
     .eq("id", itemId)
     .eq("run_id", id)
@@ -58,13 +59,11 @@ export default async function PayslipPage({
   const item = rawItem as unknown as RawItem | null;
   if (!item) notFound();
 
-  const { data: profile } = item.kg_memberships
-    ? await supabase
-        .from("kg_profiles")
-        .select("full_name")
-        .eq("id", item.kg_memberships.user_id)
-        .maybeSingle()
-    : { data: null };
+  // A payslip with no name on it is not a payslip. Most staff have no
+  // account, so the profile lookup alone left this as an em-dash.
+  const profileNames = item.kg_memberships
+    ? await fetchProfileNames(supabase, [item.kg_memberships.user_id])
+    : new Map<string, string>();
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -81,7 +80,9 @@ export default async function PayslipPage({
 
       <PayslipSheet
         tenant={ctx.tenant}
-        employeeName={profile?.full_name || "—"}
+        employeeName={
+          (item.kg_memberships ? memberNameIn(item.kg_memberships, profileNames) : null) ?? "—"
+        }
         jobTitle={item.kg_memberships?.job_title ?? null}
         hireDate={item.kg_memberships?.hire_date ?? null}
         month={run.month}

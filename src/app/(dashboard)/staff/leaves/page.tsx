@@ -1,3 +1,4 @@
+import { memberNameIn } from "@/lib/member-names";
 import Link from "next/link";
 import { AlertCircle, ArrowLeft, ArrowRight, CalendarCheck2, CalendarDays, Hourglass } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -46,19 +47,27 @@ export default async function StaffLeavesPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("kg_memberships")
-      .select("id, user_id")
+      .select("id, user_id, full_name")
       .eq("tenant_id", ctx.tenant.id)
       .neq("role", "parent"),
   ]);
 
-  const memberList = (members ?? []) as Pick<Membership, "id" | "user_id">[];
-  const userIds = memberList.map((m) => m.user_id);
+  const memberList = (members ?? []) as Pick<Membership, "id" | "user_id" | "full_name">[];
+  // Nulls out before the .in(): PostgREST sends the array verbatim, and
+  // id=in.(null,…) is rejected as an invalid uuid — one accountless member
+  // would blank the phone and avatar of everyone else too. This one keeps its
+  // own query rather than using fetchProfileNames because it needs the two
+  // extra columns.
+  const userIds = [...new Set(memberList.map((m) => m.user_id).filter((v): v is string => !!v))];
   const { data: profiles } = userIds.length
     ? await supabase.from("kg_profiles").select("id, full_name, phone, avatar_url").in("id", userIds)
     : { data: [] as ProfileLite[] };
   const profileByUser = new Map((profiles ?? []).map((p) => [p.id, p as ProfileLite]));
+  const nameByUser = new Map(
+    [...profileByUser].flatMap(([id, p]) => (p.full_name ? [[id, p.full_name] as const] : []))
+  );
   const nameByMembership = new Map(
-    memberList.map((m) => [m.id, profileByUser.get(m.user_id)?.full_name || "—"])
+    memberList.map((m) => [m.id, memberNameIn(m, nameByUser) ?? "—"])
   );
 
   const all = (requests ?? []) as LeaveRequest[];

@@ -1,3 +1,4 @@
+import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
@@ -110,7 +111,8 @@ interface TimesheetRow {
 
 interface MemberRow {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  full_name: string | null;
   role: string;
   job_title: string | null;
   pay_type: "monthly" | "hourly";
@@ -198,7 +200,7 @@ export default async function ReportsPage({
         .lte("date", monthEnd),
       supabase
         .from("kg_memberships")
-        .select("id, user_id, role, job_title, pay_type")
+        .select("id, user_id, full_name, role, job_title, pay_type")
         .eq("tenant_id", tid)
         .eq("status", "active")
         .neq("role", "parent"),
@@ -212,16 +214,14 @@ export default async function ReportsPage({
     ]);
 
   const members = (memRes.data ?? []) as MemberRow[];
-  const profRes =
-    members.length > 0
-      ? await supabase
-          .from("kg_profiles")
-          .select("id, full_name")
-          .in(
-            "id",
-            members.map((mm) => mm.user_id)
-          )
-      : { data: [] as { id: string; full_name: string }[], error: null };
+  // This request used to be sent with the null user_ids still in the array.
+  // PostgREST renders it verbatim as id=in.(null,…), Postgres rejects it as an
+  // invalid uuid, and profRes.error then fed hasError below — which is why
+  // this page has been showing its red banner. fetchProfileNames filters.
+  const profileById = await fetchProfileNames(
+    supabase,
+    members.map((mm) => mm.user_id)
+  );
 
   const hasError = Boolean(
     attRes.error ||
@@ -231,8 +231,7 @@ export default async function ReportsPage({
       arrearsRes.error ||
       tsRes.error ||
       memRes.error ||
-      matricRes.error ||
-      profRes.error
+      matricRes.error
   );
 
   const att = (attRes.data ?? []) as AttRow[];
@@ -242,9 +241,6 @@ export default async function ReportsPage({
   const arrears = (arrearsRes.data ?? []) as unknown as ArrearRow[];
   const tsRows = (tsRes.data ?? []) as TimesheetRow[];
   const matricule = (matricRes.data ?? []) as unknown as MatriculeRow[];
-  const profileById = new Map(
-    ((profRes.data ?? []) as { id: string; full_name: string }[]).map((p) => [p.id, p.full_name])
-  );
 
   const pctFmt = new Intl.NumberFormat(dateLocale, { style: "percent", maximumFractionDigits: 0 });
   const monthYearFmt = new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" });
@@ -449,7 +445,7 @@ export default async function ReportsPage({
       const hours = (acc?.ms ?? 0) / 3600000;
       return {
         id: mm.id,
-        name: profileById.get(mm.user_id) ?? "—",
+        name: memberNameIn(mm, profileById) ?? "—",
         role: mm.job_title ?? mm.role,
         days: acc?.days.size ?? 0,
         hours,
