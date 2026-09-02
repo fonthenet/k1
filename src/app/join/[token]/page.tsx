@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { BabyIcon, MailOpenIcon, TicketXIcon, UsersIcon } from "lucide-react";
+import { BabyIcon, MailOpenIcon, TicketXIcon, UserRoundXIcon, UsersIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,25 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("join.metaTitle") };
 }
 
+type Preview = {
+  status: string;
+  tenant_name: string | null;
+  role: string | null;
+  logo_url: string | null;
+  bound: boolean;
+};
+
+/**
+ * The front door of a staff invite.
+ *
+ * The token is previewed BEFORE anything else renders. It used to be
+ * checked only inside kg_accept_staff_invite, after the person had already
+ * created an account to press the button — so a revoked or expired link cost
+ * them a sign-up for nothing and told them so last. kg_staff_invite_preview
+ * (0113) answers before sign-in with only what the parent claim page already
+ * shows for its own links: a status, the crèche's name and the role. Never
+ * the inviter, never the reserved address.
+ */
 export default async function JoinPage({
   params,
   searchParams,
@@ -32,14 +51,27 @@ export default async function JoinPage({
   searchParams: Promise<{ error?: string | string[] }>;
 }) {
   const t = await getTranslations("auth");
+  const ts = await getTranslations("staff");
   const { token } = await params;
   const sp = await searchParams;
-  const invalid = sp.error === "1";
+  const errorCode = Array.isArray(sp.error) ? sp.error[0] : sp.error;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [{ data: previewRaw }, { data: { user } }] = await Promise.all([
+    supabase.rpc("kg_staff_invite_preview", { p_token: token }),
+    supabase.auth.getUser(),
+  ]);
+  const preview = (Array.isArray(previewRaw) ? previewRaw[0] : previewRaw) as Preview | undefined;
+  const status = preview?.status ?? "unknown";
+  const dead: "unknown" | "accepted" | "expired" | null =
+    status === "valid" && errorCode !== "1"
+      ? null
+      : status === "accepted" || status === "expired"
+        ? status
+        : "unknown";
+
+  const tenant = preview?.tenant_name ?? "";
+  const roleLabel = preview?.role ? ts(`roles.${preview.role}`) : "";
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background">
@@ -63,7 +95,7 @@ export default async function JoinPage({
       </header>
 
       <main className="relative mx-auto flex w-full max-w-xl flex-1 items-start justify-center px-4 pt-8 pb-16 sm:items-center sm:pt-0">
-        {invalid ? (
+        {dead ? (
           <Card className="w-full text-center shadow-sm ring-border">
             <CardHeader className="items-center">
               <span
@@ -73,10 +105,10 @@ export default async function JoinPage({
                 <TicketXIcon className="size-6" />
               </span>
               <CardTitle className="text-lg font-semibold tracking-tight text-balance">
-                {t("join.invalidTitle")}
+                {ts(`invite.join.dead.${dead}.title`)}
               </CardTitle>
               <CardDescription className="mx-auto max-w-sm text-pretty">
-                {t("join.invalidBody")}
+                {ts(`invite.join.dead.${dead}.body`)}
               </CardDescription>
             </CardHeader>
             <CardFooter className="justify-center gap-2">
@@ -89,6 +121,53 @@ export default async function JoinPage({
                   <Link href="/login">{t("join.goToLogin")}</Link>
                 </Button>
               )}
+            </CardFooter>
+          </Card>
+        ) : errorCode === "2" && user ? (
+          /* A good link, the wrong account. The fix is to switch accounts,
+             so that is the action offered — not "ask for a new link". */
+          <Card className="w-full text-center shadow-sm ring-border">
+            <CardHeader className="items-center">
+              <span
+                className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
+                aria-hidden
+              >
+                <UserRoundXIcon className="size-6" />
+              </span>
+              <CardTitle className="text-lg font-semibold tracking-tight text-balance">
+                {ts("invite.join.mismatch.title")}
+              </CardTitle>
+              <CardDescription className="mx-auto max-w-sm text-pretty">
+                {ts("invite.join.mismatch.body")}
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="flex-col gap-1 text-center">
+              <p className="text-xs text-muted-foreground">
+                {t("join.signedInAs", { email: displayIdentity(user.email) })}
+              </p>
+              <SignOutButton />
+            </CardFooter>
+          </Card>
+        ) : errorCode === "3" && user ? (
+          <Card className="w-full text-center shadow-sm ring-border">
+            <CardHeader className="items-center">
+              <span
+                className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
+                aria-hidden
+              >
+                <UsersIcon className="size-6" />
+              </span>
+              <CardTitle className="text-lg font-semibold tracking-tight text-balance">
+                {ts("invite.join.alreadyMember.title")}
+              </CardTitle>
+              <CardDescription className="mx-auto max-w-sm text-pretty">
+                {ts("invite.join.alreadyMember.body")}
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="justify-center">
+              <Button asChild size="lg">
+                <Link href="/after-login">{ts("invite.join.open")}</Link>
+              </Button>
             </CardFooter>
           </Card>
         ) : user ? (
@@ -105,10 +184,15 @@ export default async function JoinPage({
                 {t("join.acceptTitle")}
               </CardTitle>
               <CardDescription className="mx-auto max-w-sm text-pretty">
-                {t("join.acceptBody")}
+                {ts("invite.join.acceptAs", { tenant, role: roleLabel })}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="grid gap-3">
+              {preview?.bound && (
+                <p className="text-center text-xs leading-relaxed text-muted-foreground text-pretty">
+                  {ts("invite.join.bound")}
+                </p>
+              )}
               <form action={acceptInvite.bind(null, token)}>
                 <AcceptInviteButton />
               </form>
@@ -135,9 +219,12 @@ export default async function JoinPage({
               <CardTitle className="text-xl font-semibold tracking-tight text-balance">
                 {t("join.title")}
               </CardTitle>
+              <CardDescription className="text-pretty">
+                {ts("invite.join.acceptAs", { tenant, role: roleLabel })}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <JoinAuthGate token={token} />
+              <JoinAuthGate token={token} intro={ts("invite.join.authIntro", { tenant })} />
             </CardContent>
           </Card>
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Check, Copy, KeyRound, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -16,39 +16,71 @@ import {
 } from "@/components/ui/select";
 import { STAFF_ROLES } from "./maps";
 import type { StaffRole } from "./staff-types";
-import { createLocalMember, inviteStaff } from "./actions";
+import { createLocalMember, inviteStaff, listUnlinkedMembers, type UnlinkedMember } from "./actions";
+
+// Ownership is transferred by editing a member, never handed out through a
+// link or typed in as a cook's role — see inviteRoleSchema in ./actions.
+const INVITABLE_ROLES = STAFF_ROLES.filter((r) => r !== "owner");
+
+// Radix Select cannot represent "nothing chosen" with an empty string.
+const NEW_MEMBER = "__new__";
 
 export function InviteDialog() {
   const t = useTranslations("staff");
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [role, setRole] = useState<StaffRole>("educator");
   const [jobTitle, setJobTitle] = useState("");
   const [link, setLink] = useState<string | null>(null);
+  const [boundTo, setBoundTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
-  // "invite" mails a link to someone with an account; "local" adds a person who
-  // has no email and never will — a cook, a driver — and hands over a code.
+  // "invite" creates a link that grants the chosen role to whoever accepts
+  // it — nothing is mailed; the director forwards it herself. "local" adds a
+  // person who has no email and never will — a cook, a driver — and hands
+  // over a code.
   const [mode, setMode] = useState<"invite" | "local">("local");
   const [fullName, setFullName] = useState("");
   const [payType, setPayType] = useState<"monthly" | "hourly">("monthly");
   const [rate, setRate] = useState("");
   const [issued, setIssued] = useState<{ staffCode: string; pinCode: string } | null>(null);
+  // Name-only members the link could attach a login to. Loaded once, the
+  // first time the invite tab is opened, so the common "create directly"
+  // path costs nothing extra.
+  const [members, setMembers] = useState<UnlinkedMember[] | null>(null);
+  const [attachTo, setAttachTo] = useState<string>(NEW_MEMBER);
+
+  useEffect(() => {
+    if (!open || mode !== "invite" || members !== null) return;
+    let cancelled = false;
+    listUnlinkedMembers().then((res) => {
+      if (!cancelled) setMembers(res.ok ? res.data : []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, mode, members]);
+
+  const attached = members?.find((m) => m.id === attachTo) ?? null;
+  const effectiveRole = attached?.role ?? role;
 
   function onOpenChange(next: boolean) {
     setOpen(next);
     if (!next) {
-      setEmail("");
+      setIdentifier("");
       setRole("educator");
       setJobTitle("");
       setLink(null);
+      setBoundTo(null);
       setCopied(false);
       setMode("local");
       setFullName("");
       setPayType("monthly");
       setRate("");
       setIssued(null);
+      setMembers(null);
+      setAttachTo(NEW_MEMBER);
     }
   }
 
@@ -76,9 +108,15 @@ export function InviteDialog() {
         }
         return;
       }
-      const res = await inviteStaff({ email, role, jobTitle: jobTitle || undefined });
+      const res = await inviteStaff({
+        identifier: identifier.trim() || undefined,
+        role: effectiveRole === "owner" ? "admin" : effectiveRole,
+        jobTitle: jobTitle || undefined,
+        membershipId: attached?.id,
+      });
       if (res.ok) {
         setLink(res.data.link);
+        setBoundTo(res.data.boundTo);
         toast.success(t("invite.linkTitle"));
       } else {
         toast.error(t(`errors.${res.error}`));
@@ -97,6 +135,8 @@ export function InviteDialog() {
     }
   }
 
+  const roleLabel = t(`roles.${effectiveRole}`);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
@@ -112,7 +152,9 @@ export function InviteDialog() {
             {issued
               ? t("local.handOver", { name: fullName })
               : link
-                ? t("invite.linkHelp", { email })
+                ? boundTo
+                  ? t("invite.linkHelpBound", { identity: boundTo })
+                  : t("invite.linkHelpOpen", { role: roleLabel })
                 : mode === "local"
                   ? t("local.description")
                   : t("invite.description")}
@@ -170,50 +212,96 @@ export function InviteDialog() {
                 />
               </div>
             ) : (
-              <div className="grid gap-2">
-                <Label htmlFor="invite-email">{t("invite.email")}</Label>
-                <Input
-                  id="invite-email"
-                  type="email"
-                  dir="ltr"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="exemple@email.com"
-                />
-              </div>
+              <>
+                {members && members.length > 0 && (
+                  <div className="grid gap-2">
+                    <Label>{t("invite.attachTo")}</Label>
+                    <Select value={attachTo} onValueChange={setAttachTo}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NEW_MEMBER}>{t("invite.attachNone")}</SelectItem>
+                        {members.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            <div className="flex flex-col items-start gap-0.5 text-start">
+                              <span>{m.fullName}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {m.jobTitle ?? t(`roles.${m.role}`)}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {attached && (
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {t("invite.attachHint", { name: attached.fullName })}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className="grid gap-2">
+                  <Label htmlFor="invite-identifier">
+                    {t("invite.identifier")}{" "}
+                    <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+                  </Label>
+                  <Input
+                    id="invite-identifier"
+                    dir="ltr"
+                    autoComplete="off"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder={t("invite.identifierPlaceholder")}
+                  />
+                  {/* The one sentence that keeps this honest: nothing is sent,
+                      and an empty field means the link itself is the key. */}
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {identifier.trim() === ""
+                      ? t("invite.openHint", { role: roleLabel })
+                      : t("invite.boundHint")}
+                  </p>
+                </div>
+              </>
             )}
-            <div className="grid gap-2">
-              <Label>{t("invite.role")}</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as StaffRole)}>
-                <SelectTrigger className="w-full">
-                  {/* Only the role name collapses into the trigger — the
-                      descriptions live in the list, where they help you choose. */}
-                  <SelectValue>{t(`roles.${role}`)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {STAFF_ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      <div className="flex flex-col items-start gap-0.5 text-start">
-                        <span>{t(`roles.${r}`)}</span>
-                        <span className="text-xs text-muted-foreground">{t(`roleDescriptions.${r}`)}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="invite-job">
-                {t("invite.jobTitle")}{" "}
-                <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
-              </Label>
-              <Input
-                id="invite-job"
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-                placeholder={t("invite.jobTitlePlaceholder")}
-              />
-            </div>
+            {/* A link for an existing member grants the job they already
+                hold, so role and title are read from their record instead. */}
+            {!attached && (
+              <>
+                <div className="grid gap-2">
+                  <Label>{t("invite.role")}</Label>
+                  <Select value={role} onValueChange={(v) => setRole(v as StaffRole)}>
+                    <SelectTrigger className="w-full">
+                      {/* Only the role name collapses into the trigger — the
+                          descriptions live in the list, where they help you choose. */}
+                      <SelectValue>{t(`roles.${role}`)}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INVITABLE_ROLES.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          <div className="flex flex-col items-start gap-0.5 text-start">
+                            <span>{t(`roles.${r}`)}</span>
+                            <span className="text-xs text-muted-foreground">{t(`roleDescriptions.${r}`)}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="invite-job">
+                    {t("invite.jobTitle")}{" "}
+                    <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+                  </Label>
+                  <Input
+                    id="invite-job"
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value)}
+                    placeholder={t("invite.jobTitlePlaceholder")}
+                  />
+                </div>
+              </>
+            )}
             {mode === "local" && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-2">
@@ -258,10 +346,7 @@ export function InviteDialog() {
               </Button>
               <Button
                 onClick={submit}
-                disabled={
-                  pending ||
-                  (mode === "local" ? fullName.trim().length < 2 : !email.includes("@"))
-                }
+                disabled={pending || (mode === "local" && fullName.trim().length < 2)}
               >
                 {mode === "local" ? t("local.create") : t("invite.create")}
               </Button>

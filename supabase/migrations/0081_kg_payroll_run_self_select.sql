@@ -1,7 +1,8 @@
 -- 0081 — an employee may read the payroll run their own payslip belongs to.
 --
--- NOT YET APPLIED. Apply 0081, then 0082, then 0083, in that order: 0083's
--- kg_payroll_create filters advances on the status column 0082 adds.
+-- APPLIED 2026-08-29 (schema_migrations 20260829170109), followed by 0082
+-- and 0083 in that order: 0083's kg_payroll_create filters advances on the
+-- status column 0082 adds.
 --
 -- ---------------------------------------------------------------------------
 -- What is wrong
