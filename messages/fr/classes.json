@@ -33,7 +33,7 @@
   "delete": {
     "title": "Supprimer cette classe ?",
     "description": "Cette classe sera définitivement supprimée. Action irréversible.",
-    "blocked": "Suppression impossible : {count} enfants sont encore affectés à cette classe. Retirez-les d'abord."
+    "blocked": "{count, plural, one {Suppression impossible : # enfant est encore affecté à cette classe. Retirez-le d'abord.} other {Suppression impossible : # enfants sont encore affectés à cette classe. Retirez-les d'abord.}}"
   },
   "assignDialog": {
     "title": "Affecter des enfants à la classe",
@@ -101,7 +101,7 @@
     "error": "Une erreur est survenue. Veuillez réessayer.",
     "forbidden": "Vous n'avez pas les droits pour cette action.",
     "inUse": "Suppression impossible : la classe contient encore des enfants.",
-    "assigned": "{count} enfants affectés à la classe",
+    "assigned": "{count, plural, one {# enfant affecté à la classe} other {# enfants affectés à la classe}}",
     "unassigned": "Enfant retiré de la classe",
     "staffAdded": "Membre ajouté à la classe",
     "staffRemoved": "Membre retiré de la classe",

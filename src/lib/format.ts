@@ -69,19 +69,124 @@ export function formatTime(date: string | Date, locale = "fr"): string {
   }).format(d);
 }
 
-export function ageFromDob(dob: string, locale = "fr"): string {
-  const birth = new Date(dob);
-  const now = new Date();
-  let months = (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
-  if (now.getDate() < birth.getDate()) months--;
-  const years = Math.floor(months / 12);
-  const rem = months % 12;
-  if (locale === "ar") {
-    if (years === 0) return `${rem} أشهر`;
-    return rem > 0 ? `${years} سنوات و ${rem} أشهر` : `${years} سنوات`;
-  }
-  if (years === 0) return `${rem} mois`;
-  return rem > 0 ? `${years} ans ${rem} mois` : `${years} ans`;
+/**
+ * Today's calendar date in Algiers, as "yyyy-MM-dd".
+ *
+ * A child's age is a calendar fact about Jijel, not about the Vercel region
+ * that rendered the page: between 23:00 and 00:00 UTC the server is still on
+ * yesterday while every family in Algeria is already on the child's birthday.
+ * This lib cannot import the module-level Algiers helpers, so it derives the
+ * date the same way they do — through Intl with the zone pinned. en-CA is the
+ * one locale whose numeric date order is already ISO.
+ */
+function algiersTodayISO(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Algiers", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+}
+
+export interface AgeParts {
+  years: number;
+  /** Months past the last birthday, 0–11. */
+  months: number;
+}
+
+/**
+ * Completed years and months since a "yyyy-MM-dd" birth date.
+ *
+ * Pure calendar arithmetic on the digits of both dates, so the answer does
+ * not depend on the host timezone: `new Date("2024-03-01")` is UTC midnight,
+ * which a browser west of Greenwich reads back as 29 February. `today`
+ * defaults to the Algiers date and is a parameter so a test can pin it.
+ */
+export function ageParts(dob: string, today: string = algiersTodayISO()): AgeParts {
+  const [by, bm, bd] = dob.split("-").map(Number);
+  const [ty, tm, td] = today.split("-").map(Number);
+  let months = (ty - by) * 12 + (tm - bm);
+  if (td < bd) months--;
+  months = Math.max(0, months);
+  return { years: Math.floor(months / 12), months: months % 12 };
+}
+
+/**
+ * The three `common.labels` messages that spell an age: the ICU plurals
+ * `years` and `months`, and `yearsAndMonths`, which joins them ("{years}
+ * و{months}" in Arabic, a plain space elsewhere). Callers hand over
+ * `useTranslations("common.labels")` (or its server twin) so the words come
+ * from the messages files, where the six Arabic forms live, never from here.
+ */
+export type AgeTranslator = (
+  key: "years" | "months" | "yearsAndMonths",
+  values: Record<string, string | number>
+) => string;
+
+/**
+ * The same three messages, mirrored from messages/{ar,en,fr}/common.json for
+ * the callers that still pass a bare locale string.
+ *
+ * This table exists ONLY as a bridge. The previous ageFromDob wrote
+ * "1 سنوات و 1 أشهر" for a one-year-old and gave an English reader
+ * "1 ans 1 mois", because it hard-coded two languages and ignored Arabic
+ * dual and plural agreement. The translator form is the real fix; the roster
+ * and the child profile already use it. The remaining call sites (portal
+ * children list and detail, portal profile, classes/[id], applications/[id],
+ * application-card) are owned elsewhere and still pass a locale — this keeps
+ * them grammatical until they migrate, at which point this table and the
+ * string branch of ageFromDob must be deleted, not kept.
+ */
+const AGE_WORDS: Record<
+  "ar" | "en" | "fr",
+  { years: Record<string, string>; months: Record<string, string>; yearsAndMonths: string }
+> = {
+  ar: {
+    years: { zero: "# سنة", one: "سنة", two: "سنتان", few: "# سنوات", many: "# سنة", other: "# سنة" },
+    months: { zero: "# شهر", one: "شهر", two: "شهران", few: "# أشهر", many: "# شهرًا", other: "# شهر" },
+    yearsAndMonths: "{years} و{months}",
+  },
+  en: {
+    years: { one: "# year", other: "# years" },
+    months: { one: "# month", other: "# months" },
+    yearsAndMonths: "{years} {months}",
+  },
+  fr: {
+    years: { one: "# an", other: "# ans" },
+    months: { one: "# mois", other: "# mois" },
+    yearsAndMonths: "{years} {months}",
+  },
+};
+
+function bridgeTranslator(locale: string): AgeTranslator {
+  const lang = locale === "ar" || locale === "en" ? locale : "fr";
+  const rules = new Intl.PluralRules(intlLocale(lang));
+  return (key, values) => {
+    if (key === "yearsAndMonths") {
+      return AGE_WORDS[lang].yearsAndMonths
+        .replace("{years}", String(values.years))
+        .replace("{months}", String(values.months));
+    }
+    const count = Number(values.count);
+    const forms = AGE_WORDS[lang][key];
+    // ICU's `zero` category only exists for Arabic; the others fall through
+    // to `other` for 0, exactly as intl-messageformat resolves it.
+    const form = (count === 0 && forms.zero) || forms[rules.select(count)] || forms.other;
+    return form.replace("#", String(count));
+  };
+}
+
+/**
+ * A child's age in words: "سنتان و3 أشهر", "2 years 3 months", "2 ans 3 mois".
+ *
+ * Years are omitted under one year ("7 months", never "0 years 7 months"),
+ * and a newborn reads through the `zero` form ("0 months") rather than an
+ * empty string, so a row never goes blank.
+ */
+export function ageFromDob(dob: string, t: AgeTranslator | string): string {
+  const tr = typeof t === "function" ? t : bridgeTranslator(t);
+  const { years, months } = ageParts(dob);
+  if (years === 0) return tr("months", { count: months });
+  const y = tr("years", { count: years });
+  if (months === 0) return y;
+  return tr("yearsAndMonths", { years: y, months: tr("months", { count: months }) });
 }
 
 export function childDisplayName(

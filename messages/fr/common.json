@@ -67,6 +67,7 @@
     "optional": "facultatif",
     "years": "{count, plural, one {# an} other {# ans}}",
     "months": "{count, plural, one {# mois} other {# mois}}",
+    "yearsAndMonths": "{years} {months}",
     "required": "obligatoire",
     "requiredLegend": "Les champs marqués * sont obligatoires."
   },

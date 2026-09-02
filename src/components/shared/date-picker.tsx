@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLocale } from "next-intl";
 import { CalendarIcon } from "lucide-react";
-import { ar, enGB, fr } from "react-day-picker/locale";
+import { arDZ, enGB, fr } from "react-day-picker/locale";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -20,7 +20,15 @@ import { formatDate } from "@/lib/format";
  * so it is a drop-in replacement, but renders the app's own calendar.
  */
 
-const DP_LOCALES = { ar, en: enGB, fr } as const;
+/**
+ * arDZ, not ar. The plain `ar` locale is Mashreq Arabic — its months are
+ * يناير/أبريل/يوليو — while the field this calendar opens from is formatted
+ * through intlLocale() as ar-DZ and says جانفي/أفريل/جويلية, the names
+ * Algeria actually uses. One control naming the same month two different
+ * ways was the bug. arDZ's `code` is "ar-DZ", which is also what calendar.tsx
+ * hands to Intl for the month dropdown, so both captions now agree.
+ */
+const DP_LOCALES = { ar: arDZ, en: enGB, fr } as const;
 
 /** Sunday-indexed. The `ar` locale's weekday names are full words that collide
  *  in a 7-column grid, so Arabic gets the conventional single-letter forms. */
