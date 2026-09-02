@@ -12,6 +12,7 @@
     },
     "filters": {
       "all": "Toutes",
+      "draft": "Brouillons",
       "unpaid": "Impayées",
       "partial": "Partielles",
       "paid": "Payées",
@@ -42,6 +43,10 @@
       "body": "Des frais dus n'y figurent pas — total manquant : {amount}. Les factures déjà réglées ne sont pas modifiées.",
       "action": "Compléter les factures",
       "done": "{count, plural, =0 {Rien à ajouter} one {# facture complétée — {amount} ajoutés} other {# factures complétées — {amount} ajoutés}}"
+    },
+    "drafts": {
+      "title": "{count, plural, one {# facture de ce mois est encore un brouillon} other {# factures de ce mois sont encore des brouillons}}",
+      "body": "Non émises, invisibles pour les familles — total : {amount}. À l'émission, l'échéance sera fixée au {dueDate}."
     }
   },
   "status": {
@@ -93,6 +98,13 @@
     "success": "{count, plural, =0 {Aucune nouvelle facture à générer} one {# facture générée} other {# factures générées}}",
     "unbilled": "{count, plural, one {# enfant sans formule — non facturé} other {# enfants sans formule — non facturés}}"
   },
+  "issue": {
+    "button": "{count, plural, one {Émettre # facture} other {Émettre # factures}}",
+    "title": "Émettre les factures de {month} ?",
+    "description": "{count, plural, one {# facture sera émise pour un total de {amount}} other {# factures seront émises pour un total de {amount}}}. Elles reçoivent un numéro, les parents sont notifiés et l'échéance est fixée au {dueDate}.",
+    "confirm": "Émettre",
+    "success": "{count, plural, =0 {Aucun brouillon à émettre} one {# facture émise} other {# factures émises}}"
+  },
   "newInvoice": {
     "button": "Nouvelle facture",
     "title": "Nouvelle facture manuelle",
@@ -123,7 +135,10 @@
     "submit": "Enregistrer le paiement",
     "success": "Paiement enregistré",
     "receipt": "Reçu {number}",
-    "viewReceipt": "Voir le reçu"
+    "viewReceipt": "Voir le reçu",
+    "date": "Date du paiement",
+    "overpay": "Le montant dépasse le reste à payer.",
+    "dateChanged": "Date du paiement modifiée"
   },
   "invoice": {
     "back": "Retour aux factures",
@@ -132,6 +147,7 @@
     "issuedOn": "Émise le {date}",
     "dueOn": "Échéance le {date}",
     "period": "Période {month}",
+    "draftHint": "Brouillon — à émettre depuis la facturation",
     "itemsTitle": "Détail de la facture",
     "itemsColumns": {
       "kind": "Type",
@@ -171,10 +187,19 @@
     "void": {
       "button": "Annuler la facture",
       "title": "Annuler cette facture ?",
-      "description": "La facture sera marquée comme annulée et n'apparaîtra plus dans les impayés. Les paiements déjà encaissés restent enregistrés.",
+      "description": "La facture sera marquée comme annulée et n'apparaîtra plus dans les impayés. Une facture avec des paiements ne peut pas être annulée : annulez d'abord les paiements.",
       "confirm": "Annuler la facture",
-      "success": "Facture annulée"
+      "success": "Facture annulée",
+      "hasPayments": "Des paiements sont enregistrés sur cette facture. Annulez-les d'abord, puis annulez la facture."
     }
+  },
+  "reverse": {
+    "button": "Annuler le paiement",
+    "title": "Annuler ce paiement ?",
+    "description": "Le paiement {receipt} de {amount} sera supprimé : le solde revient sur la facture, ses écritures disparaissent du journal et la famille est notifiée. Le reçu qu'elle détient n'aura plus de valeur.",
+    "confirm": "Annuler le paiement",
+    "success": "Paiement annulé",
+    "forbidden": "Seule la direction peut annuler un paiement."
   },
   "receipt": {
     "print": "Imprimer",

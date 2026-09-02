@@ -12,6 +12,7 @@
     },
     "filters": {
       "all": "All",
+      "draft": "Drafts",
       "unpaid": "Unpaid",
       "partial": "Partial",
       "paid": "Paid",
@@ -42,6 +43,10 @@
       "body": "Charges that are owed are missing from them — {amount} in total. Invoices already settled are left alone.",
       "action": "Complete the invoices",
       "done": "{count, plural, =0 {Nothing to add} one {# invoice completed — {amount} added} other {# invoices completed — {amount} added}}"
+    },
+    "drafts": {
+      "title": "{count, plural, one {# invoice this month is still a draft} other {# invoices this month are still drafts}}",
+      "body": "Not issued, invisible to families — {amount} in total. On issue the due date will be set to {dueDate}."
     }
   },
   "status": {
@@ -93,6 +98,13 @@
     "success": "{count, plural, =0 {No new invoices to generate} one {# invoice generated} other {# invoices generated}}",
     "unbilled": "{count, plural, one {# child has no plan — not billed} other {# children have no plan — not billed}}"
   },
+  "issue": {
+    "button": "{count, plural, one {Issue # invoice} other {Issue # invoices}}",
+    "title": "Issue the {month} invoices?",
+    "description": "{count, plural, one {# invoice will be issued for a total of {amount}} other {# invoices will be issued for a total of {amount}}}. They get a number, parents are notified and the due date is set to {dueDate}.",
+    "confirm": "Issue",
+    "success": "{count, plural, =0 {No draft to issue} one {# invoice issued} other {# invoices issued}}"
+  },
   "newInvoice": {
     "button": "New invoice",
     "title": "New manual invoice",
@@ -123,7 +135,10 @@
     "submit": "Save payment",
     "success": "Payment recorded",
     "receipt": "Receipt {number}",
-    "viewReceipt": "View receipt"
+    "viewReceipt": "View receipt",
+    "date": "Payment date",
+    "overpay": "The amount exceeds the balance due.",
+    "dateChanged": "Payment date changed"
   },
   "invoice": {
     "back": "Back to invoices",
@@ -132,6 +147,7 @@
     "issuedOn": "Issued on {date}",
     "dueOn": "Due on {date}",
     "period": "Period {month}",
+    "draftHint": "Draft — issued from the billing hub",
     "itemsTitle": "Invoice details",
     "itemsColumns": {
       "kind": "Type",
@@ -171,10 +187,19 @@
     "void": {
       "button": "Void invoice",
       "title": "Void this invoice?",
-      "description": "The invoice will be marked as void and will no longer count as arrears. Payments already collected remain recorded.",
+      "description": "The invoice will be marked as void and will no longer count as arrears. An invoice with payments cannot be voided: reverse the payments first.",
       "confirm": "Void invoice",
-      "success": "Invoice voided"
+      "success": "Invoice voided",
+      "hasPayments": "Payments are recorded on this invoice. Reverse them first, then void the invoice."
     }
+  },
+  "reverse": {
+    "button": "Reverse payment",
+    "title": "Reverse this payment?",
+    "description": "Payment {receipt} of {amount} will be removed: the balance returns to the invoice, its ledger entries disappear and the family is notified. The receipt they hold will no longer be valid.",
+    "confirm": "Reverse payment",
+    "success": "Payment reversed",
+    "forbidden": "Only management can reverse a payment."
   },
   "receipt": {
     "print": "Print",

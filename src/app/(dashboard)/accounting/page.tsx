@@ -29,14 +29,21 @@ import { MonthSelect } from "@/components/modules/dashboard/month-select";
 import { AccountingNav } from "@/components/modules/accounting/nav-tabs";
 import { MonthlyBars, type MonthPoint } from "@/components/modules/accounting/monthly-bars";
 import { CategoryDonut } from "@/components/modules/accounting/category-donut";
-import { monthKey } from "@/components/modules/accounting/types";
+import { algiersMonth, monthLabel, recentMonths } from "@/components/modules/billing/dates";
 import { EmptyIcon, IconTile, MoneyStat } from "@/components/modules/billing/finance-ui";
 
-interface TxnLite {
-  kind: TxnKind;
-  amount: number | string;
-  date: string;
-  category_id: string | null;
+/** Shape of kg_ledger_overview (0106). Numerics arrive as strings over PostgREST. */
+interface Overview {
+  monthIncome: number | string;
+  monthExpense: number | string;
+  cashBalance: number | string;
+  series: { month: string; income: number | string; expense: number | string }[];
+  byCategory: {
+    categoryId: string | null;
+    name: string | null;
+    color: string | null;
+    amount: number | string;
+  }[];
 }
 
 interface RecentTxn {
@@ -64,16 +71,17 @@ export default async function AccountingOverviewPage({
   const dateLocale = intlLocale(locale);
 
   const sp = await searchParams;
-  const now = new Date();
-  const currentKey = monthKey(now);
+  const currentKey = algiersMonth();
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month ?? "") ? (sp.month as string) : currentKey;
-  const [y, m] = month.split("-").map(Number);
 
-  const [txnRes, recentRes] = await Promise.all([
-    supabase
-      .from("kg_transactions")
-      .select("kind, amount, date, category_id")
-      .eq("tenant_id", tid),
+  // Everything the cards, bars and donut need comes back as one jsonb from
+  // Postgres. This page used to read the tenant's ENTIRE ledger — no date
+  // bound, no ORDER BY — and sum it here, which is exact right up to
+  // PostgREST's 1 000-row cap and quietly wrong from then on: the cash
+  // balance is the figure a director trusts most and it would have been the
+  // first to drift.
+  const [overviewRes, recentRes] = await Promise.all([
+    supabase.rpc("kg_ledger_overview", { p_tenant: tid, p_month: `${month}-01` }),
     supabase
       .from("kg_transactions")
       .select(
@@ -85,66 +93,33 @@ export default async function AccountingOverviewPage({
       .limit(8),
   ]);
 
-  const hasError = Boolean(txnRes.error || recentRes.error);
-  const txns = (txnRes.data ?? []) as TxnLite[];
+  const hasError = Boolean(overviewRes.error || recentRes.error);
+  const overview = (overviewRes.data ?? null) as Overview | null;
   const recent = (recentRes.data ?? []) as unknown as RecentTxn[];
 
-  // Category names/colors for the donut come from the categories referenced this month.
-  const monthTxns = txns.filter((tx) => tx.date.startsWith(month));
-  const catIds = [
-    ...new Set(monthTxns.filter((tx) => tx.category_id).map((tx) => tx.category_id as string)),
-  ];
-  const catRes =
-    catIds.length > 0
-      ? await supabase.from("kg_txn_categories").select("id, name, color").in("id", catIds)
-      : { data: [] as { id: string; name: string; color: string }[], error: null };
-  const catById = new Map((catRes.data ?? []).map((c) => [c.id, c]));
-
   // ---- cards ----
-  const sum = (rows: TxnLite[], kind: TxnKind) =>
-    rows.filter((r) => r.kind === kind).reduce((s, r) => s + Number(r.amount), 0);
-  const monthIncome = sum(monthTxns, "income");
-  const monthExpense = sum(monthTxns, "expense");
+  const monthIncome = Number(overview?.monthIncome ?? 0);
+  const monthExpense = Number(overview?.monthExpense ?? 0);
   const net = monthIncome - monthExpense;
-  const cashBalance = sum(txns, "income") - sum(txns, "expense");
+  const cashBalance = Number(overview?.cashBalance ?? 0);
 
   // ---- 6-month bars (ending at the selected month) ----
   const shortMonthFmt = new Intl.DateTimeFormat(dateLocale, { month: "short" });
-  const monthYearFmt = new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" });
-  const barData: MonthPoint[] = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(y, m - 1 - (5 - i), 1);
-    const key = monthKey(d);
-    const rows = txns.filter((tx) => tx.date.startsWith(key));
-    return {
-      month: shortMonthFmt.format(d),
-      income: sum(rows, "income"),
-      expense: sum(rows, "expense"),
-    };
-  });
+  const barData: MonthPoint[] = (overview?.series ?? []).map((s) => ({
+    month: shortMonthFmt.format(new Date(`${s.month}-01T00:00:00`)),
+    income: Number(s.income),
+    expense: Number(s.expense),
+  }));
 
   // ---- expense donut by category ----
-  const expenseByCat = new Map<string, number>();
-  for (const tx of monthTxns) {
-    if (tx.kind !== "expense") continue;
-    const key = tx.category_id ?? "none";
-    expenseByCat.set(key, (expenseByCat.get(key) ?? 0) + Number(tx.amount));
-  }
-  const donutData = [...expenseByCat.entries()]
-    .map(([id, value]) => {
-      const cat = id === "none" ? null : catById.get(id);
-      return {
-        name: cat?.name ?? t("overview.uncategorized"),
-        color: cat?.color ?? UNCATEGORIZED_COLOR,
-        value,
-      };
-    })
-    .sort((a, b) => b.value - a.value);
+  const donutData = (overview?.byCategory ?? []).map((c) => ({
+    name: c.name ?? t("overview.uncategorized"),
+    color: c.color ?? UNCATEGORIZED_COLOR,
+    value: Number(c.amount),
+  }));
 
-  const monthTitle = monthYearFmt.format(new Date(y, m - 1, 1));
-  const monthOptions = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    return { value: monthKey(d), label: monthYearFmt.format(d) };
-  });
+  const monthTitle = monthLabel(month, locale);
+  const monthOptions = recentMonths(12).map((m) => ({ value: m, label: monthLabel(m, locale) }));
 
   return (
     <div className="space-y-6">

@@ -34,22 +34,27 @@ export default async function CategoriesPage() {
   const tc = await getTranslations("common");
   const tid = ctx.tenant.id;
 
-  const [catRes, txnRes] = await Promise.all([
+  const [catRes, countRes] = await Promise.all([
     supabase
       .from("kg_txn_categories")
       .select("id, name, kind, color, is_system")
       .eq("tenant_id", tid)
       .order("name"),
-    supabase.from("kg_transactions").select("category_id").eq("tenant_id", tid),
+    // Counted in Postgres (0106): one row per category, never one per
+    // transaction. Reading every category_id to count them here stopped being
+    // exact at PostgREST's 1 000-row cap — and "12 transactions" that opens a
+    // list of 14 is the very mismatch the month=all link below exists to avoid.
+    supabase.rpc("kg_category_txn_counts", { p_tenant: tid }),
   ]);
 
-  const hasError = Boolean(catRes.error || txnRes.error);
+  const hasError = Boolean(catRes.error || countRes.error);
   const categories = (catRes.data ?? []) as CategoryOption[];
-  const countByCat = new Map<string, number>();
-  for (const tx of txnRes.data ?? []) {
-    if (!tx.category_id) continue;
-    countByCat.set(tx.category_id, (countByCat.get(tx.category_id) ?? 0) + 1);
-  }
+  const countByCat = new Map(
+    ((countRes.data ?? []) as { category_id: string; n: number | string }[]).map((r) => [
+      r.category_id,
+      Number(r.n),
+    ])
+  );
 
   const kinds: TxnKind[] = ["income", "expense"];
 

@@ -19,9 +19,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/shared/date-picker";
 import { formatDZD } from "@/lib/format";
 import { IconTile } from "./finance-ui";
 import { recordPayment } from "./actions";
+import { algiersToday } from "./dates";
 import { PAYMENT_METHODS } from "./maps";
 import type { PayableInvoice } from "./billing-types";
 
@@ -64,6 +66,10 @@ export function RecordPaymentDialog({
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(invoice.balance));
   const [method, setMethod] = useState<Method>("cash");
+  // The day the cash was handed over. Defaults to today in Algiers, and the
+  // picker refuses anything later — but Thursday's cash keyed on Sunday is
+  // exactly the case this field exists for, so earlier is always allowed.
+  const [paidAt, setPaidAt] = useState(() => algiersToday());
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
   const [done, setDone] = useState<{ paymentId: string; receiptNumber: string | null } | null>(null);
@@ -71,13 +77,17 @@ export function RecordPaymentDialog({
 
   const parsedAmount = Number(amount);
   const amountValid = Number.isFinite(parsedAmount) && parsedAmount > 0;
-  const canSubmit = amountValid && !pending;
+  // More than the balance is almost always a slipped zero. The server refuses
+  // it too; disabling here means the cashier sees why before pressing anything.
+  const overpays = amountValid && parsedAmount > invoice.balance;
+  const canSubmit = amountValid && !overpays && !pending;
 
   function onOpenChange(next: boolean) {
     setOpen(next);
     if (next) {
       setAmount(String(invoice.balance));
       setMethod("cash");
+      setPaidAt(algiersToday());
       setReference("");
       setNote("");
       setDone(null);
@@ -91,6 +101,7 @@ export function RecordPaymentDialog({
         invoiceId: invoice.id,
         amount: parsedAmount,
         method,
+        paidAt,
         reference: reference || undefined,
         note: note || undefined,
       });
@@ -98,7 +109,7 @@ export function RecordPaymentDialog({
         setDone({ paymentId: res.paymentId, receiptNumber: res.receiptNumber });
         toast.success(t("payment.success"));
       } else {
-        toast.error(t("toasts.error"));
+        toast.error(res.error === "overpay" ? t("payment.overpay") : t("toasts.error"));
       }
     });
   }
@@ -161,6 +172,22 @@ export function RecordPaymentDialog({
                 <p className="text-xs text-muted-foreground">
                   {t("payment.balance", { amount: formatDZD(invoice.balance, locale) })}
                 </p>
+                {overpays && (
+                  <p className="text-xs text-destructive" role="alert">
+                    {t("payment.overpay")}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor={`pay-date-${invoice.id}`}>{t("payment.date")}</Label>
+                <DatePicker
+                  id={`pay-date-${invoice.id}`}
+                  value={paidAt}
+                  onChange={setPaidAt}
+                  maxDate={algiersToday()}
+                  required
+                />
               </div>
 
               <div className="grid gap-1.5">

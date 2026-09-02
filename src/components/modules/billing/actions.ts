@@ -6,7 +6,16 @@ import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import { algiersToday } from "./dates";
 
-export type ActionError = "invalid" | "duplicate" | "forbidden" | "inUse" | "error";
+export type ActionError =
+  | "invalid"
+  | "duplicate"
+  | "forbidden"
+  | "inUse"
+  | "error"
+  /** A payment larger than what the invoice still owes. */
+  | "overpay"
+  /** Voiding refused because cash was already taken against the invoice. */
+  | "hasPayments";
 export type ActionResult =
   | {
       ok: true;
@@ -124,7 +133,17 @@ export async function completeMonthInvoices(
   return { ok: true, children: Number(row?.children ?? 0), added: Number(row?.added ?? 0) };
 }
 
-/** Turns this month's drafts into issued invoices — the step that spends a number. */
+/**
+ * Turns this month's drafts into issued invoices — the step that spends a
+ * number and shows the bill to the family.
+ *
+ * For a long time nothing on the web called this. The scheduler and the
+ * "generate" button both produce drafts (0047), and the only way out of draft
+ * was SQL — which is how the real client came to hold 17 September drafts
+ * worth 169 000 DA that no parent could see and no cashier could take money
+ * against. kg_issue_invoices (0105) also pushes due_date forward so an
+ * invoice issued after the 10th is not overdue the moment it is born.
+ */
 export async function issueMonthlyInvoices(
   month: string
 ): Promise<{ ok: true; count: number } | { ok: false; error: ActionError }> {
@@ -139,6 +158,33 @@ export async function issueMonthlyInvoices(
   if (error) return mapDbError(error);
   revalidateBilling();
   return { ok: true, count: typeof data === "number" ? data : 0 };
+}
+
+/**
+ * Whether a child belongs to the caller's tenant.
+ *
+ * kg_invoices.child_id and kg_child_fees.child_id are plain FKs to kg_children:
+ * the database accepts any child that exists, in any crèche. A finance user at
+ * one tenant who has seen a child UUID from another (they sit in staff URLs — a
+ * former employee who moved crèches is enough) could file an invoice that
+ * lands on that family's portal and pushes them an "invoice issued" alert.
+ * RLS on kg_invoices checks tenant_id, which the action sets from ctx, so the
+ * row itself is allowed; the join to the child is what nobody was checking.
+ * recordPayment already reads the invoice with the tenant filter; this is the
+ * same test for the two actions that name a child directly.
+ */
+async function childInTenant(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  childId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("kg_children")
+    .select("id")
+    .eq("id", childId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  return Boolean(data);
 }
 
 // ===== Manual invoice =====
@@ -168,6 +214,9 @@ export async function createManualInvoice(
   const total = d.items.reduce((sum, it) => sum + Math.round(it.qty * it.unit * 100) / 100, 0);
 
   const supabase = await createClient();
+  if (!(await childInTenant(supabase, ctx.tenant.id, d.childId))) {
+    return { ok: false, error: "invalid" };
+  }
   const { data: inv, error } = await supabase
     .from("kg_invoices")
     .insert({
@@ -211,8 +260,22 @@ const paymentSchema = z.object({
   invoiceId: z.uuid(),
   amount: z.number().positive().max(100_000_000),
   method: z.enum(["cash", "cib", "edahabia", "bank_transfer", "cheque"]),
+  /**
+   * The day the money changed hands, not the day it was keyed in. Cash taken
+   * on Thursday and typed on Sunday used to be receipted, booked and reported
+   * on Sunday, and the real client's first eight receipts had to be re-dated
+   * by hand in SQL. Optional so older callers keep working: absent means today.
+   */
+  paidAt: dateSchema.optional(),
   reference: optionalText,
   note: optionalText,
+  /**
+   * Take more than the invoice owes. Off by default: a cashier who types
+   * 12 000 against a 1 200 balance has almost always slipped a zero, and the
+   * invoice would then sit at "paid" with 10 800 of unexplained credit. A
+   * caller that genuinely means it (a family paying ahead) has to say so.
+   */
+  allowOverpayment: z.boolean().optional(),
 });
 
 export async function recordPayment(
@@ -226,33 +289,174 @@ export async function recordPayment(
   if (!parsed.success) return { ok: false, error: "invalid" };
   const d = parsed.data;
 
+  // Never in the future: a receipt dated tomorrow is a document for money
+  // nobody has received. Earlier than the invoice IS allowed — a deposit
+  // handed over before the month's invoice exists is routine ("Acompte
+  // partiel" appears in the real client's notes).
+  const today = algiersToday();
+  const paidAt = d.paidAt ?? today;
+  if (paidAt > today) return { ok: false, error: "invalid" };
+
   const supabase = await createClient();
   const { data: inv } = await supabase
     .from("kg_invoices")
-    .select("id, child_id, status")
+    .select("id, child_id, status, total, paid_amount")
     .eq("id", d.invoiceId)
     .eq("tenant_id", ctx.tenant.id)
-    .maybeSingle<{ id: string; child_id: string; status: string }>();
-  if (!inv || inv.status === "void") return { ok: false, error: "invalid" };
+    .maybeSingle<{
+      id: string;
+      child_id: string;
+      status: string;
+      total: number | string;
+      paid_amount: number | string;
+    }>();
+  // A draft is not a bill yet — no number, invisible to the family. Taking cash
+  // against one would "issue" it through the back door at the draft's
+  // provisional total: kg_apply_invoice_balance flips it to partial/paid and no
+  // number is ever spent. Issue first, then collect.
+  if (!inv || inv.status === "void" || inv.status === "draft") {
+    return { ok: false, error: "invalid" };
+  }
 
-  const { data: pay, error } = await supabase
-    .from("kg_payments")
-    .insert({
-      tenant_id: ctx.tenant.id,
-      invoice_id: inv.id,
-      child_id: inv.child_id,
-      amount: d.amount,
-      method: d.method,
-      reference: d.reference,
-      note: d.note,
-      received_by: ctx.user.id,
-    })
-    .select("id, receipt_number")
-    .single();
+  const balance = Number(inv.total) - Number(inv.paid_amount);
+  if (d.amount > balance && !d.allowOverpayment) return { ok: false, error: "overpay" };
+
+  // Noon Algiers, so the ledger trigger's `at time zone 'Africa/Algiers'`
+  // (0055) and the receipt-number year (0108) both land on the day the cashier
+  // chose, whatever the server's clock says.
+  const insertPayment = () =>
+    supabase
+      .from("kg_payments")
+      .insert({
+        tenant_id: ctx.tenant.id,
+        invoice_id: inv.id,
+        child_id: inv.child_id,
+        amount: d.amount,
+        method: d.method,
+        paid_at: `${paidAt}T12:00:00+01:00`,
+        reference: d.reference,
+        note: d.note,
+        received_by: ctx.user.id,
+      })
+      .select("id, receipt_number")
+      .single();
+
+  let { data: pay, error } = await insertPayment();
+  // Two cashiers at once used to be handed the same receipt number; the unique
+  // index (0108) now turns the loser into a 23505 instead of a duplicate
+  // receipt. One retry is enough — the second attempt reads a counter the
+  // winner has already advanced.
+  if (error?.code === "23505") ({ data: pay, error } = await insertPayment());
   if (error) return mapDbError(error);
+  if (!pay) return { ok: false, error: "error" };
 
   revalidateBilling(inv.id);
   return { ok: true, paymentId: pay.id, receiptNumber: pay.receipt_number ?? null };
+}
+
+/**
+ * Re-date a payment that was keyed on the wrong day.
+ *
+ * A plain tenant-guarded UPDATE is the whole action: trg_kg_payment_amended
+ * (0030, rebuilt in 0055) re-posts the ledger rows on the new date, and the
+ * family is not notified — kg_notify_payment_reversed only speaks when the
+ * amount changes. The receipt number stays: it is the number printed on the
+ * paper the family already holds.
+ */
+export async function amendPaymentDate(paymentId: string, paidAt: string): Promise<ActionResult> {
+  const ctx = await requireFinance();
+  if (!z.uuid().safeParse(paymentId).success) return { ok: false, error: "invalid" };
+  if (!dateSchema.safeParse(paidAt).success) return { ok: false, error: "invalid" };
+  if (paidAt > algiersToday()) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("kg_payments")
+    .update({ paid_at: `${paidAt}T12:00:00+01:00` })
+    .eq("id", paymentId)
+    .eq("tenant_id", ctx.tenant.id)
+    .select("id, invoice_id")
+    .maybeSingle<{ id: string; invoice_id: string | null }>();
+  if (error) return mapDbError(error);
+  // PostgREST answers a write RLS filtered away with 200 and no rows.
+  if (!data) return { ok: false, error: "invalid" };
+
+  revalidateBilling(data.invoice_id ?? undefined);
+  revalidatePath(`/billing/receipts/${paymentId}`);
+  revalidatePath("/accounting");
+  revalidatePath("/accounting/transactions");
+  return { ok: true };
+}
+
+/**
+ * Reverse a payment: the cash was never received, or was handed back.
+ *
+ * Deleting the kg_payments row is deliberately the entire mechanism. The
+ * ledger rows cascade with it (0032), trg_kg_payment_removed recomputes the
+ * invoice's paid_amount and status from the payments that remain (0031), and
+ * trg_kg_notify_payment_reversed tells the family with the old figure (0049).
+ * Writing any of that here as well would do it twice.
+ *
+ * Admin-only, like voiding: a reversal un-settles a bill a family believed
+ * paid, and the receipt they hold becomes a document for nothing. The audit
+ * row is what survives, because the payment itself will not.
+ */
+export async function reversePayment(paymentId: string): Promise<ActionResult> {
+  const ctx = await requireFinance();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(paymentId).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data: pay } = await supabase
+    .from("kg_payments")
+    .select("id, invoice_id, child_id, amount, method, receipt_number, paid_at")
+    .eq("id", paymentId)
+    .eq("tenant_id", ctx.tenant.id)
+    .maybeSingle<{
+      id: string;
+      invoice_id: string | null;
+      child_id: string | null;
+      amount: number | string;
+      method: string;
+      receipt_number: string | null;
+      paid_at: string;
+    }>();
+  if (!pay) return { ok: false, error: "invalid" };
+
+  const { data: removed, error } = await supabase
+    .from("kg_payments")
+    .delete()
+    .eq("id", paymentId)
+    .eq("tenant_id", ctx.tenant.id)
+    .select("id");
+  if (error) return mapDbError(error);
+  if (!removed || removed.length === 0) return { ok: false, error: "invalid" };
+
+  // The row is gone, so this log line is the only record of what was reversed
+  // and by whom. Best effort: a refused audit insert must not undo a reversal
+  // the books have already accepted.
+  await supabase.from("kg_audit_log").insert({
+    tenant_id: ctx.tenant.id,
+    user_id: ctx.user.id,
+    action: "payment.reversed",
+    entity: "kg_payments",
+    entity_id: pay.id,
+    data: {
+      invoiceId: pay.invoice_id,
+      childId: pay.child_id,
+      amount: Number(pay.amount),
+      method: pay.method,
+      receipt: pay.receipt_number,
+      paidAt: pay.paid_at,
+    },
+  });
+
+  revalidateBilling(pay.invoice_id ?? undefined);
+  revalidatePath(`/billing/receipts/${paymentId}`);
+  revalidatePath("/accounting");
+  revalidatePath("/accounting/transactions");
+  if (pay.child_id) revalidatePath(`/children/${pay.child_id}`);
+  return { ok: true };
 }
 
 // ===== Void =====
@@ -263,13 +467,31 @@ export async function voidInvoice(invoiceId: string): Promise<ActionResult> {
   if (!z.uuid().safeParse(invoiceId).success) return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
-  const { error } = await supabase
+  // Only an invoice nobody has paid against. Voiding a paid invoice used to
+  // leave the cash, the receipt and the ledger rows standing behind a document
+  // that no longer exists — income with nothing to explain it. Reverse the
+  // payments first; then the void is honest. `paid_amount = 0` is asserted in
+  // the WHERE rather than read first so a payment landing between a read and
+  // the update cannot slip through, and `.select()` is what tells a
+  // filtered-away update (200, no rows) from a real one.
+  const { data, error } = await supabase
     .from("kg_invoices")
     .update({ status: "void" })
     .eq("id", invoiceId)
     .eq("tenant_id", ctx.tenant.id)
-    .neq("status", "void");
+    .neq("status", "void")
+    .eq("paid_amount", 0)
+    .select("id");
   if (error) return mapDbError(error);
+  if (!data || data.length === 0) {
+    const { data: inv } = await supabase
+      .from("kg_invoices")
+      .select("paid_amount")
+      .eq("id", invoiceId)
+      .eq("tenant_id", ctx.tenant.id)
+      .maybeSingle<{ paid_amount: number | string }>();
+    return { ok: false, error: inv && Number(inv.paid_amount) > 0 ? "hasPayments" : "invalid" };
+  }
   revalidateBilling(invoiceId);
   return { ok: true };
 }
@@ -366,6 +588,20 @@ export async function assignFee(input: z.input<typeof assignSchema>): Promise<Ac
   const today = algiersToday();
 
   const supabase = await createClient();
+  // Both halves must be ours: a foreign plan is the same hole as a foreign
+  // child the other way round — a tariff priced by another crèche billed to
+  // one of our children. The upsert's own RLS only checks the row's tenant_id.
+  const [childOk, { data: plan }] = await Promise.all([
+    childInTenant(supabase, ctx.tenant.id, d.childId),
+    supabase
+      .from("kg_fee_plans")
+      .select("id")
+      .eq("id", d.planId)
+      .eq("tenant_id", ctx.tenant.id)
+      .maybeSingle(),
+  ]);
+  if (!childOk || !plan) return { ok: false, error: "invalid" };
+
   // Close any other active assignment for this child first.
   const { error: closeError } = await supabase
     .from("kg_child_fees")

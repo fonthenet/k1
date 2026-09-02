@@ -10,6 +10,29 @@ export function algiersMonth(): string {
   return algiersToday().slice(0, 7);
 }
 
+/**
+ * The Algiers calendar day of a timestamptz, as YYYY-MM-DD.
+ *
+ * A payment stored at 23:30 UTC is already the next day in Algiers, and a bare
+ * `.slice(0, 10)` on the ISO string would put it on the wrong receipt. Same
+ * conversion the ledger trigger makes (`at time zone 'Africa/Algiers'`, 0055),
+ * so the screen and the books agree on the day.
+ */
+export function algiersDate(instant: string | Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Algiers" }).format(
+    typeof instant === "string" ? new Date(instant) : instant
+  );
+}
+
+/** A YYYY-MM-DD day plus `days` — pure calendar arithmetic, no timezone involved. */
+export function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + days));
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(
+    t.getUTCDate()
+  ).padStart(2, "0")}`;
+}
+
 /** [start, end) date range covering a YYYY-MM month. */
 export function monthRange(month: string): { start: string; end: string } {
   const [y, m] = month.split("-").map(Number);

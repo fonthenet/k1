@@ -30,8 +30,20 @@ export const INVOICE_STATUS_BADGE: Record<InvoiceStatus, string> = {
   void: "border-transparent bg-muted text-muted-foreground line-through",
 };
 
-/** Display format for invoice numbers: F-2026-0042. */
-export function displayInvoiceNumber(issueDate: string, number: number): string {
+/**
+ * Display format for invoice numbers: F-2026-0042.
+ *
+ * A draft has no number — 0047 spends one only at issue, so a discarded draft
+ * leaves no hole in the sequence. Typing `number` as non-null let the hub
+ * render every draft as "F-2026-null", which read as a bug rather than as the
+ * state it was. Callers pass the translated "Draft" label for that case.
+ */
+export function displayInvoiceNumber(
+  issueDate: string,
+  number: number | null,
+  draftLabel = "—"
+): string {
+  if (number === null) return draftLabel;
   return `F-${issueDate.slice(0, 4)}-${String(number).padStart(4, "0")}`;
 }
 
