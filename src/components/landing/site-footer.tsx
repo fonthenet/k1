@@ -7,8 +7,8 @@ import { Wordmark } from "./wordmark";
 const LINK =
   "rounded-sm underline-offset-4 transition-colors outline-none hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50";
 
-// Every link points at a real section of the page; only the legal pages, which
-// don't exist yet, fall back to a plain anchor.
+// Every link points at a real section of the page; the legal pages are routes
+// of their own (/terms, /privacy) and use next/link below.
 const COLUMNS = [
   {
     key: "features",
@@ -103,14 +103,14 @@ export async function SiteFooter() {
               </a>
             </li>
             <li>
-              <a href="#" className={LINK}>
+              <Link href="/terms" className={LINK}>
                 {t("terms")}
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#" className={LINK}>
+              <Link href="/privacy" className={LINK}>
                 {t("privacy")}
-              </a>
+              </Link>
             </li>
           </ul>
           <p className="text-pretty">{t("copyright")}</p>

@@ -9,7 +9,7 @@ import { CENTER_TYPES } from "./center-types";
 import { TENANT_DOC_TYPES } from "./settings-types";
 import { WILAYA_NAMES } from "./wilayas";
 
-type ActionError = "generic" | "forbidden" | "invalid";
+type ActionError = "generic" | "forbidden" | "invalid" | "nameTaken";
 export type SettingsResult = { ok: true } | { ok: false; error: ActionError };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -63,7 +63,16 @@ export async function updateTenantProfile(input: z.infer<typeof tenantSchema>): 
       ...(v.centerType ? { center_type: v.centerType } : {}),
     })
     .eq("id", ctx.tenant.id);
-  if (error) return { ok: false, error: "generic" };
+  if (error) {
+    // trg_kg_guard_tenant_name raises 'name_taken' when another crèche in the
+    // same wilaya already has this name (0052, scoped by 0120). It used to
+    // reach the owner as "something went wrong", with no hint that the name
+    // was the field to change.
+    if (error.message.toLowerCase().includes("name_taken")) {
+      return { ok: false, error: "nameTaken" };
+    }
+    return { ok: false, error: "generic" };
+  }
 
   revalidatePath("/", "layout");
   return { ok: true };

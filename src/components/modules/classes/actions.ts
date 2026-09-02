@@ -91,7 +91,16 @@ export async function saveClass(
   return { ok: true, id: data.id };
 }
 
-/** Delete a class — refused while any child is still assigned to it. */
+/**
+ * Delete a class — refused while any ENROLLED child is still assigned to it.
+ *
+ * The guard used to count every child row pointing at the class, so a class
+ * emptied at year-end still refused to go because its alumni kept their
+ * class_id — while the list page's dialog, which counts enrolled children,
+ * said the class was empty and offered the button. Withdrawn and alumni
+ * children need no detaching here: kg_children.class_id is `on delete set
+ * null` (0001), so Postgres clears it and they simply lose the class label.
+ */
 export async function deleteClass(classId: string): Promise<ActionResult> {
   const ctx = await requireStaff();
   if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
@@ -102,7 +111,8 @@ export async function deleteClass(classId: string): Promise<ActionResult> {
     .from("kg_children")
     .select("id", { count: "exact", head: true })
     .eq("tenant_id", ctx.tenant.id)
-    .eq("class_id", classId);
+    .eq("class_id", classId)
+    .eq("status", "enrolled");
   if ((count ?? 0) > 0) return { ok: false, error: "inUse" };
 
   const { error } = await supabase

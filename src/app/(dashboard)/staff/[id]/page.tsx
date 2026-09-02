@@ -79,6 +79,10 @@ export default async function StaffMemberPage({
   const canSeeTimesheets = ctx.isFinance || isSelf;
   const canSeeLeaves = ctx.isAdmin || isSelf;
   const canSeeSalary = ctx.isFinance || isSelf;
+  // An educator following a colleague's name from a class or a session lands
+  // here with none of the above. The header card is the whole page for them;
+  // rendering the <Tabs> anyway gave them an empty tab bar under it.
+  const hasTabs = canSeeTimesheets || canSeeLeaves || canSeeSalary || ctx.isAdmin;
 
   const [{ data: profile }, { data: timesheets }, { data: leaves }, { data: advances }, { data: payrollItems }] =
     await Promise.all([
@@ -213,279 +217,281 @@ export default async function StaffMemberPage({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue={canSeeTimesheets ? "timesheets" : canSeeLeaves ? "leaves" : "salary"}>
-        <TabsList>
-          {canSeeTimesheets && <TabsTrigger value="timesheets">{t("detail.tabs.timesheets")}</TabsTrigger>}
-          {canSeeLeaves && <TabsTrigger value="leaves">{t("detail.tabs.leaves")}</TabsTrigger>}
-          {ctx.isAdmin && <TabsTrigger value="cards">{tCred("title")}</TabsTrigger>}
-          {canSeeSalary && <TabsTrigger value="salary">{t("detail.tabs.salary")}</TabsTrigger>}
-        </TabsList>
+      {hasTabs && (
+        <Tabs defaultValue={canSeeTimesheets ? "timesheets" : canSeeLeaves ? "leaves" : ctx.isAdmin ? "cards" : "salary"}>
+          <TabsList>
+            {canSeeTimesheets && <TabsTrigger value="timesheets">{t("detail.tabs.timesheets")}</TabsTrigger>}
+            {canSeeLeaves && <TabsTrigger value="leaves">{t("detail.tabs.leaves")}</TabsTrigger>}
+            {ctx.isAdmin && <TabsTrigger value="cards">{tCred("title")}</TabsTrigger>}
+            {canSeeSalary && <TabsTrigger value="salary">{t("detail.tabs.salary")}</TabsTrigger>}
+          </TabsList>
 
-        {canSeeTimesheets && (
-          <TabsContent value="timesheets" className="mt-4">
-            <Card className="overflow-hidden border border-border shadow-sm ring-0">
-              <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle className="text-base font-semibold tabular-nums">
-                  {t("timesheets.monthTotal", { total: totalLabel })}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <MonthSelector value={month} months={recentMonths(12)} />
-                  {ctx.isAdmin && (
-                    <TimesheetEntryDialog membershipId={member.id} defaultDate={algiersToday()} />
+          {canSeeTimesheets && (
+            <TabsContent value="timesheets" className="mt-4">
+              <Card className="overflow-hidden border border-border shadow-sm ring-0">
+                <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="text-base font-semibold tabular-nums">
+                    {t("timesheets.monthTotal", { total: totalLabel })}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <MonthSelector value={month} months={recentMonths(12)} />
+                    {ctx.isAdmin && (
+                      <TimesheetEntryDialog membershipId={member.id} defaultDate={algiersToday()} />
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {tsRows.length === 0 ? (
+                    <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("timesheets.empty")}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("timesheets.columns.date")}</TableHead>
+                          <TableHead>{t("timesheets.columns.in")}</TableHead>
+                          <TableHead>{t("timesheets.columns.out")}</TableHead>
+                          <TableHead>{t("timesheets.columns.duration")}</TableHead>
+                          {ctx.isAdmin && <TableHead>{t("timesheets.columns.approved")}</TableHead>}
+                          {ctx.isAdmin && <TableHead className="w-10" />}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tsRows.map((row) => {
+                          const mins = durationMinutes(
+                            row.clock_in_at,
+                            row.clock_out_at,
+                            row.break_minutes,
+                            payType,
+                            lunchAllowance
+                          );
+                          return (
+                            <TableRow key={row.id}>
+                              <TableCell>{formatDate(row.date, locale)}</TableCell>
+                              <TableCell className="tabular-nums">
+                                {row.clock_in_at ? formatTime(row.clock_in_at, locale) : "—"}
+                              </TableCell>
+                              <TableCell className="tabular-nums">
+                                {row.clock_out_at ? (
+                                  formatTime(row.clock_out_at, locale)
+                                ) : (
+                                  <span className="text-muted-foreground">{t("timesheets.inProgress")}</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="tabular-nums">
+                                {mins != null
+                                  ? t("timesheets.duration", { hours: Math.floor(mins / 60), minutes: mins % 60 })
+                                  : "—"}
+                              </TableCell>
+                              {ctx.isAdmin && (
+                                <TableCell>
+                                  <TimesheetApprove id={row.id} membershipId={member.id} approved={row.approved} />
+                                </TableCell>
+                              )}
+                              {ctx.isAdmin && (
+                                <TableCell className="text-end">
+                                  <TimesheetEntryDialog
+                                    membershipId={member.id}
+                                    defaultDate={row.date}
+                                    entry={{
+                                      id: row.id,
+                                      date: row.date,
+                                      clock_in_at: row.clock_in_at,
+                                      clock_out_at: row.clock_out_at,
+                                      break_minutes: row.break_minutes,
+                                      notes: row.notes,
+                                    }}
+                                  />
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
                   )}
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {tsRows.length === 0 ? (
-                  <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("timesheets.empty")}</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("timesheets.columns.date")}</TableHead>
-                        <TableHead>{t("timesheets.columns.in")}</TableHead>
-                        <TableHead>{t("timesheets.columns.out")}</TableHead>
-                        <TableHead>{t("timesheets.columns.duration")}</TableHead>
-                        {ctx.isAdmin && <TableHead>{t("timesheets.columns.approved")}</TableHead>}
-                        {ctx.isAdmin && <TableHead className="w-10" />}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {tsRows.map((row) => {
-                        const mins = durationMinutes(
-                          row.clock_in_at,
-                          row.clock_out_at,
-                          row.break_minutes,
-                          payType,
-                          lunchAllowance
-                        );
-                        return (
-                          <TableRow key={row.id}>
-                            <TableCell>{formatDate(row.date, locale)}</TableCell>
-                            <TableCell className="tabular-nums">
-                              {row.clock_in_at ? formatTime(row.clock_in_at, locale) : "—"}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {ctx.isAdmin && (
+            <TabsContent value="cards" className="mt-4">
+              <Card className="border border-border shadow-sm ring-0">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold">{tCred("title")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CredentialCards
+                    subjectType="staff"
+                    subjectId={id}
+                    cards={(cardRows ?? []) as CredentialRow[]}
+                    path={`/staff/${id}`}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {canSeeLeaves && (
+            <TabsContent value="leaves" className="mt-4">
+              <Card className="overflow-hidden border border-border py-0 shadow-sm ring-0">
+                <CardContent className="overflow-x-auto p-0">
+                  {(leaves ?? []).length === 0 ? (
+                    <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("leaves.empty")}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("leaves.columns.type")}</TableHead>
+                          <TableHead>{t("leaves.columns.period")}</TableHead>
+                          <TableHead>{t("leaves.columns.reason")}</TableHead>
+                          <TableHead>{t("leaves.columns.status")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {((leaves ?? []) as LeaveRequest[]).map((lr) => (
+                          <TableRow key={lr.id}>
+                            <TableCell>
+                              {["vacation", "sick", "personal"].includes(lr.leave_type)
+                                ? t(`leaves.types.${lr.leave_type as "vacation" | "sick" | "personal"}`)
+                                : lr.leave_type}
                             </TableCell>
-                            <TableCell className="tabular-nums">
-                              {row.clock_out_at ? (
-                                formatTime(row.clock_out_at, locale)
+                            <TableCell>
+                              {formatDate(lr.start_date, locale)} — {formatDate(lr.end_date, locale)}
+                            </TableCell>
+                            <TableCell className="max-w-56 truncate text-muted-foreground">
+                              {lr.reason ?? "—"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={LEAVE_STATUS_BADGE[lr.status]}>{t(`leaves.status.${lr.status}`)}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {canSeeSalary && (
+            <TabsContent value="salary" className="mt-4 grid gap-4">
+              <Card className="border border-gold/40 bg-gold/5 shadow-sm ring-0">
+                <CardContent className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gold text-gold-foreground">
+                      <Wallet className="size-4.5" />
+                    </span>
+                    {member.pay_type === "hourly" ? t("edit.hourlyRate") : t("salary.baseSalary")}
+                  </span>
+                  {/* An hourly contract has no monthly salary to show — printing
+                      base_salary here would name a figure nobody is owed. */}
+                  <span className="text-end text-2xl font-bold tabular-nums text-foreground">
+                    {member.pay_type === "hourly"
+                      ? member.hourly_rate != null
+                        ? t("salary.perHour", { amount: formatDZD(member.hourly_rate, locale) })
+                        : t("salary.notSet")
+                      : member.base_salary != null
+                        ? formatDZD(member.base_salary, locale)
+                        : t("salary.notSet")}
+                  </span>
+                </CardContent>
+              </Card>
+
+              <Card className="overflow-hidden border border-border shadow-sm ring-0">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold">{t("salary.advancesTitle")}</CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-x-auto p-0">
+                  {(advances ?? []).length === 0 ? (
+                    <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("salary.advancesEmpty")}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("salary.advanceColumns.date")}</TableHead>
+                          <TableHead className="text-end">{t("salary.advanceColumns.amount")}</TableHead>
+                          <TableHead>{t("salary.advanceColumns.repaid")}</TableHead>
+                          <TableHead>{t("salary.advanceColumns.note")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {((advances ?? []) as SalaryAdvance[]).map((a) => (
+                          <TableRow key={a.id}>
+                            <TableCell>{formatDate(a.date, locale)}</TableCell>
+                            <TableCell className="text-end tabular-nums">{formatDZD(a.amount, locale)}</TableCell>
+                            <TableCell>
+                              {a.repaid ? (
+                                <Badge className="border-transparent bg-success/10 font-medium text-success">
+                                  {t("salary.advanceColumns.repaid")}
+                                </Badge>
                               ) : (
-                                <span className="text-muted-foreground">{t("timesheets.inProgress")}</span>
+                                <span className="text-xs text-muted-foreground">—</span>
                               )}
                             </TableCell>
-                            <TableCell className="tabular-nums">
-                              {mins != null
-                                ? t("timesheets.duration", { hours: Math.floor(mins / 60), minutes: mins % 60 })
-                                : "—"}
-                            </TableCell>
-                            {ctx.isAdmin && (
-                              <TableCell>
-                                <TimesheetApprove id={row.id} membershipId={member.id} approved={row.approved} />
-                              </TableCell>
-                            )}
-                            {ctx.isAdmin && (
-                              <TableCell className="text-end">
-                                <TimesheetEntryDialog
-                                  membershipId={member.id}
-                                  defaultDate={row.date}
-                                  entry={{
-                                    id: row.id,
-                                    date: row.date,
-                                    clock_in_at: row.clock_in_at,
-                                    clock_out_at: row.clock_out_at,
-                                    break_minutes: row.break_minutes,
-                                    notes: row.notes,
-                                  }}
-                                />
-                              </TableCell>
-                            )}
+                            <TableCell className="max-w-56 truncate text-muted-foreground">{a.note ?? "—"}</TableCell>
                           </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
 
-        {ctx.isAdmin && (
-          <TabsContent value="cards" className="mt-4">
-            <Card className="border border-border shadow-sm ring-0">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold">{tCred("title")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CredentialCards
-                  subjectType="staff"
-                  subjectId={id}
-                  cards={(cardRows ?? []) as CredentialRow[]}
-                  path={`/staff/${id}`}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
-
-        {canSeeLeaves && (
-          <TabsContent value="leaves" className="mt-4">
-            <Card className="overflow-hidden border border-border py-0 shadow-sm ring-0">
-              <CardContent className="overflow-x-auto p-0">
-                {(leaves ?? []).length === 0 ? (
-                  <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("leaves.empty")}</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("leaves.columns.type")}</TableHead>
-                        <TableHead>{t("leaves.columns.period")}</TableHead>
-                        <TableHead>{t("leaves.columns.reason")}</TableHead>
-                        <TableHead>{t("leaves.columns.status")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {((leaves ?? []) as LeaveRequest[]).map((lr) => (
-                        <TableRow key={lr.id}>
-                          <TableCell>
-                            {["vacation", "sick", "personal"].includes(lr.leave_type)
-                              ? t(`leaves.types.${lr.leave_type as "vacation" | "sick" | "personal"}`)
-                              : lr.leave_type}
-                          </TableCell>
-                          <TableCell>
-                            {formatDate(lr.start_date, locale)} — {formatDate(lr.end_date, locale)}
-                          </TableCell>
-                          <TableCell className="max-w-56 truncate text-muted-foreground">
-                            {lr.reason ?? "—"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={LEAVE_STATUS_BADGE[lr.status]}>{t(`leaves.status.${lr.status}`)}</Badge>
-                          </TableCell>
+              <Card className="overflow-hidden border border-border shadow-sm ring-0">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold">{t("salary.payrollTitle")}</CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-x-auto p-0">
+                  {payroll.length === 0 ? (
+                    <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("salary.payrollEmpty")}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("salary.payrollColumns.month")}</TableHead>
+                          <TableHead className="text-end">{t("salary.payrollColumns.base")}</TableHead>
+                          <TableHead className="text-end">{t("salary.payrollColumns.bonuses")}</TableHead>
+                          <TableHead className="text-end">{t("salary.payrollColumns.deductions")}</TableHead>
+                          <TableHead className="text-end">{t("salary.payrollColumns.advances")}</TableHead>
+                          <TableHead className="text-end">{t("salary.payrollColumns.net")}</TableHead>
+                          <TableHead>{t("salary.payrollColumns.paidAt")}</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
-
-        {canSeeSalary && (
-          <TabsContent value="salary" className="mt-4 grid gap-4">
-            <Card className="border border-gold/40 bg-gold/5 shadow-sm ring-0">
-              <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                <span className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gold text-gold-foreground">
-                    <Wallet className="size-4.5" />
-                  </span>
-                  {member.pay_type === "hourly" ? t("edit.hourlyRate") : t("salary.baseSalary")}
-                </span>
-                {/* An hourly contract has no monthly salary to show — printing
-                    base_salary here would name a figure nobody is owed. */}
-                <span className="text-end text-2xl font-bold tabular-nums text-foreground">
-                  {member.pay_type === "hourly"
-                    ? member.hourly_rate != null
-                      ? t("salary.perHour", { amount: formatDZD(member.hourly_rate, locale) })
-                      : t("salary.notSet")
-                    : member.base_salary != null
-                      ? formatDZD(member.base_salary, locale)
-                      : t("salary.notSet")}
-                </span>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden border border-border shadow-sm ring-0">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold">{t("salary.advancesTitle")}</CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-auto p-0">
-                {(advances ?? []).length === 0 ? (
-                  <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("salary.advancesEmpty")}</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("salary.advanceColumns.date")}</TableHead>
-                        <TableHead className="text-end">{t("salary.advanceColumns.amount")}</TableHead>
-                        <TableHead>{t("salary.advanceColumns.repaid")}</TableHead>
-                        <TableHead>{t("salary.advanceColumns.note")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {((advances ?? []) as SalaryAdvance[]).map((a) => (
-                        <TableRow key={a.id}>
-                          <TableCell>{formatDate(a.date, locale)}</TableCell>
-                          <TableCell className="text-end tabular-nums">{formatDZD(a.amount, locale)}</TableCell>
-                          <TableCell>
-                            {a.repaid ? (
-                              <Badge className="border-transparent bg-success/10 font-medium text-success">
-                                {t("salary.advanceColumns.repaid")}
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="max-w-56 truncate text-muted-foreground">{a.note ?? "—"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden border border-border shadow-sm ring-0">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold">{t("salary.payrollTitle")}</CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-auto p-0">
-                {payroll.length === 0 ? (
-                  <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("salary.payrollEmpty")}</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("salary.payrollColumns.month")}</TableHead>
-                        <TableHead className="text-end">{t("salary.payrollColumns.base")}</TableHead>
-                        <TableHead className="text-end">{t("salary.payrollColumns.bonuses")}</TableHead>
-                        <TableHead className="text-end">{t("salary.payrollColumns.deductions")}</TableHead>
-                        <TableHead className="text-end">{t("salary.payrollColumns.advances")}</TableHead>
-                        <TableHead className="text-end">{t("salary.payrollColumns.net")}</TableHead>
-                        <TableHead>{t("salary.payrollColumns.paidAt")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {payroll.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell>
-                            {p.kg_payroll_runs ? monthFmt.format(new Date(`${p.kg_payroll_runs.month}T12:00:00`)) : "—"}
-                          </TableCell>
-                          <TableCell className="text-end tabular-nums">{formatDZD(p.base_amount, locale)}</TableCell>
-                          <TableCell className="text-end tabular-nums">{formatDZD(p.bonuses, locale)}</TableCell>
-                          <TableCell className="text-end tabular-nums">{formatDZD(p.deductions, locale)}</TableCell>
-                          <TableCell className="text-end tabular-nums">
-                            {formatDZD(p.advances_deducted, locale)}
-                          </TableCell>
-                          <TableCell className="text-end font-semibold tabular-nums text-foreground">
-                            {formatDZD(p.net_amount, locale)}
-                          </TableCell>
-                          <TableCell>
-                            {p.paid_at ? (
-                              formatDate(p.paid_at, locale)
-                            ) : (
-                              <span className="text-xs text-muted-foreground">{t("salary.unpaid")}</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
-      </Tabs>
+                      </TableHeader>
+                      <TableBody>
+                        {payroll.map((p) => (
+                          <TableRow key={p.id}>
+                            <TableCell>
+                              {p.kg_payroll_runs ? monthFmt.format(new Date(`${p.kg_payroll_runs.month}T12:00:00`)) : "—"}
+                            </TableCell>
+                            <TableCell className="text-end tabular-nums">{formatDZD(p.base_amount, locale)}</TableCell>
+                            <TableCell className="text-end tabular-nums">{formatDZD(p.bonuses, locale)}</TableCell>
+                            <TableCell className="text-end tabular-nums">{formatDZD(p.deductions, locale)}</TableCell>
+                            <TableCell className="text-end tabular-nums">
+                              {formatDZD(p.advances_deducted, locale)}
+                            </TableCell>
+                            <TableCell className="text-end font-semibold tabular-nums text-foreground">
+                              {formatDZD(p.net_amount, locale)}
+                            </TableCell>
+                            <TableCell>
+                              {p.paid_at ? (
+                                formatDate(p.paid_at, locale)
+                              ) : (
+                                <span className="text-xs text-muted-foreground">{t("salary.unpaid")}</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+        </Tabs>
+      )}
     </div>
   );
 }

@@ -55,7 +55,7 @@
       },
       "network": {
         "title": "Multi-site network",
-        "desc": "Several centres, one account, one dashboard."
+        "desc": "Several centres, one account."
       }
     },
     "parents": "Parent portal"
@@ -158,6 +158,123 @@
     "backups": {
       "title": "Encrypted daily backups",
       "desc": "Each centre's data stays isolated, and is saved every single day."
+    }
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "description": "The page could not be loaded. Try again; if it keeps happening, sign out and back in, or write to us.",
+    "retry": "Try again",
+    "home": "Back to home",
+    "dashboard": "Back to the dashboard",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "The address is wrong, or this page no longer exists."
+  },
+  "legal": {
+    "backHome": "Back to home",
+    "lastUpdated": "Last updated: 2 September 2026",
+    "contact": "Questions about this page: {email}",
+    "privacy": {
+      "title": "Privacy policy",
+      "intro": "This page says what Rawdatik stores, where it is kept, and who can see it — in plain words, because the people it concerns are children and their families.",
+      "sections": [
+        {
+          "title": "Who we are",
+          "body": "Rawdatik is published from Jijel, Algeria. It is a management tool for nurseries, kindergartens and specialised centres. Anything this page does not answer, ask us at the address at the bottom."
+        },
+        {
+          "title": "What is stored",
+          "body": "Only what running a centre needs:",
+          "items": [
+            "About the centre: name, address, wilaya, phone, logo, opening hours, holidays and fee plans.",
+            "About staff: name, role, phone and email, hire date, working hours and leave, salary and advances, and the badge or code used to clock in.",
+            "About children: name, date of birth, sex, photo, class, enrolment and withdrawal dates, allergies and health notes, the people authorised to collect them, attendance with arrival and departure times and who collected the child, incidents, daily reports, invoices and payments.",
+            "About guardians: name, relationship to the child, phone, address and — once they open a portal account — the email or phone number they sign in with.",
+            "About visitors who use the plan finder on the home page: the phone number, wilaya and answers they give."
+          ]
+        },
+        {
+          "title": "What it is used for",
+          "body": "To run the centre and nothing else: keeping the register, invoicing families, paying staff, notifying parents, and producing the registers an inspection asks for. We do not sell data, show advertising, or use the data to profile anyone."
+        },
+        {
+          "title": "Where it is kept",
+          "body": "The database and uploaded files are hosted on Supabase, on Amazon Web Services servers in the United States (region us-east-1); the application itself is served by Vercel. Both providers encrypt data in transit and at rest and keep automated backups. Photos and documents live in a private storage bucket: they are never served from a public address, every link to them expires after one hour, and a file may not exceed 10 MB."
+        },
+        {
+          "title": "Who can see it",
+          "body": "Each centre is isolated from every other by rules enforced inside the database itself, not only by the application. Within a centre, what a person sees depends on their role: an educator sees the children, an accountant sees the billing, only owners and admins see salaries. A parent sees only their own children, and only what the centre has chosen to share. Rawdatik's operators can reach the database to run and support the service and do not consult a centre's data otherwise."
+        },
+        {
+          "title": "How long it is kept",
+          "body": "For as long as the centre's account is active. A child who leaves stays in the register with a withdrawal date, because the enrolment register must remain complete for inspection. When a centre closes its account, its owner asks us by email to delete its data; we do so and confirm to them when it is done."
+        },
+        {
+          "title": "Your rights",
+          "body": "A guardian who wants to see, correct or remove information about their child asks the centre first: the centre holds the record and decides what it keeps. If the centre cannot help, write to us and we will act together with the centre."
+        },
+        {
+          "title": "Cookies",
+          "body": "Rawdatik sets three cookies, all needed for it to work: your sign-in session, your language (kg-locale) and the centre you last opened (kg-tenant). There are no advertising or analytics cookies."
+        },
+        {
+          "title": "Notifications",
+          "body": "Push notifications are optional. They are only sent to a device where you switched them on, and you can switch them off from your profile or from the browser at any time."
+        },
+        {
+          "title": "The plan finder",
+          "body": "The phone number and answers given on the home page are stored so that we can call you back and prepare your setup. They are not shared with anyone else and are deleted on request."
+        },
+        {
+          "title": "Changes",
+          "body": "When this page changes, the date at the top changes with it. Significant changes are announced inside the application."
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms of use",
+      "intro": "The agreement between a centre that uses Rawdatik and us. Short on purpose; where it is silent, Algerian law applies.",
+      "sections": [
+        {
+          "title": "The service",
+          "body": "Rawdatik is a subscription service that lets a nursery, kindergarten or specialised centre manage enrolment, attendance, billing, accounting, its team and its communication with families, in Arabic, English and French."
+        },
+        {
+          "title": "Accounts",
+          "body": "A centre's space is opened by its owner, who invites staff and gives families access. The owner is responsible for who they invite and for what those people do in the space. Keep your sign-in details to yourself, and tell us at once if you think an account has been misused."
+        },
+        {
+          "title": "Your data",
+          "body": "The centre remains the owner of the information it enters. It is responsible for its accuracy and for having the right to record it — in particular for telling guardians that their children's details, health notes and photos are kept in Rawdatik. We process this data only to provide the service, as described in the privacy policy."
+        },
+        {
+          "title": "Acceptable use",
+          "body": "Do not use Rawdatik to store data about children you are not caring for, to send unsolicited messages, or to try to reach another centre's space. We may suspend an account that does, after a warning where one is possible."
+        },
+        {
+          "title": "Prices and payment",
+          "body": "Plans are priced per centre and per month, in Algerian dinars, as shown on the home page. You can try the service before paying, change plan or stop at any time, and you only ever pay for the current month. Prices may change with one month's notice."
+        },
+        {
+          "title": "Availability",
+          "body": "We work to keep the service available at all times and to fix faults quickly, but we cannot promise it will never be interrupted. Rawdatik produces the registers an inspection asks for; it does not replace the centre's duty to keep them."
+        },
+        {
+          "title": "Ending the agreement",
+          "body": "You may close your space at any time by writing to us; your data is then deleted as described in the privacy policy. If we ever stop the service, we will give three months' notice and let you export your data as CSV before we do."
+        },
+        {
+          "title": "Responsibility",
+          "body": "Rawdatik is a management tool. Decisions about a child — who may collect them, what they may eat, what to do in an emergency — remain the centre's, and the centre must keep its own means of taking them if the service is unavailable. To the extent the law allows, our liability is limited to the fees paid for the current month."
+        },
+        {
+          "title": "Applicable law",
+          "body": "These terms are governed by Algerian law. Any dispute goes to the competent Algerian courts."
+        },
+        {
+          "title": "Changes",
+          "body": "When these terms change, the date at the top changes with it. Significant changes are announced inside the application."
+        }
+      ]
     }
   }
 }
