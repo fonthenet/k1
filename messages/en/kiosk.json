@@ -125,5 +125,14 @@
     "staffCodeHere": "That is a staff badge. Use the Personnel tab.",
     "closedDay": "The kindergarten is closed today.",
     "outsideHours": "Outside opening hours."
+  },
+  "exitDialog": {
+    "title": "Exit the kiosk",
+    "description": "Enter a director's PIN or this account's password. The device will be signed out.",
+    "label": "PIN or password",
+    "confirm": "Sign out",
+    "wrong": "Incorrect code.",
+    "locked": "Too many attempts. Wait 10 minutes and try again.",
+    "noPin": "No director has a PIN. Use the account password."
   }
 }

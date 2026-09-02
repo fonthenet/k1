@@ -163,8 +163,29 @@
     "title": "Report an absence",
     "description": "Let the kindergarten know that {name} will be absent. The office is notified right away.",
     "reason": "Reason for the absence",
-    "reasonPlaceholder": "illness, doctor's appointment, family trip…",
-    "success": "Your report was sent to the kindergarten"
+    "reasonPlaceholder": "or type the reason…",
+    "success": "Your report was sent to the kindergarten",
+    "reasonHint": "Pick a reason or type one",
+    "statusLabel": "Type of absence",
+    "status": {
+      "sick": "Sick",
+      "excused": "Excused absence"
+    },
+    "reasons": {
+      "sick": "Sick",
+      "appointment": "Doctor's appointment",
+      "travel": "Travel"
+    },
+    "from": "From",
+    "to": "To",
+    "subject": "Absence — {name} — {date}",
+    "subjectRange": "Absence — {name} — {from} to {to}",
+    "successRecorded": "{count, plural, one {Absence recorded in the register for # day} other {Absence recorded in the register for # days}}",
+    "successKept": "The office already had an entry for that day — your report still reached them.",
+    "successClosed": "The kindergarten is closed on those days — the office was still informed.",
+    "errors": {
+      "window": "Absences can be reported from yesterday up to 14 days ahead."
+    }
   },
   "child": {
     "back": "My children",

@@ -12,7 +12,9 @@
     "sortLabel": "الترتيب",
     "sortPresent": "الحاضرون أولاً",
     "sortUnmarked": "غير المسجّلين أولاً",
-    "sortName": "بالاسم"
+    "sortName": "بالاسم",
+    "holidayNotice": "{name} — الروضة مغلقة في هذا اليوم.",
+    "futureNotice": "هذا اليوم لم يأتِ بعد — لا يمكن تسجيل الحضور مسبقًا."
   },
   "tabs": {
     "all": "كل الأقسام",
@@ -38,7 +40,8 @@
     "checkIn": "الوصول",
     "checkOut": "الخروج",
     "details": "تفاصيل",
-    "actions": "إجراءات"
+    "actions": "إجراءات",
+    "timeNotRecorded": "الوقت غير مسجّل"
   },
   "actions": {
     "markAllPresent": "تسجيل الجميع حاضرين",
@@ -61,7 +64,8 @@
     "pickedUpBy": "استلمه",
     "pickedUpByPlaceholder": "اسم الشخص",
     "absenceReason": "سبب الغياب",
-    "absenceReasonPlaceholder": "السبب…"
+    "absenceReasonPlaceholder": "السبب…",
+    "reportedByParent": "أبلغ الولي عن الغياب"
   },
   "allergy": {
     "badge": "حساسية",
@@ -73,7 +77,9 @@
     "checkedOut": "تم تسجيل الخروج",
     "bulkDone": "{count, plural, one {تم تسجيل طفل واحد حاضرًا} two {تم تسجيل طفلين حاضرين} few {تم تسجيل # أطفال حاضرين} many {تم تسجيل # طفلًا حاضرين} other {تم تسجيل # طفل حاضرين}}",
     "bulkNone": "جميع الأطفال مسجلون بالفعل",
-    "error": "حدث خطأ. أعد المحاولة."
+    "error": "حدث خطأ. أعد المحاولة.",
+    "closed": "الروضة مغلقة في هذا اليوم — لم يُسجَّل أي حضور.",
+    "future": "لا يمكن تسجيل الحضور ليوم لم يأتِ بعد."
   },
   "empty": {
     "title": "لا يوجد أطفال",

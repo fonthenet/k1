@@ -12,7 +12,9 @@
     "sortLabel": "Ordre",
     "sortPresent": "Présents d'abord",
     "sortUnmarked": "Non pointés d'abord",
-    "sortName": "Par nom"
+    "sortName": "Par nom",
+    "holidayNotice": "{name} — la crèche est fermée ce jour-là.",
+    "futureNotice": "Ce jour n'est pas encore arrivé — la présence ne peut pas être saisie à l'avance."
   },
   "tabs": {
     "all": "Toutes les classes",
@@ -38,7 +40,8 @@
     "checkIn": "Arrivée",
     "checkOut": "Sortie",
     "details": "Détails",
-    "actions": "Actions"
+    "actions": "Actions",
+    "timeNotRecorded": "Heure non saisie"
   },
   "actions": {
     "markAllPresent": "Tout marquer présent",
@@ -61,7 +64,8 @@
     "pickedUpBy": "Récupéré par",
     "pickedUpByPlaceholder": "Nom de la personne",
     "absenceReason": "Motif d'absence",
-    "absenceReasonPlaceholder": "Motif…"
+    "absenceReasonPlaceholder": "Motif…",
+    "reportedByParent": "Signalé par le parent"
   },
   "allergy": {
     "badge": "Allergie",
@@ -73,7 +77,9 @@
     "checkedOut": "Sortie enregistrée",
     "bulkDone": "{count, plural, one {# enfant marqué présent} other {# enfants marqués présents}}",
     "bulkNone": "Tous les enfants sont déjà pointés",
-    "error": "Une erreur est survenue. Réessayez."
+    "error": "Une erreur est survenue. Réessayez.",
+    "closed": "La crèche est fermée ce jour-là — rien n'a été enregistré.",
+    "future": "Impossible de saisir la présence d'un jour à venir."
   },
   "empty": {
     "title": "Aucun enfant",

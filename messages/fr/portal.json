@@ -163,8 +163,29 @@
     "title": "Signaler une absence",
     "description": "Prévenez la crèche de l'absence de {name}. L'administration est notifiée immédiatement.",
     "reason": "Motif de l'absence",
-    "reasonPlaceholder": "maladie, rendez-vous médical, voyage familial…",
-    "success": "Votre signalement a été envoyé à la crèche"
+    "reasonPlaceholder": "ou saisissez le motif…",
+    "success": "Votre signalement a été envoyé à la crèche",
+    "reasonHint": "Choisissez un motif ou saisissez-le",
+    "statusLabel": "Type d'absence",
+    "status": {
+      "sick": "Malade",
+      "excused": "Absence justifiée"
+    },
+    "reasons": {
+      "sick": "Malade",
+      "appointment": "Rendez-vous médical",
+      "travel": "Voyage"
+    },
+    "from": "Du",
+    "to": "Au",
+    "subject": "Absence — {name} — {date}",
+    "subjectRange": "Absence — {name} — du {from} au {to}",
+    "successRecorded": "{count, plural, one {Absence inscrite au registre pour # jour} other {Absence inscrite au registre pour # jours}}",
+    "successKept": "Le bureau avait déjà une saisie pour ce jour — votre signalement lui est bien parvenu.",
+    "successClosed": "La crèche est fermée ces jours-là — le bureau a tout de même été informé.",
+    "errors": {
+      "window": "Une absence se signale de la veille jusqu'à 14 jours à l'avance."
+    }
   },
   "child": {
     "back": "Mes enfants",

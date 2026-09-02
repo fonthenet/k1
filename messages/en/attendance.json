@@ -12,7 +12,9 @@
     "sortLabel": "Order",
     "sortPresent": "Present first",
     "sortUnmarked": "Not marked first",
-    "sortName": "By name"
+    "sortName": "By name",
+    "holidayNotice": "{name} — the kindergarten is closed on this day.",
+    "futureNotice": "This day has not come yet — attendance cannot be recorded in advance."
   },
   "tabs": {
     "all": "All classes",
@@ -38,7 +40,8 @@
     "checkIn": "Check-in",
     "checkOut": "Check-out",
     "details": "Details",
-    "actions": "Actions"
+    "actions": "Actions",
+    "timeNotRecorded": "Time not recorded"
   },
   "actions": {
     "markAllPresent": "Mark all present",
@@ -61,7 +64,8 @@
     "pickedUpBy": "Picked up by",
     "pickedUpByPlaceholder": "Person's name",
     "absenceReason": "Absence reason",
-    "absenceReasonPlaceholder": "Reason…"
+    "absenceReasonPlaceholder": "Reason…",
+    "reportedByParent": "Reported by the parent"
   },
   "allergy": {
     "badge": "Allergy",
@@ -73,7 +77,9 @@
     "checkedOut": "Check-out recorded",
     "bulkDone": "{count, plural, one {# child marked present} other {# children marked present}}",
     "bulkNone": "All children are already marked",
-    "error": "Something went wrong. Please try again."
+    "error": "Something went wrong. Please try again.",
+    "closed": "The kindergarten is closed on this day — nothing was recorded.",
+    "future": "Attendance cannot be recorded for a day that has not come yet."
   },
   "empty": {
     "title": "No children",

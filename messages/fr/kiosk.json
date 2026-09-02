@@ -125,5 +125,14 @@
     "staffCodeHere": "Ceci est un badge du personnel. Utilisez l'onglet Personnel.",
     "closedDay": "La crèche est fermée aujourd'hui.",
     "outsideHours": "En dehors des heures d'ouverture."
+  },
+  "exitDialog": {
+    "title": "Quitter le kiosque",
+    "description": "Saisissez le code PIN d'un directeur ou le mot de passe de ce compte. L'appareil sera déconnecté.",
+    "label": "Code PIN ou mot de passe",
+    "confirm": "Se déconnecter",
+    "wrong": "Code incorrect.",
+    "locked": "Trop de tentatives. Attendez 10 minutes puis réessayez.",
+    "noPin": "Aucun directeur n'a de code PIN. Utilisez le mot de passe du compte."
   }
 }

@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireStaff, signedMediaUrl } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { algiersToday } from "@/lib/algiers";
 import { isOpenDay, toOpeningHours } from "@/lib/week";
 import type { AttendanceStatus, Relationship } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
@@ -13,11 +14,7 @@ import {
 import { isPresentish } from "@/components/modules/attendance/status-config";
 import { allergenLabel } from "@/lib/allergens";
 import { childDisplayName, intlLocale } from "@/lib/format";
-import {
-  isValidDateStr,
-  parseDateStr,
-  toDateStr,
-} from "@/components/modules/attendance/dates";
+import { isValidDateStr, parseDateStr } from "@/components/modules/attendance/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +41,7 @@ interface AttendanceRecord {
   check_out_at: string | null;
   picked_up_by: string | null;
   absence_reason: string | null;
+  reported_by_guardian_id: string | null;
 }
 
 interface GuardianLinkRecord {
@@ -65,6 +63,11 @@ interface PickupRecord {
   relationship: string | null;
 }
 
+interface HolidayRecord {
+  name: string;
+  name_ar: string | null;
+}
+
 const RELATIONSHIPS = ["father", "mother", "guardian", "grandparent", "sibling", "other"];
 
 export default async function AttendancePage({
@@ -82,7 +85,11 @@ export default async function AttendancePage({
   const locale = await getLocale();
   const sp = await searchParams;
 
-  const date = isValidDateStr(sp.date) ? sp.date : toDateStr(new Date());
+  // Today in Algiers, never the host's. On Vercel the host is UTC, so between
+  // 23:00 and midnight the register opened on yesterday's page — which is how
+  // the demo showed an empty 1 September on the evening of 31 August.
+  const today = algiersToday();
+  const date = isValidDateStr(sp.date) ? sp.date : today;
   const activeClass = sp.class && sp.class !== "all" ? sp.class : "all";
 
   const supabase = await createClient();
@@ -104,6 +111,7 @@ export default async function AttendancePage({
     rosterRes,
     guardianLinksRes,
     pickupsRes,
+    holidayRes,
   ] = await Promise.all([
     supabase
       .from("kg_classes")
@@ -113,7 +121,9 @@ export default async function AttendancePage({
     childrenQuery,
     supabase
       .from("kg_attendance")
-      .select("child_id, status, check_in_at, check_out_at, picked_up_by, absence_reason")
+      .select(
+        "child_id, status, check_in_at, check_out_at, picked_up_by, absence_reason, reported_by_guardian_id"
+      )
       .eq("tenant_id", ctx.tenant.id)
       .eq("date", date),
     supabase
@@ -143,6 +153,20 @@ export default async function AttendancePage({
       .from("kg_authorized_pickups")
       .select("child_id, name, relationship")
       .eq("tenant_id", ctx.tenant.id),
+    // A confirmed closure covering this date. The weekly pattern only knows
+    // about weekdays; 1 November is a Sunday and a firm closure for the real
+    // client, and the register used to open it as an ordinary school day.
+    // `tentative` holidays are proposals (an unconfirmed Aïd) and do not
+    // close anything — the same rule kg_holidays encodes in 0068.
+    supabase
+      .from("kg_holidays")
+      .select("name, name_ar")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("closure", true)
+      .eq("tentative", false)
+      .lte("date", date)
+      .or(`end_date.gte.${date},and(end_date.is.null,date.eq.${date})`)
+      .limit(1),
   ]);
 
   const firstError =
@@ -152,13 +176,15 @@ export default async function AttendancePage({
     allergiesRes.error ??
     rosterRes.error ??
     guardianLinksRes.error ??
-    pickupsRes.error;
+    pickupsRes.error ??
+    holidayRes.error;
   if (firstError) throw new Error(firstError.message);
 
   const classes = (classesRes.data ?? []) as ClassRecord[];
   const roster = (rosterRes.data ?? []) as { id: string; class_id: string | null }[];
   const children = (childrenRes.data ?? []) as ChildRecord[];
   const attendance = (attendanceRes.data ?? []) as AttendanceRecord[];
+  const closedHoliday = ((holidayRes.data ?? []) as HolidayRecord[])[0] ?? null;
 
   const attendanceByChild = new Map(attendance.map((a) => [a.child_id, a]));
   const allergiesByChild = new Map<string, string[]>();
@@ -256,6 +282,7 @@ export default async function AttendancePage({
             check_out_at: att.check_out_at,
             picked_up_by: att.picked_up_by,
             absence_reason: att.absence_reason,
+            reported_by_parent: att.reported_by_guardian_id !== null,
           }
         : null,
     };
@@ -277,7 +304,9 @@ export default async function AttendancePage({
       <PageHeader title={t("title")} description={`${t("description")} — ${dateLabel}`} />
       <RegisterClient
         date={date}
-        isClosedDay={!isOpenDay(openingHours, dateObj)}
+        isClosedDay={!isOpenDay(openingHours, dateObj) || closedHoliday !== null}
+        closedHoliday={closedHoliday}
+        isFuture={date > today}
         dayLabel={new Intl.DateTimeFormat(intlLocale(locale), {
           weekday: "long",
         }).format(dateObj)}
