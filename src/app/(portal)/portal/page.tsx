@@ -24,7 +24,7 @@ import { toOpeningHours } from "@/lib/week";
 import { EstablishmentCard } from "@/components/shared/establishment-card";
 import { childDisplayName, formatDZD, formatDate, formatTime, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { AttendanceStatus, Audience, IncidentSeverity } from "@/lib/types";
+import type { AttendanceStatus, Audience, ChildStatus, IncidentSeverity } from "@/lib/types";
 import {
   algiersMonth,
   algiersToday,
@@ -36,8 +36,10 @@ import {
 } from "@/components/modules/portal/data";
 import {
   attendanceChipClasses,
+  eatenKey,
   MOOD_EMOJI,
   parseMeals,
+  parseNap,
   severityClasses,
 } from "@/components/modules/portal/portal-types";
 import { isAway } from "@/components/modules/attendance/status-config";
@@ -47,6 +49,7 @@ import {
   type CheckinDialogChildStatus,
 } from "@/components/modules/portal/checkin-dialog";
 import { ReportAbsenceDialog } from "@/components/modules/portal/report-absence-dialog";
+import { PortalHomeRefresh } from "@/components/modules/portal/portal-home-refresh";
 import { displayIdentity } from "@/lib/auth-identifier";
 
 type AttendanceRow = {
@@ -63,8 +66,18 @@ type ReportRow = {
   date: string;
   mood: string | null;
   meals: unknown;
+  nap: unknown;
   activities_text: string | null;
 };
+
+/**
+ * Statuses that mean "this child comes through the door". Anything else — on
+ * the waiting list, still under review, withdrawn, alumni — gets no live chip,
+ * no absence button and no door badge on the home: the kiosk refuses their
+ * tag anyway (0069), and a live "not yet arrived" on a child who left in June
+ * is a lie the family reads every morning.
+ */
+const ATTENDING: ReadonlySet<ChildStatus> = new Set<ChildStatus>(["enrolled"]);
 
 type DueRow = {
   id: string;
@@ -132,26 +145,61 @@ export default async function PortalHomePage() {
     getMyGuardianBadge(supabase, ctx, locale),
   ]);
   const childIds = children.map((c) => c.id);
+  // Today's attendance, journals and incidents are only asked about children
+  // who attend. Dues are NOT filtered: a withdrawn child's last invoice is
+  // still owed, and hiding it is how a balance is discovered at re-enrolment.
+  const attendingIds = children.filter((c) => ATTENDING.has(c.status)).map((c) => c.id);
   const myClassIds = new Set(children.map((c) => c.class_id).filter((id): id is string => !!id));
 
-  const [{ data: profile }, attendanceRes, reportsRes, duesRes, incidentsRes, pinnedRes, eventsRes, holidaysRes] =
+  const [
+    { data: profile },
+    attendanceRes,
+    latestReportRows,
+    todayReportsRes,
+    duesRes,
+    incidentsRes,
+    pinnedRes,
+    eventsRes,
+    holidaysRes,
+  ] =
     await Promise.all([
       supabase.from("kg_profiles").select("full_name").eq("id", ctx.user.id).maybeSingle(),
-      childIds.length
+      attendingIds.length
         ? supabase
             .from("kg_attendance")
             .select("child_id, status, check_in_at, check_out_at, picked_up_by, absence_reason")
-            .in("child_id", childIds)
+            .in("child_id", attendingIds)
             .eq("date", today)
         : Promise.resolve({ data: [] }),
-      childIds.length
-        ? supabase
+      // One query PER child, each capped at one row. This was a single query
+      // over every child with `.limit(children × 5)`, ordered by date — and a
+      // shared cap is unfair by construction: with two siblings and an
+      // educator who writes one child's journal daily and the other's twice a
+      // week, the newest ten rows were all the elder's within a fortnight and
+      // the younger simply had "no report". A family has at most a handful
+      // of children, so this is a handful of tiny indexed reads.
+      Promise.all(
+        attendingIds.map((id) =>
+          supabase
             .from("kg_daily_reports")
-            .select("child_id, date, mood, meals, activities_text")
-            .in("child_id", childIds)
+            .select("child_id, date, mood, meals, nap, activities_text")
+            .eq("child_id", id)
             .eq("published", true)
             .order("date", { ascending: false })
-            .limit(childIds.length * 5)
+            .limit(1)
+            .maybeSingle()
+        )
+      ),
+      // Today's journal, for the band under the child's name (nap, lunch).
+      // Separate from the "latest" read above: the latest may be yesterday's,
+      // and yesterday's nap must not be printed as today's.
+      attendingIds.length
+        ? supabase
+            .from("kg_daily_reports")
+            .select("child_id, date, mood, meals, nap, activities_text")
+            .in("child_id", attendingIds)
+            .eq("date", today)
+            .eq("published", true)
         : Promise.resolve({ data: [] }),
       // What the family owes. The home said nothing about money at all, so a
       // parent whose child had just been approved — and who had an invoice
@@ -165,11 +213,11 @@ export default async function PortalHomePage() {
             .in("status", ["sent", "unpaid", "partial", "overdue"])
             .order("due_date", { ascending: true })
         : Promise.resolve({ data: [] }),
-      childIds.length
+      attendingIds.length
         ? supabase
             .from("kg_incidents")
             .select("id, child_id, occurred_at, severity, description, action_taken, location")
-            .in("child_id", childIds)
+            .in("child_id", attendingIds)
             .is("parent_ack_at", null)
             .order("occurred_at", { ascending: false })
         : Promise.resolve({ data: [] }),
@@ -209,8 +257,13 @@ export default async function PortalHomePage() {
   }
 
   const latestReportByChild = new Map<string, ReportRow>();
-  for (const row of (reportsRes.data ?? []) as ReportRow[]) {
-    if (!latestReportByChild.has(row.child_id)) latestReportByChild.set(row.child_id, row);
+  for (const res of latestReportRows) {
+    const row = res.data as ReportRow | null;
+    if (row) latestReportByChild.set(row.child_id, row);
+  }
+  const todayReportByChild = new Map<string, ReportRow>();
+  for (const row of (todayReportsRes.data ?? []) as ReportRow[]) {
+    todayReportByChild.set(row.child_id, row);
   }
 
   const incidents = (incidentsRes.data ?? []) as IncidentRow[];
@@ -346,17 +399,82 @@ export default async function PortalHomePage() {
     }
   }
 
+  /**
+   * A meal line for the today band: "lunch — ate half". The educator's
+   * vocabulary is French ("tout", "moitié"); `eatenKey` maps it to the
+   * reader's language and falls back to the raw word for anything unknown.
+   */
+  function eatenLabel(eaten: string | null): string | null {
+    if (!eaten) return null;
+    const key = eatenKey(eaten);
+    return key ? t(`child.journal.eaten.${key}`) : eaten;
+  }
+
+  /** Nap in one short phrase, whichever of the two stored shapes it came in. */
+  function napLabel(nap: unknown): string | null {
+    const parsed = parseNap(nap);
+    if (!parsed) return null;
+    if (parsed.start && parsed.end) {
+      return t("child.journal.napRange", {
+        start: parsed.start.slice(0, 5),
+        end: parsed.end.slice(0, 5),
+      });
+    }
+    if (parsed.slept === false) return t("child.journal.napNone");
+    if (parsed.minutes && parsed.minutes > 0) {
+      return t("child.journal.napMinutes", { minutes: parsed.minutes });
+    }
+    if (parsed.slept) return t("child.journal.napSlept");
+    return null;
+  }
+
+  /**
+   * The four moments of a crèche day, filled in as the day goes: arrived ·
+   * nap · lunch · left. Read off today's attendance row and today's journal,
+   * so it moves on the same refresh the chip does. Segments the day has not
+   * reached yet show their label alone, muted — the shape of the day is
+   * visible at 08:00, and what is still to come is obvious without a dash.
+   */
+  function todayBand(childId: string): { label: string; value: string | null }[] {
+    const row = attendanceByChild.get(childId);
+    const report = todayReportByChild.get(childId);
+    const meals = report ? parseMeals(report.meals) : [];
+    const lunch = meals.find((m) => m.eaten) ?? meals[0];
+    return [
+      {
+        label: t("home.today.arrival"),
+        value: row?.check_in_at ? formatTime(row.check_in_at, locale) : null,
+      },
+      { label: t("home.today.nap"), value: report ? napLabel(report.nap) : null },
+      {
+        label: t("home.today.lunch"),
+        value: lunch ? (eatenLabel(lunch.eaten) ?? lunch.meal) : null,
+      },
+      {
+        label: t("home.today.departure"),
+        value: row?.check_out_at ? formatTime(row.check_out_at, locale) : null,
+      },
+    ];
+  }
+
   // The badge is one code for the whole family, so the whole family travels
   // with every trigger on this page: a parent who opened it from Ali's card
   // can switch to Lina without closing it. Built from rows already in hand —
   // the children, their signed photos and today's attendance — so no card
   // costs an extra query. This page is the one surface that already knows
   // today's status, so it is the one that can label the tabs with it.
-  const checkinChildren = toCheckinDialogChildren(
-    children,
-    locale,
-    photoUrls,
-    new Map(children.map((c) => [c.id, todayCheckin(c.id)]))
+  //
+  // Keyed by id, not by position. The card loop used to index this array
+  // with the loop counter, which only held while both lists were the same
+  // list; now that a withdrawn sibling renders a card without a dialog, a
+  // positional lookup would open the enrolled child's badge on the wrong name.
+  const checkinChildren = new Map(
+    toCheckinDialogChildren(
+      children,
+      locale,
+      photoUrls,
+      new Map(children.map((c) => [c.id, todayCheckin(c.id)]))
+    ).map((c) => [c.id, c])
   );
 
   const greetingName =
@@ -365,6 +483,10 @@ export default async function PortalHomePage() {
 
   return (
     <div className="grid gap-6">
+      {/* Re-renders this page when the door tablet writes, and once a minute
+          while the tab is visible — see the component for why both. */}
+      <PortalHomeRefresh userId={ctx.user.id} />
+
       {/* ===== Greeting — the anchor of the page: full brand gradient, white ink. ===== */}
       <div className="rounded-2xl bg-gradient-to-br from-brand-from via-brand-via to-brand-to p-5 text-primary-foreground shadow-lg">
         <p className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/75">
@@ -470,7 +592,7 @@ export default async function PortalHomePage() {
             description={t("home.emptyChildrenDescription")}
           />
         ) : (
-          children.map((child, index) => {
+          children.map((child) => {
             const name = childDisplayName(child, locale);
             const secondaryName =
               locale === "ar"
@@ -478,9 +600,12 @@ export default async function PortalHomePage() {
                 : child.first_name_ar && child.last_name_ar
                   ? `${child.first_name_ar} ${child.last_name_ar}`
                   : null;
-            const status = todayStatus(child.id);
-            const report = latestReportByChild.get(child.id);
+            const attending = ATTENDING.has(child.status);
+            const checkin = attending ? todayCheckin(child.id) : null;
+            const status = attending ? todayStatus(child.id) : null;
+            const report = attending ? latestReportByChild.get(child.id) : undefined;
             const meals = report ? parseMeals(report.meals) : [];
+            const band = attending ? todayBand(child.id) : [];
             const cls = classLabel(child, locale);
             return (
               <Card key={child.id} className="shadow-sm">
@@ -519,8 +644,49 @@ export default async function PortalHomePage() {
                         </div>
                       )}
                     </div>
-                    <Badge className={status.classes}>{status.label}</Badge>
+                    {/* One chip: the live door status for a child who
+                        attends, the file status for one who does not. Never
+                        both, and never a live chip on a withdrawn child. */}
+                    {status ? (
+                      <Badge className={status.classes}>{status.label}</Badge>
+                    ) : (
+                      <Badge variant="secondary">{t(`children.status.${child.status}`)}</Badge>
+                    )}
                   </Link>
+
+                  {!attending && (
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {t(`home.inactive.${child.status}`)}
+                    </p>
+                  )}
+
+                  {attending && (
+                    <dl
+                      aria-label={t("home.today.label")}
+                      className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs"
+                    >
+                      {band.map((segment, i) => (
+                        <div key={segment.label} className="flex items-baseline gap-x-2">
+                          {i > 0 && (
+                            <span aria-hidden className="text-muted-foreground/60">
+                              ·
+                            </span>
+                          )}
+                          <div
+                            className={cn(
+                              "flex items-baseline gap-1",
+                              segment.value ? "text-foreground" : "text-muted-foreground"
+                            )}
+                          >
+                            <dt>{segment.label}</dt>
+                            {segment.value && (
+                              <dd className="font-semibold tabular-nums">{segment.value}</dd>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
 
                   {report && (
                     <Link
@@ -539,7 +705,12 @@ export default async function PortalHomePage() {
                         </span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {meals.length > 0
-                            ? meals.map((m) => (m.eaten ? `${m.meal} — ${m.eaten}` : m.meal)).join(" · ")
+                            ? meals
+                                .map((m) => {
+                                  const eaten = eatenLabel(m.eaten);
+                                  return eaten ? `${m.meal} — ${eaten}` : m.meal;
+                                })
+                                .join(" · ")
                             : (report.activities_text ?? "")}
                         </span>
                       </span>
@@ -555,11 +726,18 @@ export default async function PortalHomePage() {
                       child to name underneath, so staff know who is being handed
                       over without the parent navigating away. */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <ReportAbsenceDialog childId={child.id} childName={name} defaultDate={today} />
-                    <CheckinDialog
-                      badge={badge}
-                      child={checkinChildren[index]}
-                    />
+                    {attending && (
+                      <ReportAbsenceDialog childId={child.id} childName={name} defaultDate={today} />
+                    )}
+                    {/* No badge once the child has been collected: "check in"
+                        after check-out is a control with nothing left to do
+                        today, and at the gate it invites a second scan that
+                        the kiosk would refuse. Still offered while absent —
+                        an absence reported in the morning is often undone
+                        by a late drop-off. */}
+                    {attending && checkin?.kind !== "left" && (
+                      <CheckinDialog badge={badge} child={checkinChildren.get(child.id)} />
+                    )}
                     <Button
                       asChild
                       variant="ghost"

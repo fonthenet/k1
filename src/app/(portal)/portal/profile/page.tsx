@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Baby, BellRing, ChevronLeft, ChevronRight, MessageCircle, TriangleAlert } from "lucide-react";
+import { Baby, BellRing, ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EstablishmentCard } from "@/components/shared/establishment-card";
@@ -18,6 +17,7 @@ import {
   type MyGuardianDetails,
 } from "@/components/modules/portal/profile-details-form";
 import { ProfileAccountForm } from "@/components/modules/portal/profile-account-form";
+import { NewConversationDialog } from "@/components/modules/portal/new-conversation-dialog";
 // Values from the plain module, never through the client component: across the
 // RSC boundary a "use client" export is a reference, not the value.
 import { LOCALES, type Locale as ProfileLocale } from "@/i18n/locales";
@@ -205,12 +205,20 @@ export default async function PortalProfilePage() {
                   );
                 })}
               </ul>
-              <Button asChild variant="outline" className="h-11 w-full text-sm">
-                <Link href="/portal/messages">
-                  <MessageCircle data-icon="inline-start" />
-                  {t("children.ask")}
-                </Link>
-              </Button>
+              {/* Opens a conversation with the subject already written
+                  ("correction to X's file") instead of dropping the parent in
+                  the inbox to start from a blank form — the sentence above has
+                  just told them only the office can correct these fields. */}
+              <NewConversationDialog
+                childrenOptions={children.map((c) => ({
+                  id: c.id,
+                  name: childDisplayName(c, locale),
+                }))}
+                preset="correction"
+                variant="outline"
+                label={t("children.ask")}
+                className="h-11 w-full text-sm"
+              />
             </>
           )}
         </CardContent>

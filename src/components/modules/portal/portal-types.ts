@@ -39,9 +39,21 @@ export function parseMeals(v: unknown): MealLine[] {
   return out;
 }
 
+/**
+ * Both nap shapes the database actually holds.
+ *
+ * The web seed writes `{start, end}` clock times; the demo tenant's journals —
+ * and the shape the mobile app is expected to write — carry `{slept, minutes}`.
+ * The parser used to read only the first and returned null for the second, so
+ * 8 of the 12 demo reports rendered with no nap at all while the educator had
+ * plainly recorded one. Until the two clients agree on one shape (rank 22 in
+ * the audit), a parent-facing reader has to accept both.
+ */
 export interface NapTimes {
   start: string | null;
   end: string | null;
+  slept: boolean | null;
+  minutes: number | null;
 }
 
 export function parseNap(v: unknown): NapTimes | null {
@@ -49,9 +61,41 @@ export function parseNap(v: unknown): NapTimes | null {
   const rec = v as Record<string, unknown>;
   const start = typeof rec.start === "string" ? rec.start : null;
   const end = typeof rec.end === "string" ? rec.end : null;
-  if (!start && !end) return null;
-  return { start, end };
+  const slept = typeof rec.slept === "boolean" ? rec.slept : null;
+  const minutes =
+    typeof rec.minutes === "number" && Number.isFinite(rec.minutes) ? rec.minutes : null;
+  if (!start && !end && slept === null && minutes === null) return null;
+  return { start, end, slept, minutes };
 }
+
+/**
+ * How much of a meal was eaten, as a message key under `child.journal.eaten`.
+ *
+ * Educators type this in French ("tout", "moitié") and the seed did too, so
+ * an Arabic-reading parent was shown raw French next to every meal. The
+ * vocabulary is small and stable, so it is mapped at render; anything outside
+ * it falls back to the raw text rather than to nothing.
+ */
+const EATEN_KEYS: Record<string, "all" | "half" | "little" | "none"> = {
+  tout: "all", all: "all", everything: "all", كل: "all", "كل شيء": "all",
+  moitié: "half", moitie: "half", half: "half", نصف: "half",
+  peu: "little", "un peu": "little", little: "little", قليلا: "little", قليلاً: "little",
+  rien: "none", none: "none", nothing: "none", "لا شيء": "none",
+};
+
+export function eatenKey(eaten: string | null): "all" | "half" | "little" | "none" | null {
+  if (!eaten) return null;
+  return EATEN_KEYS[eaten.trim().toLowerCase()] ?? null;
+}
+
+// ----- Today's door status, as the portal speaks about it -----
+
+/**
+ * The four states a child card and the check-in dialog reduce today to.
+ * Lived in the deleted /portal/checkin client; it belongs with the other
+ * portal vocabulary now that the dialog is its only reader.
+ */
+export type CheckinStatusKind = "notYet" | "arrived" | "left" | "absent";
 
 // ----- Status badge tones -------------------------------------------------
 // All tones come from theme tokens (see THEME.md) so the portal shares one

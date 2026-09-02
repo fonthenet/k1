@@ -63,8 +63,16 @@ export function StepSuccess({ tenantName }: { tenantName: string }) {
       </p>
       <p className="mt-2 text-xs text-muted-foreground">{t("success.hint")}</p>
 
+      {/* /after-login, not /portal. A first-time applicant has no membership
+          yet — the office creates it on approval — so /portal bounced them
+          through getTenantContext() straight onto the "create your
+          kindergarten" founder wizard, the one screen a parent must never
+          meet. /after-login already knows the three cases: staff go to the
+          dashboard, a parent with a membership (a sibling enrolment) to their
+          portal, and a family still waiting to the onboarding page that leads
+          with their pending request. */}
       <Button asChild className="mt-8 h-12 w-full text-base" size="lg">
-        <Link href="/portal">
+        <Link href="/after-login">
           {t("success.portal")}
           <ArrowRight className="size-4 rtl:rotate-180" data-icon="inline-end" />
         </Link>

@@ -15,9 +15,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { CheckinStatusKind } from "./checkin-client";
 import { CheckinBadgeMissing, CheckinQrCard } from "./checkin-qr-card";
-import type { PortalGuardianBadge } from "./portal-types";
+import type { CheckinStatusKind, PortalGuardianBadge } from "./portal-types";
 import { useScreenWakeLock } from "./use-screen-wake-lock";
 
 /**
@@ -91,9 +90,9 @@ const TRIGGER: Record<
  */
 function CheckinChildLine({ child }: { child: CheckinDialogChild }) {
   const t = useTranslations("portal.checkin");
-  // Today's wording is the portal's own, shared with the child cards and the
-  // full /portal/checkin screen — a parent must never read two phrasings of
-  // the same fact on two surfaces.
+  // Today's wording is the portal's own, shared with the chip on the child
+  // cards — a parent must never read two phrasings of the same fact on two
+  // surfaces.
   const tHome = useTranslations("portal.home");
 
   const status = child.status;
@@ -142,8 +141,10 @@ function CheckinChildLine({ child }: { child: CheckinDialogChild }) {
  * A parent opens this one-handed while queueing at the gate, so it is a sheet
  * off the bottom edge on a phone (thumb reaches the QR, not a centred box) and
  * a plain dialog from `sm` up. Everything else on the screen is deliberately
- * thin: the QR is the whole point and the reassurance about how the door check
- * works lives on /portal/checkin, one tap deeper.
+ * thin: the QR is the whole point. This dialog is the ONLY badge surface —
+ * there used to be a full /portal/checkin page as well, carrying the same QR
+ * plus a sibling picker that changed nothing, and two surfaces for one code
+ * meant two places to keep in step for no benefit to the parent at the gate.
  *
  * It writes NOTHING. Attendance is recorded by the kiosk after a staff member
  * has compared the guardian's photo with the child's — that human comparison is
@@ -221,9 +222,9 @@ export function CheckinDialog({
       >
         <DialogHeader>
           <DialogTitle className="text-base">{t("title")}</DialogTitle>
-          {/* The full explanation of the door check belongs on the page, not on
-              a pop-up whose job is to put the QR under a thumb — but a screen
-              reader still gets it. */}
+          {/* The explanation of the door check would crowd a pop-up whose job
+              is to put the QR under a thumb, so it is spoken, not shown — a
+              screen reader still gets it. */}
           <DialogDescription className="sr-only">{t("subtitle")}</DialogDescription>
         </DialogHeader>
 
