@@ -35,12 +35,24 @@ export interface TenantDocumentRow {
 
 export type DocExpiryStatus = "valid" | "expiring" | "expired" | "noExpiry";
 
-/** Expiry status vs today; "expiring" = within the next 60 days. */
+/** How many days ahead a document counts as "expiring". */
+const EXPIRY_WARNING_DAYS = 60;
+
+/**
+ * Expiry status vs today; "expiring" = within the next 60 days.
+ *
+ * Plain-date arithmetic, on purpose. The previous version built Algiers
+ * midnight (`T00:00:00+01:00`), added 60 days with setDate, then sliced
+ * toISOString() — which converts back to UTC first, i.e. 23:00 the previous
+ * evening, so the window was 59 days in every runtime zone (today 2026-09-02
+ * gave a limit of 2026-10-31). Staying in UTC from start to finish means the
+ * date never crosses a zone boundary and the slice is exact.
+ */
 export function docExpiryStatus(expiresAt: string | null, today: string): DocExpiryStatus {
   if (!expiresAt) return "noExpiry";
   if (expiresAt < today) return "expired";
-  const soon = new Date(`${today}T00:00:00+01:00`);
-  soon.setDate(soon.getDate() + 60);
+  const soon = new Date(`${today}T00:00:00Z`);
+  soon.setUTCDate(soon.getUTCDate() + EXPIRY_WARNING_DAYS);
   const limit = soon.toISOString().slice(0, 10);
   return expiresAt <= limit ? "expiring" : "valid";
 }

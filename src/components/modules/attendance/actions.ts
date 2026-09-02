@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireStaff } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { algiersInstant, algiersToday } from "@/lib/algiers";
 import { flushPush } from "@/app/actions/push";
 import { isAway, isPresentish } from "./status-config";
 
@@ -14,6 +16,17 @@ export type ActionResult =
 const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const timeStr = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
+/**
+ * The register is a record of what happened, so nothing may be written about
+ * a day that has not started. Compared in Algiers, not on the host: at 23:30
+ * UTC on a Sunday the host still says Sunday while every crèche is already on
+ * Monday, and refusing Monday there would lock the register for an hour every
+ * night.
+ */
+function isFutureDate(date: string): boolean {
+  return date > algiersToday();
+}
 
 const setStatusSchema = z.object({
   childId: uuid,
@@ -28,6 +41,7 @@ export async function setAttendanceStatus(
   const parsed = setStatusSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const { childId, date, status } = parsed.data;
+  if (isFutureDate(date)) return { ok: false, error: "future" };
 
   const ctx = await requireStaff();
   const supabase = await createClient();
@@ -49,7 +63,14 @@ export async function setAttendanceStatus(
   };
   if (presentish) {
     row.absence_reason = null;
-    if (!existing?.check_in_at) {
+    // The arrival is stamped with "now" ONLY when the register is on today.
+    // Backfilling Thursday's register on Sunday morning used to stamp every
+    // child as arriving at the moment of data entry, and because
+    // trg_kg_notify_attendance treats an INSERT with a check_in_at as an
+    // arrival, every family was pushed "{child} arrived 09:12" about a day
+    // that was already over. A past day gets the status alone; the real time,
+    // if anyone knows it, goes in through the pencil.
+    if (!existing?.check_in_at && date === algiersToday()) {
       row.check_in_at = new Date().toISOString();
       row.check_in_method = "manual";
       row.checked_in_by = ctx.user.id;
@@ -62,6 +83,7 @@ export async function setAttendanceStatus(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/attendance");
+  revalidatePath("/dashboard");
   // Fire the queued push now — best-effort, never affects this action's result.
   await flushPush();
   return { ok: true };
@@ -81,12 +103,17 @@ export async function setAttendanceTimes(
   const parsed = setTimesSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const { childId, date, checkIn, checkOut } = parsed.data;
+  if (isFutureDate(date)) return { ok: false, error: "future" };
 
   const ctx = await requireStaff();
   const supabase = await createClient();
 
-  const toIso = (time: string) =>
-    time === "" ? null : new Date(`${date}T${time}:00`).toISOString();
+  // The typed HH:mm is Algiers wall-clock time and must be anchored to +01:00
+  // explicitly. `new Date(`${date}T${time}:00`)` parsed it in the HOST zone —
+  // UTC on Vercel — so "08:30" was stored as 08:30Z, printed as 09:30, and
+  // re-saving the dialog moved the row another hour each time. Three auditors
+  // found this line independently.
+  const toIso = (time: string) => (time === "" ? null : algiersInstant(date, time));
 
   const { data: existing } = await supabase
     .from("kg_attendance")
@@ -123,6 +150,7 @@ export async function setAttendanceTimes(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/attendance");
+  revalidatePath("/dashboard");
   // Fire the queued push now — best-effort, never affects this action's result.
   await flushPush();
   return { ok: true };
@@ -146,6 +174,7 @@ export async function checkOutNow(
   const parsed = checkOutSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const { childId, date, pickedUpBy, guardianId } = parsed.data;
+  if (isFutureDate(date)) return { ok: false, error: "future" };
 
   const ctx = await requireStaff();
   const supabase = await createClient();
@@ -167,6 +196,7 @@ export async function checkOutNow(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/attendance");
+  revalidatePath("/dashboard");
   // Fire the queued push now — best-effort, never affects this action's result.
   await flushPush();
   return { ok: true };
@@ -186,6 +216,7 @@ export async function setAttendanceText(
   const parsed = textFieldSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const { childId, date, field, value } = parsed.data;
+  if (isFutureDate(date)) return { ok: false, error: "future" };
 
   const ctx = await requireStaff();
   const supabase = await createClient();
@@ -213,16 +244,36 @@ const bulkSchema = z.object({
   childIds: z.array(uuid).min(1).max(300),
 });
 
-/** "Tout marquer présent" — inserts a present row for children with no row yet. */
+/**
+ * "Tout marquer présent" — inserts a present row for children with no row yet.
+ *
+ * Existing rows are never touched, which is also what keeps a parent's
+ * absence report safe: the family said "sick" this morning, the row is there,
+ * and the button walks past it.
+ */
 export async function markAllPresent(
   input: z.infer<typeof bulkSchema>
 ): Promise<ActionResult> {
   const parsed = bulkSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const { date, childIds } = parsed.data;
+  if (isFutureDate(date)) return { ok: false, error: "future" };
 
   const ctx = await requireStaff();
   const supabase = await createClient();
+
+  // This is the one write that marks a whole room in a tap, so it is the one
+  // that must know the door was shut. kg_is_open_on carries both rules — the
+  // tenant's week and its confirmed holiday closures — so the register and
+  // the database cannot disagree about whether 1 November was a school day.
+  // A single child can still be marked by hand on a closed day: an
+  // exceptional opening is the office's call, a bulk stamp is not.
+  const { data: open, error: openError } = await supabase.rpc("kg_is_open_on", {
+    p_tenant: ctx.tenant.id,
+    p_date: date,
+  });
+  if (openError) return { ok: false, error: openError.message };
+  if (open === false) return { ok: false, error: "closed" };
 
   const { data: existing, error: selError } = await supabase
     .from("kg_attendance")
@@ -236,15 +287,24 @@ export async function markAllPresent(
   const missing = childIds.filter((id) => !done.has(id));
   if (missing.length === 0) return { ok: true, count: 0 };
 
-  const nowIso = new Date().toISOString();
+  // Same rule as setAttendanceStatus: an arrival time only exists for today.
+  // A past day filled in from memory gets the word "present" and nothing
+  // else, so no family is told their child "arrived" at the minute the
+  // office caught up on paperwork.
+  const arrival =
+    date === algiersToday()
+      ? {
+          check_in_at: new Date().toISOString(),
+          check_in_method: "manual",
+          checked_in_by: ctx.user.id,
+        }
+      : {};
   const rows = missing.map((child_id) => ({
     tenant_id: ctx.tenant.id,
     child_id,
     date,
     status: "present",
-    check_in_at: nowIso,
-    check_in_method: "manual",
-    checked_in_by: ctx.user.id,
+    ...arrival,
   }));
 
   const { error } = await supabase
@@ -253,7 +313,69 @@ export async function markAllPresent(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/attendance");
+  revalidatePath("/dashboard");
   // Fire the queued push now — best-effort, never affects this action's result.
   await flushPush();
   return { ok: true, count: missing.length };
+}
+
+// ------------------------------------------------------------- kiosk exit
+
+const exitSchema = z.object({
+  secret: z.string().min(1).max(200),
+});
+
+export type KioskExitResult = { ok: false; error: "wrong" | "locked" | "noPin" | "invalid" };
+
+/**
+ * Leaves the door kiosk — behind a secret, and never into the dashboard.
+ *
+ * The kiosk header used to carry a plain link to /dashboard. The tablet is
+ * signed in as a staff account and mounted in a hall where every parent and
+ * every visiting older sibling can reach it; on an OS-pinned tablet that
+ * link was the one control that defeated the pinning. A crèche with a single
+ * owner will most plausibly have left the owner's own session on the device.
+ *
+ * Two secrets are accepted, checked on the server:
+ *   - the PIN of an owner/admin membership of this tenant, compared in
+ *     kg_kiosk_exit_unlock (rate-limited per session, five failures in ten
+ *     minutes); a digits-only entry is always tried as a PIN;
+ *   - otherwise the password of the account the kiosk is signed in with,
+ *     re-verified through Supabase Auth (which enforces its own rate limit).
+ *
+ * On success the session is signed out and the browser lands on /login. The
+ * secret never unlocks the dashboard under the kiosk's session: whoever
+ * wants the office signs in as themselves.
+ */
+export async function exitKiosk(input: z.infer<typeof exitSchema>): Promise<KioskExitResult> {
+  const parsed = exitSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const secret = parsed.data.secret.trim();
+
+  const ctx = await requireStaff();
+  const supabase = await createClient();
+
+  let unlocked = false;
+  if (/^\d{4,8}$/.test(secret)) {
+    const { data, error } = await supabase.rpc("kg_kiosk_exit_unlock", {
+      p_tenant: ctx.tenant.id,
+      p_pin: secret,
+    });
+    if (error) return { ok: false, error: "wrong" };
+    if (data === "locked") return { ok: false, error: "locked" };
+    if (data === "no_pin") return { ok: false, error: "noPin" };
+    unlocked = data === "ok";
+  } else if (ctx.user.email) {
+    // Re-authenticating mints a fresh session for the same account, which the
+    // sign-out below discards along with the kiosk's own.
+    const { error } = await supabase.auth.signInWithPassword({
+      email: ctx.user.email,
+      password: secret,
+    });
+    unlocked = !error;
+  }
+  if (!unlocked) return { ok: false, error: "wrong" };
+
+  await supabase.auth.signOut();
+  redirect("/login");
 }

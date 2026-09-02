@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Baby,
@@ -22,8 +21,20 @@ import { createClient } from "@/lib/supabase/client";
 import { setLocale } from "@/app/actions/locale";
 import { childDisplayName, formatTime, initials, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { KioskKeypad } from "./kiosk-keypad";
 import { KioskScanner } from "./kiosk-scanner";
+import { exitKiosk } from "./actions";
 import { toDateStr } from "./dates";
 import { PRESENTISH_STATUSES, isAway, stillHere } from "./status-config";
 import { flushPush } from "@/app/actions/push";
@@ -286,6 +297,48 @@ export function KioskClient({
   // Scans the database refused. Until this is empty, nothing is confirmed.
   const [duplicateBatch, setDuplicateBatch] = useState<DuplicateBatch | null>(null);
   const [dupBusy, setDupBusy] = useState(false);
+
+  // ----- leaving the kiosk -----
+  // The X in the header was a plain link to /dashboard under the tablet's own
+  // staff session — the one control on a pinned tablet that anyone in the
+  // hall could use to walk into the office's data. It now asks for a secret
+  // and, on success, signs the device out (see exitKiosk).
+  const [exitOpen, setExitOpen] = useState(false);
+  const [exitSecret, setExitSecret] = useState("");
+  const [exitBusy, setExitBusy] = useState(false);
+  const [exitError, setExitError] = useState<string | null>(null);
+
+  const closeExit = useCallback(() => {
+    setExitOpen(false);
+    setExitSecret("");
+    setExitError(null);
+  }, []);
+
+  // A prompt left open on the wall is an invitation; it folds itself away
+  // after half a minute without a keystroke.
+  useEffect(() => {
+    if (!exitOpen) return;
+    const id = setTimeout(closeExit, 30_000);
+    return () => clearTimeout(id);
+  }, [exitOpen, exitSecret, closeExit]);
+
+  const submitExit = useCallback(async () => {
+    const secret = exitSecret.trim();
+    if (exitBusy || !secret) return;
+    setExitBusy(true);
+    setExitError(null);
+    try {
+      // A correct secret never returns: the action signs out and redirects,
+      // and Next turns that into navigation. Getting a value back means no.
+      const res = await exitKiosk({ secret });
+      setExitError(t(`exitDialog.${res.error === "invalid" ? "wrong" : res.error}`));
+      setExitSecret("");
+    } catch {
+      setExitError(t("errors.generic"));
+    } finally {
+      setExitBusy(false);
+    }
+  }, [exitSecret, exitBusy, t]);
 
   // ----- live clock -----
   useEffect(() => {
@@ -1100,7 +1153,7 @@ export function KioskClient({
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
-        hour12: false,
+        hourCycle: "h23",
       }).format(now)
     : "--:--:--";
   const dateLabel = now
@@ -1187,16 +1240,59 @@ export function KioskClient({
               {dateLabel}
             </div>
           </div>
-          <Link
-            href="/dashboard"
+          <button
+            type="button"
             aria-label={t("exit")}
             title={t("exit")}
+            onClick={() => setExitOpen(true)}
             className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <X className="size-5" />
-          </Link>
+          </button>
         </div>
       </header>
+
+      <Dialog open={exitOpen} onOpenChange={(open) => !open && closeExit()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("exitDialog.title")}</DialogTitle>
+            <DialogDescription>{t("exitDialog.description")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="kiosk-exit-secret">{t("exitDialog.label")}</Label>
+            <Input
+              id="kiosk-exit-secret"
+              type="password"
+              autoComplete="off"
+              autoFocus
+              value={exitSecret}
+              onChange={(e) => setExitSecret(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void submitExit();
+              }}
+              className="h-11 text-base"
+            />
+            {exitError && (
+              <p role="alert" className="text-sm text-destructive">
+                {exitError}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="lg" onClick={closeExit}>
+              {tc("actions.cancel")}
+            </Button>
+            <Button size="lg" onClick={() => void submitExit()} disabled={exitBusy || !exitSecret.trim()}>
+              {exitBusy ? (
+                <Loader2 data-icon="inline-start" className="animate-spin" />
+              ) : (
+                <LogOut data-icon="inline-start" className="rtl:-scale-x-100" />
+              )}
+              {t("exitDialog.confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Main pad */}
       <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-y-auto px-4 py-5">

@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, type TenantContext } from "@/lib/tenant";
+import { algiersToday } from "@/lib/algiers";
+import { childDisplayName, formatDate } from "@/lib/format";
 import { flushPush } from "@/app/actions/push";
 // One definition of the consent vocabulary for the whole app — see setConsent.
 import { CONSENT_TYPES } from "@/components/modules/children/types";
@@ -35,56 +38,114 @@ export async function ackIncident(incidentId: string): Promise<Result> {
 
 // ------------------------------------------------------- absence reporting
 
+// Yesterday is allowed (a parent catching up on a sick morning); two weeks
+// ahead is enough. A "use server" module may only export async functions, so
+// the dialog carries its own copy of these two numbers — and kg_report_absence
+// (0103) enforces the same window on the database side regardless.
+const ABSENCE_DAYS_BACK = 1;
+const ABSENCE_DAYS_AHEAD = 14;
+
 const absenceSchema = z.object({
   childId: z.uuid(),
-  date: z.string().regex(DATE_RE),
-  reason: z.string().min(2).max(500),
+  from: z.string().regex(DATE_RE),
+  to: z.string().regex(DATE_RE),
+  status: z.enum(["sick", "excused"]),
+  reason: z.string().trim().min(1).max(500),
 });
 
-/** Creates a message thread "Absence — {child} — {date}" with the reason as first message. */
-export async function reportAbsence(input: z.infer<typeof absenceSchema>): Promise<Result> {
+export type AbsenceResult =
+  | { ok: true; recorded: number; kept: number; closed: number }
+  | { ok: false; error: ActionError | "window" };
+
+/** Plain-date add, no zone involved: the strings are Algiers calendar days already. */
+function shiftDay(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Reports an absence: writes the register AND opens the conversation.
+ *
+ * Until now this only opened a thread with a Latin subject. The register
+ * never learned, the home chip still said "not yet arrived", and the office
+ * re-keyed the absence by hand — or "mark all present" walked over it. Both
+ * writes now happen in kg_report_absence (0103), one definer RPC, because
+ * kg_attendance is educator-only under RLS and must stay that way: the RPC
+ * proves the caller is the child's guardian, refuses closed days from the
+ * tenant's own calendar, records the reporting guardian on each row, and
+ * reuses an existing thread with the same subject so a double tap does not
+ * open two conversations.
+ *
+ * The subject is built here, through the parent's own locale, so an Arabic
+ * account reads "غياب" rather than "Absence".
+ */
+export async function reportAbsence(input: z.infer<typeof absenceSchema>): Promise<AbsenceResult> {
   const ctx = await getTenantContext();
   const parsed = absenceSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const v = parsed.data;
 
+  const today = algiersToday();
+  const earliest = shiftDay(today, -ABSENCE_DAYS_BACK);
+  const latest = shiftDay(today, ABSENCE_DAYS_AHEAD);
+  if (v.from < earliest || v.from > latest || v.to < v.from || v.to > latest) {
+    return { ok: false, error: "window" };
+  }
+
   const supabase = await createClient();
   // RLS only returns the child if the caller is its guardian (or staff).
   const { data: child } = await supabase
     .from("kg_children")
-    .select("id, first_name, last_name")
+    .select("id, first_name, last_name, first_name_ar, last_name_ar")
     .eq("id", v.childId)
     .eq("tenant_id", ctx.tenant.id)
     .maybeSingle();
   if (!child) return { ok: false, error: "forbidden" };
 
-  const subject = `Absence — ${child.first_name} ${child.last_name} — ${v.date}`;
-  const { data: thread, error: threadError } = await supabase
-    .from("kg_threads")
-    .insert({
-      tenant_id: ctx.tenant.id,
-      child_id: child.id,
-      subject,
-      created_by: ctx.user.id,
-    })
-    .select("id")
-    .single();
-  if (threadError || !thread) return { ok: false, error: "generic" };
+  const locale = await getLocale();
+  const t = await getTranslations("portal.absence");
+  const name = childDisplayName(child, locale);
+  const subject =
+    v.from === v.to
+      ? t("subject", { name, date: formatDate(v.from, locale) })
+      : t("subjectRange", {
+          name,
+          from: formatDate(v.from, locale),
+          to: formatDate(v.to, locale),
+        });
 
-  const { error: messageError } = await supabase.from("kg_thread_messages").insert({
-    thread_id: thread.id,
-    tenant_id: ctx.tenant.id,
-    sender_id: ctx.user.id,
-    body: v.reason.trim(),
+  const { data, error } = await supabase.rpc("kg_report_absence", {
+    p_child: child.id,
+    p_from: v.from,
+    p_to: v.to,
+    p_status: v.status,
+    p_reason: v.reason,
+    p_subject: subject,
+    p_body: v.reason,
   });
-  if (messageError) return { ok: false, error: "generic" };
+  if (error) {
+    if (error.message.includes("forbidden")) return { ok: false, error: "forbidden" };
+    if (error.message.includes("window")) return { ok: false, error: "window" };
+    return { ok: false, error: "generic" };
+  }
+  const out = (data ?? {}) as { recorded?: number; kept?: number; closed?: number };
 
   revalidatePath("/portal");
+  revalidatePath(`/portal/children/${child.id}`);
   // The absence thread is a real conversation — it must appear in the inbox.
   revalidatePath("/portal/messages");
+  // The office reads the same rows on its register and its home page.
+  revalidatePath("/attendance");
+  revalidatePath("/dashboard");
   // Fire the queued push now — best-effort, never affects this action's result.
   await flushPush();
-  return { ok: true };
+  return {
+    ok: true,
+    recorded: out.recorded ?? 0,
+    kept: out.kept ?? 0,
+    closed: out.closed ?? 0,
+  };
 }
 
 // ---------------------------------------------- activity enrollment request

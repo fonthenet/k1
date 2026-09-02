@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { AttendanceStatus } from "@/lib/types";
 import { childDisplayName, formatDate, formatTime, initials } from "@/lib/format";
+import { algiersClock } from "@/lib/algiers";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -109,6 +110,8 @@ export interface RegisterRow {
     check_out_at: string | null;
     picked_up_by: string | null;
     absence_reason: string | null;
+    /** The family reported this absence from the portal (kg_report_absence). */
+    reported_by_parent: boolean;
   } | null;
 }
 
@@ -132,10 +135,14 @@ interface CheckOutDialogState {
   guardianId: string | null;
 }
 
+/**
+ * The stored instant as the HH:mm the dialog should show — in Algiers.
+ * getHours() read the browser's zone, so a director checking the register
+ * from abroad saw a shifted time and, on save, wrote the shift back. Reading
+ * and writing (algiersInstant, in the action) now share one anchor.
+ */
 function isoToTimeInput(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return `${`${d.getHours()}`.padStart(2, "0")}:${`${d.getMinutes()}`.padStart(2, "0")}`;
+  return iso ? algiersClock(iso) : "";
 }
 
 function InlineText({
@@ -175,6 +182,8 @@ function InlineText({
 export function RegisterClient({
   date,
   isClosedDay,
+  closedHoliday,
+  isFuture,
   dayLabel,
   classes,
   totals,
@@ -183,6 +192,10 @@ export function RegisterClient({
 }: {
   date: string;
   isClosedDay: boolean;
+  /** The confirmed holiday closing this date, when the closure is not the weekly pattern. */
+  closedHoliday: { name: string; name_ar: string | null } | null;
+  /** After today in Algiers — the register is read-only there. */
+  isFuture: boolean;
   dayLabel: string;
   classes: RegisterClassTab[];
   /** Presence across every enrolled child, for the "all classes" tab. */
@@ -217,6 +230,15 @@ export function RegisterClient({
 
   const displayStatus = (row: RegisterRow): AttendanceStatus | null =>
     optimStatus[row.child.id] ?? row.attendance?.status ?? null;
+
+  // The server refuses two things by name — a day that has not come, and a
+  // bulk stamp on a closed day — and each deserves its own sentence rather
+  // than the generic "something went wrong".
+  const errorToast = (error: string) => {
+    if (error === "future") toast.error(t("toasts.future"));
+    else if (error === "closed") toast.error(t("toasts.closed"));
+    else toast.error(t("toasts.error"));
+  };
 
   const counters = useMemo(() => {
     let present = 0;
@@ -282,7 +304,7 @@ export function RegisterClient({
           delete next[id];
           return next;
         });
-        toast.error(t("toasts.error"));
+        errorToast(res.error);
       } else {
         router.refresh();
       }
@@ -357,7 +379,7 @@ export function RegisterClient({
     startTransition(async () => {
       const res = await markAllPresent({ date, childIds: unmarked });
       setBulkPending(false);
-      if (!res.ok) toast.error(t("toasts.error"));
+      if (!res.ok) errorToast(res.error);
       else {
         toast.success(t("toasts.bulkDone", { count: res.count ?? unmarked.length }));
         router.refresh();
@@ -376,7 +398,7 @@ export function RegisterClient({
         checkOut: timeDialog.checkOut,
       });
       setTimeSaving(false);
-      if (!res.ok) toast.error(t("toasts.error"));
+      if (!res.ok) errorToast(res.error);
       else {
         toast.success(t("toasts.timesSaved"));
         setTimeDialog(null);
@@ -496,7 +518,11 @@ export function RegisterClient({
               {t("nav.history")}
             </Link>
           </Button>
-          <Button size="sm" onClick={handleBulk} disabled={bulkPending || rows.length === 0}>
+          <Button
+            size="sm"
+            onClick={handleBulk}
+            disabled={bulkPending || rows.length === 0 || isFuture}
+          >
             {bulkPending ? (
               <Loader2 data-icon="inline-start" className="animate-spin" />
             ) : (
@@ -507,12 +533,27 @@ export function RegisterClient({
         </div>
       </div>
 
-      {isClosedDay && (
+      {/* One notice, whichever rule closed the day: the weekly pattern or a
+          confirmed holiday. The holiday variant names it (in Arabic when the
+          office typed an Arabic name), because "closed on Sunday" is not the
+          answer when the question is "why is 1 November empty". A future day
+          gets the same band with a different sentence — nothing can be
+          written there yet. */}
+      {(isClosedDay || isFuture) && (
         <div className="flex items-center gap-3 rounded-xl border border-gold/25 bg-gold-muted px-4 py-3 text-sm font-medium text-foreground">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gold text-gold-foreground">
             <TriangleAlert className="size-4" />
           </span>
-          {t("nav.closedNotice", { day: dayLabel })}
+          {isFuture
+            ? t("nav.futureNotice")
+            : closedHoliday
+              ? t("nav.holidayNotice", {
+                  name:
+                    locale === "ar" && closedHoliday.name_ar
+                      ? closedHoliday.name_ar
+                      : closedHoliday.name,
+                })
+              : t("nav.closedNotice", { day: dayLabel })}
         </div>
       )}
 
@@ -719,7 +760,7 @@ export function RegisterClient({
                                 aria-pressed={active}
                                 aria-label={t(`status.${s}`)}
                                 title={t(`status.${s}`)}
-                                disabled={saving}
+                                disabled={saving || isFuture}
                                 onClick={() => handleStatus(row, s)}
                                 className={cn(
                                   "inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-medium transition-colors disabled:opacity-60",
@@ -742,6 +783,13 @@ export function RegisterClient({
                           {att?.check_in_at ? (
                             <span className="font-semibold tabular-nums">
                               {formatTime(att.check_in_at, locale)}
+                            </span>
+                          ) : status !== null && isPresentish(status) && !isToday ? (
+                            // A past day marked present from memory carries no
+                            // arrival time on purpose (see setAttendanceStatus);
+                            // say so, and leave the pencil to enter a real one.
+                            <span className="text-xs text-muted-foreground">
+                              {t("table.timeNotRecorded")}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
@@ -808,12 +856,22 @@ export function RegisterClient({
 
                       <TableCell>
                         {absentish ? (
-                          <InlineText
-                            defaultValue={att?.absence_reason ?? ""}
-                            placeholder={t("fields.absenceReasonPlaceholder")}
-                            ariaLabel={t("fields.absenceReason")}
-                            onSave={(v) => handleText(row, "absence_reason", v)}
-                          />
+                          <div>
+                            <InlineText
+                              defaultValue={att?.absence_reason ?? ""}
+                              placeholder={t("fields.absenceReasonPlaceholder")}
+                              ariaLabel={t("fields.absenceReason")}
+                              onSave={(v) => handleText(row, "absence_reason", v)}
+                            />
+                            {/* Provenance, in words and nothing else: the
+                                family said so from the portal, the office did
+                                not type it. One muted line — no tint, no icon. */}
+                            {att?.reported_by_parent && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {t("fields.reportedByParent")}
+                              </p>
+                            )}
+                          </div>
                         ) : checkedOut ? (
                           <InlineText
                             defaultValue={att?.picked_up_by ?? ""}

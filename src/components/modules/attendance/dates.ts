@@ -41,19 +41,66 @@ export function addMonthsStr(month: string, delta: number): string {
   return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}`;
 }
 
+/** First and last calendar day of "YYYY-MM", for range queries. */
+export function monthBounds(month: string): { first: string; last: string } {
+  const [y, m] = month.split("-").map(Number);
+  return { first: `${month}-01`, last: toDateStr(new Date(y, m, 0)) };
+}
+
+/**
+ * A closure row as kg_holidays stores it: one date, optionally a range.
+ * Only rows with closure = true AND tentative = false belong here — the caller
+ * filters, because a tentative Aïd is a proposal and must not shut the register.
+ */
+export interface ClosureRange {
+  date: string;
+  end_date: string | null;
+}
+
+/**
+ * Every date a set of closures covers, clipped to [from, to].
+ *
+ * kg_holidays keeps a range as (date, end_date) but every attendance question
+ * is asked per day, so the range is unrolled once here rather than compared
+ * inline in three places. The clip matters for a summer closure that starts
+ * in July and ends in August: the August page must only see August.
+ */
+export function expandClosures(rows: ClosureRange[], from: string, to: string): Set<string> {
+  const out = new Set<string>();
+  for (const row of rows) {
+    const last = row.end_date ?? row.date;
+    let d = row.date < from ? from : row.date;
+    while (d <= last && d <= to) {
+      out.add(d);
+      d = addDaysStr(d, 1);
+    }
+  }
+  return out;
+}
+
 /**
  * The days a month "YYYY-MM" is actually open, as YYYY-MM-DD strings.
  *
  * Takes the crèche's own pattern rather than assuming Sunday–Thursday: this
  * feeds attendance denominators, and a crèche that opens on Saturday counting
  * it as a day off would understate every rate it ever reports.
+ *
+ * `closedDates` are the confirmed holiday closures of that month. Without
+ * them 1 November — a Sunday, a firm closure for the real client — counted
+ * as an open day nobody attended, and every child lost a day of attendance
+ * for a morning the door never opened.
  */
-export function workingDaysOfMonth(month: string, hours: OpeningHours): string[] {
+export function workingDaysOfMonth(
+  month: string,
+  hours: OpeningHours,
+  closedDates: ReadonlySet<string> = new Set()
+): string[] {
   const [y, m] = month.split("-").map(Number);
   const days: string[] = [];
   const d = new Date(y, m - 1, 1);
   while (d.getMonth() === m - 1) {
-    if (isOpenDay(hours, d)) days.push(toDateStr(d));
+    const str = toDateStr(d);
+    if (isOpenDay(hours, d) && !closedDates.has(str)) days.push(str);
     d.setDate(d.getDate() + 1);
   }
   return days;

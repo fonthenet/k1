@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
+import { algiersToday } from "@/lib/algiers";
 import type { KgRole } from "@/lib/types";
 import { serializeHealthList } from "@/components/modules/portal/health-edit-shared";
 
@@ -160,7 +161,10 @@ export async function setChildStatus(
   const ctx = await requireStaff();
   if (!z.uuid().safeParse(childId).success) return { ok: false, error: "invalid" };
 
-  const today = new Date().toISOString().slice(0, 10);
+  // The withdrawal date is a legal fact on the child's file. Taken from the
+  // host clock it was yesterday's date for anyone withdrawing a child after
+  // 23:00 UTC — which is midnight in Jijel, when a director does paperwork.
+  const today = algiersToday();
   const patch =
     action === "withdraw"
       ? { status: "withdrawn", withdrawal_date: today }

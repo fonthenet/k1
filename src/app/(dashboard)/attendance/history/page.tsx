@@ -17,13 +17,16 @@ import {
   STATUS_STYLES,
   isPresentish,
 } from "@/components/modules/attendance/status-config";
+import { algiersToday } from "@/lib/algiers";
 import {
   addMonthsStr,
+  expandClosures,
   isValidMonthStr,
+  monthBounds,
   monthOf,
   parseDateStr,
-  toDateStr,
   workingDaysOfMonth,
+  type ClosureRange,
 } from "@/components/modules/attendance/dates";
 
 export const dynamic = "force-dynamic";
@@ -53,23 +56,42 @@ export default async function AttendanceHistoryPage({
   const locale = await getLocale();
   const sp = await searchParams;
 
-  const month = isValidMonthStr(sp.month) ? sp.month : monthOf(toDateStr(new Date()));
+  // Algiers, not the host clock: on the last evening of a month the UTC host
+  // still opened the previous month's grid.
+  const today = algiersToday();
+  const month = isValidMonthStr(sp.month) ? sp.month : monthOf(today);
   const activeClass = sp.class && sp.class !== "all" ? sp.class : "all";
 
+  const supabase = await createClient();
+
   // Only the days this crèche actually opens. It also drives the grid's
-  // columns, so a Saturday-opening crèche gets a Saturday column.
+  // columns, so a Saturday-opening crèche gets a Saturday column — and a
+  // confirmed holiday closure loses its column, so the star for a perfect
+  // month is not withheld over a Sunday the door never opened.
   const openingHours = toOpeningHours(
     (ctx.tenant as { opening_hours?: unknown }).opening_hours
   );
-  const days = workingDaysOfMonth(month, openingHours);
-  const firstDay = days[0];
-  const lastDay = days[days.length - 1];
-  const today = toDateStr(new Date());
+  const bounds = monthBounds(month);
+  const { data: closureRows, error: closureError } = await supabase
+    .from("kg_holidays")
+    .select("date, end_date")
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("closure", true)
+    .eq("tentative", false)
+    .lte("date", bounds.last)
+    .or(`end_date.gte.${bounds.first},and(end_date.is.null,date.gte.${bounds.first})`);
+  if (closureError) throw new Error(closureError.message);
+  const closedDates = expandClosures(
+    (closureRows ?? []) as ClosureRange[],
+    bounds.first,
+    bounds.last
+  );
+  const days = workingDaysOfMonth(month, openingHours, closedDates);
+  const firstDay = days[0] ?? bounds.first;
+  const lastDay = days[days.length - 1] ?? bounds.last;
   // Days of this month that have already happened — a child with a mark on every one of
   // them gets the gold star, so the accent shows up mid-month too.
   const elapsedCount = days.filter((d) => d <= today).length;
-
-  const supabase = await createClient();
 
   let childrenQuery = supabase
     .from("kg_children")
