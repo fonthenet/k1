@@ -25,13 +25,26 @@ export async function getTenantContext(): Promise<TenantContext> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: memberships } = await supabase
+  const { data: rows } = await supabase
     .from("kg_memberships")
     .select("*, kg_tenants(*)")
     .eq("user_id", user.id)
     .eq("status", "active");
 
-  if (!memberships || memberships.length === 0) redirect("/onboarding");
+  if (!rows || rows.length === 0) redirect("/onboarding");
+
+  // A suspended crèche is invisible to its own members: since 0112 every
+  // membership predicate folds in kg_tenant_active, so t_sel returns no row
+  // and the embed comes back null while the membership row itself (m_sel is
+  // `user_id = auth.uid()`) is still there. That null IS the suspension
+  // signal — there is no other read the member is still allowed to make.
+  //
+  // Someone who also works at a second, active crèche is sent there rather
+  // than to a dead end; someone whose only crèche is suspended gets a page
+  // that says so and names the operator, instead of an empty dashboard that
+  // looks like data loss.
+  const memberships = rows.filter((m) => m.kg_tenants != null);
+  if (memberships.length === 0) redirect("/suspended");
 
   const cookieStore = await cookies();
   const wanted = cookieStore.get(TENANT_COOKIE)?.value;

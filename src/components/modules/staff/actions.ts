@@ -5,8 +5,12 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import type { Timesheet } from "@/lib/types";
+import { displayIdentity, looksLikeEmail, phoneToAlias } from "@/lib/auth-identifier";
+import type { StaffRole } from "./staff-types";
 
-type ActionError = "generic" | "forbidden" | "invalid" | "notClockedIn";
+type ActionError =
+  | "generic" | "forbidden" | "invalid" | "notClockedIn"
+  | "noSuchAccount" | "alreadyMember" | "alreadyLinked";
 type Result<T = undefined> =
   | ({ ok: true } & (T extends undefined ? { data?: undefined } : { data: T }))
   | { ok: false; error: ActionError };
@@ -35,27 +39,77 @@ export async function clockSelf(direction: "in" | "out"): Promise<Result<{ at: s
 
 // -------------------------------------------------------------------- invite
 
+// Owner is not on this list on purpose. An invite link is forwarded, screen-
+// shotted and read down the phone; ownership of a crèche is transferred
+// deliberately by editing the member, never mailed.
+const inviteRoleSchema = z.enum(["admin", "educator", "staff", "accountant"]);
+
 const inviteSchema = z.object({
-  email: z.email(),
-  role: roleSchema,
+  /** Email or Algerian phone number. Empty means anyone holding the link. */
+  identifier: z.string().trim().max(120).optional(),
+  role: inviteRoleSchema,
   jobTitle: z.string().max(120).optional(),
+  /** A name-only membership (user_id null) the accepted login attaches to. */
+  membershipId: z.uuid().optional(),
 });
 
-export async function inviteStaff(input: z.infer<typeof inviteSchema>): Promise<Result<{ link: string }>> {
+/**
+ * The auth address an invite identifier binds to. Phone sign-ups carry an
+ * alias address (see src/lib/auth-identifier.ts), so a director who types the
+ * number stores the alias and kg_accept_staff_invite compares one string.
+ *
+ * Returns null for "nobody in particular" and undefined for input that is
+ * neither an address nor a usable number.
+ */
+function identifierToAuthEmail(raw: string | undefined): string | null | undefined {
+  const value = raw?.trim() ?? "";
+  if (value === "") return null;
+  if (looksLikeEmail(value)) return value.toLowerCase();
+  return phoneToAlias(value) ?? undefined;
+}
+
+export async function inviteStaff(
+  input: z.infer<typeof inviteSchema>
+): Promise<Result<{ link: string; boundTo: string | null }>> {
   const ctx = await requireStaff();
   if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
   const parsed = inviteSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
 
+  const email = identifierToAuthEmail(parsed.data.identifier);
+  if (email === undefined) return { ok: false, error: "invalid" };
+
   const supabase = await createClient();
+
+  // An invite minted for an existing name-only member takes that member's
+  // role and title: the link is a login for the job they already hold, not a
+  // second job. The row must be this tenant's, still without an account, and
+  // not a parent's.
+  let role: string = parsed.data.role;
+  let jobTitle = parsed.data.jobTitle?.trim() || null;
+  if (parsed.data.membershipId) {
+    const { data: member } = await supabase
+      .from("kg_memberships")
+      .select("id, role, job_title, user_id")
+      .eq("id", parsed.data.membershipId)
+      .eq("tenant_id", ctx.tenant.id)
+      .maybeSingle();
+    if (!member || member.user_id !== null || member.role === "parent" || member.role === "owner") {
+      return { ok: false, error: "invalid" };
+    }
+    role = member.role;
+    jobTitle = member.job_title;
+  }
+
   const { data, error } = await supabase
     .from("kg_staff_invites")
     .insert({
       tenant_id: ctx.tenant.id,
-      email: parsed.data.email.trim().toLowerCase(),
-      role: parsed.data.role,
-      job_title: parsed.data.jobTitle?.trim() || null,
+      email,
+      role,
+      job_title: jobTitle,
       invited_by: ctx.user.id,
+      membership_id: parsed.data.membershipId ?? null,
     })
     .select("token")
     .single();
@@ -63,7 +117,80 @@ export async function inviteStaff(input: z.infer<typeof inviteSchema>): Promise<
 
   revalidatePath("/staff/invites");
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  return { ok: true, data: { link: `${base}/join/${data.token}` } };
+  return {
+    ok: true,
+    data: { link: `${base}/join/${data.token}`, boundTo: email ? displayIdentity(email) : null },
+  };
+}
+
+export interface UnlinkedMember {
+  id: string;
+  fullName: string;
+  role: StaffRole;
+  jobTitle: string | null;
+}
+
+/** Team members typed in by the director who have no login yet (0044). */
+export async function listUnlinkedMembers(): Promise<Result<UnlinkedMember[]>> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("kg_memberships")
+    .select("id, full_name, role, job_title")
+    .eq("tenant_id", ctx.tenant.id)
+    .is("user_id", null)
+    .eq("status", "active")
+    .neq("role", "parent")
+    .order("full_name");
+  if (error) return { ok: false, error: "generic" };
+  return {
+    ok: true,
+    data: (data ?? []).map((m) => ({
+      id: m.id as string,
+      fullName: (m.full_name as string | null) ?? "",
+      role: m.role as StaffRole,
+      jobTitle: (m.job_title as string | null) ?? null,
+    })),
+  };
+}
+
+const linkSchema = z.object({
+  membershipId: z.uuid(),
+  identifier: z.string().trim().min(3).max(120),
+});
+
+/**
+ * Attaches an EXISTING account to a name-only member, after the fact — the
+ * cook who signed up on her own before the director thought to invite her.
+ * kg_link_member_account (0044) does the work and refuses an account that is
+ * already a member; nothing merges silently.
+ */
+export async function linkMemberAccount(input: z.infer<typeof linkSchema>): Promise<Result> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  const parsed = linkSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const email = identifierToAuthEmail(parsed.data.identifier);
+  if (!email) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("kg_link_member_account", {
+    p_membership: parsed.data.membershipId,
+    p_email: email,
+  });
+  if (error) {
+    const m = error.message;
+    if (m.includes("no_such_account")) return { ok: false, error: "noSuchAccount" };
+    if (m.includes("account_already_member")) return { ok: false, error: "alreadyMember" };
+    if (m.includes("already_linked")) return { ok: false, error: "alreadyLinked" };
+    if (m.includes("forbidden")) return { ok: false, error: "forbidden" };
+    return { ok: false, error: "generic" };
+  }
+
+  revalidatePath("/staff");
+  revalidatePath(`/staff/${parsed.data.membershipId}`);
+  return { ok: true };
 }
 
 export async function revokeInvite(id: string): Promise<Result> {

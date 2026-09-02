@@ -49,20 +49,55 @@
   "invite": {
     "button": "Invite a member",
     "title": "Invite a member",
-    "description": "Create an invitation link for a new team member.",
-    "email": "Email",
+    "description": "Create an invitation link for a new team member, or give someone already on the team a login.",
+    "identifier": "Reserve for an email or phone number",
+    "identifierPlaceholder": "exemple@email.com · 0550 12 34 56",
+    "openHint": "Left empty, anyone who opens the link joins the team as {role}.",
+    "boundHint": "Only the account signed up with this address or number can accept it.",
+    "attachTo": "Attach to an existing team member",
+    "attachNone": "New member",
+    "attachHint": "The login is added to {name}'s existing record — timesheets, payslips and door credentials stay put.",
     "role": "Role",
     "jobTitle": "Job title",
     "jobTitlePlaceholder": "Preschool educator",
     "create": "Create invitation",
     "linkTitle": "Invitation created",
-    "linkHelp": "Share this link with {email}. It expires in 14 days.",
+    "linkHelpOpen": "Anyone who opens this link joins as {role}. It expires in 14 days.",
+    "linkHelpBound": "Share this link with {identity}. Only their account can accept it, and it expires in 14 days.",
     "copy": "Copy link",
     "copied": "Link copied",
-    "modeInvite": "Invite by email",
+    "modeInvite": "Invite link",
     "modeLocal": "Create directly",
     "addButton": "Add a member",
-    "addTitle": "Add a team member"
+    "addTitle": "Add a team member",
+    "join": {
+      "acceptAs": "{tenant} invites you to join its team as {role}.",
+      "authIntro": "Create an account or sign in to join {tenant}.",
+      "bound": "This invitation is reserved for one account: sign in with the email address or phone number it was sent to.",
+      "dead": {
+        "unknown": {
+          "title": "This invitation link is not valid",
+          "body": "Check the link as you received it, or ask your kindergarten's administrator to send a new one."
+        },
+        "accepted": {
+          "title": "This invitation has already been used",
+          "body": "It was accepted once and cannot be reused. If that was you, sign in; otherwise ask the administrator for a new link."
+        },
+        "expired": {
+          "title": "This invitation has expired",
+          "body": "Invitations are valid for 14 days. Ask your kindergarten's administrator to send a new one."
+        }
+      },
+      "mismatch": {
+        "title": "This invitation is reserved for another account",
+        "body": "It was sent to a different email address or phone number. Switch to that account, or ask the administrator for a link reserved for this one."
+      },
+      "alreadyMember": {
+        "title": "You are already on this team",
+        "body": "This account already belongs to the kindergarten, so there is nothing to accept."
+      },
+      "open": "Open my workspace"
+    }
   },
   "edit": {
     "title": "Edit member",
@@ -210,7 +245,10 @@
     "generic": "Something went wrong. Please try again.",
     "forbidden": "You're not allowed to do that.",
     "invalid": "Invalid data.",
-    "notClockedIn": "No clock-in recorded today."
+    "notClockedIn": "No clock-in recorded today.",
+    "noSuchAccount": "No account uses this email or number yet.",
+    "alreadyMember": "That account is already on this team.",
+    "alreadyLinked": "This member already has a login."
   },
   "payType": {
     "monthly": "Monthly",

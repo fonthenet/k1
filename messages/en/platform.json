@@ -55,7 +55,7 @@
     "emptyBody": "Crèches appear here as soon as they are created.",
     "suspend": "Suspend",
     "suspendTitle": "Suspend {name}?",
-    "suspendBody": "Their team loses access to their own records immediately. You can re-activate at any time.",
+    "suspendBody": "Their team, the parents' portal and the door kiosk lose access immediately, and the owner cannot lift it themselves. Nothing is deleted. You can re-activate at any time.",
     "suspendConfirm": "Suspend account",
     "cancel": "Cancel",
     "resume": "Re-activate",
@@ -117,6 +117,19 @@
   },
   "errors": {
     "generic": "Something went wrong. Try again."
+  },
+  "error": {
+    "title": "This page could not be loaded",
+    "description": "Something went wrong on the platform side. Try again, and if it keeps happening check that your account is still listed as an operator.",
+    "retry": "Try again"
+  },
+  "suspended": {
+    "metaTitle": "Account suspended",
+    "title": "Your crèche's account is suspended",
+    "body": "Rawdatik has paused access to this crèche's records. Nothing has been deleted — everything comes back the moment the account is re-activated.",
+    "contact": "Contact Rawdatik to sort it out.",
+    "home": "Back to the site",
+    "signOut": "Sign out"
   },
   "support": {
     "metaTitle": "Client support",

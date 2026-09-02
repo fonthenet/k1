@@ -49,20 +49,55 @@
   "invite": {
     "button": "Inviter un membre",
     "title": "Inviter un membre",
-    "description": "Créez un lien d'invitation pour un nouveau membre de l'équipe.",
-    "email": "E-mail",
+    "description": "Créez un lien d'invitation pour un nouveau membre de l'équipe, ou donnez un accès à quelqu'un qui en fait déjà partie.",
+    "identifier": "Réserver à un e-mail ou un numéro de téléphone",
+    "identifierPlaceholder": "exemple@email.com · 0550 12 34 56",
+    "openHint": "Laissé vide, toute personne qui ouvre le lien rejoint l'équipe comme {role}.",
+    "boundHint": "Seul le compte inscrit avec cette adresse ou ce numéro pourra l'accepter.",
+    "attachTo": "Rattacher à un membre existant de l'équipe",
+    "attachNone": "Nouveau membre",
+    "attachHint": "L'accès s'ajoute à la fiche existante de {name} — pointages, fiches de paie et codes d'entrée restent en place.",
     "role": "Rôle",
     "jobTitle": "Poste",
     "jobTitlePlaceholder": "Éducatrice petite section",
     "create": "Créer l'invitation",
     "linkTitle": "Invitation créée",
-    "linkHelp": "Partagez ce lien avec {email}. Il expire dans 14 jours.",
+    "linkHelpOpen": "Toute personne qui ouvre ce lien rejoint l'équipe comme {role}. Il expire dans 14 jours.",
+    "linkHelpBound": "Partagez ce lien avec {identity}. Seul son compte pourra l'accepter, et il expire dans 14 jours.",
     "copy": "Copier le lien",
     "copied": "Lien copié",
-    "modeInvite": "Inviter par e-mail",
+    "modeInvite": "Lien d'invitation",
     "modeLocal": "Créer directement",
     "addButton": "Ajouter un membre",
-    "addTitle": "Ajouter un membre de l'équipe"
+    "addTitle": "Ajouter un membre de l'équipe",
+    "join": {
+      "acceptAs": "{tenant} vous invite à rejoindre son équipe comme {role}.",
+      "authIntro": "Créez un compte ou connectez-vous pour rejoindre {tenant}.",
+      "bound": "Cette invitation est réservée à un seul compte : connectez-vous avec l'adresse e-mail ou le numéro auquel elle a été envoyée.",
+      "dead": {
+        "unknown": {
+          "title": "Ce lien d'invitation n'est pas valide",
+          "body": "Vérifiez le lien tel que vous l'avez reçu, ou demandez au responsable de votre établissement d'en envoyer un nouveau."
+        },
+        "accepted": {
+          "title": "Cette invitation a déjà été utilisée",
+          "body": "Elle a été acceptée une fois et ne peut pas resservir. Si c'était vous, connectez-vous ; sinon demandez un nouveau lien au responsable."
+        },
+        "expired": {
+          "title": "Cette invitation a expiré",
+          "body": "Les invitations sont valables 14 jours. Demandez au responsable de votre établissement d'en envoyer une nouvelle."
+        }
+      },
+      "mismatch": {
+        "title": "Cette invitation est réservée à un autre compte",
+        "body": "Elle a été envoyée à une autre adresse e-mail ou un autre numéro. Changez de compte, ou demandez au responsable un lien réservé à celui-ci."
+      },
+      "alreadyMember": {
+        "title": "Vous faites déjà partie de cette équipe",
+        "body": "Ce compte appartient déjà à l'établissement : il n'y a rien à accepter."
+      },
+      "open": "Accéder à mon espace"
+    }
   },
   "edit": {
     "title": "Modifier le membre",
@@ -210,7 +245,10 @@
     "generic": "Une erreur est survenue. Réessayez.",
     "forbidden": "Action non autorisée.",
     "invalid": "Données invalides.",
-    "notClockedIn": "Aucun pointage d'arrivée aujourd'hui."
+    "notClockedIn": "Aucun pointage d'arrivée aujourd'hui.",
+    "noSuchAccount": "Aucun compte n'utilise encore cet e-mail ou ce numéro.",
+    "alreadyMember": "Ce compte fait déjà partie de l'équipe.",
+    "alreadyLinked": "Ce membre a déjà un accès."
   },
   "payType": {
     "monthly": "Mensuel",

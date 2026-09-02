@@ -1,6 +1,6 @@
 -- 0083 — payroll transitions become one statement each.
 --
--- NOT YET APPLIED. Apply after 0081 and 0082: kg_payroll_create below filters
+-- APPLIED 2026-08-29, after 0081 and 0082: kg_payroll_create below filters
 -- advances on kg_salary_advances.status, which 0082 adds.
 --
 -- ---------------------------------------------------------------------------

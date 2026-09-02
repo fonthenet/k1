@@ -1,6 +1,6 @@
 -- 0082 — a member of staff can ASK for a salary advance.
 --
--- NOT YET APPLIED. Apply after 0081 and before 0083.
+-- APPLIED 2026-08-29, after 0081 and before 0083.
 --
 -- Read the "before you apply" note at the bottom: there is one line in the WEB
 -- repo that must land with this file or the next payroll run deducts money
