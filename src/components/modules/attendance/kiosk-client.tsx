@@ -1217,7 +1217,11 @@ export function KioskClient({
                 type="button"
                 lang={code}
                 aria-pressed={locale === code}
-                onClick={() => setLocale(code)}
+                // remember:false — the kiosk runs under ONE staff session all
+                // day while parents tap العربية/Français at the door. Persisting
+                // that choice would rewrite the signed-in employee's own
+                // notification language on every tap.
+                onClick={() => setLocale(code, { remember: false })}
                 className={cn(
                   "min-h-9 rounded-xl px-2.5 text-xs font-semibold transition-colors",
                   locale === code

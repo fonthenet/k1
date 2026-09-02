@@ -34,6 +34,37 @@
 
 begin;
 
+/* ---------------------------------------------------------- prerequisite
+
+   kg_approve_application calls kg_copy_application_allergies, and that
+   function is NOT in production: schema_migrations lists 0061 as applied and
+   its kg_child_allergies unique index is present, but the function itself is
+   absent — it was dropped or never created when 0061 ran. Reconstructing the
+   approval path without it would make this file fail on the first approval,
+   after the child row had already been written.
+
+   Restored verbatim from 0061 so the two files cannot drift, and revoked from
+   the API roles: it is called only from inside kg_approve_application, which
+   is itself SECURITY DEFINER.                                             */
+
+create or replace function kg_copy_application_allergies(
+  p_tenant uuid, p_child uuid, p_health jsonb
+) returns void language plpgsql security definer set search_path = public as $$
+declare al jsonb;
+begin
+  for al in select * from jsonb_array_elements(coalesce(p_health->'allergies','[]'::jsonb)) loop
+    if coalesce(btrim(al->>'allergen'), '') = '' then continue; end if;
+    insert into kg_child_allergies (tenant_id, child_id, allergen, severity, reaction, action_plan)
+      values (p_tenant, p_child, btrim(al->>'allergen'),
+        coalesce((al->>'severity')::kg_allergy_severity,'mild'),
+        al->>'reaction', al->>'action_plan')
+      on conflict (child_id, lower(btrim(allergen))) do nothing;
+  end loop;
+end $$;
+
+revoke execute on function kg_copy_application_allergies(uuid, uuid, jsonb)
+  from public, anon, authenticated;
+
 create or replace function kg_approve_application(p_app uuid, p_class uuid default null, p_tag_code text default null)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare a kg_applications; v_child uuid; v_guardian uuid; g jsonb; act text;

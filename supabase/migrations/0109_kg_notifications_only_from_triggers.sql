@@ -93,7 +93,14 @@ alter table kg_notifications add constraint kg_notifications_type_known check (
     'attendance_flagged', 'activity_decision', 'session_published',
     'application_status', 'event',
     -- 0084: written by kg_on_advance_change, absent from the client list.
-    'advance_requested'
+    -- All THREE are needed. kg_notify_advance builds its type as
+    -- 'advance_' || new.status, so approving or rejecting a salary advance
+    -- writes advance_approved / advance_rejected. Only advance_requested has
+    -- appeared in production so far — because nobody has approved a phone
+    -- request yet — and listing only what the table happens to contain would
+    -- have made the first approval fail with a constraint violation, inside
+    -- the trigger, aborting the approval itself.
+    'advance_requested', 'advance_approved', 'advance_rejected'
   )
 ) not valid;
 
