@@ -1,3 +1,4 @@
+import { algiersToday } from "@/lib/algiers";
 import { AlertCircle, CalendarDays, Info } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -16,10 +17,6 @@ import {
 import type { HolidayRow } from "@/components/modules/settings/settings-types";
 
 /** Today in Algeria (UTC+1, no DST) as YYYY-MM-DD. */
-function algiersToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Algiers" }).format(new Date());
-}
-
 export default async function HolidaysPage() {
   const ctx = await requireAdmin();
   const supabase = await createClient();

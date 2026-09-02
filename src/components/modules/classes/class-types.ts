@@ -132,12 +132,7 @@ export function yearsLabel(months: number): string {
   }).format(years);
 }
 
-/** Today's date (YYYY-MM-DD) in the Africa/Algiers timezone. */
-export function algiersToday(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Algiers",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
+// algiersToday lives in src/lib/algiers.ts; imported and re-exported so both
+// this module's own helpers and existing importers keep resolving.
+import { algiersToday } from "@/lib/algiers";
+export { algiersToday };

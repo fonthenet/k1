@@ -56,7 +56,7 @@ export function WeatherChip({ className }: { className?: string }) {
   // rather than showing a guess — a header is not the place to explain a
   // data gap, and a wrong temperature is worse than none.
   if (data === "error") return null;
-  if (data === "loading") return <Skeleton className="h-8 w-[66px] rounded-lg" />;
+  if (data === "loading") return <Skeleton className="h-8 w-[74px] rounded-lg" />;
 
   // TWO CONDITIONS, NOT ONE. `now.symbol` is the current hour; `days[0].symbol`
   // is how the day reads as a whole (MET's 06:00Z block — the school morning).
@@ -84,16 +84,18 @@ export function WeatherChip({ className }: { className?: string }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className={`gap-1.5 px-2 ${className ?? ""}`}>
-          {/* A step larger than the header's line icons on purpose: this is a
-              filled illustration with internal parts — a sun behind a cloud —
-              so at the bell's 16px the sun shrinks to a speck. 20px is where
-              the two-object conditions stay readable. */}
-          <WeatherGlyph group={dayGroup} className="size-5" />
+        {/* Default size, not sm. The bell and the avatar beside it are both
+            h-8; this was the h-7 odd one out, which is why it read small next
+            to them however big the glyph got. */}
+        <Button variant="ghost" className={`gap-1.5 px-2 ${className ?? ""}`}>
+          {/* Larger than the header's line icons on purpose: this is a filled
+              illustration with internal parts — a sun behind a cloud — so at
+              the bell's 16px the sun shrinks to a speck. */}
+          <WeatherGlyph group={dayGroup} className="size-6" />
           {/* dir=ltr: "27°" in an RTL line is a number run followed by a
               neutral, so the degree sign flips to the paragraph side and it
               renders "°27". tabular-nums so 9°→10° does not shift the bell. */}
-          <span dir="ltr" className="text-sm font-semibold tabular-nums">
+          <span dir="ltr" className="text-base font-semibold tabular-nums">
             {data.now.temperature}°
           </span>
         </Button>

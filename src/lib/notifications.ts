@@ -146,7 +146,7 @@ export function renderNotification(
   const at = str("time") || str("at");
   const time = at
     ? new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : locale === "en" ? "en-GB" : "fr-DZ", {
-        hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Africa/Algiers",
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Africa/Algiers",
       }).format(new Date(at))
     : "";
 

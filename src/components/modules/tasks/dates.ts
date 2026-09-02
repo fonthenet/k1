@@ -3,10 +3,10 @@
 
 import type { DueTone } from "./types";
 
-/** Today in Algeria as YYYY-MM-DD. */
-export function algiersToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Algiers" }).format(new Date());
-}
+// algiersToday lives in src/lib/algiers.ts; imported and re-exported so both
+// this module's own helpers and existing importers keep resolving.
+import { algiersToday } from "@/lib/algiers";
+export { algiersToday };
 
 /** Add `days` to a YYYY-MM-DD string, staying in plain-date space. */
 export function addDays(date: string, days: number): string {

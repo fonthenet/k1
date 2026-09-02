@@ -1,9 +1,9 @@
 // Date helpers for the staff module. Algeria = Africa/Algiers (UTC+1, no DST).
 
-/** Today's date in Algeria as YYYY-MM-DD. */
-export function algiersToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Algiers" }).format(new Date());
-}
+// algiersToday lives in src/lib/algiers.ts; imported and re-exported so both
+// this module's own helpers and existing importers keep resolving.
+import { algiersToday } from "@/lib/algiers";
+export { algiersToday };
 
 /** Current month in Algeria as YYYY-MM. */
 export function algiersMonth(): string {

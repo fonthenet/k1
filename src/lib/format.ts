@@ -55,9 +55,21 @@ export function intlLocale(locale: string): string {
   return locale === "ar" ? "ar-DZ" : locale === "en" ? "en-GB" : "fr-DZ";
 }
 
+/**
+ * Both formatters are pinned to Africa/Algiers. Without a timeZone, Intl
+ * formats in the HOST zone — UTC on Vercel — so an arrival stored at 23:40Z
+ * on the 30th was printed as "23:40, 30 Aug" by the server and "00:40, 31 Aug"
+ * by the browser, and the register and the child's history disagreed about
+ * which day a child came in. The zone is set before ...opts so a caller who
+ * genuinely needs another one can still say so.
+ *
+ * hourCycle "h23", not hour12:false: with hour12:false ICU picks "h24" for
+ * ar-DZ and fr-DZ and renders seven minutes past midnight as "24:07".
+ */
 export function formatDate(date: string | Date, locale = "fr", opts?: Intl.DateTimeFormatOptions): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat(intlLocale(locale), {
+    timeZone: "Africa/Algiers",
     day: "numeric", month: "short", year: "numeric", ...opts,
   }).format(d);
 }
@@ -65,7 +77,8 @@ export function formatDate(date: string | Date, locale = "fr", opts?: Intl.DateT
 export function formatTime(date: string | Date, locale = "fr"): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat(intlLocale(locale), {
-    hour: "2-digit", minute: "2-digit", hour12: false,
+    timeZone: "Africa/Algiers",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).format(d);
 }
 

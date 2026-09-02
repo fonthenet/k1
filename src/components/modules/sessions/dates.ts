@@ -11,10 +11,10 @@ function intlLocale(locale: string): string {
   return locale === "ar" ? "ar-DZ" : locale === "en" ? "en-GB" : "fr-DZ";
 }
 
-/** Today in Algeria, as YYYY-MM-DD. */
-export function algiersToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
-}
+// algiersToday lives in src/lib/algiers.ts; imported and re-exported so both
+// this module's own helpers and existing importers keep resolving.
+import { algiersToday } from "@/lib/algiers";
+export { algiersToday };
 
 /** The Algiers calendar date of an instant, as YYYY-MM-DD. */
 export function algiersDate(iso: string | Date): string {
@@ -26,7 +26,7 @@ export function algiersTime(iso: string | Date, locale: string): string {
   return new Intl.DateTimeFormat(intlLocale(locale), {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
     timeZone: TZ,
   }).format(new Date(iso));
 }
@@ -121,7 +121,7 @@ export function nextHalfHour(): string {
   const parts = new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
     timeZone: TZ,
   }).format(new Date());
   const [h, m] = parts.split(":").map(Number);

@@ -1,3 +1,4 @@
+import { algiersToday } from "@/lib/algiers";
 import {
   AlertCircle, Clock3, ExternalLink, FileText, ShieldAlert, ShieldCheck,
 } from "lucide-react";
@@ -50,10 +51,6 @@ const STATUS_ICON: Record<DocExpiryStatus, typeof FileText> = {
 };
 
 /** Today in Algeria (UTC+1, no DST) as YYYY-MM-DD. */
-function algiersToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Algiers" }).format(new Date());
-}
-
 export default async function TenantDocumentsPage() {
   const ctx = await requireAdmin();
   const supabase = await createClient();

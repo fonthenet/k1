@@ -24,9 +24,10 @@ export function algiersDateStr(d: Date): string {
   }).format(d);
 }
 
-export function algiersToday(): string {
-  return algiersDateStr(new Date());
-}
+// algiersToday lives in src/lib/algiers.ts; imported and re-exported so both
+// this module's own helpers and existing importers keep resolving.
+import { algiersToday } from "@/lib/algiers";
+export { algiersToday };
 
 /** Parse a date string at UTC noon (safe for day-of-week / day math). */
 export function parseDateStr(s: string): Date {

@@ -15,15 +15,10 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 // ----- Africa/Algiers calendar helpers (Sunday–Thursday week) -----
 
-/** Today's date in Africa/Algiers as YYYY-MM-DD. */
-export function algiersToday(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Algiers",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
+// algiersToday lives in src/lib/algiers.ts; imported and re-exported so both
+// this module's own helpers and existing importers keep resolving.
+import { algiersToday } from "@/lib/algiers";
+export { algiersToday };
 
 /** Current month in Africa/Algiers as YYYY-MM. */
 export function algiersMonth(): string {
