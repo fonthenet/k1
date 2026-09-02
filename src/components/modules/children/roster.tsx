@@ -113,6 +113,9 @@ function DualName({ child, locale }: { child: RosterChild; locale: string }) {
 /** One child as a card — the mobile row, and every row of the former group. */
 function ChildCard({ child, locale }: { child: RosterChild; locale: string }) {
   const t = useTranslations("children");
+  // The age is spelt from common.labels' ICU plurals so Arabic gets its dual
+  // and plural forms ("سنتان", "3 سنوات") instead of "2 سنوات".
+  const tc = useTranslations("common.labels");
   return (
     <Card className="relative py-0 shadow-sm transition-shadow hover:shadow-md">
       <CardContent className="flex items-center gap-3 p-3.5">
@@ -127,7 +130,7 @@ function ChildCard({ child, locale }: { child: RosterChild; locale: string }) {
             <DualName child={child} locale={locale} />
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">{ageFromDob(child.dob, locale)}</span>
+            <span className="text-xs text-muted-foreground">{ageFromDob(child.dob, tc)}</span>
             <ClassChip child={child} locale={locale} />
             <AllergyBadge child={child} />
             <NoFeePlanBadge child={child} />
@@ -149,6 +152,7 @@ export function ChildrenRoster({
   classes: ClassOption[];
 }) {
   const t = useTranslations("children");
+  const tc = useTranslations("common.labels");
   const locale = useLocale();
   const [query, setQuery] = useState("");
   const [classFilter, setClassFilter] = useState("all");
@@ -321,7 +325,7 @@ export function ChildrenRoster({
                         </Link>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
-                        {ageFromDob(c.dob, locale)}
+                        {ageFromDob(c.dob, tc)}
                       </TableCell>
                       <TableCell>
                         <ClassChip child={c} locale={locale} />

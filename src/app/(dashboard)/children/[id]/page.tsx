@@ -168,6 +168,9 @@ export default async function ChildProfilePage({
   const t = await getTranslations("children");
   const tb = await getTranslations("billing");
   const tCred = await getTranslations("credentials");
+  // The age is spelt from common.labels' ICU plurals so Arabic gets its dual
+  // and plural forms ("سنتان", "3 سنوات") instead of "2 سنوات".
+  const tc = await getTranslations("common.labels");
   const locale = await getLocale();
   const supabase = await createClient();
 
@@ -589,7 +592,7 @@ export default async function ChildProfilePage({
 
   return (
     <div>
-      <PageHeader title={name} description={ageFromDob(child.dob, locale)}>
+      <PageHeader title={name} description={ageFromDob(child.dob, tc)}>
         <Button asChild variant="ghost">
           <Link href="/children">
             <BackIcon data-icon="inline-start" />
@@ -769,7 +772,7 @@ export default async function ChildProfilePage({
                 {(
                   [
                     ["dob", formatDate(child.dob, locale)],
-                    ["age", ageFromDob(child.dob, locale)],
+                    ["age", ageFromDob(child.dob, tc)],
                     ["gender", t(`gender.${child.gender}`)],
                     ["bloodType", child.blood_type],
                     [

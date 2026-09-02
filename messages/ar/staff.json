@@ -220,7 +220,7 @@
     },
     "unpaid": "غير مدفوع",
     "perHour": "‏{amount} / ساعة",
-    "hours": "{hours} ساعة"
+    "hours": "{hours, plural, one {ساعة واحدة} two {ساعتان} few {# ساعات} many {# ساعة} other {# ساعة}}"
   },
   "invites": {
     "title": "الدعوات",

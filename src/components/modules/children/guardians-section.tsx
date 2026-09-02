@@ -204,7 +204,17 @@ function AddGuardianDialog({
                 <SelectContent>
                   {available.map((g) => (
                     <SelectItem key={g.id} value={g.id}>
-                      {g.label} — {formatPhone(g.phone)}
+                      {/* The phone is isolated as LTR: after an Arabic name the
+                          bidi algorithm reverses the digit groups ("56 34 12 0550"),
+                          and this number is what a secretary uses to tell two
+                          parents with the same name apart. Only the span is
+                          isolated — a dir on the item would flip the name too.
+                          Radix clones these children into the closed trigger, so
+                          the fix covers both. */}
+                      {g.label} —{" "}
+                      <span dir="ltr" className="tabular-nums">
+                        {formatPhone(g.phone)}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
