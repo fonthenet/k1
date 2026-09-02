@@ -1,3 +1,21 @@
+-- ⚠️  DELIBERATELY NOT APPLIED TO THE EXISTING PRODUCTION DATABASE.
+--
+-- This file exists so a FRESH deployment produces a working approval path:
+-- the live kg_approve_application matches no migration in this repo, so a
+-- clean `supabase db reset` would build a database without it.
+--
+-- Production already has a working version, and it differs from this one in
+-- shape though not in effect: the live body inlines the allergy loop (it
+-- declares `al jsonb`) where this file calls kg_copy_application_allergies.
+-- Both dedupe on lower(btrim(allergen)) and both skip blanks.
+--
+-- Replacing a working approval function on a database with a paying client on
+-- it, to gain nothing but tidiness, is not a trade worth making. So this file
+-- is applied on new deployments only. If production is ever rebuilt from
+-- migrations, this is what it gets — including the kg_copy_application_allergies
+-- prerequisite below, which the audit found absent from production entirely
+-- despite 0061 being recorded as applied.
+--
 -- 0114 — the live kg_approve_application matches no file in this directory.
 --
 -- ---------------------------------------------------------------------------

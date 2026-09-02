@@ -1,3 +1,20 @@
+-- ⚠️  NOT YET APPLIED TO PRODUCTION — see the note at the end of this header.
+--
+-- ORDERING: this file and 0120 both define kg_create_tenant. 0119 must run
+-- BEFORE 0120 only if 0120 still carries its own copy; as committed, 0119's
+-- copy is the richer one (Arabic category names, system_key, rolling holiday
+-- dates) and already contains 0120's per-wilaya name check, so applying them
+-- in numeric order is correct and neither clobbers the other.
+--
+-- WHY THIS ONE IS HELD BACK. Everything else from the fix pass is live. This
+-- migration re-keys the system accounting categories from their French NAMES
+-- onto a stable system_key, which is the right fix — today, renaming
+-- "Salaires" makes the payroll trigger recreate it and split the ledger in
+-- two. But it rewrites the category rows a paying client's ledger already
+-- points at, and the failure mode is a ledger that no longer adds up. It
+-- wants a backup and a deliberate window, not a batch apply. The bug it fixes
+-- only bites when somebody renames a system category, which has not happened.
+--
 -- 0119 — the ledger's system categories are known by a French word, and only
 --        by that word.
 --
@@ -229,7 +246,12 @@ declare v_tenant uuid; v_uid uuid := auth.uid();
 begin
   if v_uid is null then raise exception 'auth required'; end if;
 
-  if exists (select 1 from kg_tenants where lower(btrim(name)) = lower(btrim(p_name))) then
+  -- Per WILAYA, matching kg_tenants_name_wilaya_unique from 0120. A
+  -- platform-wide check here would refuse a name the index would accept, and
+  -- one test tenant would block every crèche in the country sharing its name.
+  if exists (select 1 from kg_tenants
+     where lower(btrim(name)) = lower(btrim(p_name))
+       and lower(btrim(coalesce(wilaya, ''))) = lower(btrim(coalesce(p_wilaya, '')))) then
     raise exception 'name_taken' using errcode = 'unique_violation';
   end if;
   if exists (select 1 from kg_tenants where slug = p_slug) then

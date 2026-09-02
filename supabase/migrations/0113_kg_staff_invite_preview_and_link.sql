@@ -1,3 +1,11 @@
+-- ⚠️  ORDERING: this file and 0118 both define kg_accept_staff_invite, for
+--     different reasons — the link-and-bind logic here, the notification
+--     language there. Applied in numeric order the later one silently drops
+--     the earlier one's work. Production has a MERGED body carrying both;
+--     every kg_bootstrap_profile(v_uid) call below must read
+--     kg_bootstrap_profile(v_uid, v_locale), with v_locale selected from
+--     kg_tenants.default_locale at the top of the function. Fixed below.
+--
 -- 0113 — a staff invite is a bearer link that says nothing until after you
 -- have created an account, binds to nobody, and duplicates the person it was
 -- meant for.
@@ -114,6 +122,7 @@ declare
   v_member kg_memberships;
   v_rank_invite int;
   v_rank_existing int;
+  v_locale text;
 begin
   if v_uid is null then raise exception 'auth required'; end if;
 
@@ -121,6 +130,8 @@ begin
   if v.id is null or v.accepted_at is not null or v.expires_at <= now() then
     raise exception 'invalid_invite';
   end if;
+
+  select default_locale into v_locale from kg_tenants where id = v.tenant_id;
 
   -- A bound invite belongs to one address. The alias domain for phone
   -- sign-ups is an ordinary email string on auth.users, so one comparison
@@ -148,7 +159,7 @@ begin
        set user_id = v_uid, status = 'active', updated_at = now()
      where id = v_member.id;
 
-    perform kg_bootstrap_profile(v_uid);
+    perform kg_bootstrap_profile(v_uid, v_locale);
     -- The director's spelling of the name is better than an empty profile.
     update kg_profiles
        set full_name = v_member.full_name
@@ -158,7 +169,7 @@ begin
   elsif v_existing.id is null then
     insert into kg_memberships (tenant_id, user_id, role, job_title, status)
       values (v.tenant_id, v_uid, v.role, v.job_title, 'active');
-    perform kg_bootstrap_profile(v_uid);
+    perform kg_bootstrap_profile(v_uid, v_locale);
 
   else
     -- Already a member. Re-activate if needed; change the role only upward.
@@ -175,7 +186,7 @@ begin
            job_title = coalesce(job_title, v.job_title),
            updated_at = now()
      where id = v_existing.id;
-    perform kg_bootstrap_profile(v_uid);
+    perform kg_bootstrap_profile(v_uid, v_locale);
   end if;
 
   update kg_staff_invites set accepted_at = now() where id = v.id;

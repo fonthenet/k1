@@ -1,3 +1,8 @@
+-- NOTE ON kg_create_tenant. This file and 0119 both define it. The copy below
+-- is the standalone one, correct without 0119 — which is what production got,
+-- because 0119 is held back. When 0119 is applied, ITS copy supersedes this
+-- one and is the better of the two; it carries the same per-wilaya name check.
+--
 -- 0120 — an establishment name is reserved within its wilaya, not across Algeria.
 --
 -- ---------------------------------------------------------------------------
