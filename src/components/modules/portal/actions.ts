@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, type TenantContext } from "@/lib/tenant";
@@ -10,7 +11,7 @@ import { CONSENT_TYPES } from "@/components/modules/children/types";
 import { serializeHealthList } from "./health-edit-shared";
 // One phone rule for the whole portal — the forms mirror this exact regex.
 import { PHONE_RE } from "./portal-types";
-import { setLocale } from "@/app/actions/locale";
+import { setActiveTenant, setLocale } from "@/app/actions/locale";
 
 type ActionError = "generic" | "forbidden" | "invalid" | "duplicate";
 type Result = { ok: true } | { ok: false; error: ActionError };
@@ -1124,4 +1125,45 @@ export async function removeMyChildPhoto(childId: string): Promise<ChildPhotoRes
   // Fire the queued push now — best-effort, never affects this action's result.
   await flushPush();
   return { ok: true };
+}
+
+// ------------------------------------------------ switching between crèches
+
+/**
+ * Follows a notification that belongs to ANOTHER crèche the parent is a
+ * member of.
+ *
+ * The bell is one list for every membership (kg_notifications rows carry
+ * their own tenant_id), so a parent with a child in two crèches can tap a
+ * row whose deep link only resolves under the other tenant cookie. Switching
+ * first and then landing on the link is what makes that tap work; without it
+ * the child page said "file unavailable" for a child the parent plainly has.
+ *
+ * Membership is verified here rather than trusting the id in the row, and the
+ * destination is confined to the portal so a crafted href can never carry the
+ * cookie switch onto a staff page. `chooseWorkspace` (onboarding/actions.ts)
+ * does the same check for the topbar switcher; it always lands on /portal,
+ * which is why this variant takes a destination.
+ */
+export async function openInCreche(tenantId: string, href: string): Promise<void> {
+  if (!z.uuid().safeParse(tenantId).success) redirect("/portal");
+  const target = href.startsWith("/portal") && !href.startsWith("//") ? href : "/portal";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?next=/portal");
+
+  const { data: membership } = await supabase
+    .from("kg_memberships")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle();
+  if (!membership) redirect("/portal");
+
+  await setActiveTenant(tenantId);
+  redirect(target);
 }

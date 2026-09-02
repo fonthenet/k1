@@ -87,12 +87,21 @@ export default async function PortalPaymentsPage() {
     );
   }
 
+  // Newest month first, then newest number. The list used to sort on
+  // issue_date alone, and a monthly batch shares ONE issue_date — the cron
+  // writes every draft of the month in a single run — so Postgres returned
+  // the batch in whatever order it pleased, and a family with two children
+  // saw September above August on one visit and below it on the next. The
+  // admission invoice carries no period_month; it sorts after the months
+  // rather than in front of them, because the months are what a parent is
+  // looking for.
   const { data: invoiceRows } = await supabase
     .from("kg_invoices")
     .select("id, child_id, number, period_month, issue_date, status, total, paid_amount, due_date")
     .eq("tenant_id", ctx.tenant.id)
     .in("child_id", childIds)
-    .order("issue_date", { ascending: false })
+    .order("period_month", { ascending: false, nullsFirst: false })
+    .order("number", { ascending: false })
     .limit(120);
   const invoices = (invoiceRows ?? []) as InvoiceRow[];
   const invoiceIds = invoices.map((i) => i.id);
@@ -186,6 +195,20 @@ export default async function PortalPaymentsPage() {
       .sort()[0] ?? null;
   const anyOverdue = openInvoices.some((inv) => inv.due_date != null && inv.due_date < today);
   const hasInvoices = invoices.length > 0;
+
+  // What THIS crèche says about paying (kg_tenants.payment_instructions,
+  // 0117). The card below used to be one hardcoded sentence about cash for
+  // every tenant; a crèche that takes a CCP or a transfer had nowhere to say
+  // so. Split into lines because a CCP is a run of digit groups, and a run of
+  // digit groups inside an Arabic paragraph is reordered by the bidi
+  // algorithm: a line with no Arabic letters is pinned LTR, a line of Arabic
+  // prose keeps its own direction.
+  const instructionLines = (
+    (ctx.tenant as { payment_instructions?: string | null }).payment_instructions ?? ""
+  )
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   return (
     <div className="grid gap-5">
@@ -305,11 +328,27 @@ export default async function PortalPaymentsPage() {
           <div className="border-t pt-3.5">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <Banknote className="size-4 shrink-0 text-gold-ink" aria-hidden />
-              {t("payments.cash.title")}
+              {instructionLines.length > 0
+                ? t("payments.instructions.title")
+                : t("payments.cash.title")}
             </div>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              {t("payments.cash.body")}
-            </p>
+            {instructionLines.length > 0 ? (
+              <div className="mt-1 grid gap-0.5 text-sm leading-relaxed text-muted-foreground">
+                {instructionLines.map((line, i) => (
+                  <p
+                    key={i}
+                    dir={/\p{Script=Arabic}/u.test(line) ? "auto" : "ltr"}
+                    className="text-start tabular-nums"
+                  >
+                    {line}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {t("payments.cash.body")}
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

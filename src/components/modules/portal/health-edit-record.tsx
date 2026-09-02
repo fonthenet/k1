@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Pencil, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -22,8 +22,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { formatDate, formatTime } from "@/lib/format";
 import { upsertChildHealth } from "./actions";
 import type { HealthListItem, PortalHealthRecord } from "./health-edit-shared";
+import { NewConversationDialog, type ConversationChildOption } from "./new-conversation-dialog";
 
 const EMPTY_RECORD: PortalHealthRecord = {
   medicalConditions: [],
@@ -318,11 +320,18 @@ function HealthRecordDialog({
 export function HealthEditRecord({
   childId,
   health,
+  updatedAt,
+  childrenOptions,
 }: {
   childId: string;
   health: PortalHealthRecord | null;
+  /** kg_child_health.updated_at — null when no record exists yet. */
+  updatedAt?: string | null;
+  /** The family's children, for the prefilled "ask the office" conversation. */
+  childrenOptions?: ConversationChildOption[];
 }) {
   const t = useTranslations("portal.child.health");
+  const locale = useLocale();
   const record = health ?? EMPTY_RECORD;
 
   const filledLists = LIST_FIELDS.filter((f) => record[f.key].length > 0);
@@ -368,16 +377,44 @@ export function HealthEditRecord({
         </dl>
       )}
 
+      {/* When the file last moved. Both the family and the office write this
+          record, and a parent reading "no allergies" needs to know whether
+          that is last week's answer or last year's. kg_child_health keeps no
+          author column, so this says WHEN and not WHO — adding `updated_by`
+          is a schema change for a later migration. */}
+      {updatedAt && (
+        <p className="text-xs text-muted-foreground tabular-nums">
+          {t("updatedAt", {
+            date: `${formatDate(updatedAt, locale)} · ${formatTime(updatedAt, locale)}`,
+          })}
+        </p>
+      )}
+
       <HealthRecordDialog childId={childId} record={record} />
 
       <Separator />
       {/* Name and date of birth come from the birth certificate and feed the
-          décret 19-253 registers — the office owns them, never the portal. */}
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        {t("identityNote")}{" "}
-        <Link href="/portal/messages" className="font-medium text-primary underline-offset-4 hover:underline">
-          {t("identityLink")}
-        </Link>
+          décret 19-253 registers — the office owns them, never the portal.
+          The link used to drop the parent into the inbox to start from a
+          blank form; it now opens a conversation about THIS child with the
+          subject already written, so the correction reaches the office as a
+          correction and not as "hello". */}
+      <p className="flex flex-wrap items-center gap-x-1 text-xs leading-relaxed text-muted-foreground">
+        {t("identityNote")}
+        {childrenOptions && childrenOptions.length > 0 ? (
+          <NewConversationDialog
+            childrenOptions={childrenOptions}
+            preset="correction"
+            defaultChildId={childId}
+            variant="ghost"
+            label={t("identityLink")}
+            className="h-auto px-1 py-0.5 text-xs font-medium text-primary hover:text-primary"
+          />
+        ) : (
+          <Link href="/portal/messages" className="font-medium text-primary underline-offset-4 hover:underline">
+            {t("identityLink")}
+          </Link>
+        )}
       </p>
     </div>
   );

@@ -6,7 +6,8 @@
     "messages": "Messages",
     "payments": "Paiements",
     "announcements": "Actualités",
-    "unreadMessages": "{count, plural, =0 {Aucun message non lu} one {# message non lu} other {# messages non lus}}"
+    "unreadMessages": "{count, plural, =0 {Aucun message non lu} one {# message non lu} other {# messages non lus}}",
+    "switchCreche": "Changer de crèche"
   },
   "error": {
     "title": "Impossible d'afficher cette page",
@@ -50,6 +51,19 @@
       "by": "À régler avant le {date}",
       "overdue": "En retard — merci de régulariser",
       "pending": "Facture en attente de règlement"
+    },
+    "inactive": {
+      "withdrawn": "A quitté la crèche",
+      "alumni": "A quitté la crèche — ancien(ne)",
+      "waitlist": "Sur liste d'attente — pas encore de présences",
+      "pending": "Demande en cours d'examen — pas encore de présences"
+    },
+    "today": {
+      "label": "Aujourd'hui",
+      "arrival": "Arrivée",
+      "nap": "Sieste",
+      "lunch": "Déjeuner",
+      "departure": "Départ"
     }
   },
   "checkin": {
@@ -155,7 +169,10 @@
       "subjectPlaceholder": "demande de changement d'heure de sortie",
       "message": "Message",
       "messagePlaceholder": "Écrivez votre message à la crèche…",
-      "created": "Votre conversation a été envoyée à la crèche"
+      "created": "Votre conversation a été envoyée à la crèche",
+      "presets": {
+        "correction": "Correction du dossier de {name}"
+      }
     }
   },
   "absence": {
@@ -208,7 +225,16 @@
       "napFrom": "à partir de {time}",
       "napUntil": "jusqu'à {time}",
       "activities": "Activités",
-      "notes": "Notes de l'éducatrice"
+      "notes": "Notes de l'éducatrice",
+      "napNone": "N'a pas dormi",
+      "napSlept": "A dormi",
+      "napMinutes": "A dormi {minutes} min",
+      "eaten": {
+        "all": "A tout mangé",
+        "half": "A mangé la moitié",
+        "little": "A peu mangé",
+        "none": "N'a rien mangé"
+      }
     },
     "attendance": {
       "title": "Présences du mois",
@@ -231,7 +257,11 @@
         "late": "En retard",
         "excused": "Excusé",
         "sick": "Malade"
-      }
+      },
+      "month": "Présences — {month}",
+      "emptyMonth": "Aucune présence enregistrée en {month}.",
+      "prevMonth": "Mois précédent",
+      "nextMonth": "Mois suivant"
     },
     "health": {
       "allergiesTitle": "Allergies",
@@ -318,7 +348,8 @@
         "anaphylaxis": "Choc anaphylactique",
         "other": "Autre…"
       },
-      "otherLabel": "Précisez"
+      "otherLabel": "Précisez",
+      "updatedAt": "Dernière mise à jour le {date}"
     },
     "activities": {
       "enrolledTitle": "Activités de l'enfant",
@@ -463,7 +494,10 @@
       "dueDay": "Exigible le {day} de chaque mois"
     },
     "dueBy": "À régler avant le {date}",
-    "overdueHint": "En retard — merci de passer au bureau"
+    "overdueHint": "En retard — merci de passer au bureau",
+    "instructions": {
+      "title": "Comment payer"
+    }
   },
   "announcements": {
     "title": "Actualités",

@@ -1,10 +1,11 @@
 "use client";
 
+import { useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { LogOut, UserRound } from "lucide-react";
+import { Check, ChevronDown, LogOut, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -16,17 +17,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { setLocale } from "@/app/actions/locale";
+import { chooseWorkspace } from "@/app/onboarding/actions";
 import { createClient } from "@/lib/supabase/client";
 import { initials } from "@/lib/format";
 
+export interface PortalWorkspace {
+  tenantId: string;
+  name: string;
+}
+
 export function PortalTopbar({
   tenantName,
+  tenantId,
+  workspaces = [],
   userName,
   email,
   logoUrl,
   notifications,
 }: {
   tenantName: string;
+  tenantId?: string;
+  /**
+   * Every crèche this account can open. With two or more, the name in the
+   * bar becomes the switcher; with one it stays plain text — a menu with a
+   * single entry is a question with no answer.
+   */
+  workspaces?: PortalWorkspace[];
   userName: string;
   email: string | null;
   /** The crèche's own logo. The sunflower is the fallback, not the default. */
@@ -39,6 +55,7 @@ export function PortalTopbar({
   const t = useTranslations("portal");
   const tc = useTranslations("common");
   const [first = "", last = ""] = userName.split(" ");
+  const [switching, startSwitching] = useTransition();
 
   async function logout() {
     await createClient().auth.signOut();
@@ -68,7 +85,47 @@ export function PortalTopbar({
               🌻
             </span>
           )}
-          <span className="truncate text-base font-semibold tracking-tight">{tenantName}</span>
+          {workspaces.length > 1 ? (
+            // Each entry submits a form bound to the EXISTING chooseWorkspace
+            // action, which re-verifies the membership server-side and sets
+            // the tenant cookie — the client never writes the cookie itself.
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="-ms-2 h-9 min-w-0 gap-1 px-2 text-base font-semibold tracking-tight"
+                  aria-label={t("shell.switchCreche")}
+                >
+                  <span className="truncate">{tenantName}</span>
+                  <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuLabel>{t("shell.switchCreche")}</DropdownMenuLabel>
+                {workspaces.map((w) => (
+                  <DropdownMenuItem
+                    key={w.tenantId}
+                    disabled={switching}
+                    aria-current={w.tenantId === tenantId ? "true" : undefined}
+                    // A transition rather than a <form> inside the menu item:
+                    // Radix closes the menu on select, and a form submit that
+                    // races the unmount is exactly the kind of "tap did
+                    // nothing" a parent will not retry. The action redirects
+                    // on success, so nothing here has to navigate.
+                    onSelect={() => startSwitching(() => chooseWorkspace(w.tenantId))}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{w.name}</span>
+                    {w.tenantId === tenantId && (
+                      <Check className="size-4 shrink-0 text-primary" aria-hidden />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <span className="truncate text-base font-semibold tracking-tight">{tenantName}</span>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {notifications}

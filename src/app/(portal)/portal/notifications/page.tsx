@@ -22,11 +22,22 @@ export default async function PortalNotificationsPage() {
     .order("created_at", { ascending: false })
     .limit(100);
 
+  // One bell for every crèche the account belongs to — the rows carry their
+  // own tenant_id — but a row from ANOTHER crèche has to say so, and its deep
+  // link only resolves once the tenant cookie points there. The list gets the
+  // names to label such rows and the active id to tell them apart.
+  const tenantNames: Record<string, string> = {};
+  for (const m of ctx.memberships) {
+    if (m.kg_tenants) tenantNames[m.tenant_id] = m.kg_tenants.name;
+  }
+
   return (
     <NotificationList
       initial={(data ?? []) as KgNotification[]}
       userId={ctx.user.id}
       nowIso={new Date().toISOString()}
+      activeTenantId={ctx.tenant.id}
+      tenantNames={tenantNames}
     >
       {/* The toggle renders nothing while it works out what the browser
           supports, and nothing is the right answer for the card too. */}

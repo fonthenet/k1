@@ -34,11 +34,13 @@ import {
   getMyChildren,
   getMyGuardianBadge,
   monthRange,
+  shiftMonth,
   toCheckinDialogChildren,
   type PortalChildRow,
 } from "@/components/modules/portal/data";
 import {
   attendanceStatusClasses,
+  eatenKey,
   MOOD_EMOJI,
   parseMeals,
   parseNap,
@@ -71,16 +73,23 @@ import { getDuesByChild } from "@/components/modules/portal/dues";
 const TABS = ["journal", "attendance", "health", "activities", "permissions"] as const;
 type TabKey = (typeof TABS)[number];
 
-const ATTENDANCE_SUMMARY = ["present", "absent", "late", "sick"] as const;
+// Every status the register can hold. "excused" was left out of the counters,
+// so an absence the office had filed as authorised counted nowhere and the
+// four boxes summed to fewer days than the list beneath them.
+const ATTENDANCE_SUMMARY = ["present", "absent", "late", "excused", "sick"] as const;
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const FEE_PERIODS: FeePeriod[] = ["once", "monthly", "quarterly", "yearly", "per_session"];
 const SEVERITIES: AllergySeverity[] = ["mild", "moderate", "severe"];
+const MONTH_RE = /^\d{4}-\d{2}$/;
 
-/** Tone of the four attendance counters at the top of the attendance tab. */
+/** Tone of the attendance counters at the top of the attendance tab. */
 const SUMMARY_TONE: Record<(typeof ATTENDANCE_SUMMARY)[number], string> = {
   present: "text-success",
   absent: "text-destructive",
   late: "text-warning",
+  // Neutral: an excused day is filed, not alarming — the same reading the
+  // staff register gives it (attendance/status-config.ts).
+  excused: "text-muted-foreground",
   sick: "text-destructive",
 };
 
@@ -140,6 +149,7 @@ type HealthRow = {
   doctor_name: string | null;
   doctor_phone: string | null;
   emergency_notes: string | null;
+  updated_at: string | null;
 };
 
 type ActivityRow = {
@@ -224,7 +234,7 @@ export default async function PortalChildDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; month?: string }>;
 }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const ctx = await getTenantContext();
@@ -235,6 +245,15 @@ export default async function PortalChildDetailPage({
   const tab: TabKey = (TABS as readonly string[]).includes(sp.tab ?? "")
     ? (sp.tab as TabKey)
     : "journal";
+
+  // Which month the attendance tab shows. It was pinned to the current
+  // calendar month with no way back, so on the 1st every parent opened four
+  // zero counters, and August — the month on the invoice they were disputing
+  // — was unreachable. Clamped to the present: a future month has no rows and
+  // a link to one is a link to an empty page.
+  const currentMonth = algiersMonth();
+  const month =
+    sp.month && MONTH_RE.test(sp.month) && sp.month <= currentMonth ? sp.month : currentMonth;
 
   // getMyChildren enforces the guardian link on top of kg_is_parent_of RLS.
   const children = await getMyChildren(supabase, ctx);
@@ -262,7 +281,7 @@ export default async function PortalChildDetailPage({
     );
   }
 
-  const { start: monthStart, end: monthEnd } = monthRange(algiersMonth());
+  const { start: monthStart, end: monthEnd } = monthRange(month);
 
   // Allergies always load: the header carries the safety badge on every tab.
   // So does the door badge, which is per guardian and therefore fetched once
@@ -337,7 +356,7 @@ export default async function PortalChildDetailPage({
       ? supabase
           .from("kg_child_health")
           .select(
-            "medical_conditions, medications, vaccinations, dietary_restrictions, special_needs, doctor_name, doctor_phone, emergency_notes"
+            "medical_conditions, medications, vaccinations, dietary_restrictions, special_needs, doctor_name, doctor_phone, emergency_notes, updated_at"
           )
           .eq("child_id", child.id)
           .maybeSingle()
@@ -378,6 +397,10 @@ export default async function PortalChildDetailPage({
 
   const name = childDisplayName(child, locale);
   const cls = classLabel(child, locale);
+  // The family's children by name, for the prefilled "ask the office"
+  // conversation on the health tab. Names only — serialisable across the
+  // client boundary.
+  const childrenOptions = children.map((c) => ({ id: c.id, name: childDisplayName(c, locale) }));
 
   // Same helper the children list and the home screen use, so one child cannot
   // read as settled on one screen and owing on another.
@@ -566,12 +589,17 @@ export default async function PortalChildDetailPage({
               and top-right in fr/en without a physical-direction utility. The
               row below reserves `pe-12` for it so a long Arabic name or the
               allergy badge wraps rather than sliding underneath at 375px. */}
-          <CheckinDialog
-            badge={badge}
-            child={checkinChildren.find((c) => c.id === child.id)}
-            trigger="corner"
-            className="absolute top-2 end-2 z-10"
-          />
+          {/* Only for a child who attends: the kiosk refuses a withdrawn or
+              waitlisted child's arrival anyway (0069), and a badge that scans
+              to a refusal is worse than no badge. */}
+          {child.status === "enrolled" && (
+            <CheckinDialog
+              badge={badge}
+              child={checkinChildren.find((c) => c.id === child.id)}
+              trigger="corner"
+              className="absolute top-2 end-2 z-10"
+            />
+          )}
           <CardContent className="flex items-center gap-3.5 pe-12">
             {/* Tapping the face opens the camera: this photo is what staff
                 hold up against the child at the door, so the family keeps it
@@ -597,6 +625,16 @@ export default async function PortalChildDetailPage({
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                 <span>{ageFromDob(child.dob, locale)}</span>
+                {/* Said only when it is not "enrolled" — the same rule as the
+                    children list, and the reason the badge above is missing. */}
+                {child.status !== "enrolled" && (
+                  <Badge
+                    variant={child.status === "withdrawn" ? "destructive" : "secondary"}
+                    className="text-[0.6875rem]"
+                  >
+                    {t(`children.status.${child.status}`)}
+                  </Badge>
+                )}
                 {cls && (
                   <span className="inline-flex items-center gap-1.5">
                     <span
@@ -655,7 +693,14 @@ export default async function PortalChildDetailPage({
           return (
             <Link
               key={key}
-              href={`/portal/children/${child.id}?tab=${key}`}
+              // The month travels only with the attendance tab — it means
+              // nothing to the others, and a stale ?month= on the journal
+              // would be carried back into attendance later as a surprise.
+              href={
+                key === "attendance" && month !== currentMonth
+                  ? `/portal/children/${child.id}?tab=attendance&month=${month}`
+                  : `/portal/children/${child.id}?tab=${key}`
+              }
               // Without this the tab strip jumps to the top of the document on
               // every tap, which on a phone reads as a page reload.
               scroll={false}
@@ -688,6 +733,8 @@ export default async function PortalChildDetailPage({
               const nap = parseNap(report.nap);
               const napStart = napLabel(nap?.start ?? null, locale);
               const napEnd = napLabel(nap?.end ?? null, locale);
+              // Clock times first, then the {slept, minutes} shape the demo
+              // tenant and the mobile app write — see parseNap for why both.
               const napText =
                 napStart && napEnd
                   ? t("child.journal.napRange", { start: napStart, end: napEnd })
@@ -695,7 +742,13 @@ export default async function PortalChildDetailPage({
                     ? t("child.journal.napFrom", { time: napStart })
                     : napEnd
                       ? t("child.journal.napUntil", { time: napEnd })
-                      : null;
+                      : nap?.slept === false
+                        ? t("child.journal.napNone")
+                        : nap?.minutes && nap.minutes > 0
+                          ? t("child.journal.napMinutes", { minutes: nap.minutes })
+                          : nap?.slept
+                            ? t("child.journal.napSlept")
+                            : null;
               return (
                 <Card key={report.id} className="bg-gold-muted/40 shadow-sm ring-gold/25">
                   <CardHeader className="flex flex-row items-center gap-3">
@@ -720,14 +773,21 @@ export default async function PortalChildDetailPage({
                             {t("child.journal.meals")}
                           </div>
                           <ul className="mt-1 grid gap-0.5">
-                            {meals.map((m, i) => (
-                              <li key={i}>
-                                {m.meal}
-                                {m.eaten && (
-                                  <span className="text-muted-foreground"> — {m.eaten}</span>
-                                )}
-                              </li>
-                            ))}
+                            {meals.map((m, i) => {
+                              // "tout" / "moitié" as the educator typed it,
+                              // in the reader's language; unknown words pass
+                              // through rather than vanish.
+                              const key = eatenKey(m.eaten);
+                              const eaten = key ? t(`child.journal.eaten.${key}`) : m.eaten;
+                              return (
+                                <li key={i}>
+                                  {m.meal}
+                                  {eaten && (
+                                    <span className="text-muted-foreground"> — {eaten}</span>
+                                  )}
+                                </li>
+                              );
+                            })}
                           </ul>
                         </div>
                       </div>
@@ -778,17 +838,46 @@ export default async function PortalChildDetailPage({
           </div>
         ))}
 
-      {/* ===== Présences (this month) ===== */}
+      {/* ===== Présences (one month, navigable) ===== */}
       {tab === "attendance" && (
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center gap-3">
             <IconTile tone="primary">
               <CalendarCheck />
             </IconTile>
-            <CardTitle className="text-base font-semibold">{t("child.attendance.title")}</CardTitle>
+            <CardTitle className="min-w-0 flex-1 text-base font-semibold">
+              {t("child.attendance.month", { month: monthLabel(month, locale) })}
+            </CardTitle>
+            {/* Previous / next, mirroring the staff child file. Next is
+                disabled — not hidden — at the current month, so the pair
+                keeps its place and a thumb does not land on the wrong one. */}
+            <div className="flex shrink-0 items-center gap-1">
+              <Button asChild variant="outline" size="icon" aria-label={t("child.attendance.prevMonth")}>
+                <Link
+                  href={`/portal/children/${child.id}?tab=attendance&month=${shiftMonth(month, -1)}`}
+                  scroll={false}
+                >
+                  <BackIcon />
+                </Link>
+              </Button>
+              {month < currentMonth ? (
+                <Button asChild variant="outline" size="icon" aria-label={t("child.attendance.nextMonth")}>
+                  <Link
+                    href={`/portal/children/${child.id}?tab=attendance&month=${shiftMonth(month, 1)}`}
+                    scroll={false}
+                  >
+                    <BackIcon className="rotate-180" />
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="outline" size="icon" aria-label={t("child.attendance.nextMonth")} disabled>
+                  <BackIcon className="rotate-180" />
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="grid gap-4 p-0">
-            <div className="grid grid-cols-4 gap-2 px-4">
+            <div className="grid grid-cols-5 gap-2 px-4">
               {ATTENDANCE_SUMMARY.map((k) => (
                 <div key={k} className="rounded-xl bg-muted/60 px-2 py-2.5 text-center">
                   <div className={cn("text-xl font-bold tabular-nums", SUMMARY_TONE[k])}>
@@ -802,7 +891,7 @@ export default async function PortalChildDetailPage({
             </div>
             {attendance.length === 0 ? (
               <p className="px-4 pb-4 text-center text-sm text-muted-foreground">
-                {t("child.attendance.empty")}
+                {t("child.attendance.emptyMonth", { month: monthLabel(month, locale) })}
               </p>
             ) : (
               <ul className="divide-y border-t">
@@ -888,7 +977,12 @@ export default async function PortalChildDetailPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <HealthEditRecord childId={child.id} health={healthRecord} />
+              <HealthEditRecord
+                childId={child.id}
+                health={healthRecord}
+                updatedAt={healthRow?.updated_at ?? null}
+                childrenOptions={childrenOptions}
+              />
             </CardContent>
           </Card>
         </div>

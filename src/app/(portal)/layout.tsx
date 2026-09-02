@@ -30,10 +30,19 @@ export default async function PortalLayout({ children }: { children: React.React
     countUnreadMessages(ctx.tenant.id, ctx.user.id),
   ]);
 
+  // Every crèche this account belongs to. A parent with a child in two
+  // crèches had a working switcher at /onboarding and no way to reach it from
+  // here; the topbar shows one only when there is genuinely a choice.
+  const workspaces = ctx.memberships
+    .filter((m) => m.kg_tenants)
+    .map((m) => ({ tenantId: m.tenant_id, name: m.kg_tenants.name }));
+
   return (
     <div className="min-h-dvh bg-muted/40">
       <PortalTopbar
         tenantName={ctx.tenant.name}
+        tenantId={ctx.tenant.id}
+        workspaces={workspaces}
         userName={profile?.full_name || displayIdentity(ctx.user.email) || ""}
         email={displayIdentity(ctx.user.email)}
         logoUrl={logoUrl}

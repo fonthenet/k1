@@ -6,7 +6,7 @@
 // stores a structured type + data payload, so the same row reads in Arabic
 // for one parent and in French for the other.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useMessages, useTranslations } from "next-intl";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { algiersDay, shiftDay } from "@/components/modules/notifications/dates";
 import { NotificationIcon } from "@/components/modules/notifications/meta";
 import { markNotificationsRead } from "@/components/modules/notifications/read-sync";
+import { openInCreche } from "./actions";
 import { useNotificationInserts } from "./notification-stream";
 
 const INTL_LOCALE: Record<Locale, string> = { ar: "ar-DZ", en: "en-GB", fr: "fr-DZ" };
@@ -72,12 +73,18 @@ export function NotificationList({
   initial,
   userId,
   nowIso,
+  activeTenantId,
+  tenantNames = {},
   children,
 }: {
   initial: KgNotification[];
   userId: string;
   /** The server's clock, so the first paint of a relative stamp matches. */
   nowIso: string;
+  /** The crèche the portal is currently showing. */
+  activeTenantId?: string;
+  /** Crèche names by tenant id, for rows that belong to another membership. */
+  tenantNames?: Record<string, string>;
   /** Slot between the header and the list — the push toggle lives here. */
   children?: React.ReactNode;
 }) {
@@ -85,6 +92,15 @@ export function NotificationList({
   const locale = useLocale() as Locale;
   const messages = useMessages().notifications as Record<string, unknown>;
   const router = useRouter();
+  const [, startSwitch] = useTransition();
+
+  /**
+   * A row from another crèche: named, and opened through `openInCreche` so the
+   * tenant cookie points at that crèche before the deep link resolves.
+   * Tenant-less rows (platform notices) are never "foreign".
+   */
+  const foreignTenant = (n: KgNotification): string | null =>
+    activeTenantId && n.tenant_id && n.tenant_id !== activeTenantId ? n.tenant_id : null;
 
   // The server render stays the source of truth. Everything the client learns
   // on its own is kept as an overlay on top of it, so a refresh can never
@@ -190,12 +206,18 @@ export function NotificationList({
                 {items.map((n) => {
                   const isUnread = !n.read_at;
                   const { title, body } = renderNotification(n, messages, locale);
+                  const href = notificationHref(n, true);
+                  const otherTenant = foreignTenant(n);
                   return (
                     <li key={n.id}>
                       <Link
-                        href={notificationHref(n, true)}
-                        onClick={() => {
+                        href={href}
+                        onClick={(e) => {
                           if (isUnread) markRead([n.id]);
+                          if (otherTenant) {
+                            e.preventDefault();
+                            startSwitch(() => openInCreche(otherTenant, href));
+                          }
                         }}
                         className={cn(
                           "flex min-h-16 items-start gap-3 rounded-xl px-3 py-3 text-start transition-colors",
@@ -225,6 +247,12 @@ export function NotificationList({
                           {body && (
                             <span className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                               {body}
+                            </span>
+                          )}
+                          {/* Which crèche, when it is not the one on screen. */}
+                          {otherTenant && (
+                            <span className="truncate text-[11px] font-medium text-muted-foreground">
+                              {tenantNames[otherTenant] ?? ""}
                             </span>
                           )}
                         </span>
