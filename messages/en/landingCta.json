@@ -97,24 +97,9 @@
         "wilayaPlaceholder": "Choose your wilaya",
         "phoneLabel": "Phone number",
         "phonePlaceholder": "05 00 00 00 00",
-        "phoneHint": "We only use it to reach you when your account is created — nothing else.",
+        "phoneHint": "We keep it only to call you back and help you get started — nothing else.",
         "phoneError": "Enter a valid Algerian number (at least 9 digits)."
       }
-    },
-    "wilayas": {
-      "jijel": "Jijel",
-      "alger": "Algiers",
-      "oran": "Oran",
-      "constantine": "Constantine",
-      "setif": "Sétif",
-      "annaba": "Annaba",
-      "bejaia": "Béjaïa",
-      "batna": "Batna",
-      "blida": "Blida",
-      "tiziouzou": "Tizi Ouzou",
-      "skikda": "Skikda",
-      "mila": "Mila",
-      "other": "Another wilaya"
     },
     "back": "Back",
     "next": "Next",
@@ -134,7 +119,7 @@
       "empty": "Not specified",
       "cta": "Create your centre's space",
       "restart": "Start over",
-      "note": "Nothing was sent anywhere — your answers stayed in this browser, and only serve to suggest a starting point.",
+      "note": "We kept your answers and your number so we can call you and prepare your setup. Nothing is shared with anyone else, and you can create your account without waiting for the call.",
       "noteOffline": "We could not save your number. Create your account directly, or try again later."
     },
     "sending": "Sending…"
@@ -178,8 +163,8 @@
         "features": [
           "Everything in Pro",
           "Unlimited centres",
-          "Consolidated group dashboard",
-          "Advanced roles and permissions per team",
+          "Switch between your centres from one account",
+          "Own team and roles per centre",
           "Dedicated onboarding support"
         ]
       }
@@ -199,7 +184,7 @@
     "items": {
       "security": {
         "q": "Is children's data safe?",
-        "a": "Yes. Everything is stored encrypted, and each centre is fully isolated from every other: a user only ever sees the children of their own centre, and only what their role allows. Backups run daily, and you can export all of your data whenever you want."
+        "a": "Yes. Everything is stored encrypted, and each centre is fully isolated from every other: a user only ever sees the children of their own centre, and only what their role allows. Backups run daily, and you can export your attendance, billing, team and registry reports as CSV at any time."
       },
       "cash": {
         "q": "Most of my parents pay in cash. Is that supported?",
@@ -211,7 +196,7 @@
       },
       "multi": {
         "q": "I run more than one centre. Can I manage them all?",
-        "a": "Yes, with the Network plan. Switch between your centres from the same account in one click, with a consolidated dashboard for the group and separate permissions for each team."
+        "a": "Yes, with the Network plan. Each centre has its own space, team and permissions, and you switch between them from the same account in one click."
       },
       "mobile": {
         "q": "Do parents have to install an app from the store?",

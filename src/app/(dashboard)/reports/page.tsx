@@ -13,7 +13,17 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import { childDisplayName, formatDZD, formatDate, formatPhone, formatTime, intlLocale, telHref } from "@/lib/format";
-import { isOpenDay, toOpeningHours } from "@/lib/week";
+import {
+  DAY_KEYS,
+  dayKeyOfStr,
+  isOpenDay,
+  isOpenDayStr,
+  openDays,
+  toOpeningHours,
+  type DayKey,
+} from "@/lib/week";
+import { algiersToday } from "@/components/modules/staff/dates";
+import { dateRange } from "@/components/modules/comms/dates";
 import type { AttendanceStatus, Gender } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -64,8 +74,21 @@ interface ChildLite {
   last_name_ar: string | null;
 }
 
+/** An enrolled child plus the two dates that bound the days they were expected. */
+interface EnrolledChild extends ChildLite {
+  enrollment_date: string | null;
+  withdrawal_date: string | null;
+}
+
 interface ClassLite {
   id: string;
+  name: string;
+  name_ar: string | null;
+}
+
+interface ClosureRow {
+  date: string;
+  end_date: string | null;
   name: string;
   name_ar: string | null;
 }
@@ -155,15 +178,21 @@ export default async function ReportsPage({
   const dateLocale = intlLocale(locale);
 
   const sp = await searchParams;
-  const now = new Date();
-  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  // "Today" is the Algiers calendar date, not the server's. Vercel runs in UTC,
+  // so between midnight and 01:00 Algiers a `new Date()` here would still be
+  // yesterday — and the attendance denominator below stops at today.
+  const today = algiersToday();
+  const currentKey = today.slice(0, 7);
+  const [ty, tm, td] = today.split("-").map(Number);
+  // Local midnight of that Algiers date; only ever used for whole-day maths.
+  const now = new Date(ty, tm - 1, td);
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month ?? "") ? (sp.month as string) : currentKey;
   const [y, m] = month.split("-").map(Number);
   const monthStart = `${month}-01`;
   const monthEndDate = new Date(y, m, 0);
   const monthEnd = isoDate(monthEndDate);
 
-  const [attRes, childRes, classRes, itemsRes, arrearsRes, tsRes, memRes, matricRes] =
+  const [attRes, childRes, classRes, itemsRes, arrearsRes, tsRes, memRes, matricRes, holRes] =
     await Promise.all([
       supabase
         .from("kg_attendance")
@@ -173,7 +202,9 @@ export default async function ReportsPage({
         .lte("date", monthEnd),
       supabase
         .from("kg_children")
-        .select("id, class_id, first_name, last_name, first_name_ar, last_name_ar")
+        .select(
+          "id, class_id, first_name, last_name, first_name_ar, last_name_ar, enrollment_date, withdrawal_date"
+        )
         .eq("tenant_id", tid)
         .eq("status", "enrolled"),
       supabase.from("kg_classes").select("id, name, name_ar").eq("tenant_id", tid).order("name"),
@@ -211,6 +242,16 @@ export default async function ReportsPage({
         )
         .eq("tenant_id", tid)
         .order("enrollment_date", { ascending: true }),
+      // Days the crèche declared shut. Closure only — a tentative or
+      // non-closing entry (a school photo, an open day) is a note on the
+      // calendar, not a day nobody was expected. Same predicate as menus/.
+      supabase
+        .from("kg_holidays")
+        .select("date, end_date, name, name_ar")
+        .eq("tenant_id", tid)
+        .eq("closure", true)
+        .lte("date", monthEnd)
+        .or(`end_date.gte.${monthStart},and(end_date.is.null,date.gte.${monthStart})`),
     ]);
 
   const members = (memRes.data ?? []) as MemberRow[];
@@ -231,11 +272,13 @@ export default async function ReportsPage({
       arrearsRes.error ||
       tsRes.error ||
       memRes.error ||
-      matricRes.error
+      matricRes.error ||
+      holRes.error
   );
 
   const att = (attRes.data ?? []) as AttRow[];
-  const children = (childRes.data ?? []) as ChildLite[];
+  const children = (childRes.data ?? []) as EnrolledChild[];
+  const closures = (holRes.data ?? []) as ClosureRow[];
   const classes = (classRes.data ?? []) as ClassLite[];
   const items = (itemsRes.data ?? []) as unknown as ItemRow[];
   const arrears = (arrearsRes.data ?? []) as unknown as ArrearRow[];
@@ -254,6 +297,58 @@ export default async function ReportsPage({
   });
 
   // ================= (a) Attendance =================
+
+  // Every date the crèche was shut this month, with the closure's name for the
+  // grid tooltip. A closure can span days (end_date), so it is expanded here.
+  const closedBy = new Map<string, string>();
+  for (const h of closures) {
+    for (const d of dateRange(h.date, h.end_date ?? h.date, 62)) {
+      if (d >= monthStart && d <= monthEnd) {
+        closedBy.set(d, locale === "ar" && h.name_ar ? h.name_ar : h.name);
+      }
+    }
+  }
+
+  // The days a child was expected: the crèche's open weekdays (week.ts, per
+  // tenant), minus declared closures, and never past today — a month that is
+  // half over is judged on the half that happened.
+  //
+  // The rate used to be present ÷ rows marked, which reads 100% for a class
+  // whose register was opened once all month. Dividing by expected days is
+  // what a director means by "attendance rate", and it exposes the days nobody
+  // marked as their own column instead of hiding them in the denominator.
+  const monthDates = dateRange(monthStart, monthEnd, 31);
+  const expectedDates = monthDates.filter(
+    (d) => d <= today && isOpenDayStr(openingHours, d) && !closedBy.has(d)
+  );
+
+  const attByDate = new Map<string, AttRow[]>();
+  const markedByChild = new Map<string, Set<string>>();
+  for (const a of att) {
+    const list = attByDate.get(a.date) ?? [];
+    list.push(a);
+    attByDate.set(a.date, list);
+    const days = markedByChild.get(a.child_id) ?? new Set<string>();
+    days.add(a.date);
+    markedByChild.set(a.child_id, days);
+  }
+
+  // A day the register was filled in counts as expected even if it was not an
+  // open day: Jijel already has Friday and Saturday rows, and a child marked
+  // present on a Friday was plainly expected that Friday. Without this the
+  // rate could exceed 100% and "not marked" would go negative.
+  function expectedDaysFor(c: EnrolledChild): number {
+    const dates = new Set(expectedDates);
+    for (const d of markedByChild.get(c.id) ?? []) dates.add(d);
+    let n = 0;
+    for (const d of dates) {
+      if (c.enrollment_date && d < c.enrollment_date) continue;
+      if (c.withdrawal_date && d > c.withdrawal_date) continue;
+      n++;
+    }
+    return n;
+  }
+
   const classRows = [
     ...classes.map((c) => ({ key: c.id, label: locale === "ar" && c.name_ar ? c.name_ar : c.name, classId: c.id as string | null })),
     { key: "none", label: t("attendance.unassigned"), classId: null as string | null },
@@ -263,34 +358,38 @@ export default async function ReportsPage({
       const ids = new Set(kids.map((k) => k.id));
       const recs = att.filter((a) => ids.has(a.child_id));
       const present = recs.filter((r) => isPresentish(r.status)).length;
+      const expected = kids.reduce((sum, k) => sum + expectedDaysFor(k), 0);
       return {
         ...cls,
         enrolled: kids.length,
+        expected,
         records: recs.length,
         present,
         absences: recs.length - present,
-        rate: recs.length > 0 ? present / recs.length : null,
+        unmarked: expected - recs.length,
+        rate: expected > 0 ? present / expected : null,
       };
     })
     .filter((r) => r.enrolled > 0);
   const attTotals = classRows.reduce(
     (acc, r) => ({
       enrolled: acc.enrolled + r.enrolled,
+      expected: acc.expected + r.expected,
       records: acc.records + r.records,
       present: acc.present + r.present,
       absences: acc.absences + r.absences,
+      unmarked: acc.unmarked + r.unmarked,
     }),
-    { enrolled: 0, records: 0, present: 0, absences: 0 }
+    { enrolled: 0, expected: 0, records: 0, present: 0, absences: 0, unmarked: 0 }
   );
-  const totalRate = attTotals.records > 0 ? attTotals.present / attTotals.records : null;
+  const totalRate = attTotals.expected > 0 ? attTotals.present / attTotals.expected : null;
 
-  // Weekly Sun–Thu heat grid
-  const attByDate = new Map<string, AttRow[]>();
-  for (const a of att) {
-    const list = attByDate.get(a.date) ?? [];
-    list.push(a);
-    attByDate.set(a.date, list);
-  }
+  // Weekly heat grid. The columns are the crèche's own open days (a Saturday
+  // crèche gets a Saturday column), plus any weekday that has rows this month
+  // so a register filled in on a closed day is shown rather than dropped.
+  const openSet = new Set(openDays(openingHours));
+  const daysWithRows = new Set(att.map((a) => dayKeyOfStr(a.date)));
+  const cols: DayKey[] = DAY_KEYS.filter((d) => openSet.has(d) || daysWithRows.has(d));
   const gridStart = new Date(y, m - 1, 1);
   gridStart.setDate(gridStart.getDate() - gridStart.getDay()); // back to Sunday
   const enrolledCount = children.length;
@@ -300,6 +399,7 @@ export default async function ReportsPage({
     inMonth: boolean;
     present: number;
     hasData: boolean;
+    closure: string | null;
     rate: number;
   }[][] = [];
   for (let w = 0; w < 6; w++) {
@@ -307,9 +407,9 @@ export default async function ReportsPage({
     weekStart.setDate(gridStart.getDate() + w * 7);
     if (weekStart > monthEndDate) break;
     const cells = [];
-    for (let i = 0; i < 5; i++) {
+    for (const col of cols) {
       const d = new Date(weekStart);
-      d.setDate(weekStart.getDate() + i);
+      d.setDate(weekStart.getDate() + DAY_KEYS.indexOf(col));
       const key = isoDate(d);
       const recs = attByDate.get(key) ?? [];
       const present = recs.filter((r) => isPresentish(r.status)).length;
@@ -319,33 +419,38 @@ export default async function ReportsPage({
         inMonth: d.getMonth() === m - 1,
         present,
         hasData: recs.length > 0,
+        closure: closedBy.get(key) ?? null,
         rate: enrolledCount > 0 ? present / enrolledCount : 0,
       });
     }
     weeks.push(cells);
   }
   const dayFmt = new Intl.DateTimeFormat(dateLocale, { weekday: "short" });
-  const dayHeaders = Array.from({ length: 5 }, (_, i) => {
+  const dayHeaders = cols.map((col) => {
     const d = new Date(gridStart);
-    d.setDate(gridStart.getDate() + i);
-    return dayFmt.format(d);
+    d.setDate(gridStart.getDate() + DAY_KEYS.indexOf(col));
+    return { key: col, label: dayFmt.format(d) };
   });
 
   const attendanceCsv = [
     ...classRows.map((r) => [
       r.label,
       r.enrolled,
+      r.expected,
       r.records,
       r.present,
       r.absences,
+      r.unmarked,
       r.rate !== null ? Math.round(r.rate * 100) : "",
     ]),
     [
       t("attendance.total"),
       attTotals.enrolled,
+      attTotals.expected,
       attTotals.records,
       attTotals.present,
       attTotals.absences,
+      attTotals.unmarked,
       totalRate !== null ? Math.round(totalRate * 100) : "",
     ],
   ];
@@ -559,9 +664,11 @@ export default async function ReportsPage({
                   headers={[
                     t("attendance.class"),
                     t("attendance.enrolled"),
+                    t("attendance.expected"),
                     t("attendance.records"),
                     t("attendance.present"),
                     t("attendance.absences"),
+                    t("attendance.unmarked"),
                     `${t("attendance.rate")} %`,
                   ]}
                   rows={attendanceCsv}
@@ -578,9 +685,11 @@ export default async function ReportsPage({
                     <TableRow>
                       <TableHead>{t("attendance.class")}</TableHead>
                       <TableHead className="text-end">{t("attendance.enrolled")}</TableHead>
+                      <TableHead className="text-end">{t("attendance.expected")}</TableHead>
                       <TableHead className="text-end">{t("attendance.records")}</TableHead>
                       <TableHead className="text-end">{t("attendance.present")}</TableHead>
                       <TableHead className="text-end">{t("attendance.absences")}</TableHead>
+                      <TableHead className="text-end">{t("attendance.unmarked")}</TableHead>
                       <TableHead className="w-40">{t("attendance.rate")}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -591,12 +700,16 @@ export default async function ReportsPage({
                           {r.classId ? <ClassLink id={r.classId}>{r.label}</ClassLink> : r.label}
                         </TableCell>
                         <TableCell className="text-end tabular-nums">{r.enrolled}</TableCell>
+                        <TableCell className="text-end tabular-nums">{r.expected}</TableCell>
                         <TableCell className="text-end tabular-nums">{r.records}</TableCell>
                         <TableCell className="text-end font-medium tabular-nums text-success">
                           {r.present}
                         </TableCell>
                         <TableCell className="text-end font-medium tabular-nums text-destructive">
                           {r.absences}
+                        </TableCell>
+                        <TableCell className="text-end tabular-nums text-muted-foreground">
+                          {r.unmarked}
                         </TableCell>
                         <TableCell>
                           {r.rate === null ? (
@@ -618,9 +731,11 @@ export default async function ReportsPage({
                     <TableRow className="bg-muted/40 font-semibold hover:bg-muted/40">
                       <TableCell>{t("attendance.total")}</TableCell>
                       <TableCell className="text-end tabular-nums">{attTotals.enrolled}</TableCell>
+                      <TableCell className="text-end tabular-nums">{attTotals.expected}</TableCell>
                       <TableCell className="text-end tabular-nums">{attTotals.records}</TableCell>
                       <TableCell className="text-end tabular-nums">{attTotals.present}</TableCell>
                       <TableCell className="text-end tabular-nums">{attTotals.absences}</TableCell>
+                      <TableCell className="text-end tabular-nums">{attTotals.unmarked}</TableCell>
                       <TableCell className="tabular-nums">
                         {totalRate !== null ? pctFmt.format(totalRate) : "—"}
                       </TableCell>
@@ -643,13 +758,18 @@ export default async function ReportsPage({
                 <EmptyState icon={<CalendarCheck />} title={t("attendance.empty")} />
               ) : (
                 <div className="mx-auto max-w-lg">
-                  <div className="grid grid-cols-5 gap-2">
+                  <div
+                    className="grid gap-2"
+                    // One column per open day, so the grid is as wide as the
+                    // crèche's week rather than a fixed five.
+                    style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}
+                  >
                     {dayHeaders.map((d) => (
                       <div
-                        key={d}
+                        key={d.key}
                         className="pb-1 text-center text-xs font-semibold text-muted-foreground"
                       >
-                        {d}
+                        {d.label}
                       </div>
                     ))}
                     {weeks.flat().map((cell) => {
@@ -657,12 +777,29 @@ export default async function ReportsPage({
                       // Intensity ramp built from `primary` opacity steps (10% → 68%).
                       // Capped at 68% so `foreground` ink stays legible on the
                       // darkest cell in both light and dark themes.
+                      //
+                      // A declared closure with no rows is shaded flat rather
+                      // than dashed: dashed says "nobody filled this in",
+                      // shaded says "nobody was meant to".
+                      const closedEmpty = cell.closure !== null && !cell.hasData;
+                      const tip = [
+                        formatDate(cell.key, locale),
+                        cell.closure,
+                        cell.hasData ? `${cell.present}/${enrolledCount}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" — ");
                       return (
                         <div
                           key={cell.key}
-                          title={`${formatDate(cell.key, locale)} — ${cell.present}/${enrolledCount}`}
+                          title={tip}
+                          aria-label={tip}
                           className={`flex h-14 flex-col items-center justify-center rounded-lg border text-center ${
-                            cell.hasData ? "border-primary/20" : "border-dashed border-border"
+                            cell.hasData
+                              ? "border-primary/20"
+                              : closedEmpty
+                                ? "border-border bg-muted/60"
+                                : "border-dashed border-border"
                           }`}
                           style={
                             cell.hasData

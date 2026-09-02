@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { DEFAULT_WILAYA, WILAYAS } from "@/app/onboarding/constants";
 import { submitLead } from "./quiz-actions";
 import { CTA_PRIMARY, CTA_SECONDARY, TILE, TILE_TONES } from "./styles";
 
@@ -79,21 +80,18 @@ type ChoiceKey = (typeof CHOICE_STEPS)[number]["key"];
 const STEP_KEYS = ["centre", "size", "priority", "contact"] as const;
 const TOTAL = STEP_KEYS.length;
 
-const WILAYAS = [
-  "jijel",
-  "alger",
-  "oran",
-  "constantine",
-  "setif",
-  "annaba",
-  "bejaia",
-  "batna",
-  "blida",
-  "tiziouzou",
-  "skikda",
-  "mila",
-  "other",
-] as const;
+/**
+ * The wilaya a visitor picks is stored as the same French name kg_tenants
+ * holds, from the same list onboarding uses. The quiz used to offer twelve
+ * wilayas plus "other" under its own short keys — a director in Tlemcen had to
+ * answer "another wilaya", and the stored key only meant something to code
+ * that knew the list.
+ */
+function wilayaLabel(fr: string, locale: string): string {
+  const w = WILAYAS.find((x) => x.fr === fr);
+  if (!w) return fr;
+  return locale === "ar" ? w.ar : w.fr;
+}
 
 /** Which plan we point them at. Size leads; a money-heavy priority nudges up. */
 function recommendPlan(size?: string, priority?: string): "essential" | "pro" | "network" {
@@ -118,7 +116,7 @@ export function QuizWizard() {
   const [step, setStep] = useState(0);
   const [furthest, setFurthest] = useState(0);
   const [answers, setAnswers] = useState<Partial<Record<ChoiceKey, string>>>({});
-  const [wilaya, setWilaya] = useState<string>("jijel");
+  const [wilaya, setWilaya] = useState<string>(DEFAULT_WILAYA);
   const [phone, setPhone] = useState("");
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [done, setDone] = useState(false);
@@ -173,7 +171,7 @@ export function QuizWizard() {
     setStep(0);
     setFurthest(0);
     setAnswers({});
-    setWilaya("jijel");
+    setWilaya(DEFAULT_WILAYA);
     setPhone("");
     setPhoneTouched(false);
     setReached(true);
@@ -195,7 +193,7 @@ export function QuizWizard() {
       icon: SparklesIcon,
       value: answers.priority ? t(`quiz.steps.priority.options.${answers.priority}.label`) : null,
     },
-    { key: "wilaya", icon: MapPinIcon, value: t(`quiz.wilayas.${wilaya}`) },
+    { key: "wilaya", icon: MapPinIcon, value: wilayaLabel(wilaya, locale) },
     { key: "phone", icon: PhoneIcon, value: phone.trim() || null, ltr: true },
   ];
 
@@ -346,8 +344,11 @@ export function QuizWizard() {
                   </SelectTrigger>
                   <SelectContent>
                     {WILAYAS.map((w) => (
-                      <SelectItem key={w} value={w}>
-                        {t(`quiz.wilayas.${w}`)}
+                      <SelectItem key={w.code} value={w.fr}>
+                        <span className="me-1 inline-flex min-w-6 justify-center rounded-md bg-primary/10 px-1 py-px text-[0.7rem] font-medium text-primary tabular-nums">
+                          {w.code}
+                        </span>
+                        {locale === "ar" ? w.ar : w.fr}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -55,7 +55,7 @@
       },
       "network": {
         "title": "Réseau d'établissements",
-        "desc": "Plusieurs sites, un seul compte, un seul tableau de bord."
+        "desc": "Plusieurs structures, un seul compte."
       }
     },
     "parents": "Espace parents"
@@ -158,6 +158,123 @@
     "backups": {
       "title": "Sauvegardes chiffrées quotidiennes",
       "desc": "Les données de chaque établissement restent isolées et sauvegardées chaque jour."
+    }
+  },
+  "errors": {
+    "title": "Une erreur est survenue",
+    "description": "La page n'a pas pu être chargée. Réessayez ; si le problème persiste, déconnectez-vous puis reconnectez-vous, ou écrivez-nous.",
+    "retry": "Réessayer",
+    "home": "Retour à l'accueil",
+    "dashboard": "Retour au tableau de bord",
+    "notFoundTitle": "Page introuvable",
+    "notFoundDescription": "L'adresse est incorrecte, ou cette page n'existe plus."
+  },
+  "legal": {
+    "backHome": "Retour à l'accueil",
+    "lastUpdated": "Dernière mise à jour : 2 septembre 2026",
+    "contact": "Une question sur cette page : {email}",
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "intro": "Cette page dit ce que Rawdatik conserve, où, et qui peut le voir — en mots simples, parce qu'il s'agit d'enfants et de leurs familles.",
+      "sections": [
+        {
+          "title": "Qui nous sommes",
+          "body": "Rawdatik est édité depuis Jijel, en Algérie. C'est un outil de gestion pour les crèches, jardins d'enfants et centres spécialisés. Pour tout ce à quoi cette page ne répond pas, écrivez-nous à l'adresse en bas."
+        },
+        {
+          "title": "Ce qui est conservé",
+          "body": "Uniquement ce que la gestion d'une structure exige :",
+          "items": [
+            "Sur la structure : nom, adresse, wilaya, téléphone, logo, horaires d'ouverture, jours fériés et grilles tarifaires.",
+            "Sur l'équipe : nom, poste, téléphone et e-mail, date d'embauche, heures travaillées et congés, salaire et avances, et le badge ou le code utilisé pour pointer.",
+            "Sur les enfants : nom, date de naissance, sexe, photo, classe, dates d'inscription et de sortie, allergies et notes de santé, personnes autorisées à venir les chercher, présences avec heures d'arrivée et de départ et personne ayant récupéré l'enfant, incidents, comptes rendus quotidiens, factures et paiements.",
+            "Sur les tuteurs : nom, lien avec l'enfant, téléphone, adresse et — une fois un compte ouvert sur l'espace parents — l'e-mail ou le numéro de téléphone de connexion.",
+            "Sur les visiteurs qui utilisent le guide des formules de la page d'accueil : le numéro de téléphone, la wilaya et les réponses données."
+          ]
+        },
+        {
+          "title": "À quoi cela sert",
+          "body": "À faire tourner la structure, et à rien d'autre : tenir le registre, facturer les familles, payer l'équipe, prévenir les parents et produire les registres qu'une inspection demande. Nous ne vendons pas de données, n'affichons pas de publicité et ne profilons personne."
+        },
+        {
+          "title": "Où c'est conservé",
+          "body": "La base de données et les fichiers envoyés sont hébergés chez Supabase, sur des serveurs Amazon Web Services aux États-Unis (région us-east-1) ; l'application elle-même est servie par Vercel. Les deux prestataires chiffrent les données en transit et au repos et conservent des sauvegardes automatiques. Photos et documents sont dans un espace de stockage privé : ils ne sont jamais servis depuis une adresse publique, chaque lien expire au bout d'une heure, et un fichier ne peut pas dépasser 10 Mo."
+        },
+        {
+          "title": "Qui peut le voir",
+          "body": "Chaque structure est isolée des autres par des règles appliquées dans la base de données elle-même, pas seulement par l'application. Au sein d'une structure, ce qu'une personne voit dépend de son rôle : une éducatrice voit les enfants, un comptable voit la facturation, seuls les propriétaires et administrateurs voient les salaires. Un parent ne voit que ses propres enfants, et seulement ce que la structure a choisi de partager. Les opérateurs de Rawdatik peuvent accéder à la base pour faire fonctionner et dépanner le service, et ne consultent pas les données d'une structure en dehors de cela."
+        },
+        {
+          "title": "Combien de temps",
+          "body": "Tant que le compte de la structure est actif. Un enfant qui part reste dans le registre avec sa date de sortie, parce que le registre matricule doit rester complet pour l'inspection. Quand une structure ferme son compte, son propriétaire nous demande par e-mail d'effacer ses données ; nous le faisons et le lui confirmons une fois terminé."
+        },
+        {
+          "title": "Vos droits",
+          "body": "Un tuteur qui veut consulter, corriger ou supprimer des informations sur son enfant s'adresse d'abord à la structure : c'est elle qui tient le dossier et décide de ce qu'elle garde. Si la structure ne peut pas aider, écrivez-nous et nous agirons avec elle."
+        },
+        {
+          "title": "Cookies",
+          "body": "Rawdatik dépose trois cookies, tous nécessaires à son fonctionnement : votre session de connexion, votre langue (kg-locale) et la structure ouverte en dernier (kg-tenant). Il n'y a aucun cookie publicitaire ni d'analyse."
+        },
+        {
+          "title": "Notifications",
+          "body": "Les notifications push sont facultatives. Elles ne sont envoyées qu'à un appareil où vous les avez activées, et vous pouvez les désactiver depuis votre profil ou depuis le navigateur à tout moment."
+        },
+        {
+          "title": "Le guide des formules",
+          "body": "Le numéro de téléphone et les réponses donnés sur la page d'accueil sont conservés pour que nous puissions vous rappeler et préparer votre configuration. Ils ne sont partagés avec personne et sont supprimés sur demande."
+        },
+        {
+          "title": "Modifications",
+          "body": "Quand cette page change, la date en haut change avec elle. Les changements importants sont annoncés dans l'application."
+        }
+      ]
+    },
+    "terms": {
+      "title": "Conditions d'utilisation",
+      "intro": "L'accord entre une structure qui utilise Rawdatik et nous. Court à dessein ; là où il ne dit rien, le droit algérien s'applique.",
+      "sections": [
+        {
+          "title": "Le service",
+          "body": "Rawdatik est un service par abonnement qui permet à une crèche, un jardin d'enfants ou un centre spécialisé de gérer les inscriptions, les présences, la facturation, la comptabilité, son équipe et sa communication avec les familles, en arabe, en anglais et en français."
+        },
+        {
+          "title": "Comptes",
+          "body": "L'espace d'une structure est ouvert par son propriétaire, qui invite l'équipe et donne l'accès aux familles. Le propriétaire est responsable des personnes qu'il invite et de ce qu'elles font dans l'espace. Gardez vos identifiants pour vous, et prévenez-nous immédiatement si vous pensez qu'un compte a été détourné."
+        },
+        {
+          "title": "Vos données",
+          "body": "La structure reste propriétaire des informations qu'elle saisit. Elle est responsable de leur exactitude et du droit de les enregistrer — en particulier d'informer les tuteurs que les données, notes de santé et photos de leurs enfants sont conservées dans Rawdatik. Nous ne traitons ces données que pour fournir le service, comme décrit dans la politique de confidentialité."
+        },
+        {
+          "title": "Usage acceptable",
+          "body": "N'utilisez pas Rawdatik pour conserver des données sur des enfants dont vous n'avez pas la garde, envoyer des messages non sollicités ou tenter d'accéder à l'espace d'une autre structure. Nous pouvons suspendre un compte qui le fait, après un avertissement lorsque c'est possible."
+        },
+        {
+          "title": "Prix et paiement",
+          "body": "Les formules sont facturées par structure et par mois, en dinars algériens, comme indiqué sur la page d'accueil. Vous pouvez essayer le service avant de payer, changer de formule ou arrêter à tout moment, et vous ne payez jamais que le mois en cours. Les prix peuvent changer avec un préavis d'un mois."
+        },
+        {
+          "title": "Disponibilité",
+          "body": "Nous faisons en sorte que le service reste disponible en permanence et que les pannes soient réparées vite, mais nous ne pouvons pas promettre qu'il ne sera jamais interrompu. Rawdatik produit les registres qu'une inspection demande ; il ne remplace pas l'obligation de la structure de les tenir."
+        },
+        {
+          "title": "Fin de l'accord",
+          "body": "Vous pouvez fermer votre espace à tout moment en nous écrivant ; vos données sont alors effacées comme décrit dans la politique de confidentialité. Si nous devions un jour arrêter le service, nous vous préviendrions trois mois à l'avance et vous laisserions exporter vos données en CSV avant."
+        },
+        {
+          "title": "Responsabilité",
+          "body": "Rawdatik est un outil de gestion. Les décisions concernant un enfant — qui peut venir le chercher, ce qu'il peut manger, que faire en cas d'urgence — restent celles de la structure, qui doit garder ses propres moyens de les prendre si le service est indisponible. Dans la mesure permise par la loi, notre responsabilité est limitée aux frais payés pour le mois en cours."
+        },
+        {
+          "title": "Droit applicable",
+          "body": "Ces conditions sont régies par le droit algérien. Tout litige relève des juridictions algériennes compétentes."
+        },
+        {
+          "title": "Modifications",
+          "body": "Quand ces conditions changent, la date en haut change avec elles. Les changements importants sont annoncés dans l'application."
+        }
+      ]
     }
   }
 }

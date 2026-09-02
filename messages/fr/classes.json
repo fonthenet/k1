@@ -32,7 +32,7 @@
   },
   "delete": {
     "title": "Supprimer cette classe ?",
-    "description": "Cette classe sera définitivement supprimée. Action irréversible.",
+    "description": "Cette classe sera définitivement supprimée. Les enfants qui y étaient conservent leur dossier et perdent seulement l'étiquette de classe. Action irréversible.",
     "blocked": "Suppression impossible : {count} enfants sont encore affectés à cette classe. Retirez-les d'abord."
   },
   "assignDialog": {

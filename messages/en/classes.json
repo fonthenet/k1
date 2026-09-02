@@ -32,7 +32,7 @@
   },
   "delete": {
     "title": "Delete this class?",
-    "description": "This class will be permanently deleted. This cannot be undone.",
+    "description": "This class will be permanently deleted. Children who used to be in it keep their records and simply lose the class label. This cannot be undone.",
     "blocked": "Cannot delete: {count} children are still assigned to this class. Remove them first."
   },
   "assignDialog": {

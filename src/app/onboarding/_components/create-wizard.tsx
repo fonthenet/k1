@@ -74,7 +74,10 @@ export function CreateWizard() {
   const [commune, setCommune] = useState("");
   const [phone, setPhone] = useState("");
 
-  const nameState = useAvailability(name, "kg_tenant_name_available", 2);
+  // A name is reserved per wilaya, not across Algeria (0120): the "Rawda" in
+  // Jijel must not stop a Rawda in Oran from signing up. The check therefore
+  // carries the wilaya and is re-asked when it changes.
+  const nameState = useAvailability(name, "kg_tenant_name_available", 2, { p_wilaya: wilaya });
   const slugState = useAvailability(slug, "kg_tenant_slug_available", 3);
 
   function onNameChange(value: string) {

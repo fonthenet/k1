@@ -97,24 +97,9 @@
         "wilayaPlaceholder": "Choisissez votre wilaya",
         "phoneLabel": "Numéro de téléphone",
         "phonePlaceholder": "05 00 00 00 00",
-        "phoneHint": "Nous l'utilisons uniquement pour vous joindre à la création de votre compte.",
+        "phoneHint": "Nous le gardons uniquement pour vous rappeler et vous aider à démarrer, rien d'autre.",
         "phoneError": "Saisissez un numéro algérien valide (au moins 9 chiffres)."
       }
-    },
-    "wilayas": {
-      "jijel": "Jijel",
-      "alger": "Alger",
-      "oran": "Oran",
-      "constantine": "Constantine",
-      "setif": "Sétif",
-      "annaba": "Annaba",
-      "bejaia": "Béjaïa",
-      "batna": "Batna",
-      "blida": "Blida",
-      "tiziouzou": "Tizi Ouzou",
-      "skikda": "Skikda",
-      "mila": "Mila",
-      "other": "Une autre wilaya"
     },
     "back": "Retour",
     "next": "Suivant",
@@ -134,7 +119,7 @@
       "empty": "Non précisé",
       "cta": "Créer l'espace de votre structure",
       "restart": "Recommencer",
-      "note": "Vos réponses n'ont été envoyées nulle part — elles sont restées dans votre navigateur et servent seulement à vous proposer un point de départ.",
+      "note": "Nous avons gardé vos réponses et votre numéro pour vous appeler et préparer votre configuration. Rien n'est partagé avec qui que ce soit, et vous pouvez créer votre compte sans attendre l'appel.",
       "noteOffline": "Nous n'avons pas pu enregistrer votre numéro. Créez votre compte directement, ou réessayez plus tard."
     },
     "sending": "Envoi…"
@@ -178,8 +163,8 @@
         "features": [
           "Tout le Pro",
           "Nombre de structures illimité",
-          "Tableau de bord consolidé du groupe",
-          "Rôles et permissions avancés par équipe",
+          "Passez d'une structure à l'autre depuis un seul compte",
+          "Équipe et rôles propres à chaque structure",
           "Accompagnement dédié au démarrage"
         ]
       }
@@ -199,7 +184,7 @@
     "items": {
       "security": {
         "q": "Les données des enfants sont-elles en sécurité ?",
-        "a": "Oui. Tout est stocké chiffré et chaque structure est totalement isolée des autres : un utilisateur ne voit que les enfants de sa propre structure, et uniquement ce que son rôle autorise. Les sauvegardes sont quotidiennes et vous pouvez exporter toutes vos données quand vous le souhaitez."
+        "a": "Oui. Tout est stocké chiffré et chaque structure est totalement isolée des autres : un utilisateur ne voit que les enfants de sa propre structure, et uniquement ce que son rôle autorise. Les sauvegardes sont quotidiennes et vous pouvez exporter à tout moment vos rapports de présences, de facturation, d'équipe et vos registres en CSV."
       },
       "cash": {
         "q": "La plupart de mes parents paient en espèces. Est-ce géré ?",
@@ -211,7 +196,7 @@
       },
       "multi": {
         "q": "Je gère plusieurs structures. Puis-je toutes les réunir ?",
-        "a": "Oui, avec la formule Réseau. Vous passez d'une structure à l'autre depuis le même compte en un clic, avec un tableau de bord consolidé et des permissions distinctes pour chaque équipe."
+        "a": "Oui, avec la formule Réseau. Chaque structure a son espace, son équipe et ses permissions, et vous passez de l'une à l'autre depuis le même compte en un clic."
       },
       "mobile": {
         "q": "Faut-il installer une application depuis le store ?",

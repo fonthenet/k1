@@ -12,17 +12,19 @@
   },
   "attendance": {
     "byClass": "Taux de présence par classe",
-    "byClassHint": "Calculé sur les jours de présence enregistrés du mois",
+    "byClassHint": "Jours de présence ÷ jours attendus pour chaque enfant : les jours d'ouverture de l'établissement jusqu'à aujourd'hui, hors fermetures déclarées",
     "class": "Classe",
     "unassigned": "Sans classe",
     "enrolled": "Inscrits",
+    "expected": "Jours attendus",
     "records": "Jours enregistrés",
     "present": "Présences",
     "absences": "Absences",
+    "unmarked": "Non pointés",
     "rate": "Taux",
     "total": "Total",
-    "heat": "Grille hebdomadaire (dim. – jeu.)",
-    "heatHint": "Enfants présents chaque jour ouvré du mois",
+    "heat": "Grille hebdomadaire",
+    "heatHint": "Enfants présents chaque jour d'ouverture du mois ; les jours de fermeture sont grisés",
     "empty": "Aucune présence enregistrée pour ce mois."
   },
   "billing": {
@@ -63,7 +65,7 @@
   },
   "team": {
     "title": "Heures travaillées par employé",
-    "hint": "Somme des pointages du mois — attendu : jours ouvrés (dim.–jeu.) × 8 h",
+    "hint": "Somme des pointages du mois — attendu : jours d'ouverture de l'établissement × 8 h",
     "member": "Employé",
     "role": "Poste",
     "days": "Jours",

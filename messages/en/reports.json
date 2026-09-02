@@ -12,17 +12,19 @@
   },
   "attendance": {
     "byClass": "Attendance rate by class",
-    "byClassHint": "Based on the attendance days recorded this month",
+    "byClassHint": "Days present ÷ days each child was expected: the centre's open days up to today, minus declared closures",
     "class": "Class",
     "unassigned": "No class",
     "enrolled": "Enrolled",
+    "expected": "Expected days",
     "records": "Days recorded",
     "present": "Present",
     "absences": "Absences",
+    "unmarked": "Not marked",
     "rate": "Rate",
     "total": "Total",
-    "heat": "Weekly grid (Sun – Thu)",
-    "heatHint": "Children present on each working day of the month",
+    "heat": "Weekly grid",
+    "heatHint": "Children present on each open day of the month; days the centre was closed are shaded",
     "empty": "No attendance recorded for this month."
   },
   "billing": {
@@ -63,7 +65,7 @@
   },
   "team": {
     "title": "Hours worked per staff member",
-    "hint": "Total of this month's clock-ins — expected: working days (Sun–Thu) × 8 h",
+    "hint": "Total of this month's clock-ins — expected: the centre's open days × 8 h",
     "member": "Staff member",
     "role": "Role",
     "days": "Days",
