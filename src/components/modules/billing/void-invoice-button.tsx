@@ -31,7 +31,10 @@ export function VoidInvoiceButton({ invoiceId }: { invoiceId: string }) {
         setOpen(false);
         toast.success(t("invoice.void.success"));
       } else {
-        toast.error(t("toasts.error"));
+        // The one refusal with a next step: reverse the payments, then void.
+        toast.error(
+          res.error === "hasPayments" ? t("invoice.void.hasPayments") : t("toasts.error")
+        );
       }
     });
   }

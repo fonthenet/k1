@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowLeft, Banknote, HandCoins } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
+import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import { formatDZD, formatDate, intlLocale } from "@/lib/format";
 import type { PaymentMethod, PayrollStatus } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
@@ -69,22 +70,20 @@ export default async function PayrollRunPage({
     .eq("tenant_id", ctx.tenant.id);
 
   const raw = (rawItems ?? []) as unknown as RawItem[];
-  const userIds = [...new Set(raw.map((i) => i.kg_memberships?.user_id).filter(Boolean))] as string[];
-  const { data: profiles } =
-    userIds.length > 0
-      ? await supabase.from("kg_profiles").select("id, full_name").in("id", userIds)
-      : { data: [] as { id: string; full_name: string }[] };
-  const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+  // One resolver for staff names (src/lib/member-names.ts): profile first,
+  // the name the director typed second. The hand-rolled map this replaces
+  // fell back correctly, but nine copies of that block is how eight screens
+  // came to render an em-dash for everyone without a login.
+  const profileNames = await fetchProfileNames(
+    supabase,
+    raw.map((i) => i.kg_memberships?.user_id)
+  );
 
   const items: PayrollItemRow[] = raw
     .map((i) => ({
       id: i.id,
       membershipId: i.membership_id,
-      // Local staff (no login) carry their name on the membership itself.
-      name:
-        nameById.get(i.kg_memberships?.user_id ?? "") ||
-        (i.kg_memberships?.full_name ?? "").trim() ||
-        "—",
+      name: (i.kg_memberships && memberNameIn(i.kg_memberships, profileNames)) || "—",
       jobTitle: i.kg_memberships?.job_title ?? null,
       base: Number(i.base_amount),
       // Only an hourly line carries a basis. Showing "0 h" against a monthly

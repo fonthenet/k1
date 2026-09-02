@@ -26,8 +26,10 @@ import { MonthFilter } from "@/components/modules/billing/month-filter";
 import { StatusChips } from "@/components/modules/billing/status-chips";
 import { EmptyIcon, MoneyStat } from "@/components/modules/billing/finance-ui";
 import {
+  addDays,
   algiersMonth,
   algiersToday,
+  INVOICE_DUE_DAY,
   monthLabel,
   monthRange,
   recentMonths,
@@ -38,14 +40,19 @@ import {
   INVOICE_STATUS_BADGE,
 } from "@/components/modules/billing/maps";
 import { CompleteInvoicesButton } from "@/components/modules/billing/complete-invoices-button";
+import { IssueInvoicesButton } from "@/components/modules/billing/issue-invoices-button";
 import type { ChildOption, InvoiceGap } from "@/components/modules/billing/billing-types";
 
-const FILTERS = ["all", "unpaid", "partial", "paid", "overdue", "void"] as const;
+// "draft" is a real state of this list, not an implementation detail: the
+// monthly run produces drafts and somebody has to issue them. Without the
+// chip the 17 drafts the real client was sitting on had no count anywhere.
+const FILTERS = ["all", "draft", "unpaid", "partial", "paid", "overdue", "void"] as const;
 type Filter = (typeof FILTERS)[number];
 
 type HubRow = {
   id: string;
-  number: number;
+  /** Null while a draft — a number is spent only at issue (0047). */
+  number: number | null;
   period_month: string | null;
   issue_date: string;
   due_date: string | null;
@@ -149,6 +156,19 @@ export default async function BillingPage({
   const gapTotal = gaps.reduce((s, g) => s + Number(g.missing), 0);
 
   const withEffective = invoices.map((inv) => ({ inv, shown: effectiveStatus(inv, today) }));
+
+  // Drafts waiting to be issued. Zero-total drafts are left out because
+  // kg_issue_invoices skips them — a child with nothing to bill is not a bill.
+  // The due date shown is the one the issue step will write (0105): the
+  // month's usual day, or nine days from today when issuing runs late, so an
+  // invoice issued on the 15th is not born overdue.
+  const drafts = withEffective.filter(
+    ({ inv }) => inv.status === "draft" && Number(inv.total) > 0
+  );
+  const draftTotal = drafts.reduce((s, { inv }) => s + Number(inv.total), 0);
+  const usualDue = `${month}-${String(INVOICE_DUE_DAY).padStart(2, "0")}`;
+  const lateDue = addDays(today, INVOICE_DUE_DAY - 1);
+  const issueDue = usualDue > lateDue ? usualDue : lateDue;
   const invoiced = invoices
     .filter((i) => i.status !== "void")
     .reduce((s, i) => s + Number(i.total), 0);
@@ -180,7 +200,45 @@ export default async function BillingPage({
         </Button>
         <NewInvoiceDialog childOptions={childOptions} />
         <GenerateInvoicesButton month={month} monthLabel={currentMonthLabel} />
+        {drafts.length > 0 && (
+          <IssueInvoicesButton
+            month={month}
+            monthLabel={currentMonthLabel}
+            count={drafts.length}
+            amountLabel={formatDZD(draftTotal, locale)}
+            dueDateLabel={formatDate(issueDue, locale)}
+          />
+        )}
       </PageHeader>
+
+      {/* Drafts nobody has issued. Generating a month is not billing it: the
+          drafts have no number and no family can see them, so a month can look
+          "done" in this list while every parent is still waiting for a bill.
+          One heading, the amount, one action — same quiet shape as the two
+          blocks below, so the page does not stack three alarms. */}
+      {drafts.length > 0 && (
+        <div className="mb-6">
+          <p className="text-sm font-semibold text-foreground">
+            {t("hub.drafts.title", { count: drafts.length })}
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            {t("hub.drafts.body", {
+              amount: formatDZD(draftTotal, locale),
+              dueDate: formatDate(issueDue, locale),
+            })}
+          </p>
+          <div className="mt-2">
+            <IssueInvoicesButton
+              variant="outline"
+              month={month}
+              monthLabel={currentMonthLabel}
+              count={drafts.length}
+              amountLabel={formatDZD(draftTotal, locale)}
+              dueDateLabel={formatDate(issueDue, locale)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Enrolled and unbillable. The monthly run reads kg_child_fees, so a child
           without a fee row is skipped every month in silence — no error, no run
@@ -319,14 +377,21 @@ export default async function BillingPage({
               </TableHeader>
               <TableBody>
                 {visible.map(({ inv, shown }) => {
-                  const numberLabel = displayInvoiceNumber(inv.issue_date, inv.number);
+                  const numberLabel = displayInvoiceNumber(
+                    inv.issue_date,
+                    inv.number,
+                    t("status.draft")
+                  );
                   const balance = Number(inv.total) - Number(inv.paid_amount);
                   const childName = inv.kg_children
                     ? childDisplayName(inv.kg_children, locale)
                     : "—";
                   const cls = inv.kg_children?.kg_classes;
                   const overdue = shown === "overdue";
-                  const payable = shown !== "paid" && shown !== "void" && balance > 0;
+                  // Not on a draft: cash against an unissued bill would settle
+                  // it without a number ever being spent. Issue first.
+                  const payable =
+                    shown !== "paid" && shown !== "void" && shown !== "draft" && balance > 0;
                   return (
                     <TableRow key={inv.id} className={cn("h-14", overdue && "bg-destructive/5")}>
                       <TableCell className="ps-4 font-medium">

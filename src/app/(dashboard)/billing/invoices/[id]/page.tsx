@@ -23,8 +23,10 @@ import { cn } from "@/lib/utils";
 import type { InvoiceStatus, PaymentMethod, Relationship } from "@/lib/types";
 import { RecordPaymentDialog } from "@/components/modules/billing/record-payment-dialog";
 import { VoidInvoiceButton } from "@/components/modules/billing/void-invoice-button";
+import { ReversePaymentButton } from "@/components/modules/billing/reverse-payment-button";
+import { PaymentDateEditor } from "@/components/modules/billing/payment-date-editor";
 import { EmptyIcon } from "@/components/modules/billing/finance-ui";
-import { algiersToday, monthLabel } from "@/components/modules/billing/dates";
+import { algiersDate, algiersToday, monthLabel } from "@/components/modules/billing/dates";
 import {
   displayInvoiceNumber,
   effectiveStatus,
@@ -35,7 +37,8 @@ import {
 type InvoiceRow = {
   id: string;
   child_id: string;
-  number: number;
+  /** Null while a draft — a number is spent only at issue (0047). */
+  number: number | null;
   period_month: string | null;
   issue_date: string;
   due_date: string | null;
@@ -164,11 +167,13 @@ export default async function InvoiceDetailPage({
 
   const today = algiersToday();
   const shown = effectiveStatus(inv, today);
-  const numberLabel = displayInvoiceNumber(inv.issue_date, inv.number);
+  const numberLabel = displayInvoiceNumber(inv.issue_date, inv.number, t("status.draft"));
   const balance = Number(inv.total) - Number(inv.paid_amount);
   const childName = inv.kg_children ? childDisplayName(inv.kg_children, locale) : "—";
   const cls = inv.kg_children?.kg_classes;
-  const payable = shown !== "paid" && shown !== "void" && balance > 0;
+  // Not on a draft — see recordPayment. The hub is where a month gets issued.
+  const payable = shown !== "paid" && shown !== "void" && shown !== "draft" && balance > 0;
+  const hubMonth = (inv.period_month ?? inv.issue_date).slice(0, 7);
   const settled = balance <= 0;
   const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
 
@@ -206,7 +211,16 @@ export default async function InvoiceDetailPage({
       </PageHeader>
 
       <p className="mb-6 -mt-3 text-sm text-muted-foreground">
-        {t("invoice.issuedOn", { date: formatDate(inv.issue_date, locale) })}
+        {inv.status === "draft" ? (
+          // A draft has no issue date worth printing — issue_date is the day
+          // the run happened to create it. Say what it is and where it gets
+          // issued instead.
+          <Link href={`/billing?month=${hubMonth}&status=draft`} className="hover:underline">
+            {t("invoice.draftHint")}
+          </Link>
+        ) : (
+          t("invoice.issuedOn", { date: formatDate(inv.issue_date, locale) })
+        )}
         {inv.due_date && <> · {t("invoice.dueOn", { date: formatDate(inv.due_date, locale) })}</>}
         {inv.period_month && (
           <> · {t("invoice.period", { month: monthLabel(inv.period_month.slice(0, 7), locale) })}</>
@@ -285,9 +299,10 @@ export default async function InvoiceDetailPage({
                           {t("invoice.paymentsColumns.amount")}
                         </TableHead>
                         <TableHead>{t("invoice.paymentsColumns.method")}</TableHead>
-                        <TableHead className="pe-4">
+                        <TableHead className={cn(!ctx.isAdmin && "pe-4")}>
                           {t("invoice.paymentsColumns.reference")}
                         </TableHead>
+                        {ctx.isAdmin && <TableHead className="w-12 pe-4" />}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -303,15 +318,27 @@ export default async function InvoiceDetailPage({
                             </Link>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {formatDate(p.paid_at, locale)}
+                            {/* Editable in place: the wrong day is the commonest
+                                correction at the desk, and it used to need SQL. */}
+                            <PaymentDateEditor paymentId={p.id} value={algiersDate(p.paid_at)} />
                           </TableCell>
                           <TableCell className="text-end font-semibold tabular-nums text-income">
                             {formatDZD(p.amount, locale)}
                           </TableCell>
                           <TableCell>{t(`methods.${p.method}`)}</TableCell>
-                          <TableCell className="pe-4 text-muted-foreground">
+                          <TableCell className={cn("text-muted-foreground", !ctx.isAdmin && "pe-4")}>
                             {p.reference ?? "—"}
                           </TableCell>
+                          {ctx.isAdmin && (
+                            <TableCell className="pe-4 text-end">
+                              <ReversePaymentButton
+                                size="icon-sm"
+                                paymentId={p.id}
+                                receiptLabel={p.receipt_number ?? "—"}
+                                amountLabel={formatDZD(p.amount, locale)}
+                              />
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>

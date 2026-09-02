@@ -24,11 +24,17 @@ import type { PayrollItemRow } from "./types";
 type Field = "base" | "bonuses" | "deductions" | "advances";
 const FIELDS: Field[] = ["base", "bonuses", "deductions", "advances"];
 
+/**
+ * What can be typed while the run is a draft. `advances` is not among them:
+ * the run computes the deduction from the advances it claimed, and typing
+ * over it is how a payslip came to show 5 000 deducted against no advance
+ * while the advance itself read "repaid" with no payslip. To change it,
+ * settle or reverse the advance on the advances page; the line follows.
+ */
 interface RowState {
   base: string;
   bonuses: string;
   deductions: string;
-  advances: string;
 }
 
 function toState(item: PayrollItemRow): RowState {
@@ -36,7 +42,6 @@ function toState(item: PayrollItemRow): RowState {
     base: String(item.base),
     bonuses: String(item.bonuses),
     deductions: String(item.deductions),
-    advances: String(item.advances),
   };
 }
 
@@ -63,13 +68,24 @@ export function RunItemsTable({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  function setField(id: string, field: Field, value: string) {
+  function setField(id: string, field: Exclude<Field, "advances">, value: string) {
     setRows((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
   }
 
-  function net(id: string): number {
-    const r = rows[id];
-    return num(r.base) + num(r.bonuses) - num(r.deductions) - num(r.advances);
+  /** The typed value, or the server's — advances are always the server's. */
+  function valueOf(item: PayrollItemRow, field: Field): number {
+    if (field === "advances") return item.advances;
+    const r = rows[item.id];
+    return r ? num(r[field]) : item[field];
+  }
+
+  function net(item: PayrollItemRow): number {
+    return (
+      valueOf(item, "base") +
+      valueOf(item, "bonuses") -
+      valueOf(item, "deductions") -
+      item.advances
+    );
   }
 
   function isDirty(item: PayrollItemRow): boolean {
@@ -77,8 +93,7 @@ export function RunItemsTable({
     return (
       num(r.base) !== item.base ||
       num(r.bonuses) !== item.bonuses ||
-      num(r.deductions) !== item.deductions ||
-      num(r.advances) !== item.advances
+      num(r.deductions) !== item.deductions
     );
   }
 
@@ -91,7 +106,6 @@ export function RunItemsTable({
         base: num(r.base),
         bonuses: num(r.bonuses),
         deductions: num(r.deductions),
-        advances: num(r.advances),
       });
       setSavingId(null);
       if (res.ok) toast.success(t("run.saved"));
@@ -100,16 +114,13 @@ export function RunItemsTable({
   }
 
   const totals = items.reduce(
-    (acc, i) => {
-      const r = rows[i.id];
-      return {
-        base: acc.base + num(r.base),
-        bonuses: acc.bonuses + num(r.bonuses),
-        deductions: acc.deductions + num(r.deductions),
-        advances: acc.advances + num(r.advances),
-        net: acc.net + net(i.id),
-      };
-    },
+    (acc, i) => ({
+      base: acc.base + valueOf(i, "base"),
+      bonuses: acc.bonuses + valueOf(i, "bonuses"),
+      deductions: acc.deductions + valueOf(i, "deductions"),
+      advances: acc.advances + i.advances,
+      net: acc.net + net(i),
+    }),
     { base: 0, bonuses: 0, deductions: 0, advances: 0, net: 0 }
   );
 
@@ -150,11 +161,11 @@ export function RunItemsTable({
                 )}
               </TableCell>
               {FIELDS.map((field) => {
-                const value = rows[item.id] ? num(rows[item.id][field]) : 0;
+                const value = valueOf(item, field);
                 const negative = field === "deductions" || field === "advances";
                 return (
                   <TableCell key={field} className="text-end">
-                    {editable ? (
+                    {editable && field !== "advances" ? (
                       <Input
                         type="number"
                         inputMode="decimal"
@@ -181,7 +192,7 @@ export function RunItemsTable({
                 );
               })}
               <TableCell className="text-end text-base font-bold tabular-nums">
-                {formatDZD(net(item.id), locale)}
+                {formatDZD(net(item), locale)}
               </TableCell>
               <TableCell className="pe-4">
                 <div className="flex items-center justify-end gap-1">

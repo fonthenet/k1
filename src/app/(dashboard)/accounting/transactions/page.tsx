@@ -1,9 +1,18 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Plus, Receipt, Scale, TrendingDown, TrendingUp, TriangleAlert } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Receipt,
+  Scale,
+  TrendingDown,
+  TrendingUp,
+  TriangleAlert,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { formatDZD, formatDate, intlLocale } from "@/lib/format";
+import { formatDZD, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -21,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { MonthSelect } from "@/components/modules/dashboard/month-select";
 import { AccountingNav } from "@/components/modules/accounting/nav-tabs";
+import { CloseMonthButton, ReopenMonthButton } from "@/components/modules/accounting/close-month-button";
 import { TxnDetailDialog } from "@/components/modules/accounting/txn-detail-dialog";
 import { TxnDialog } from "@/components/modules/accounting/txn-dialog";
 import { TxnFilters } from "@/components/modules/accounting/txn-filters";
@@ -28,11 +38,28 @@ import { TxnRowActions } from "@/components/modules/accounting/txn-row-actions";
 import { EmptyIcon, MoneyStat } from "@/components/modules/billing/finance-ui";
 import { ENTITY_LINK_CLASS } from "@/components/shared/entity-link";
 import {
-  monthKey,
+  addDays,
+  algiersMonth,
+  monthLabel,
+  monthRange,
+  recentMonths,
+} from "@/components/modules/billing/dates";
+import {
+  PAYMENT_METHODS,
   type CategoryOption,
   type LedgerRow,
 } from "@/components/modules/accounting/types";
 import type { PaymentMethod, TxnKind } from "@/lib/types";
+
+/**
+ * Rows per page. PostgREST silently caps any read at 1 000 rows, and the
+ * "all months" view of a busy crèche crosses that inside a year — the list
+ * would simply stop, and the totals summed from it would be short. The list
+ * is paged with .range() so it can never hit the cap, and the totals come
+ * from kg_ledger_totals (0106), which sums in Postgres whatever the size.
+ */
+const PAGE_SIZE = 100;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface RawTxn {
   id: string;
@@ -61,20 +88,30 @@ interface RawTxn {
     | null;
 }
 
+interface Totals {
+  income: number | string;
+  expense: number | string;
+  count: number | string;
+}
+
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; kind?: string; category?: string; method?: string }>;
+  searchParams: Promise<{
+    month?: string;
+    kind?: string;
+    category?: string;
+    method?: string;
+    page?: string;
+  }>;
 }) {
   const ctx = await requireFinance();
   const supabase = await createClient();
   const [t, locale] = await Promise.all([getTranslations("accounting"), getLocale()]);
   const tid = ctx.tenant.id;
-  const dateLocale = intlLocale(locale);
 
   const sp = await searchParams;
-  const now = new Date();
-  const currentKey = monthKey(now);
+  const currentKey = algiersMonth();
   // "all" exists because the categories screen counts a category's transactions
   // over ALL time. Sending that count to a page pinned to the current month
   // meant clicking "12 transactions" could show 11 — the number promising one
@@ -85,10 +122,20 @@ export default async function TransactionsPage({
     : /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month ?? "")
       ? (sp.month as string)
       : currentKey;
-  const [y, m] = (allMonths ? currentKey : month).split("-").map(Number);
-  const monthStart = `${allMonths ? currentKey : month}-01`;
-  const lastDay = new Date(y, m, 0).getDate();
-  const monthEnd = `${allMonths ? currentKey : month}-${String(lastDay).padStart(2, "0")}`;
+  // Half-open [start, end): the same bounds the totals RPC uses, so the list
+  // and the figures above it can never disagree about where a month ends.
+  const range = allMonths ? null : monthRange(month);
+
+  // Filters are validated before they reach either query: the RPC's uuid and
+  // enum parameters would otherwise turn a mistyped URL into a 400.
+  const kind: TxnKind | null = sp.kind === "income" || sp.kind === "expense" ? sp.kind : null;
+  const category = sp.category && UUID_RE.test(sp.category) ? sp.category : null;
+  const method: PaymentMethod | null =
+    sp.method && (PAYMENT_METHODS as readonly string[]).includes(sp.method)
+      ? (sp.method as PaymentMethod)
+      : null;
+  const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
+  const from = (page - 1) * PAGE_SIZE;
 
   let query = supabase
     .from("kg_transactions")
@@ -106,23 +153,41 @@ export default async function TransactionsPage({
     .eq("tenant_id", tid)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
-  if (!allMonths) query = query.gte("date", monthStart).lte("date", monthEnd);
-  if (sp.kind === "income" || sp.kind === "expense") query = query.eq("kind", sp.kind);
-  if (sp.category) query = query.eq("category_id", sp.category);
-  if (sp.method) query = query.eq("method", sp.method);
+  if (range) query = query.gte("date", range.start).lt("date", range.end);
+  if (kind) query = query.eq("kind", kind);
+  if (category) query = query.eq("category_id", category);
+  if (method) query = query.eq("method", method);
+  query = query.range(from, from + PAGE_SIZE - 1);
 
-  const [txnRes, catRes] = await Promise.all([
+  const [txnRes, catRes, totalsRes, tenantRes] = await Promise.all([
     query,
     supabase
       .from("kg_txn_categories")
       .select("id, name, kind, color, is_system")
       .eq("tenant_id", tid)
       .order("name"),
+    supabase.rpc("kg_ledger_totals", {
+      p_tenant: tid,
+      p_from: range?.start ?? null,
+      p_to: range?.end ?? null,
+      p_kind: kind,
+      p_category: category,
+      p_method: method,
+    }),
+    // Where the closed ledger ends (0107). Read from the table rather than
+    // ctx.tenant so a close made a moment ago on another tab is seen here.
+    supabase
+      .from("kg_tenants")
+      .select("ledger_closed_through")
+      .eq("id", tid)
+      .maybeSingle<{ ledger_closed_through: string | null }>(),
   ]);
 
-  const hasError = Boolean(txnRes.error || catRes.error);
+  const hasError = Boolean(txnRes.error || catRes.error || totalsRes.error || tenantRes.error);
   const categories = (catRes.data ?? []) as CategoryOption[];
   const rawRows = (txnRes.data ?? []) as unknown as RawTxn[];
+  const totals = (totalsRes.data ?? null) as Totals | null;
+  const closedThrough = tenantRes.data?.ledger_closed_through ?? null;
 
   // item id → run id, because /accounting/payroll/[id]/payslip/[itemId] needs
   // both and the transaction only stores the item.
@@ -163,21 +228,44 @@ export default async function TransactionsPage({
   const incomeCategories = categories.filter((c) => c.kind === "income");
   const expenseCategories = categories.filter((c) => c.kind === "expense");
 
-  const totalIncome = rows.filter((r) => r.kind === "income").reduce((s, r) => s + r.amount, 0);
-  const totalExpense = rows.filter((r) => r.kind === "expense").reduce((s, r) => s + r.amount, 0);
+  // From Postgres, over every matching row — not from the page on screen.
+  const totalIncome = Number(totals?.income ?? 0);
+  const totalExpense = Number(totals?.expense ?? 0);
   const netTotal = totalIncome - totalExpense;
+  const totalCount = Number(totals?.count ?? rows.length);
+  const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
-  const monthYearFmt = new Intl.DateTimeFormat(dateLocale, { month: "long", year: "numeric" });
   const monthOptions = [
     { value: "all", label: t("allMonths") },
-    ...Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      return { value: monthKey(d), label: monthYearFmt.format(d) };
-    }),
+    ...recentMonths(12).map((m) => ({ value: m, label: monthLabel(m, locale) })),
   ];
-  const monthTitle = allMonths ? t("allMonths") : monthYearFmt.format(new Date(y, m - 1, 1));
+  const monthTitle = allMonths ? t("allMonths") : monthLabel(month, locale);
 
-  const canManage = ctx.isAdmin && month === currentKey;
+  // Editing is per row now, not per month: a hand-written entry can be
+  // changed until finance closes its month. The calendar used to decide this
+  // at midnight on the 1st; nobody had pressed anything, and nobody could
+  // undo it.
+  const canManage = ctx.isAdmin;
+  const isClosed = (date: string) => closedThrough !== null && date <= closedThrough;
+  // The displayed month can be closed when it has ended and is not closed
+  // yet; it can be reopened (admin) when it is exactly the closed edge.
+  const monthLastDay = range ? addDays(range.end, -1) : null;
+  const closable =
+    monthLastDay !== null &&
+    month < currentKey &&
+    (closedThrough === null || closedThrough < monthLastDay);
+  const reopenable = ctx.isAdmin && closedThrough !== null && closedThrough.slice(0, 7) === month;
+
+  function pageHref(p: number): string {
+    const params = new URLSearchParams();
+    if (sp.month) params.set("month", sp.month);
+    if (kind) params.set("kind", kind);
+    if (category) params.set("category", category);
+    if (method) params.set("method", method);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return qs ? `/accounting/transactions?${qs}` : "/accounting/transactions";
+  }
 
   /**
    * Where a row leads, and what it is.
@@ -219,6 +307,9 @@ export default async function TransactionsPage({
     }
     return null;
   }
+
+  const PrevIcon = locale === "ar" ? ChevronRight : ChevronLeft;
+  const NextIcon = locale === "ar" ? ChevronLeft : ChevronRight;
 
   return (
     <div className="space-y-6">
@@ -324,7 +415,7 @@ export default async function TransactionsPage({
                       // copy would only put the two out of sync, and deleting it
                       // would hide cash that really left the till.
                       const linked = destinationOf(tx);
-                      const editable = canManage && !linked;
+                      const editable = canManage && !linked && !isClosed(tx.date);
                       const isIncome = tx.kind === "income";
                       return (
                         <TableRow key={tx.id} className="h-14">
@@ -413,10 +504,44 @@ export default async function TransactionsPage({
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-3 text-sm">
-                <span className="text-muted-foreground">
-                  {t("txn.count", { count: rows.length })}
-                  {ctx.isAdmin && month !== currentKey && (
-                    <span className="ms-2">— {t("txn.editableCurrentMonthOnly")}</span>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+                  <span>
+                    {totalCount > PAGE_SIZE
+                      ? t("txn.showing", {
+                          from: from + 1,
+                          to: from + rows.length,
+                          total: totalCount,
+                        })
+                      : t("txn.count", { count: totalCount })}
+                  </span>
+                  {pageCount > 1 && (
+                    <span className="flex items-center gap-0.5">
+                      {page > 1 ? (
+                        <Button variant="ghost" size="icon-sm" asChild aria-label={t("txn.prevPage")}>
+                          <Link href={pageHref(page - 1)}>
+                            <PrevIcon />
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="icon-sm" disabled aria-label={t("txn.prevPage")}>
+                          <PrevIcon />
+                        </Button>
+                      )}
+                      <span className="tabular-nums">
+                        {page} / {pageCount}
+                      </span>
+                      {page < pageCount ? (
+                        <Button variant="ghost" size="icon-sm" asChild aria-label={t("txn.nextPage")}>
+                          <Link href={pageHref(page + 1)}>
+                            <NextIcon />
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="icon-sm" disabled aria-label={t("txn.nextPage")}>
+                          <NextIcon />
+                        </Button>
+                      )}
+                    </span>
                   )}
                 </span>
                 <span className="flex items-center gap-2 tabular-nums">
@@ -437,6 +562,21 @@ export default async function TransactionsPage({
           )}
         </CardContent>
       </Card>
+
+      {/* The close state of the books, in one line under the journal: where
+          the closed ledger ends, and the one action that moves it. Not a
+          banner — closing a month is routine, not an alarm. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+        <span>
+          {closedThrough
+            ? t("txn.closedThrough", { date: formatDate(closedThrough, locale) })
+            : t("txn.nothingClosed")}
+        </span>
+        <span className="flex items-center gap-2">
+          {reopenable && <ReopenMonthButton monthLabel={monthTitle} />}
+          {closable && <CloseMonthButton month={month} monthLabel={monthTitle} />}
+        </span>
+      </div>
     </div>
   );
 }

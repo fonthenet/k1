@@ -9,6 +9,7 @@ import { requireFinance } from "@/lib/tenant";
 import { formatDate, formatDZD } from "@/lib/format";
 import type { PaymentMethod } from "@/lib/types";
 import { PrintReceiptButton } from "@/components/modules/billing/print-receipt-button";
+import { ReversePaymentButton } from "@/components/modules/billing/reverse-payment-button";
 import { EmptyIcon } from "@/components/modules/billing/finance-ui";
 import { intToFrenchWords } from "@/components/modules/billing/french-words";
 import { displayInvoiceNumber } from "@/components/modules/billing/maps";
@@ -22,7 +23,7 @@ type ReceiptRow = {
   receipt_number: string | null;
   paid_at: string;
   received_by: string | null;
-  kg_invoices: { number: number; issue_date: string } | null;
+  kg_invoices: { number: number | null; issue_date: string } | null;
   kg_children: {
     first_name: string;
     last_name: string;
@@ -162,6 +163,17 @@ export default async function ReceiptPage({
             </Button>
           )}
           <PrintReceiptButton label={t("receipt.print")} />
+          {/* Beside Print, because this is the page an admin has open when a
+              family says "that is not what we paid". Once reversed the row is
+              gone, so the button goes back to the invoice it belonged to. */}
+          {ctx.isAdmin && (
+            <ReversePaymentButton
+              paymentId={pay.id}
+              receiptLabel={pay.receipt_number ?? "—"}
+              amountLabel={formatDZD(amount, "fr")}
+              redirectTo={pay.invoice_id ? `/billing/invoices/${pay.invoice_id}` : "/billing"}
+            />
+          )}
         </PageHeader>
       </div>
 
@@ -201,7 +213,9 @@ export default async function ReceiptPage({
         </div>
 
         <FieldRow fr={t("receipt.dateFr")} ar={t("receipt.dateAr")}>
-          {formatDate(pay.paid_at, "fr")}
+          {/* Pinned to Algiers: the server renders in UTC, and a payment keyed
+              at noon Algiers on the 1st is still the 1st on the paper. */}
+          {formatDate(pay.paid_at, "fr", { timeZone: "Africa/Algiers" })}
         </FieldRow>
         <FieldRow fr={t("receipt.childFr")} ar={t("receipt.childAr")}>
           <span className="inline-flex flex-col leading-tight">

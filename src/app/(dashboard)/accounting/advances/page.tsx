@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { BadgeCheck, HandCoins, Hourglass, TriangleAlert, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
+import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import { formatDZD, formatDate, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
@@ -115,31 +116,23 @@ export default async function AdvancesPage({
   const rawMembers = (memberRes.data ?? []) as RawMember[];
   const rawAdvances = (advanceRes.data ?? []) as unknown as RawAdvance[];
 
-  // kg_memberships has no FK to kg_profiles (user_id points at auth.users), so names
-  // are resolved in a second round-trip — same shape as the payroll run page. The
-  // deciders ride along in the same query: whoever approved an advance need not be
-  // one of the staff listed above.
-  const userIds = [
-    ...new Set(
-      [
-        ...rawMembers.map((m) => m.user_id),
-        ...rawAdvances.map((a) => a.decided_by),
-      ].filter((id): id is string => !!id)
-    ),
-  ];
-  const profileRes =
-    userIds.length > 0
-      ? await supabase.from("kg_profiles").select("id, full_name").in("id", userIds)
-      : { data: [] as { id: string; full_name: string }[], error: null };
-  const nameByUser = new Map((profileRes.data ?? []).map((p) => [p.id, p.full_name]));
+  // kg_memberships has no FK to kg_profiles (user_id points at auth.users), so
+  // names come from src/lib/member-names.ts in a second round-trip: profile
+  // first, the name the director typed second. The deciders ride along in the
+  // same lookup — whoever approved an advance need not be one of the staff
+  // listed above, and a decider always has an account, so their profile is
+  // the only name there is.
+  const profileNames = await fetchProfileNames(supabase, [
+    ...rawMembers.map((m) => m.user_id),
+    ...rawAdvances.map((a) => a.decided_by),
+  ]);
 
-  const hasError = Boolean(memberRes.error || advanceRes.error || profileRes.error);
+  const hasError = Boolean(memberRes.error || advanceRes.error);
 
   const allMembers: MemberOption[] = rawMembers
     .map((m) => ({
       id: m.id,
-      name:
-        (m.user_id ? nameByUser.get(m.user_id) : null) || (m.full_name ?? "").trim() || "—",
+      name: memberNameIn(m, profileNames) ?? "—",
       jobTitle: m.job_title,
     }))
     .sort((a, b) => collator.compare(a.name, b.name));
@@ -162,7 +155,7 @@ export default async function AdvancesPage({
       repaid: a.repaid,
       status: a.status,
       decidedAt: a.decided_at,
-      decidedByName: (a.decided_by ? nameByUser.get(a.decided_by) : null) ?? null,
+      decidedByName: (a.decided_by ? profileNames.get(a.decided_by) : null) ?? null,
       decisionNote: a.decision_note,
       viaPayroll: Boolean(a.payroll_item_id),
       payrollDraft: a.kg_payroll_items?.kg_payroll_runs?.status === "draft",

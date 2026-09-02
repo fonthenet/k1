@@ -10,7 +10,10 @@ type ActionError =
   | "forbidden"
   | "invalid"
   | "locked"
-  | "notCurrentMonth"
+  /** The entry's month has been closed by finance (0107). */
+  | "closedMonth"
+  /** Close refused: the month has not ended yet. */
+  | "monthNotEnded"
   | "systemCategory"
   | "exists"
   | "notDraft"
@@ -39,9 +42,37 @@ const methodSchema = z.enum([
 const kindSchema = z.enum(["income", "expense"]);
 const amountSchema = z.number().positive().max(99_999_999);
 
-function inCurrentMonth(date: string): boolean {
-  const now = new Date();
-  return date.startsWith(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+/**
+ * The last day of the ledger finance has closed, or null when nothing is.
+ *
+ * This replaces a test against the server's calendar. Entries used to become
+ * uneditable at midnight UTC on the 1st — no step a human took, nothing a
+ * human could undo — while a backdated INSERT into that same "closed" month
+ * was never refused at all. Now a month is closed when finance closes it
+ * (0107), the same rule covers add, edit and delete, and the database
+ * enforces it for every client, not only this one.
+ */
+async function ledgerClosedThrough(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("kg_tenants")
+    .select("ledger_closed_through")
+    .eq("id", tenantId)
+    .maybeSingle<{ ledger_closed_through: string | null }>();
+  return data?.ledger_closed_through ?? null;
+}
+
+function inClosedMonth(date: string, closedThrough: string | null): boolean {
+  return closedThrough !== null && date <= closedThrough;
+}
+
+/** The database's own answer, for the clients that bypass the checks above. */
+function mapLedgerError(error: { code?: string } | null): { ok: false; error: ActionError } {
+  if (error?.code === "KG010") return { ok: false, error: "closedMonth" };
+  if (error?.code === "42501") return { ok: false, error: "forbidden" };
+  return { ok: false, error: "generic" };
 }
 
 function revalidateFinancePages() {
@@ -118,8 +149,13 @@ export async function saveTransaction(input: z.infer<typeof txnSchema>): Promise
   const itemised = items !== null && items.length > 0;
   if (itemised) payload.amount = 0;
 
+  // Read once, checked on every path: a closed month takes no new entry
+  // either. That is the half the old calendar test forgot.
+  const closedThrough = await ledgerClosedThrough(supabase, ctx.tenant.id);
+  if (inClosedMonth(v.date, closedThrough)) return { ok: false, error: "closedMonth" };
+
   if (v.id) {
-    // Edits: admins only, current-month entries only, never payment-linked rows.
+    // Edits: admins only, open months only, never payment-linked rows.
     if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
     const { data: existing } = await supabase
       .from("kg_transactions")
@@ -139,15 +175,14 @@ export async function saveTransaction(input: z.infer<typeof txnSchema>): Promise
     ) {
       return { ok: false, error: "locked" };
     }
-    if (!inCurrentMonth(existing.date) || !inCurrentMonth(v.date)) {
-      return { ok: false, error: "notCurrentMonth" };
-    }
+    // The day it sits on now as well as the day it is being moved to.
+    if (inClosedMonth(existing.date, closedThrough)) return { ok: false, error: "closedMonth" };
     const { error } = await supabase
       .from("kg_transactions")
       .update({ ...payload, updated_at: new Date().toISOString() })
       .eq("id", v.id)
       .eq("tenant_id", ctx.tenant.id);
-    if (error) return { ok: false, error: "generic" };
+    if (error) return mapLedgerError(error);
 
     if (items !== null) {
       const replaced = await replaceItems(supabase, ctx.tenant.id, v.id, items);
@@ -159,7 +194,7 @@ export async function saveTransaction(input: z.infer<typeof txnSchema>): Promise
       .insert({ tenant_id: ctx.tenant.id, ...payload, created_by: ctx.user.id })
       .select("id")
       .single();
-    if (error || !created) return { ok: false, error: "generic" };
+    if (error || !created) return mapLedgerError(error);
 
     if (itemised) {
       const written = await replaceItems(supabase, ctx.tenant.id, created.id, items);
@@ -236,17 +271,58 @@ export async function deleteTransaction(id: string): Promise<Result> {
   ) {
     return { ok: false, error: "locked" };
   }
-  if (!inCurrentMonth(existing.date)) return { ok: false, error: "notCurrentMonth" };
+  const closedThrough = await ledgerClosedThrough(supabase, ctx.tenant.id);
+  if (inClosedMonth(existing.date, closedThrough)) return { ok: false, error: "closedMonth" };
 
   const { error } = await supabase
     .from("kg_transactions")
     .delete()
     .eq("id", id)
     .eq("tenant_id", ctx.tenant.id);
-  if (error) return { ok: false, error: "generic" };
+  if (error) return mapLedgerError(error);
 
   revalidateFinancePages();
   return { ok: true };
+}
+
+/**
+ * Close a month: every hand-written entry dated in it, or earlier, is final.
+ *
+ * The RPC refuses a month that has not ended (22023) and records the close in
+ * kg_audit_log; the trigger it arms (0107) is what actually stops the edits,
+ * from this app and from any other client.
+ */
+export async function closeLedgerMonth(month: string): Promise<Result<{ through: string }>> {
+  const ctx = await requireFinance();
+  if (!MONTH_RE.test(month)) return { ok: false, error: "invalid" };
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("kg_close_ledger_month", {
+    p_tenant: ctx.tenant.id,
+    p_month: `${month}-01`,
+  });
+  if (error) {
+    if (error.code === "22023") return { ok: false, error: "monthNotEnded" };
+    return mapLedgerError(error);
+  }
+
+  revalidateFinancePages();
+  return { ok: true, data: { through: String(data) } };
+}
+
+/** Step the close back one month. Admin only — the RPC checks kg_is_admin. */
+export async function reopenLedgerMonth(): Promise<Result<{ through: string | null }>> {
+  const ctx = await requireFinance();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("kg_reopen_ledger_month", {
+    p_tenant: ctx.tenant.id,
+  });
+  if (error) return mapLedgerError(error);
+
+  revalidateFinancePages();
+  return { ok: true, data: { through: data ? String(data) : null } };
 }
 
 // --------------------------------------------------------------- categories
@@ -315,105 +391,57 @@ export async function deleteCategory(id: string): Promise<Result> {
 
 // ------------------------------------------------------------------ payroll
 
-/** Row shape of the `kg_payroll_basis` RPC (0034). */
-type PayrollBasis = {
-  membership_id: string;
-  pay_type: "monthly" | "hourly";
-  hourly_rate: number | null;
-  hours: number | null;
-  expected: number | null;
-};
+/**
+ * The SQLSTATEs the payroll RPCs (0083) raise, mapped to the words the screen
+ * already has. Each raise carries its own code precisely so nothing here has
+ * to pattern-match a message.
+ */
+function mapPayrollError(error: { code?: string } | null): { ok: false; error: ActionError } {
+  switch (error?.code) {
+    case "42501":
+      return { ok: false, error: "forbidden" };
+    case "23505":
+      return { ok: false, error: "exists" };
+    case "KG001":
+      return { ok: false, error: "noStaff" };
+    case "KG002":
+      return { ok: false, error: "notDraft" };
+    case "KG003":
+      return { ok: false, error: "notFinalized" };
+    case "22023":
+      return { ok: false, error: "invalid" };
+    default:
+      return { ok: false, error: "generic" };
+  }
+}
 
+/**
+ * Seed a draft run — one statement, in the database.
+ *
+ * This used to be four round trips from here (insert the run, insert the
+ * items, then claim each member's advances one UPDATE at a time) with a
+ * hand-rolled rollback if step two failed and none at all if step three did:
+ * a dropped connection between "items inserted" and "advances claimed" left
+ * a run whose deductions were printed on the payslips but whose advances were
+ * still in the pool for the NEXT run to deduct again. kg_payroll_create does
+ * all of it atomically, and the mobile app already calls it — one code path
+ * for both clients means one set of arithmetic to be wrong.
+ */
 export async function createPayrollRun(month: string): Promise<Result<{ id: string }>> {
   const ctx = await requireFinance();
   if (!MONTH_RE.test(month)) return { ok: false, error: "invalid" };
   const supabase = await createClient();
-  const monthDate = `${month}-01`;
 
-  const { data: existing } = await supabase
-    .from("kg_payroll_runs")
-    .select("id")
-    .eq("tenant_id", ctx.tenant.id)
-    .eq("month", monthDate)
-    .maybeSingle();
-  if (existing) return { ok: false, error: "exists" };
-
-  // What each person is owed for this month. Monthly staff get their
-  // base_salary; hourly staff get hourly_rate x approved hours from the
-  // timesheets. The arithmetic stays in kg_expected_pay (0030) so a payslip and
-  // a payroll run can never disagree about the same month.
-  const { data: members, error: basisError } = await supabase.rpc("kg_payroll_basis", {
+  const { data, error } = await supabase.rpc("kg_payroll_create", {
     p_tenant: ctx.tenant.id,
-    p_month: monthDate,
+    p_month: `${month}-01`,
   });
-  if (basisError) return { ok: false, error: "generic" };
-  if (!members || members.length === 0) return { ok: false, error: "noStaff" };
-
-  const { data: advances } = await supabase
-    .from("kg_salary_advances")
-    .select("id, membership_id, amount")
-    .eq("tenant_id", ctx.tenant.id)
-    // Approved only. A staff member's pending request is also unrepaid and
-    // unclaimed, so without this it would be deducted from their real salary
-    // before anyone had agreed to lend them the money.
-    .eq("status", "approved")
-    .eq("repaid", false)
-    .is("payroll_item_id", null);
-
-  const advByMember = new Map<string, { ids: string[]; total: number }>();
-  for (const a of advances ?? []) {
-    const acc = advByMember.get(a.membership_id) ?? { ids: [], total: 0 };
-    acc.ids.push(a.id);
-    acc.total += Number(a.amount);
-    advByMember.set(a.membership_id, acc);
-  }
-
-  const { data: run, error: runError } = await supabase
-    .from("kg_payroll_runs")
-    .insert({ tenant_id: ctx.tenant.id, month: monthDate, created_by: ctx.user.id })
-    .select("id")
-    .single();
-  if (runError || !run) return { ok: false, error: "generic" };
-
-  const itemsPayload = (members as PayrollBasis[]).map((m) => {
-    const base = Number(m.expected ?? 0);
-    const adv = advByMember.get(m.membership_id)?.total ?? 0;
-    return {
-      run_id: run.id,
-      tenant_id: ctx.tenant.id,
-      membership_id: m.membership_id,
-      base_amount: base,
-      hours: m.pay_type === "hourly" ? Number(m.hours ?? 0) : null,
-      bonuses: 0,
-      deductions: 0,
-      advances_deducted: adv,
-      net_amount: base - adv,
-    };
-  });
-
-  const { data: items, error: itemsError } = await supabase
-    .from("kg_payroll_items")
-    .insert(itemsPayload)
-    .select("id, membership_id");
-  if (itemsError || !items) {
-    await supabase.from("kg_payroll_runs").delete().eq("id", run.id).eq("tenant_id", ctx.tenant.id);
-    return { ok: false, error: "generic" };
-  }
-
-  // Claim the outstanding advances on their payroll line (settled when the run is paid).
-  for (const item of items) {
-    const adv = advByMember.get(item.membership_id);
-    if (!adv || adv.ids.length === 0) continue;
-    await supabase
-      .from("kg_salary_advances")
-      .update({ payroll_item_id: item.id })
-      .eq("tenant_id", ctx.tenant.id)
-      .in("id", adv.ids);
-  }
+  if (error) return mapPayrollError(error);
+  if (!data) return { ok: false, error: "generic" };
 
   revalidatePath("/accounting/payroll");
   revalidatePath("/accounting/advances");
-  return { ok: true, data: { id: run.id } };
+  return { ok: true, data: { id: String(data) } };
 }
 
 export async function deletePayrollRun(id: string): Promise<Result> {
@@ -443,12 +471,20 @@ export async function deletePayrollRun(id: string): Promise<Result> {
   return { ok: true };
 }
 
+/**
+ * `advances` is deliberately not here. The run computes advances_deducted
+ * from the advances it claimed (0083); letting the accountant type it
+ * decoupled the deduction from the advance — the real client already has a
+ * payslip showing 5 000 deducted with no linked advance, while the member's
+ * 5 000 advance reads "repaid" with no payslip. Bonuses and deductions cover
+ * every genuine adjustment. A line's advance is changed by settling or
+ * reversing the advance itself.
+ */
 const itemSchema = z.object({
   itemId: z.uuid(),
   base: z.number().min(0).max(99_999_999),
   bonuses: z.number().min(0).max(99_999_999),
   deductions: z.number().min(0).max(99_999_999),
-  advances: z.number().min(0).max(99_999_999),
 });
 
 export async function updatePayrollItem(input: z.infer<typeof itemSchema>): Promise<Result> {
@@ -458,28 +494,24 @@ export async function updatePayrollItem(input: z.infer<typeof itemSchema>): Prom
   const v = parsed.data;
   const supabase = await createClient();
 
+  // The run id is only needed for revalidation; the RPC reads the tenant and
+  // the status off the row itself, in the same transaction as the write, so a
+  // run finalized between this read and the update is still refused (KG002).
   const { data: item } = await supabase
     .from("kg_payroll_items")
-    .select("id, run_id, kg_payroll_runs(status)")
+    .select("id, run_id")
     .eq("id", v.itemId)
     .eq("tenant_id", ctx.tenant.id)
     .maybeSingle();
   if (!item) return { ok: false, error: "generic" };
-  const runStatus = (item.kg_payroll_runs as unknown as { status: string } | null)?.status;
-  if (runStatus !== "draft") return { ok: false, error: "notDraft" };
 
-  const { error } = await supabase
-    .from("kg_payroll_items")
-    .update({
-      base_amount: v.base,
-      bonuses: v.bonuses,
-      deductions: v.deductions,
-      advances_deducted: v.advances,
-      net_amount: v.base + v.bonuses - v.deductions - v.advances,
-    })
-    .eq("id", v.itemId)
-    .eq("tenant_id", ctx.tenant.id);
-  if (error) return { ok: false, error: "generic" };
+  const { error } = await supabase.rpc("kg_payroll_update_item", {
+    p_item: v.itemId,
+    p_base: v.base,
+    p_bonuses: v.bonuses,
+    p_deductions: v.deductions,
+  });
+  if (error) return mapPayrollError(error);
 
   revalidatePath(`/accounting/payroll/${item.run_id}`);
   revalidatePath("/accounting/payroll");
@@ -487,19 +519,16 @@ export async function updatePayrollItem(input: z.infer<typeof itemSchema>): Prom
 }
 
 export async function finalizePayrollRun(id: string): Promise<Result> {
-  const ctx = await requireFinance();
+  // Still required, even though the RPC re-checks finance on the row's own
+  // tenant: a signed-out or parent caller is redirected here and never
+  // reaches the database at all.
+  await requireFinance();
   if (!z.uuid().safeParse(id).success) return { ok: false, error: "invalid" };
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("kg_payroll_runs")
-    .update({ status: "finalized", finalized_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("tenant_id", ctx.tenant.id)
-    .eq("status", "draft")
-    .select("id");
-  if (error) return { ok: false, error: "generic" };
-  if (!data || data.length === 0) return { ok: false, error: "notDraft" };
+  // Posts nothing to the ledger — finalizing is a lock, not a payment (0083).
+  const { error } = await supabase.rpc("kg_payroll_finalize", { p_run: id });
+  if (error) return mapPayrollError(error);
 
   revalidatePath(`/accounting/payroll/${id}`);
   revalidatePath("/accounting/payroll");
@@ -508,6 +537,19 @@ export async function finalizePayrollRun(id: string): Promise<Result> {
 
 const markPaidSchema = z.object({ runId: z.uuid(), method: methodSchema });
 
+/**
+ * Pay the month.
+ *
+ * Four statements that must all happen or none — claim the run, stamp
+ * paid_at (which IS the ledger posting, one "Salaires" row per payslip via
+ * trg_kg_payroll_item_ledger), settle the deducted advances, release the
+ * rest. This used to be four separate PostgREST calls from here with a
+ * compensating rollback for the second; a connection dropped after the first
+ * left a run reading "paid" with nothing in the books and no way to pay it
+ * again. kg_payroll_mark_paid (0083) is one transaction. Nothing is inserted
+ * into kg_transactions here, and nothing may be: the trigger already books
+ * every salary, and a summary row would count each one twice.
+ */
 export async function markPayrollRunPaid(input: z.infer<typeof markPaidSchema>): Promise<Result> {
   const ctx = await requireFinance();
   const parsed = markPaidSchema.safeParse(input);
@@ -515,82 +557,21 @@ export async function markPayrollRunPaid(input: z.infer<typeof markPaidSchema>):
   const v = parsed.data;
   const supabase = await createClient();
 
+  // Tenant-scoped existence check so a foreign run id answers "generic" here
+  // rather than leaking a 42501 that says the row exists somewhere.
   const { data: run } = await supabase
     .from("kg_payroll_runs")
-    .select("id, month, status")
+    .select("id")
     .eq("id", v.runId)
     .eq("tenant_id", ctx.tenant.id)
     .maybeSingle();
   if (!run) return { ok: false, error: "generic" };
-  if (run.status === "draft") return { ok: false, error: "notFinalized" };
-  if (run.status === "paid") return { ok: false, error: "generic" };
 
-  const { data: items } = await supabase
-    .from("kg_payroll_items")
-    .select("id, net_amount, advances_deducted")
-    .eq("run_id", v.runId)
-    .eq("tenant_id", ctx.tenant.id);
-  if (!items || items.length === 0) return { ok: false, error: "generic" };
-
-  const now = new Date();
-  // Lines that still carry a deduction settle their advances; lines whose deduction was
-  // edited down to zero release them instead, so the next run can pick them up again.
-  const settledItemIds = items.filter((i) => Number(i.advances_deducted) > 0).map((i) => i.id);
-  const releasedItemIds = items.filter((i) => Number(i.advances_deducted) <= 0).map((i) => i.id);
-
-  // Claim the run first, conditional on it still being `finalized`. Two concurrent
-  // "mark paid" clicks both pass the status read above, but only one flips the row —
-  // the loser stops here, so nobody gets paid twice.
-  const { data: claimed, error: runError } = await supabase
-    .from("kg_payroll_runs")
-    .update({ status: "paid" })
-    .eq("id", v.runId)
-    .eq("tenant_id", ctx.tenant.id)
-    .eq("status", "finalized")
-    .select("id");
-  if (runError) return { ok: false, error: "generic" };
-  if (!claimed || claimed.length === 0) return { ok: false, error: "generic" };
-
-  // Stamping paid_at is what books the expense: trg_kg_payroll_item_ledger writes one
-  // "Salaires" row per payslip (see 0030). Do not insert a lump sum here as well — the
-  // ledger would count every salary twice. The trigger also owns the reverse: clearing
-  // paid_at removes the row, so an undone payment cannot leave cash in the books.
-  const { error: itemsError } = await supabase
-    .from("kg_payroll_items")
-    .update({ paid_at: now.toISOString(), method: v.method })
-    .eq("run_id", v.runId)
-    .eq("tenant_id", ctx.tenant.id);
-  if (itemsError) {
-    // Release the claim so the run can be marked paid again rather than sitting
-    // "paid" with nothing in the ledger.
-    await supabase
-      .from("kg_payroll_runs")
-      .update({ status: "finalized" })
-      .eq("id", v.runId)
-      .eq("tenant_id", ctx.tenant.id);
-    return { ok: false, error: "generic" };
-  }
-
-  // Settle the advances that were actually deducted on this run.
-  if (settledItemIds.length > 0) {
-    await supabase
-      .from("kg_salary_advances")
-      .update({ repaid: true })
-      .eq("tenant_id", ctx.tenant.id)
-      .eq("repaid", false)
-      .in("payroll_item_id", settledItemIds);
-  }
-
-  // Advances claimed by a line that ended up deducting nothing go back in the pool —
-  // leaving them attached to a paid line would hide them from every future run.
-  if (releasedItemIds.length > 0) {
-    await supabase
-      .from("kg_salary_advances")
-      .update({ payroll_item_id: null })
-      .eq("tenant_id", ctx.tenant.id)
-      .eq("repaid", false)
-      .in("payroll_item_id", releasedItemIds);
-  }
+  const { error } = await supabase.rpc("kg_payroll_mark_paid", {
+    p_run: v.runId,
+    p_method: v.method,
+  });
+  if (error) return mapPayrollError(error);
 
   revalidatePath(`/accounting/payroll/${v.runId}`);
   revalidatePath("/accounting/payroll");
