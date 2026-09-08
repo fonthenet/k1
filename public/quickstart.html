@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="description" content="Rawdatik — démarrage rapide : les cinq étapes qui bloquent tout le reste.">
+<title>Rawdatik — Démarrage rapide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Cairo:wght@400;600;800;900&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   RAWDATIK — DÉMARRAGE RAPIDE
+
+   One sheet. The five steps a crèche cannot open without, in the order
+   they have to be done, each with the one thing that goes wrong if it
+   is skipped. Everything else lives in the full guide at /guide.
+
+   WHY A SECOND DOCUMENT AND NOT A SHORTER GUIDE. They answer different
+   questions. The guide answers "how do I run this" over the first
+   weeks, for five different people. This answers "what do I do right
+   now, before anyone else logs in" for one person, and it has to fit on
+   the paper she prints and ticks off with a pen. A document that tries
+   to be both is the reference manual we just cut in half.
+
+   Same tokens, fonts and language switch as the guide and the media kit
+   — a director who sees the app, the flyer, the guide and this sheet
+   should not be able to tell they were made separately.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --teal:       #19819A;
+  --teal-deep:  #006F8F;
+  --teal-mist:  #EAF4F6;
+  --teal-veil:  #F4F9FA;
+  --gold-ink:   #895909;
+  --gold-veil:  #FFF6E2;
+  --ink:        #12303A;
+  --ink-mid:    #3E5964;
+  --ink-soft:   #6A828C;
+  --rule:       #D3E3E7;
+  --rule-soft:  #E8F0F2;
+  --paper:      #FFFFFF;
+  --room:       #EEF4F6;
+
+  --ar: "Cairo", "Noto Naskh Arabic", system-ui, sans-serif;
+  --display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0; background: var(--room); color: var(--ink);
+  font-family: var(--body); line-height: 1.6;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+
+/* One document, two languages, switched by a data attribute rather than
+   a route — a director hands her phone to an educator who reads the
+   other one, and a round trip would lose her place. French shows before
+   the script runs, and still shows if it never does. */
+[data-lang] { display: none; }
+:root:not([data-active]) [data-lang="fr"] { display: revert; }
+[data-active="fr"] [data-lang="fr"] { display: revert; }
+[data-active="ar"] [data-lang="ar"] { display: revert; }
+[data-lang="ar"] { font-family: var(--ar); }
+
+.topbar { background: var(--teal-deep); color: #fff; }
+.topbar-in {
+  max-width: 46rem; margin: 0 auto; padding: .7rem 1.4rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.brand { display: flex; align-items: center; gap: .6rem; }
+.tile {
+  width: 1.9rem; height: 1.9rem; border-radius: .6rem;
+  background: rgba(255,255,255,.16);
+  display: grid; place-items: center;
+}
+.tile svg { width: 1.2rem; height: 1.2rem; }
+.names { display: flex; flex-direction: column; line-height: 1.15; }
+.names .ar { font-family: var(--ar); font-weight: 700; font-size: .95rem; }
+.names .lat { font-size: .68rem; opacity: .75; letter-spacing: .04em; }
+.langs { display: flex; gap: .3rem; }
+.langs button {
+  font: inherit; font-size: .78rem; color: #fff; cursor: pointer;
+  background: transparent; border: 1px solid rgba(255,255,255,.32);
+  border-radius: 999px; padding: .22rem .7rem;
+}
+.langs button[aria-pressed="true"] { background: #fff; color: var(--teal-deep); border-color: #fff; }
+
+main { max-width: 46rem; margin: 0 auto; padding: 2rem 1.4rem 3rem; }
+
+.sheet {
+  background: var(--paper); border: 1px solid var(--rule);
+  border-radius: 1rem; padding: 2rem 1.9rem;
+}
+
+h1 {
+  font-family: var(--display); font-weight: 800; font-size: 1.9rem;
+  line-height: 1.15; margin: 0; letter-spacing: -.01em;
+}
+[data-lang="ar"] h1 { font-family: var(--ar); font-weight: 900; }
+.lede { color: var(--ink-mid); margin: .5rem 0 0; font-size: .95rem; }
+
+/* The steps. The accent is spent once, on the number — everything else
+   is ordinary text. Colouring the rule, the title and the consequence
+   as well is the "one fact wearing colour five times" the product's own
+   screens were corrected for. */
+ol { list-style: none; margin: 1.8rem 0 0; padding: 0; counter-reset: s; }
+ol li {
+  display: grid; grid-template-columns: 2rem 1fr; gap: 0 .9rem;
+  padding: 1.1rem 0; border-top: 1px solid var(--rule-soft);
+}
+ol li:first-child { border-top: 0; padding-top: .4rem; }
+.n {
+  font-family: var(--display); font-weight: 800; font-size: 1.1rem;
+  color: var(--teal); font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+[data-lang="ar"] .n { font-family: var(--ar); }
+ol b { display: block; font-size: 1.02rem; font-weight: 700; }
+.where {
+  display: block; margin-top: .15rem;
+  font-size: .8rem; color: var(--ink-soft);
+}
+[data-lang="ar"] .where { font-family: var(--body); direction: ltr; text-align: start; }
+ol p { margin: .5rem 0 0; font-size: .92rem; color: var(--ink-mid); }
+/* The consequence — the reason the step is on this sheet at all. Quiet,
+   but set apart, because it is what a skimming reader must not miss. */
+ol em {
+  display: block; margin-top: .3rem; font-style: normal;
+  color: var(--gold-ink); background: var(--gold-veil);
+  padding: .4rem .6rem; border-radius: .45rem; font-size: .88rem;
+}
+
+.check {
+  margin-top: 1.6rem; padding: 1rem 1.1rem;
+  background: var(--teal-veil); border: 1px solid var(--teal-mist);
+  border-radius: .7rem; font-size: .92rem; color: var(--ink-mid);
+}
+.check b { color: var(--ink); }
+
+.foot {
+  margin-top: 1.4rem; font-size: .85rem; color: var(--ink-soft);
+  text-align: center;
+}
+.foot a { color: var(--teal-deep); }
+
+@media (max-width: 34rem) {
+  main { padding: 1.2rem .9rem 2.4rem; }
+  .sheet { padding: 1.4rem 1.1rem; border-radius: .8rem; }
+  h1 { font-size: 1.55rem; }
+}
+
+/* Printed and pinned above the desk: one A4 sheet, no chrome, and only
+   the language that is on screen. */
+@media print {
+  body { background: #fff; }
+  .topbar, .foot { display: none; }
+  main { max-width: none; padding: 0; }
+  .sheet { border: 0; border-radius: 0; padding: 0; }
+  ol li { break-inside: avoid; }
+  @page { margin: 14mm; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <span class="brand">
+      <span class="tile"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21v-6.6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M12 15.2c-3.7 0-6.1-2.7-6.1-6.4 3.7 0 6.1 2.7 6.1 6.4Z" fill="#fff" opacity=".72"/><path d="M12 14.1c0-3.7 2.4-6.4 6.1-6.4 0 3.7-2.4 6.4-6.1 6.4Z" fill="#fff"/><circle cx="12" cy="4.4" r="1.9" fill="#fff" opacity=".85"/></svg></span>
+      <span class="names"><span class="ar">روضتك</span><span class="lat">Rawdatik</span></span>
+    </span>
+    <span class="langs">
+      <button type="button" data-set="fr" aria-pressed="true">Français</button>
+      <button type="button" data-set="ar" aria-pressed="false">العربية</button>
+    </span>
+  </div>
+</div>
+
+<main>
+
+<div data-lang="fr">
+  <div class="sheet">
+    <h1>Démarrage rapide</h1>
+    <p class="lede">Cinq étapes, dans cet ordre, le jour où vous ouvrez le compte — avant que quiconque d'autre se connecte. Comptez une demi-heure.</p>
+
+    <ol>
+      <li>
+        <span class="n">1</span>
+        <div>
+          <b>Vos jours et vos heures</b>
+          <span class="where">Paramètres → Jours et horaires d'ouverture</span>
+          <p>Vos vrais jours et vos vraies heures, pas celles proposées par défaut.</p>
+          <em>La borne d'entrée refuse toute arrivée en dehors de cette plage.</em>
+        </div>
+      </li>
+
+      <li>
+        <span class="n">2</span>
+        <div>
+          <b>Les classes</b>
+          <span class="where">Classes → Nouvelle classe</span>
+          <p>Nom en français et en arabe, tranche d'âge en mois, capacité, salle.</p>
+          <em>À faire avant le premier enfant, sinon il reste « Sans classe » dans le registre et dans les rapports.</em>
+        </div>
+      </li>
+
+      <li>
+        <span class="n">3</span>
+        <div>
+          <b>Au moins une formule mensuelle</b>
+          <span class="where">Facturation → Formules → Nouvelle formule</span>
+          <p>Par exemple garde à plein temps, 12 000 DA / mois. Ajoutez une formule « Unique » si vous prenez des frais d'inscription.</p>
+          <em>C'est l'étape qui porte tout le reste : sans formule mensuelle, personne n'est facturé — et aucune erreur ne s'affiche.</em>
+        </div>
+      </li>
+
+      <li>
+        <span class="n">4</span>
+        <div>
+          <b>Votre équipe</b>
+          <span class="where">Personnel → Ajouter un membre → Créer directement</span>
+          <p>« Créer directement » pour toute personne sans e-mail. L'invitation par e-mail n'envoie aucun message : copiez le lien et transmettez-le vous-même.</p>
+          <em>Le code personnel et le code PIN s'affichent une seule fois. Notez-les immédiatement.</em>
+        </div>
+      </li>
+
+      <li>
+        <span class="n">5</span>
+        <div>
+          <b>Le lien d'inscription — en dernier</b>
+          <span class="where">Paramètres → Inscriptions → Nouveau lien</span>
+          <p>Donnez-lui un libellé (« Rentrée 2026 »), puis copiez-le, partagez-le sur WhatsApp, ou imprimez l'affiche QR pour la porte.</p>
+          <em>En dernier seulement : la page que voit la famille est construite sur tout ce qui précède.</em>
+        </div>
+      </li>
+    </ol>
+
+    <p class="check"><b>Vérifiez avant de partager.</b> Ouvrez le lien d'inscription vous-même, depuis votre téléphone. S'il ne demande pas à la famille de choisir sa formule, l'étape 3 n'est pas faite.</p>
+  </div>
+
+  <p class="foot">Le reste — l'éducatrice, la caisse, les parents, la tablette d'entrée — est dans le <a href="/guide">guide complet</a>.</p>
+</div>
+
+<div data-lang="ar" dir="rtl">
+  <div class="sheet">
+    <h1>الانطلاق السريع</h1>
+    <p class="lede">خمس خطوات، بهذا الترتيب، في اليوم الذي تفتحين فيه الحساب — قبل أن يدخل أي شخص آخر إلى النظام. تأخذ نصف ساعة.</p>
+
+    <ol>
+      <li>
+        <span class="n">1</span>
+        <div>
+          <b>أيامك وساعاتك</b>
+          <span class="where">الإعدادات ← أيام وساعات العمل (Paramètres)</span>
+          <p>أيامك وساعاتك الحقيقية، لا الافتراضية. الافتراضي هو الأحد إلى الخميس من 08:00 إلى 16:30.</p>
+          <em>الباب يرفض أي دخول خارج هذا الوقت.</em>
+        </div>
+      </li>
+
+      <li>
+        <span class="n">2</span>
+        <div>
+          <b>الأقسام</b>
+          <span class="where">الأقسام ← قسم جديد (Classes)</span>
+          <p>الاسم بالعربية والفرنسية، السن من وإلى بالأشهر، الطاقة والقاعة.</p>
+          <em>قبل أول طفل: الطفل الذي يُسجَّل قبل وجود قسم يبقى «بدون قسم» في السجل وفي التقارير.</em>
+        </div>
+      </li>
+
+      <li>
+        <span class="n">3</span>
+        <div>
+          <b>صيغة شهرية واحدة على الأقل</b>
+          <span class="where">الفوترة ← صفحة الصيغ (Facturation → Formules)</span>
+          <p>مثلاً: حضانة كاملة، 12 000 DA في الشهر. وإن كنتِ تأخذين حق تسجيل، أضيفي صيغة بدورية «مرة واحدة».</p>
+          <em>هي الخطوة التي يقوم عليها كل ما بعدها: بدون صيغة شهرية لا تُفوتَر عائلة واحدة، ولا يظهر أي خطأ.</em>
+        </div>
+      </li>
+
+      <li>
+        <span class="n">4</span>
+        <div>
+          <b>فريقك</b>
+          <span class="where">الموظفون ← إضافة عضو ← إنشاء مباشر (Personnel)</span>
+          <p>«إنشاء مباشر» لمن ليس عنده بريد إلكتروني. أما الدعوة بالبريد فلا تُرسل أي رسالة: انسخي الرابط وأرسليه بنفسك.</p>
+          <em>الرمز السري يُعرض مرة واحدة ولا يعود أبدًا — اكتبيه على ورقة في نفس اللحظة.</em>
+        </div>
+      </li>
+
+      <li>
+        <span class="n">5</span>
+        <div>
+          <b>رابط التسجيل — في الأخير</b>
+          <span class="where">الإعدادات ← التسجيل ← رابط جديد (Inscriptions)</span>
+          <p>اكتبي له عنوانًا مثل «الدخول المدرسي 2026»، ثم انسخي الرابط أو شاركيه عبر واتساب أو اطبعي ملصق رمز QR للباب.</p>
+          <em>في الأخير فقط: الصفحة التي تفتحها العائلة مبنية على كل ما فعلتِه قبلها.</em>
+        </div>
+      </li>
+    </ol>
+
+    <p class="check"><b>تأكّدي قبل المشاركة.</b> افتحي رابط التسجيل بنفسك من هاتفك. إن لم يسأل العائلة عن الصيغة الشهرية، فالخطوة 3 لم تُنجَز.</p>
+  </div>
+
+  <p class="foot">الباقي — المربية، الصندوق، الأولياء، ولوحة الباب — في <a href="/guide">الدليل الكامل</a>.</p>
+</div>
+
+</main>
+
+<script>
+  // Language lives on the root element, not in the URL — same as the guide,
+  // and it shares the stored choice with it so a director who picked Arabic
+  // there does not have to pick it again here.
+  var root = document.documentElement;
+  function setLang(l) {
+    root.dataset.active = l;
+    root.lang = l;
+    document.querySelectorAll('.langs button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.set === l));
+    });
+    try { localStorage.setItem('rawdatik-guide-lang', l); } catch (e) {}
+  }
+  document.querySelectorAll('.langs button').forEach(function (b) {
+    b.addEventListener('click', function () { setLang(b.dataset.set); });
+  });
+  var saved = null;
+  try { saved = localStorage.getItem('rawdatik-guide-lang'); } catch (e) {}
+  setLang(saved || ((navigator.language || '').slice(0, 2) === 'ar' ? 'ar' : 'fr'));
+</script>
+
+</body>
+</html>

@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/media-kit", destination: "/media-kit.html" },
       { source: "/guide", destination: "/guide.html" },
+      { source: "/quickstart", destination: "/quickstart.html" },
     ];
   },
   async headers() {
@@ -55,7 +56,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/:page(media-kit|guide):rest(.*)",
+        source: "/:page(media-kit|guide|quickstart):rest(.*)",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
       },
     ];
