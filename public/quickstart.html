@@ -135,6 +135,17 @@ ol em {
   padding: .4rem .6rem; border-radius: .45rem; font-size: .88rem;
 }
 
+/* One screenshot per step, under the sentence it illustrates. Bordered
+   rather than shadowed: a shadow on a light sheet reads as a floating card,
+   and there are five of them. First is eager, the rest lazy — the sheet is
+   read top to bottom in one sitting. */
+.shot { margin: .75rem 0 0; }
+.shot img {
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--rule); border-radius: .5rem;
+  background: var(--teal-veil);
+}
+
 .check {
   margin-top: 1.6rem; padding: 1rem 1.1rem;
   background: var(--teal-veil); border: 1px solid var(--teal-mist);
@@ -162,6 +173,7 @@ ol em {
   main { max-width: none; padding: 0; }
   .sheet { border: 0; border-radius: 0; padding: 0; }
   ol li { break-inside: avoid; }
+  .shot img { max-height: 62mm; object-fit: contain; object-position: left top; }
   @page { margin: 14mm; }
 }
 </style>
@@ -196,6 +208,8 @@ ol em {
           <span class="where">Paramètres → Jours et horaires d'ouverture</span>
           <p>Vos vrais jours et vos vraies heures, pas celles proposées par défaut.</p>
           <em>La borne d'entrée refuse toute arrivée en dehors de cette plage.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/fr-settings.png" alt="" width="1100" height="728"></figure>
         </div>
       </li>
 
@@ -206,6 +220,8 @@ ol em {
           <span class="where">Classes → Nouvelle classe</span>
           <p>Nom en français et en arabe, tranche d'âge en mois, capacité, salle.</p>
           <em>À faire avant le premier enfant, sinon il reste « Sans classe » dans le registre et dans les rapports.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/fr-classes.png" alt="" width="1100" height="728" loading="lazy"></figure>
         </div>
       </li>
 
@@ -216,6 +232,8 @@ ol em {
           <span class="where">Facturation → Formules → Nouvelle formule</span>
           <p>Par exemple garde à plein temps, 12 000 DA / mois. Ajoutez une formule « Unique » si vous prenez des frais d'inscription.</p>
           <em>C'est l'étape qui porte tout le reste : sans formule mensuelle, personne n'est facturé — et aucune erreur ne s'affiche.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/fr-plans.png" alt="" width="1100" height="728" loading="lazy"></figure>
         </div>
       </li>
 
@@ -226,6 +244,8 @@ ol em {
           <span class="where">Personnel → Ajouter un membre → Créer directement</span>
           <p>« Créer directement » pour toute personne sans e-mail. L'invitation par e-mail n'envoie aucun message : copiez le lien et transmettez-le vous-même.</p>
           <em>Le code personnel et le code PIN s'affichent une seule fois. Notez-les immédiatement.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/fr-staff.png" alt="" width="1100" height="728" loading="lazy"></figure>
         </div>
       </li>
 
@@ -236,6 +256,8 @@ ol em {
           <span class="where">Paramètres → Inscriptions → Nouveau lien</span>
           <p>Donnez-lui un libellé (« Rentrée 2026 »), puis copiez-le, partagez-le sur WhatsApp, ou imprimez l'affiche QR pour la porte.</p>
           <em>En dernier seulement : la page que voit la famille est construite sur tout ce qui précède.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/fr-enrollment.png" alt="" width="1100" height="728" loading="lazy"></figure>
         </div>
       </li>
     </ol>
@@ -259,6 +281,8 @@ ol em {
           <span class="where">الإعدادات ← أيام وساعات العمل (Paramètres)</span>
           <p>أيامك وساعاتك الحقيقية، لا الافتراضية. الافتراضي هو الأحد إلى الخميس من 08:00 إلى 16:30.</p>
           <em>الباب يرفض أي دخول خارج هذا الوقت.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/ar-settings.png" alt="" width="1100" height="728"></figure>
         </div>
       </li>
 
@@ -269,6 +293,8 @@ ol em {
           <span class="where">الأقسام ← قسم جديد (Classes)</span>
           <p>الاسم بالعربية والفرنسية، السن من وإلى بالأشهر، الطاقة والقاعة.</p>
           <em>قبل أول طفل: الطفل الذي يُسجَّل قبل وجود قسم يبقى «بدون قسم» في السجل وفي التقارير.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/ar-classes.png" alt="" width="1100" height="728" loading="lazy"></figure>
         </div>
       </li>
 
@@ -279,6 +305,8 @@ ol em {
           <span class="where">الفوترة ← صفحة الصيغ (Facturation → Formules)</span>
           <p>مثلاً: حضانة كاملة، 12 000 DA في الشهر. وإن كنتِ تأخذين حق تسجيل، أضيفي صيغة بدورية «مرة واحدة».</p>
           <em>هي الخطوة التي يقوم عليها كل ما بعدها: بدون صيغة شهرية لا تُفوتَر عائلة واحدة، ولا يظهر أي خطأ.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/ar-billing.png" alt="" width="1100" height="728" loading="lazy"></figure>
         </div>
       </li>
 
@@ -289,6 +317,8 @@ ol em {
           <span class="where">الموظفون ← إضافة عضو ← إنشاء مباشر (Personnel)</span>
           <p>«إنشاء مباشر» لمن ليس عنده بريد إلكتروني. أما الدعوة بالبريد فلا تُرسل أي رسالة: انسخي الرابط وأرسليه بنفسك.</p>
           <em>الرمز السري يُعرض مرة واحدة ولا يعود أبدًا — اكتبيه على ورقة في نفس اللحظة.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/ar-staff.png" alt="" width="1100" height="728" loading="lazy"></figure>
         </div>
       </li>
 
@@ -299,6 +329,8 @@ ol em {
           <span class="where">الإعدادات ← التسجيل ← رابط جديد (Inscriptions)</span>
           <p>اكتبي له عنوانًا مثل «الدخول المدرسي 2026»، ثم انسخي الرابط أو شاركيه عبر واتساب أو اطبعي ملصق رمز QR للباب.</p>
           <em>في الأخير فقط: الصفحة التي تفتحها العائلة مبنية على كل ما فعلتِه قبلها.</em>
+        
+          <figure class="shot"><img src="/guide-shots/web/ar-enrollment.png" alt="" width="1100" height="728" loading="lazy"></figure>
         </div>
       </li>
     </ol>
