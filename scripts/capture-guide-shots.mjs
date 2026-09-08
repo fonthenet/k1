@@ -61,26 +61,19 @@ if (!PASSWORD && !SESSION && ONLY !== "public") {
 /** Staff screens, in the order the guide walks through them. */
 const STAFF = [
   ["settings",       "/settings",                 "Établissement et horaires"],
-  ["holidays",       "/settings/holidays",        "Jours fériés"],
   ["classes",        "/classes",                  "Classes"],
   ["plans",          "/billing/plans",            "Formules tarifaires"],
   ["staff",          "/staff",                    "Équipe"],
   ["enrollment",     "/settings/enrollment",      "Lien d'inscription"],
-  ["applications",   "/applications",             "Demandes d'inscription"],
   ["dashboard",      "/dashboard",                "Tableau de bord"],
   ["attendance",     "/attendance",               "Présences"],
   ["children",       "/children",                 "Enfants"],
-  ["menus",          "/menus",                    "Menus et alerte allergies"],
   ["incidents",      "/incidents",                "Incidents"],
-  ["messages",       "/messages",                 "Messages"],
   ["billing",        "/billing",                  "Facturation"],
   ["arrears",        "/billing/arrears",          "Impayés"],
-  ["transactions",   "/accounting/transactions",  "Comptabilité"],
   ["payroll",        "/accounting/payroll",       "Paie"],
   ["reports",        "/reports",                  "Rapports"],
   ["kiosk",          "/kiosk",                    "Mode kiosque — écran d'entrée"],
-  ["onboarding",     "/onboarding?create=1",      "Créer un établissement"],
-  ["glyphs",         "/glyph-sheet",                  "Weather glyph proof sheet"],
 ];
 
 /** Parent screens — a different account, so a second pass. */
@@ -88,7 +81,6 @@ const PARENT = [
   ["portal",         "/portal",                   "Espace parents — accueil"],
   ["portal-child",   "/portal/children",          "Espace parents — mon enfant"],
   ["portal-payments","/portal/payments",          "Espace parents — factures"],
-  ["portal-messages","/portal/messages",          "Espace parents — messages"],
 ];
 
 /**
@@ -98,8 +90,6 @@ const PARENT = [
  */
 const ENROLL_TOKEN = process.env.ENROLL_TOKEN ?? "";
 const PUBLIC = [
-  ["landing",        "/",                         "Page d'accueil"],
-  ["login",          "/login",                    "Connexion"],
   ["signup",         "/signup",                   "Créer un compte"],
   ...(ENROLL_TOKEN
     ? [["enroll",    `/enroll/${ENROLL_TOKEN}`,   "Formulaire d'inscription en ligne"]]
