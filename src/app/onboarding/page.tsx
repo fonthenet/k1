@@ -8,6 +8,7 @@ import {
   ArrowLeftIcon,
   MapPinIcon,
   PlusIcon,
+  RefreshCwIcon as RefreshIcon,
   SchoolIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +16,7 @@ import type { KgRole, Membership, Tenant } from "@/lib/types";
 import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -103,6 +105,21 @@ export default async function OnboardingPage({
   // is lost for someone who followed the link by accident.
   const showWizard = forceCreate || memberships.length === 0 || claimCode !== "";
 
+  /**
+   * A family that has already asked to enrol is NOT here to found a crèche.
+   *
+   * "No membership" used to mean exactly one thing on this page — you must be
+   * opening a nursery — so a parent who had just submitted a request was shown
+   * "Create your kindergarten" as the main card, under a small notice saying
+   * their file was being reviewed. They have already told us who they are; the
+   * wizard drops to a link.
+   *
+   * A claim code still wins: someone who followed an invite link is trying to
+   * join a crèche right now, and that box must be in front of them.
+   */
+  const waitingParent =
+    memberships.length === 0 && pending.length > 0 && !forceCreate && claimCode === "";
+
   return (
     <div className="relative min-h-dvh overflow-hidden bg-background">
       <div
@@ -115,7 +132,16 @@ export default async function OnboardingPage({
       />
 
       <header className="relative mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-        <Wordmark />
+        {/* The logo is the way out. This screen can be a dead end — a family
+            waiting on a decision has no workspace to open yet — and an
+            unclickable logo left them with nowhere to go but the back button.
+            Home, like the logo on every other page of the site. */}
+        <Link
+          href="/"
+          className="rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <Wordmark />
+        </Link>
         <LocaleToggle />
       </header>
 
@@ -129,6 +155,44 @@ export default async function OnboardingPage({
             <AlertTitle>{t("errors.loadFailed")}</AlertTitle>
             <AlertDescription>{t("errors.generic")}</AlertDescription>
           </Alert>
+        ) : waitingParent ? (
+          <div className="mx-auto max-w-xl">
+            <PendingApplicationsNotice rows={pending} primary />
+
+            {/* The only honest action while waiting. /portal is gated on a
+                membership, and a membership only exists once staff approve
+                (kg_ensure_parent_membership fires when kg_guardians.user_id is
+                set) — so a "go to my space" button would bounce this family
+                straight back to this page. Reloading is what actually tells
+                them whether that has happened yet. */}
+            <div className="mt-5 flex flex-col items-center gap-2">
+              <Button asChild variant="outline">
+                <Link href="/onboarding">
+                  <RefreshIcon data-icon="inline-start" />
+                  {t("onboarding.pending.recheck")}
+                </Link>
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                {t("onboarding.pending.recheckHint")}
+              </p>
+            </div>
+
+            <div className="mt-8 border-t border-border/60 pt-5 text-center">
+              <Link
+                href="/onboarding?create=1"
+                className="rounded text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+              >
+                {t("onboarding.pending.founderLink")}
+              </Link>
+            </div>
+
+            <p className="mt-6 flex justify-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+                <SchoolIcon className="size-3.5 text-primary" aria-hidden />
+                {t("onboarding.signedInAs", { email: displayIdentity(user.email) })}
+              </span>
+            </p>
+          </div>
         ) : showWizard ? (
           <div className="mx-auto max-w-3xl">
             {/* Order matters: a request already in flight explains the empty

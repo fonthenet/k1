@@ -42,26 +42,54 @@ export async function getMyPendingApplications(userId: string): Promise<Row[]> {
   return ((data ?? []) as Row[]).filter((r) => !r.closed);
 }
 
-export async function PendingApplicationsNotice({ rows }: { rows: Row[] }) {
+export async function PendingApplicationsNotice({
+  rows,
+  primary = false,
+}: {
+  rows: Row[];
+  /**
+   * True when this IS the page — a family whose only business here is the wait.
+   * It then gets the heading, and the accent is spent on the hourglass alone:
+   * a gold border, a gold wash AND a gold tile is one fact wearing colour
+   * three times, which is what the rest of the product was corrected for.
+   */
+  primary?: boolean;
+}) {
   const t = await getTranslations("auth.onboarding.pending");
   const locale = await getLocale();
   if (rows.length === 0) return null;
 
   return (
-    <Card className="border border-gold/35 bg-gold-muted/40 shadow-sm ring-0">
+    <Card
+      className={
+        primary
+          ? "border border-border shadow-sm ring-0"
+          : "border border-gold/35 bg-gold-muted/40 shadow-sm ring-0"
+      }
+    >
       <CardContent className="grid gap-3">
         <div className="flex items-start gap-3.5">
           <span
             aria-hidden
-            className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gold text-gold-foreground"
+            className={
+              primary
+                ? "flex size-10 shrink-0 items-center justify-center text-gold-ink"
+                : "flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gold text-gold-foreground"
+            }
           >
-            <Hourglass className="size-5" />
+            <Hourglass className={primary ? "size-6" : "size-5"} />
           </span>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-foreground">
+            <div
+              className={
+                primary
+                  ? "font-heading text-xl font-semibold tracking-tight text-foreground"
+                  : "text-sm font-semibold text-foreground"
+              }
+            >
               {t("title", { count: rows.length })}
             </div>
-            <p className="mt-0.5 text-sm leading-relaxed text-pretty text-muted-foreground">
+            <p className="mt-1 text-sm leading-relaxed text-pretty text-muted-foreground">
               {t("description")}
             </p>
           </div>
@@ -85,6 +113,10 @@ export async function PendingApplicationsNotice({ rows }: { rows: Row[] }) {
             </li>
           ))}
         </ul>
+
+        {primary && (
+          <p className="text-xs leading-relaxed text-muted-foreground">{t("contact")}</p>
+        )}
       </CardContent>
     </Card>
   );

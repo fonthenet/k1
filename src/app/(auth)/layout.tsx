@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import {
   CalendarCheckIcon,
@@ -59,7 +60,12 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
               transliteration beneath. Sign-in used to fall back to a stock baby
               icon and the Latin name, so the first screen after the marketing
               site showed a different brand than the one that sold it. */}
-          <Wordmark className="min-w-0" />
+          <Link
+            href="/"
+            className="min-w-0 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <Wordmark className="min-w-0" />
+          </Link>
           <LocaleToggle />
         </header>
 

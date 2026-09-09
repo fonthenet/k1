@@ -2,17 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DatePicker, toISODate } from "@/components/shared/date-picker";
 import { BLOOD_TYPES, type WizardChild } from "./types";
 import { Baby } from "lucide-react";
 import { BigChoice, Field, StepHeader } from "./wizard-ui";
+import { cn } from "@/lib/utils";
 
 export function StepChild({
   child,
@@ -116,29 +110,75 @@ export function StepChild({
             {t("child.bloodType")}{" "}
             <span className="text-xs font-normal text-muted-foreground">({tc("labels.optional")})</span>
           </span>
-          <Select
-            value={child.blood_type || "unknown"}
-            onValueChange={(v) => onChange({ blood_type: v === "unknown" ? "" : v })}
+          {/* Chips, not a dropdown.
+              On a phone this was a Select, and dragging a finger across the
+              trigger to scroll the form opened the menu instead — the list
+              then took over the screen and the page jumped. A Select earns
+              its overlay when the options are many or unknown in advance;
+              here there are nine, all two characters wide, and they fit on
+              two rows. One tap, nothing to scroll, nothing to dismiss.
+
+              Same selected-state language as the gender cards above, at chip
+              scale. Every target is 44px tall — the minimum a thumb can hit
+              reliably. */}
+          <div
+            className="grid grid-cols-3 gap-2 sm:grid-cols-5"
+            role="radiogroup"
+            aria-label={t("child.bloodType")}
           >
-            <SelectTrigger className="h-11 w-full text-base">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="unknown">{t("child.bloodUnknown")}</SelectItem>
-              {BLOOD_TYPES.map((b) => (
-                <SelectItem key={b} value={b}>
-                  {/* "A+" ends in a neutral character, which takes the
-                      paragraph's direction — so in Arabic the whole list read
-                      +A, -A, +B … and picking one put a reversed value in the
-                      trigger. The same isolation the phone number already gets
-                      two files over. */}
-                  <span dir="ltr">{b}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <BloodChip
+              selected={!child.blood_type}
+              onClick={() => onChange({ blood_type: "" })}
+              className="col-span-3 sm:col-span-5"
+            >
+              {t("child.bloodUnknown")}
+            </BloodChip>
+            {BLOOD_TYPES.map((b) => (
+              <BloodChip
+                key={b}
+                selected={child.blood_type === b}
+                onClick={() => onChange({ blood_type: b })}
+              >
+                {/* "A+" ends in a neutral character, which takes the
+                    paragraph's direction — in Arabic the labels rendered
+                    +A, -A, +B … The same isolation the phone number gets. */}
+                <span dir="ltr">{b}</span>
+              </BloodChip>
+            ))}
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+/** A blood-group chip: tappable, 44px, with the wizard's selected-state look. */
+function BloodChip({
+  selected,
+  onClick,
+  className,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onClick}
+      className={cn(
+        "flex h-11 items-center justify-center rounded-xl border-2 bg-card px-2 text-base font-medium tabular-nums transition-all outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.98]",
+        selected
+          ? "border-primary bg-primary/5 text-primary shadow-sm"
+          : "border-border text-foreground hover:border-primary/40",
+        className,
+      )}
+    >
+      {children}
+    </button>
   );
 }
