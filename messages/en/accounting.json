@@ -122,7 +122,10 @@
     "detailTitle": "Transaction detail",
     "linkedAdvance": "Salary advance",
     "linkedPayment": "Linked to a payment",
-    "linkedPayroll": "Salary payout"
+    "linkedPayroll": "Salary payout",
+    "structure": "Structure",
+    "structureAll": "The whole establishment",
+    "structureHint": "Rent belongs to the whole building; the school's supplies belong to the school."
   },
   "categories": {
     "title": "Categories",

@@ -14,12 +14,18 @@ import type { FeePlan } from "@/lib/types";
 import { PlanDialog } from "@/components/modules/billing/plan-dialog";
 import { DeletePlanButton } from "@/components/modules/billing/delete-plan-button";
 import { EmptyIcon, IconTile, TONE_PILL } from "@/components/modules/billing/finance-ui";
+import { StructureFilter } from "@/components/modules/billing/structure-filter";
 import { algiersToday } from "@/components/modules/billing/dates";
 import type { PlanOption } from "@/components/modules/billing/billing-types";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import {
   AssignmentsTable,
   type AssignmentRow,
 } from "@/components/modules/billing/assignments-table";
+
+/** kg_fee_plans as this page reads it. `structure_id` is not on the shared
+ *  FeePlan type, which another module owns — null means the whole building. */
+type PlanRow = FeePlan & { structure_id: string | null };
 
 type FeeRow = {
   id: string;
@@ -40,14 +46,24 @@ type ChildRow = {
   kg_classes: { name: string; name_ar: string | null } | null;
 };
 
-export default async function PlansPage() {
+export default async function PlansPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ structure?: string }>;
+}) {
+  const sp = await searchParams;
   const ctx = await requireFinance();
   const t = await getTranslations("billing");
   const locale = await getLocale();
   const supabase = await createClient();
   const today = algiersToday();
 
-  const [{ data: planRows, error }, { data: feeRows }, { data: childRows }] = await Promise.all([
+  const [
+    { data: planRows, error },
+    { data: feeRows },
+    { data: childRows },
+    { data: structureRows },
+  ] = await Promise.all([
     supabase
       .from("kg_fee_plans")
       .select("*")
@@ -66,10 +82,30 @@ export default async function PlansPage() {
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled")
       .order("first_name"),
+    // The structures of the establishment (0125). A price can belong to one of
+    // them — the crèche's half-day rate is not the jardin's.
+    supabase
+      .from("kg_structures")
+      .select("id, name, name_ar, center_type, color, sort_order, active")
+      .eq("tenant_id", ctx.tenant.id)
+      .order("sort_order")
+      .order("name"),
   ]);
   if (error) throw new Error(error.message);
 
-  const plans = (planRows ?? []) as FeePlan[];
+  const plans = (planRows ?? []) as PlanRow[];
+  const structures = (structureRows ?? []) as Structure[];
+  const structureById = new Map(structures.map((str) => [str.id, str]));
+  const structureFilter =
+    sp.structure && structureById.has(sp.structure) ? sp.structure : "all";
+
+  // A plan with no structure is a price EVERYONE pays, so it belongs to the
+  // crèche's list as much as to the jardin's — filtering to one structure
+  // narrows the list, it does not hide the shared tariffs from it.
+  const visiblePlans =
+    structureFilter === "all"
+      ? plans
+      : plans.filter((p) => p.structure_id === structureFilter || p.structure_id === null);
   const fees = (feeRows ?? []) as FeeRow[];
   const children = (childRows ?? []) as unknown as ChildRow[];
 
@@ -137,7 +173,7 @@ export default async function PlansPage() {
             {t("invoice.back")}
           </Link>
         </Button>
-        <PlanDialog />
+        <PlanDialog structures={structures} />
       </PageHeader>
 
       {plans.length === 0 ? (
@@ -149,81 +185,113 @@ export default async function PlansPage() {
           }
           title={t("plans.empty")}
           description={t("plans.emptyHint")}
-          action={<PlanDialog />}
+          action={<PlanDialog structures={structures} />}
         />
       ) : (
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map((p) => {
-            const featured = p.active && p.id === topPlanId;
-            const count = assignedCount.get(p.id) ?? 0;
-            return (
-              <Card
-                key={p.id}
-                className={cn(
-                  "gap-0 py-0 shadow-sm transition-shadow hover:shadow-md",
-                  featured && "bg-gold-muted ring-2 ring-gold/40",
-                  !p.active && "bg-muted/30"
-                )}
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <IconTile tone={featured ? "gold" : p.active ? "primary" : "muted"} size="sm">
-                        {featured ? <Star /> : <Wallet />}
-                      </IconTile>
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold">
-                          {locale === "ar" && p.name_ar ? p.name_ar : p.name}
-                        </div>
-                        {p.name_ar && locale !== "ar" && (
-                          <div className="truncate text-sm text-muted-foreground" dir="rtl">
-                            {p.name_ar}
+        <>
+          {structures.length > 1 && (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <StructureFilter structures={structures} value={structureFilter} />
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+                {t("plans.count", { count: visiblePlans.length })}
+              </span>
+            </div>
+          )}
+          {/* Every shared tariff already shows under each structure, so an empty
+              list means this one has no price of its own yet. */}
+          {visiblePlans.length === 0 && (
+            <p className="mb-8 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              {t("plans.noneForStructure")}
+            </p>
+          )}
+          <div
+            className={cn(
+              "grid gap-4 sm:grid-cols-2 lg:grid-cols-3",
+              visiblePlans.length > 0 && "mb-8"
+            )}
+          >
+            {visiblePlans.map((p) => {
+              const featured = p.active && p.id === topPlanId;
+              const count = assignedCount.get(p.id) ?? 0;
+              const structure = p.structure_id ? structureById.get(p.structure_id) : undefined;
+              return (
+                <Card
+                  key={p.id}
+                  className={cn(
+                    "gap-0 py-0 shadow-sm transition-shadow hover:shadow-md",
+                    featured && "bg-gold-muted ring-2 ring-gold/40",
+                    !p.active && "bg-muted/30"
+                  )}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <IconTile tone={featured ? "gold" : p.active ? "primary" : "muted"} size="sm">
+                          {featured ? <Star /> : <Wallet />}
+                        </IconTile>
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold">
+                            {locale === "ar" && p.name_ar ? p.name_ar : p.name}
                           </div>
-                        )}
+                          {p.name_ar && locale !== "ar" && (
+                            <div className="truncate text-sm text-muted-foreground" dir="rtl">
+                              {p.name_ar}
+                            </div>
+                          )}
+                          {/* Which activity charges this price. A building with
+                              one structure is told nothing it does not know. */}
+                          {structures.length > 1 && (
+                            <div className="truncate text-xs text-muted-foreground">
+                              {structure ? structureName(structure, locale) : t("structures.whole")}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className={p.active ? TONE_PILL.success : TONE_PILL.muted}>
+                        {p.active ? t("plans.active") : t("plans.inactive")}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-4 text-3xl font-bold tabular-nums">
+                      {formatDZD(p.amount, locale)}
+                      <span className="ms-1.5 text-sm font-normal text-muted-foreground">
+                        / {t(`periods.${p.period}`)}
+                      </span>
+                    </div>
+                    {p.description && (
+                      <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                        {p.description}
+                      </p>
+                    )}
+
+                    <div className="mt-5 flex items-center justify-between border-t border-border pt-3">
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Users className="size-3.5" aria-hidden />
+                        {t("plans.assignedCount", { count })}
+                      </span>
+                      <div className="flex items-center">
+                        <PlanDialog
+                          plan={{
+                            id: p.id,
+                            name: p.name,
+                            name_ar: p.name_ar,
+                            amount: Number(p.amount),
+                            period: p.period,
+                            active: p.active,
+                          }}
+                          description={p.description}
+                          structureId={p.structure_id}
+                          structures={structures}
+                        />
+                        <DeletePlanButton planId={p.id} />
                       </div>
                     </div>
-                    <Badge className={p.active ? TONE_PILL.success : TONE_PILL.muted}>
-                      {p.active ? t("plans.active") : t("plans.inactive")}
-                    </Badge>
-                  </div>
-
-                  <div className="mt-4 text-3xl font-bold tabular-nums">
-                    {formatDZD(p.amount, locale)}
-                    <span className="ms-1.5 text-sm font-normal text-muted-foreground">
-                      / {t(`periods.${p.period}`)}
-                    </span>
-                  </div>
-                  {p.description && (
-                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                      {p.description}
-                    </p>
-                  )}
-
-                  <div className="mt-5 flex items-center justify-between border-t border-border pt-3">
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Users className="size-3.5" aria-hidden />
-                      {t("plans.assignedCount", { count })}
-                    </span>
-                    <div className="flex items-center">
-                      <PlanDialog
-                        plan={{
-                          id: p.id,
-                          name: p.name,
-                          name_ar: p.name_ar,
-                          amount: Number(p.amount),
-                          period: p.period,
-                          active: p.active,
-                        }}
-                        description={p.description}
-                      />
-                      <DeletePlanButton planId={p.id} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <Card className="gap-0 overflow-hidden py-0 shadow-sm">

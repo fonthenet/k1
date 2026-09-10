@@ -3,7 +3,12 @@
     "all": "الجميع",
     "parents": "الأولياء",
     "staff": "الفريق",
-    "class": "القسم"
+    "class": "القسم",
+    "structure": "الهيكل"
+  },
+  "structures": {
+    "wholeBuilding": "كل البناية",
+    "scopeLabel": "اختاروا الهيكل"
   },
   "severity": {
     "minor": "بسيط",
@@ -37,7 +42,9 @@
       "class": "القسم",
       "chooseClass": "اختر قسمًا",
       "pin": "تثبيت في أعلى القائمة",
-      "publishAt": "تاريخ النشر"
+      "publishAt": "تاريخ النشر",
+      "structure": "الهيكل",
+      "chooseStructure": "اختاروا هيكلا"
     },
     "createDialog": {
       "title": "إعلان جديد",
@@ -106,7 +113,9 @@
       "chooseClass": "اختر قسمًا",
       "color": "اللون",
       "willNotify": "{count, plural, =0 {لن يُنبَّه أحد} one {سيُنبَّه شخص واحد} two {سيُنبَّه شخصان} few {سيُنبَّه # أشخاص} many {سيُنبَّه # شخصًا} other {سيُنبَّه # شخص}}",
-      "pastNoNotify": "هذا التاريخ قد مضى — لن يُنبَّه أحد. يبقى الحدث في التقويم."
+      "pastNoNotify": "هذا التاريخ قد مضى — لن يُنبَّه أحد. يبقى الحدث في التقويم.",
+      "structure": "الهيكل",
+      "chooseStructure": "اختاروا هيكلا"
     },
     "createDialog": {
       "title": "فعالية جديدة",
@@ -149,7 +158,8 @@
       "publishedHint": "القائمة غير المنشورة تبقى مرئية للفريق فقط.",
       "submit": "حفظ",
       "detected": "مذكور في القائمة وغير محدَّد: {list}",
-      "addDetected": "أضف"
+      "addDetected": "أضف",
+      "descriptionFor": "أدخلوا وجبات اليوم الخاصة بـ{structure} وحدّدوا مسببات الحساسية الموجودة."
     },
     "toasts": {
       "saved": "تم حفظ القائمة",
@@ -166,7 +176,7 @@
     "descriptionDays": "قائمة الأسبوع، {days}",
     "daysRange": "من {from} إلى {to}",
     "closed": "مغلق",
-    "closedAll": "لم تُحدَّد أيام العمل. أدخلي أوقات العمل في الإعدادات.",
+    "closedAll": "لم تُحدَّد أيام العمل. أدخلوا أوقات العمل في الإعدادات.",
     "publishWeek": "نشر الأسبوع",
     "copyConfirm": {
       "title": "استبدال قوائم هذا الأسبوع؟",

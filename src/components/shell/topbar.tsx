@@ -16,6 +16,7 @@ import { NotificationBell } from "@/components/modules/notifications/notificatio
 import { WeatherChip } from "@/components/modules/weather/weather-chip";
 import { MobileNav } from "./mobile-nav";
 import type { KgRole } from "@/lib/types";
+import type { Structure } from "@/components/modules/classes/class-types";
 
 export function Topbar({
   userName,
@@ -26,6 +27,8 @@ export function Topbar({
   role,
   tenantName,
   logoUrl,
+  structures,
+  activeStructureId,
 }: {
   userName: string;
   roleLabel?: string;
@@ -38,6 +41,9 @@ export function Topbar({
   role: KgRole;
   tenantName: string;
   logoUrl?: string | null;
+  /** Passed through to the drawer, which is the only navigation below `md`. */
+  structures: Structure[];
+  activeStructureId: string | null;
 }) {
   const router = useRouter();
   const locale = useLocale();
@@ -73,7 +79,13 @@ export function Topbar({
     // sidebar's brand block, so both panels are capped the same way.
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-shell/45 px-4 md:px-6">
       <div className="flex min-w-0 items-center gap-1.5">
-        <MobileNav role={role} tenantName={tenantName} logoUrl={logoUrl} />
+        <MobileNav
+          role={role}
+          tenantName={tenantName}
+          logoUrl={logoUrl}
+          structures={structures}
+          activeStructureId={activeStructureId}
+        />
         <h1 className="truncate font-heading text-base font-semibold tracking-tight text-foreground">
           {title}
         </h1>

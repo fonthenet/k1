@@ -122,6 +122,45 @@ export async function updateOpeningHours(
   return { ok: true };
 }
 
+const structureHoursSchema = z.object({
+  structureId: z.uuid(),
+  hours: openingHoursSchema.nullable(),
+});
+
+/**
+ * One structure's own week — or null to keep following the establishment's.
+ *
+ * Null is the whole point of the feature, not an empty value: a jardin that
+ * keeps the crèche's hours must STORE nothing, so that moving the
+ * establishment's week moves it too. Writing a copy of the tenant's hours would
+ * look identical today and silently stop following tomorrow.
+ */
+export async function updateStructureHours(
+  input: z.infer<typeof structureHoursSchema>
+): Promise<SettingsResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const parsed = structureHoursSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  // Same refusal as the establishment: a structure open on no day at all is a
+  // mis-click, and inheriting is how "it keeps the same week" is expressed.
+  if (v.hours && Object.values(v.hours).every((d) => d === null)) {
+    return { ok: false, error: "invalid" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("kg_structures")
+    .update({ opening_hours: v.hours })
+    .eq("id", v.structureId)
+    .eq("tenant_id", ctx.tenant.id);
+  if (error) return { ok: false, error: "generic" };
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 const LOGO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export async function uploadTenantLogo(formData: FormData): Promise<SettingsResult> {
@@ -156,6 +195,9 @@ const linkSchema = z.object({
   label: z.string().trim().min(1).max(120),
   expiresAt: z.string().regex(DATE_RE).or(z.literal("")).optional(),
   maxUses: z.number().int().positive().max(100000).nullable().optional(),
+  // Signup creates one link per structure; a link made by hand is for the whole
+  // establishment unless the director says which structure it feeds.
+  structureId: z.union([z.uuid(), z.literal(""), z.null()]).optional(),
 });
 
 export async function createEnrollLink(input: z.infer<typeof linkSchema>): Promise<SettingsResult> {
@@ -172,6 +214,7 @@ export async function createEnrollLink(input: z.infer<typeof linkSchema>): Promi
     // End of day, Algeria time (UTC+1 all year).
     expires_at: v.expiresAt ? `${v.expiresAt}T23:59:59+01:00` : null,
     max_uses: v.maxUses ?? null,
+    structure_id: v.structureId || null,
     created_by: ctx.user.id,
   });
   if (error) return { ok: false, error: "generic" };
@@ -220,6 +263,10 @@ const holidaySchema = z
     endDate: z.string().regex(DATE_RE).or(z.literal("")).optional(),
     tentative: z.boolean(),
     closure: z.boolean(),
+    // Null shuts the whole building — a national holiday. A structure id shuts
+    // that one activity: the jardin takes the vacances scolaires, the crèche
+    // stays open through them.
+    structureId: z.union([z.uuid(), z.literal(""), z.null()]).optional(),
   })
   .refine((v) => !v.endDate || v.endDate >= v.date);
 
@@ -239,6 +286,7 @@ export async function addHoliday(input: z.infer<typeof holidaySchema>): Promise<
     name_ar: v.nameAr?.trim() || null,
     tentative: v.tentative,
     closure: v.closure,
+    structure_id: v.structureId || null,
   });
   if (error) return { ok: false, error: "generic" };
 

@@ -5,11 +5,12 @@ import type { createClient } from "@/lib/supabase/server";
 import type { TenantContext } from "@/lib/tenant";
 import type { ChildStatus, Gender } from "@/lib/types";
 import { childDisplayName, initials } from "@/lib/format";
+import type { Structure } from "@/components/modules/classes/class-types";
 import type {
   CheckinDialogChild,
   CheckinDialogChildStatus,
 } from "./checkin-dialog";
-import type { PortalGuardianBadge } from "./portal-types";
+import type { PortalClassOption, PortalGuardianBadge } from "./portal-types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -48,6 +49,8 @@ export interface PortalChildRow {
   gender: Gender;
   photo_path: string | null;
   class_id: string | null;
+  /** Which structure of the building the child is on the register of (0134). */
+  structure_id: string | null;
   status: ChildStatus;
   kg_classes: { name: string; name_ar: string | null; color: string } | null;
 }
@@ -75,7 +78,7 @@ export async function getMyChildren(supabase: Supabase, ctx: TenantContext): Pro
   const { data: children } = await supabase
     .from("kg_children")
     .select(
-      "id, first_name, last_name, first_name_ar, last_name_ar, dob, gender, photo_path, class_id, status, kg_classes(name, name_ar, color)"
+      "id, first_name, last_name, first_name_ar, last_name_ar, dob, gender, photo_path, class_id, structure_id, status, kg_classes(name, name_ar, color)"
     )
     .in("id", childIds)
     .eq("tenant_id", ctx.tenant.id)
@@ -87,6 +90,110 @@ export async function getMyChildren(supabase: Supabase, ctx: TenantContext): Pro
 export function classLabel(child: PortalChildRow, locale: string): string | null {
   if (!child.kg_classes) return null;
   return locale === "ar" && child.kg_classes.name_ar ? child.kg_classes.name_ar : child.kg_classes.name;
+}
+
+// ----- The building's structures -----
+
+/**
+ * The active structures of the building, in the director's order.
+ *
+ * Read by the portal for one reason: a family whose crèche also runs an
+ * école must be able to tell which side of the building each child is on,
+ * and choose one when they enrol a sibling or ask for a move. RLS `str_sel`
+ * lets any member read them. Callers show the structure at all only when
+ * there is more than one — for the ordinary single-structure crèche the word
+ * never appears, exactly as it never appears in the dashboard.
+ */
+export async function getStructures(supabase: Supabase, ctx: TenantContext): Promise<Structure[]> {
+  const { data } = await supabase
+    .from("kg_structures")
+    .select("id, name, name_ar, center_type, color, sort_order, active")
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("active", true)
+    .order("sort_order")
+    .order("name");
+  return (data ?? []) as Structure[];
+}
+
+/**
+ * Every class of the building, for the class preference on a sibling request
+ * or a transfer request. Names and bands only: how full a room is stays the
+ * office's business, as it does on the public form.
+ */
+export async function getPortalClasses(
+  supabase: Supabase,
+  ctx: TenantContext
+): Promise<PortalClassOption[]> {
+  const { data } = await supabase
+    .from("kg_classes")
+    .select("id, name, name_ar, structure_id, age_min_months, age_max_months")
+    .eq("tenant_id", ctx.tenant.id)
+    .order("age_min_months", { ascending: true, nullsFirst: false })
+    .order("name");
+  return (data ?? []) as PortalClassOption[];
+}
+
+// ----- A child's moves between structures (kg_child_transfers, 0140) -----
+
+export interface PortalTransferRow {
+  id: string;
+  from_structure_id: string | null;
+  to_structure_id: string | null;
+  effective_date: string;
+}
+
+/**
+ * The child's own history of moves, oldest first. Policy `ctr_sel` lets a
+ * parent read their own child's rows; the table has no writer but
+ * kg_move_child, so what comes back is a record, not a draft.
+ */
+export async function getChildTransfers(
+  supabase: Supabase,
+  childId: string
+): Promise<PortalTransferRow[]> {
+  const { data } = await supabase
+    .from("kg_child_transfers")
+    .select("id, from_structure_id, to_structure_id, effective_date")
+    .eq("child_id", childId)
+    .order("effective_date", { ascending: true })
+    .order("created_at", { ascending: true });
+  return (data ?? []) as PortalTransferRow[];
+}
+
+// ----- Is a transfer already asked for? -----
+
+export interface PendingTransfer {
+  applicationId: string;
+  /** The structure the family asked for, when the row is readable; see below. */
+  toStructureId: string | null;
+}
+
+type MyApplicationRow = {
+  id: string;
+  closed: boolean;
+  source: string | null;
+  existing_child_id: string | null;
+  structure_id: string | null;
+};
+
+/**
+ * The transfer request still open for this child, if any.
+ *
+ * Read through kg_my_applications() (0058, extended in 0142): the row itself
+ * is staff-only under RLS because a family must not see where their dossier
+ * sits in the pipeline — but which child and which structure THEY asked for
+ * are their own words, and the RPC hands those back. A closed (refused)
+ * request is not pending; the family may ask again.
+ */
+export async function getPendingTransfer(
+  supabase: Supabase,
+  child: Pick<PortalChildRow, "id" | "first_name" | "last_name">
+): Promise<PendingTransfer | null> {
+  const { data } = await supabase.rpc("kg_my_applications");
+  const open = ((data ?? []) as MyApplicationRow[]).find(
+    (a) => !a.closed && a.existing_child_id === child.id
+  );
+  return open ? { applicationId: open.id, toStructureId: open.structure_id } : null;
 }
 
 /**

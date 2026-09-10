@@ -1,7 +1,7 @@
 // The staff navigation, in one list.
 //
 // Two components render it — the desktop rail and the mobile drawer — and a
-// second copy would drift the moment a section is added: the phone would
+// second copy would drift the moment a structure is added: the phone would
 // quietly lose a page and nobody would notice, because the person adding the
 // page is looking at a desktop.
 

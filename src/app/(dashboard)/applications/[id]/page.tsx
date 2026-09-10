@@ -37,11 +37,15 @@ import {
   type ClassOption,
   type FeePlanOption,
 } from "@/components/modules/enroll/review-actions";
-import { SIBLING_SOURCE, SiblingBadge } from "@/components/modules/enroll/application-card";
 import {
-  APPLICATION_STATUS_BADGE,
-  type ApplicationRecord,
-} from "@/components/modules/enroll/types";
+  ApplicationStructureContext,
+  SIBLING_SOURCE,
+  SiblingBadge,
+  TransferBadge,
+  loadTransferSummary,
+} from "@/components/modules/enroll/application-card";
+import { isTransferApplication, type ReviewApplication } from "@/components/modules/enroll/review-types";
+import { APPLICATION_STATUS_BADGE } from "@/components/modules/enroll/types";
 import { severityClasses } from "@/components/modules/children/types";
 import { allergenLabel } from "@/lib/allergens";
 
@@ -106,9 +110,11 @@ export default async function ApplicationDetailPage({
   const locale = await getLocale();
   const supabase = await createClient();
 
+  // The requested class travels with the row so the chip can name it and the
+  // approve dialog can open on the right group.
   const { data } = await supabase
     .from("kg_applications")
-    .select("*")
+    .select("*, kg_classes(id, name, name_ar, structure_id)")
     .eq("id", id)
     .eq("tenant_id", ctx.tenant.id)
     .maybeSingle();
@@ -128,8 +134,9 @@ export default async function ApplicationDetailPage({
     );
   }
 
-  const app = data as ApplicationRecord;
+  const app = data as unknown as ReviewApplication;
   const isSibling = app.source === SIBLING_SOURCE;
+  const isTransfer = isTransferApplication(app);
   const child = app.child;
   const guardians = Array.isArray(app.guardians) ? app.guardians : [];
   const health = app.health ?? {};
@@ -156,7 +163,7 @@ export default async function ApplicationDetailPage({
     ctx.isFinance
       ? supabase
           .from("kg_fee_plans")
-          .select("id, name, name_ar, amount")
+          .select("id, name, name_ar, amount, structure_id")
           .eq("tenant_id", ctx.tenant.id)
           .eq("active", true)
           .eq("period", "monthly")
@@ -186,8 +193,14 @@ export default async function ApplicationDetailPage({
     id: c.id,
     name: c.name,
     name_ar: c.name_ar,
+    structure_id: c.structure_id,
     capacity: c.capacity,
     enrolled: enrolledByClass.get(c.id) ?? 0,
+    // The bands travel with the option: the dialog proposes the room from the
+    // child's age, and a class the director adds next term joins that
+    // calculation on its next render with nothing to backfill.
+    age_min_months: c.age_min_months,
+    age_max_months: c.age_max_months,
   }));
 
   const classById = new Map(classes.map((c) => [c.id, c] as const));
@@ -238,6 +251,7 @@ export default async function ApplicationDetailPage({
   }
 
   const familyName = family?.guardian ? childDisplayName(family.guardian, locale) : null;
+  const transfer = await loadTransferSummary(app);
 
   // Which of these guardians the crèche ALREADY holds a record for.
   //
@@ -341,16 +355,24 @@ export default async function ApplicationDetailPage({
               feePlans={(feePlansRes.data ?? []) as FeePlanOption[]}
               admissionFees={(admissionRes.data ?? []) as AdmissionFee[]}
               requestedFeePlanId={(app as { fee_plan_id?: string | null }).fee_plan_id ?? null}
+              requestedClassId={(app as { class_id?: string | null }).class_id ?? null}
+              childDob={child.dob}
               createdChildId={app.created_child_id}
               isSibling={isSibling}
               familyName={familyName}
+              structures={ctx.structures}
+              requestedStructureId={app.structure_id}
+              transfer={transfer}
             />
           )}
         </div>
       </PageHeader>
 
-      {(app.interview_at || isSibling || sourceLabel) && (
+      {(app.interview_at || isSibling || isTransfer || sourceLabel) && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
+          {isTransfer && app.existing_child_id && (
+            <TransferBadge childId={app.existing_child_id} name={displayName} />
+          )}
           {isSibling && <SiblingBadge />}
           {app.interview_at && (
             <Badge className="border-transparent bg-secondary font-medium text-secondary-foreground">
@@ -361,13 +383,15 @@ export default async function ApplicationDetailPage({
               })}
             </Badge>
           )}
-          {!isSibling && sourceLabel && (
+          {!isSibling && !isTransfer && sourceLabel && (
             <Badge variant="outline">
               {t("pipeline.sourceLabel")} : {sourceLabel}
             </Badge>
           )}
         </div>
       )}
+
+      <ApplicationStructureContext app={app} />
 
       {(app.reviewed_at || app.review_note) && (
         <Card className="mb-4 border-dashed">

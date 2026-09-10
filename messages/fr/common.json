@@ -126,5 +126,12 @@
     "system": "Comme mon téléphone",
     "light": "Clair",
     "dark": "Sombre"
+  },
+  "structures": {
+    "label": "Ce que vous consultez",
+    "switch": "Changer de structure",
+    "all": "Tout l'établissement",
+    "allHint": "{count} structures",
+    "viewing": "Structure affichée"
   }
 }

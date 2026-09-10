@@ -9,6 +9,7 @@ import type { AttendanceStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ChildLink, ClassLink } from "@/components/shared/entity-link";
@@ -28,6 +29,7 @@ import {
   workingDaysOfMonth,
   type ClosureRange,
 } from "@/components/modules/attendance/dates";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 
 export const dynamic = "force-dynamic";
 
@@ -38,18 +40,27 @@ interface ChildRecord {
   first_name_ar: string | null;
   last_name_ar: string | null;
   class_id: string | null;
+  structure_id: string | null;
 }
 
 interface ClassRecord {
   id: string;
   name: string;
   name_ar: string | null;
+  structure_id: string | null;
 }
+
+/** A closure row, plus the structure it belongs to — null being the building. */
+interface ClosureRecord extends ClosureRange {
+  structure_id: string | null;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function AttendanceHistoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; class?: string }>;
+  searchParams: Promise<{ month?: string; class?: string; structure?: string }>;
 }) {
   const ctx = await requireStaff();
   const t = await getTranslations("attendance");
@@ -61,28 +72,68 @@ export default async function AttendanceHistoryPage({
   const today = algiersToday();
   const month = isValidMonthStr(sp.month) ? sp.month : monthOf(today);
   const activeClass = sp.class && sp.class !== "all" ? sp.class : "all";
+  // Shape only — which structures exist is settled once they are read. An id
+  // the database does not know falls back to the whole building, which is
+  // what a stale link should mean here.
+  // The URL wins where it says something — the tab bar on this page is an
+  // explicit, per-visit choice — but with nothing in it the page opens on
+  // whatever the sidebar switcher is set to, so the two controls never
+  // disagree about which structure the user is in.
+  const structureParam = sp.structure
+    ? UUID_RE.test(sp.structure)
+      ? sp.structure
+      : null
+    : ctx.structureId;
 
   const supabase = await createClient();
 
-  // Only the days this crèche actually opens. It also drives the grid's
+  const bounds = monthBounds(month);
+  const [structuresRes, hoursRes, closureRes] = await Promise.all([
+    // The structures of the establishment (0127). One for most crèches; the
+    // grid says nothing about them until there are two.
+    supabase
+      .from("kg_structures")
+      .select("id, name, name_ar, center_type, color, sort_order, active")
+      .eq("tenant_id", ctx.tenant.id)
+      .order("sort_order")
+      .order("name"),
+    // The week this structure keeps — its own if it set one, the tenant's
+    // otherwise.
+    supabase.rpc("kg_structure_hours", {
+      p_structure: structureParam,
+      p_tenant: ctx.tenant.id,
+    }),
+    // The month's closures, structure carried along: a range is compared per
+    // day here, so the scope is applied below rather than by asking
+    // kg_structure_closed_on twenty times.
+    supabase
+      .from("kg_holidays")
+      .select("date, end_date, structure_id")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("closure", true)
+      .eq("tentative", false)
+      .lte("date", bounds.last)
+      .or(`end_date.gte.${bounds.first},and(end_date.is.null,date.gte.${bounds.first})`),
+  ]);
+
+  const scopeError = structuresRes.error ?? hoursRes.error ?? closureRes.error;
+  if (scopeError) throw new Error(scopeError.message);
+
+  const structures = (structuresRes.data ?? []) as Structure[];
+  const activeStructure = structures.some((s) => s.id === structureParam)
+    ? structureParam
+    : null;
+  const inStructure = (id: string | null) =>
+    activeStructure === null || id === activeStructure;
+
+  // Only the days this structure actually opens. It also drives the grid's
   // columns, so a Saturday-opening crèche gets a Saturday column — and a
   // confirmed holiday closure loses its column, so the star for a perfect
-  // month is not withheld over a Sunday the door never opened.
-  const openingHours = toOpeningHours(
-    (ctx.tenant as { opening_hours?: unknown }).opening_hours
-  );
-  const bounds = monthBounds(month);
-  const { data: closureRows, error: closureError } = await supabase
-    .from("kg_holidays")
-    .select("date, end_date")
-    .eq("tenant_id", ctx.tenant.id)
-    .eq("closure", true)
-    .eq("tentative", false)
-    .lte("date", bounds.last)
-    .or(`end_date.gte.${bounds.first},and(end_date.is.null,date.gte.${bounds.first})`);
-  if (closureError) throw new Error(closureError.message);
+  // month is not withheld over a Sunday the door never opened. A closure the
+  // other structure declared is not this structure's day off.
+  const openingHours = toOpeningHours(hoursRes.data);
   const closedDates = expandClosures(
-    (closureRows ?? []) as ClosureRange[],
+    ((closureRes.data ?? []) as ClosureRecord[]).filter((r) => inStructure(r.structure_id)),
     bounds.first,
     bounds.last
   );
@@ -95,7 +146,7 @@ export default async function AttendanceHistoryPage({
 
   let childrenQuery = supabase
     .from("kg_children")
-    .select("id, first_name, last_name, first_name_ar, last_name_ar, class_id")
+    .select("id, first_name, last_name, first_name_ar, last_name_ar, class_id, structure_id")
     .eq("tenant_id", ctx.tenant.id)
     .eq("status", "enrolled")
     .order("first_name")
@@ -105,7 +156,7 @@ export default async function AttendanceHistoryPage({
   const [classesRes, childrenRes, attendanceRes] = await Promise.all([
     supabase
       .from("kg_classes")
-      .select("id, name, name_ar")
+      .select("id, name, name_ar, structure_id")
       .eq("tenant_id", ctx.tenant.id)
       .order("name"),
     childrenQuery,
@@ -120,8 +171,14 @@ export default async function AttendanceHistoryPage({
   const firstError = classesRes.error ?? childrenRes.error ?? attendanceRes.error;
   if (firstError) throw new Error(firstError.message);
 
-  const classes = (classesRes.data ?? []) as ClassRecord[];
-  const children = (childrenRes.data ?? []) as ChildRecord[];
+  // Narrowed here rather than in SQL: which structure is being asked for is
+  // only settled once the structures themselves have been read.
+  const classes = ((classesRes.data ?? []) as ClassRecord[]).filter((c) =>
+    inStructure(c.structure_id)
+  );
+  const children = ((childrenRes.data ?? []) as ChildRecord[]).filter((c) =>
+    inStructure(c.structure_id)
+  );
 
   const statusByKey = new Map<string, AttendanceStatus>();
   for (const a of attendanceRes.data ?? []) {
@@ -167,8 +224,11 @@ export default async function AttendanceHistoryPage({
     month: "long",
   });
 
-  const href = (m: string, c: string) =>
-    `/attendance/history?month=${m}&class=${encodeURIComponent(c)}`;
+  // The structure travels with every link, so paging through months never
+  // widens the grid back to the whole building behind the reader's back.
+  const href = (m: string, c: string, s: string = activeStructure ?? "all") =>
+    `/attendance/history?month=${m}&class=${encodeURIComponent(c)}` +
+    (s === "all" ? "" : `&structure=${encodeURIComponent(s)}`);
 
   const classTabs: { id: string; label: string }[] = [
     { id: "all", label: t("tabs.all") },
@@ -178,13 +238,24 @@ export default async function AttendanceHistoryPage({
     })),
   ];
 
+  const structureTabs: { id: string; label: string }[] = [
+    { id: "all", label: t("structures.all") },
+    ...structures.map((s) => ({ id: s.id, label: structureName(s, locale) })),
+  ];
+
   const hasData = statusByKey.size > 0;
 
   return (
     <div>
       <PageHeader title={t("history.title")} description={t("history.description")}>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/attendance">
+          <Link
+            href={
+              activeStructure
+                ? `/attendance?structure=${encodeURIComponent(activeStructure)}`
+                : "/attendance"
+            }
+          >
             <CalendarDays data-icon="inline-start" />
             {t("nav.register")}
           </Link>
@@ -218,6 +289,28 @@ export default async function AttendanceHistoryPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
+          {/* The structure first, the classes it holds after — the pills to
+              the right of the divider are the ones this structure owns. The
+              muted fill leaves the filled accent to the class actually being
+              read, so one row carries two questions without two alarms. A
+              crèche with one structure sees none of this. Choosing a structure
+              drops back to all classes: the class beside it belongs to the
+              other one. */}
+          {structures.length > 1 && (
+            <>
+              {structureTabs.map((tab) => (
+                <Button
+                  key={tab.id}
+                  variant={tab.id === (activeStructure ?? "all") ? "secondary" : "ghost"}
+                  size="sm"
+                  asChild
+                >
+                  <Link href={href(month, "all", tab.id)}>{tab.label}</Link>
+                </Button>
+              ))}
+              <Separator orientation="vertical" className="mx-1 !h-5" />
+            </>
+          )}
           {classTabs.map((tab) => (
             <Button
               key={tab.id}

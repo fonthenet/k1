@@ -36,9 +36,12 @@ import { SEVERITIES, type ChildOption } from "./types";
 export function IncidentDialog({
   childrenOptions,
   defaultOccurredAt,
+  rooms = [],
 }: {
   childrenOptions: ChildOption[];
   defaultOccurredAt: string;
+  /** The crèche's configured rooms (0123), offered as suggestions below. */
+  rooms?: string[];
 }) {
   const t = useTranslations("comms");
   const tc = useTranslations("common");
@@ -142,12 +145,26 @@ export function IncidentDialog({
                   ({tc("labels.optional")})
                 </span>
               </Label>
+              {/* Suggestions, not a picker. Most incidents happen in a room
+                  the crèche has named — so those are one keystroke away — but
+                  plenty happen in the yard, the corridor, the bus or outside
+                  the gate, and a dropdown would force an educator to describe
+                  the playground as a classroom. A datalist offers without
+                  constraining. */}
               <Input
                 id="inc-location"
                 value={location}
                 placeholder={t("incidents.form.locationPlaceholder")}
                 onChange={(e) => setLocation(e.target.value)}
+                list={rooms.length > 0 ? "inc-location-rooms" : undefined}
               />
+              {rooms.length > 0 && (
+                <datalist id="inc-location-rooms">
+                  {rooms.map((r) => (
+                    <option key={r} value={r} />
+                  ))}
+                </datalist>
+              )}
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="inc-occurred">{t("incidents.form.occurredAt")}</Label>

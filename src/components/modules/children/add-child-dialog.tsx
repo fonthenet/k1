@@ -20,13 +20,17 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/shared/date-picker";
+import { groupClassesByStructure, structureLabel } from "@/lib/structure-groups";
+import { centerTypeOption } from "@/components/modules/settings/center-types";
 import { createChild } from "./actions";
-import type { ClassOption } from "./types";
+import type { ClassOption, StructureOption } from "./types";
 
 const EMPTY = {
   firstName: "",
@@ -36,9 +40,19 @@ const EMPTY = {
   dob: "",
   gender: "" as "" | "male" | "female",
   classId: "none",
+  /** "" = not chosen. Only asked in a building with several structures. */
+  structureId: "",
 };
 
-export function AddChildDialog({ classes }: { classes: ClassOption[] }) {
+export function AddChildDialog({
+  classes,
+  structures = [],
+}: {
+  classes: ClassOption[];
+  /** The building's active structures. Defaults to none so a caller that
+   *  predates structures keeps compiling; below two the control is hidden. */
+  structures?: StructureOption[];
+}) {
   const t = useTranslations("children");
   const tc = useTranslations("common");
   const locale = useLocale();
@@ -49,6 +63,41 @@ export function AddChildDialog({ classes }: { classes: ClassOption[] }) {
 
   const set = (key: keyof typeof EMPTY) => (value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const multi = structures.length > 1;
+  const chosenClass = classes.find((c) => c.id === form.classId) ?? null;
+  // A class names its structure, and the database will re-derive it on
+  // insert whatever the form says — so the structure control simply follows
+  // the class and says so, rather than let the two disagree on screen.
+  const followsClass = !!chosenClass?.structure_id;
+  const effectiveStructureId = chosenClass?.structure_id ?? form.structureId;
+  // Choosing a structure first narrows the rooms to it plus the building's
+  // own; choosing nothing shows every room, grouped, so the grouping itself
+  // answers "which side is Petite Section on".
+  const visibleClasses =
+    multi && effectiveStructureId
+      ? classes.filter((c) => c.structure_id === effectiveStructureId || !c.structure_id)
+      : classes;
+  const { groups, single } = groupClassesByStructure(visibleClasses, multi ? structures : []);
+
+  function chooseClass(id: string) {
+    const cls = classes.find((c) => c.id === id);
+    setForm((f) => ({
+      ...f,
+      classId: id,
+      structureId: cls?.structure_id ?? f.structureId,
+    }));
+  }
+
+  function chooseStructure(id: string) {
+    // A room from another structure cannot stay selected once the structure
+    // changes; a building-wide one can.
+    setForm((f) => {
+      const cls = classes.find((c) => c.id === f.classId);
+      const keep = !cls || !cls.structure_id || cls.structure_id === id;
+      return { ...f, structureId: id, classId: keep ? f.classId : "none" };
+    });
+  }
 
   const canSubmit =
     form.firstName.trim() && form.lastName.trim() && form.dob && form.gender && !pending;
@@ -65,6 +114,7 @@ export function AddChildDialog({ classes }: { classes: ClassOption[] }) {
         dob: form.dob,
         gender,
         classId: form.classId === "none" ? null : form.classId,
+        structureId: effectiveStructureId || null,
       });
       if (res.ok) {
         toast.success(t("toasts.created"));
@@ -148,18 +198,57 @@ export function AddChildDialog({ classes }: { classes: ClassOption[] }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            {multi && (
+              <div className="col-span-2 grid gap-1.5">
+                <Label>{t("form.structure")}</Label>
+                <Select
+                  value={effectiveStructureId || undefined}
+                  onValueChange={chooseStructure}
+                  disabled={followsClass}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("form.structurePlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* No "whole building" here: a child in a two-structure
+                        building is on one register or the other. */}
+                    {structures.map((s) => {
+                      const { Icon } = centerTypeOption(s.center_type);
+                      return (
+                        <SelectItem key={s.id} value={s.id}>
+                          <Icon className="size-4" style={{ color: s.color }} aria-hidden />
+                          {structureLabel(s, locale, "")}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {followsClass ? t("form.structureFollowsClass") : t("form.structureHint")}
+                </p>
+              </div>
+            )}
+            <div className={multi ? "col-span-2 grid gap-1.5" : "grid gap-1.5"}>
               <Label>{t("form.class")}</Label>
-              <Select value={form.classId} onValueChange={set("classId")}>
-                <SelectTrigger>
+              <Select value={form.classId} onValueChange={chooseClass}>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">{t("form.noClass")}</SelectItem>
-                  {classes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {locale === "ar" && c.name_ar ? c.name_ar : c.name}
-                    </SelectItem>
+                  {groups.map((g) => (
+                    <SelectGroup key={g.structure?.id ?? "building"}>
+                      {!single && (
+                        <SelectLabel>
+                          {structureLabel(g.structure, locale, tc("structures.all"))}
+                        </SelectLabel>
+                      )}
+                      {g.classes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {locale === "ar" && c.name_ar ? c.name_ar : c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>

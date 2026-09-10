@@ -27,12 +27,18 @@ import { MENU_ALLERGENS, type MenuDayRow } from "./types";
 export function MenuDayDialog({
   date,
   dateLabel,
+  structureId,
+  structureLabel,
   menu,
   children,
 }: {
   date: string;
   /** Localized "dimanche 23 août" style label for the dialog title. */
   dateLabel: string;
+  /** Whose lunch this is. Null = the whole building — one kitchen, one menu. */
+  structureId: string | null;
+  /** Name of that structure, given only when the building has more than one. */
+  structureLabel?: string;
   menu: MenuDayRow | null;
   children: ReactNode;
 }) {
@@ -76,6 +82,7 @@ export function MenuDayDialog({
     startTransition(async () => {
       const res = await saveMenuDay({
         date,
+        structureId,
         breakfast: breakfast.trim(),
         lunch: lunch.trim(),
         snack: snack.trim(),
@@ -98,7 +105,14 @@ export function MenuDayDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("menus.dialog.title", { date: dateLabel })}</DialogTitle>
-          <DialogDescription>{t("menus.dialog.description")}</DialogDescription>
+          <DialogDescription>
+            {/* Which kitchen. Absent in a building with one structure, where
+                naming it would only invite the question of what the other one
+                eats. */}
+            {structureLabel
+              ? t("menus.dialog.descriptionFor", { structure: structureLabel })
+              : t("menus.dialog.description")}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">

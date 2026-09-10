@@ -24,6 +24,7 @@ import { NewInvoiceDialog } from "@/components/modules/billing/new-invoice-dialo
 import { RecordPaymentDialog } from "@/components/modules/billing/record-payment-dialog";
 import { MonthFilter } from "@/components/modules/billing/month-filter";
 import { StatusChips } from "@/components/modules/billing/status-chips";
+import { StructureFilter } from "@/components/modules/billing/structure-filter";
 import { EmptyIcon, MoneyStat } from "@/components/modules/billing/finance-ui";
 import {
   addDays,
@@ -42,6 +43,7 @@ import {
 import { CompleteInvoicesButton } from "@/components/modules/billing/complete-invoices-button";
 import { IssueInvoicesButton } from "@/components/modules/billing/issue-invoices-button";
 import type { ChildOption, InvoiceGap } from "@/components/modules/billing/billing-types";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 
 // "draft" is a real state of this list, not an implementation detail: the
 // monthly run produces drafts and somebody has to issue them. Without the
@@ -64,14 +66,22 @@ type HubRow = {
     last_name: string;
     first_name_ar: string | null;
     last_name_ar: string | null;
+    /** kg_invoices has no structure of its own — the child carries it. */
+    structure_id: string | null;
     kg_classes: { name: string; name_ar: string | null } | null;
   } | null;
+};
+
+/** A payment, with the child it settles for — the only route to its structure. */
+type PayRow = {
+  amount: number;
+  kg_children: { structure_id: string | null } | null;
 };
 
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; status?: string }>;
+  searchParams: Promise<{ month?: string; status?: string; structure?: string }>;
 }) {
   const sp = await searchParams;
   const ctx = await requireFinance();
@@ -92,20 +102,24 @@ export default async function BillingPage({
     { data: childRows },
     { data: feeRows },
     { data: gapRows },
+    { data: structureRows },
   ] = await Promise.all([
     supabase
       .from("kg_invoices")
       .select(
-        "id, number, period_month, issue_date, due_date, status, total, paid_amount, kg_children(first_name, last_name, first_name_ar, last_name_ar, kg_classes(name, name_ar))"
+        "id, number, period_month, issue_date, due_date, status, total, paid_amount, kg_children(first_name, last_name, first_name_ar, last_name_ar, structure_id, kg_classes(name, name_ar))"
       )
       .eq("tenant_id", ctx.tenant.id)
       .or(
         `period_month.eq.${start},and(period_month.is.null,issue_date.gte.${start},issue_date.lt.${end})`
       )
       .order("number", { ascending: false }),
+    // The child travels with the payment so "collected" can be read for one
+    // structure. Without it the three figures would keep answering for the whole
+    // building while the table below answers for the crèche.
     supabase
       .from("kg_payments")
-      .select("amount")
+      .select("amount, kg_children(structure_id)")
       .eq("tenant_id", ctx.tenant.id)
       .gte("paid_at", start)
       .lt("paid_at", end),
@@ -137,10 +151,35 @@ export default async function BillingPage({
       p_tenant: ctx.tenant.id,
       p_month: `${month}-01`,
     }),
+    // The structures of the establishment (0125), so a month can be read one
+    // activity at a time. A crèche with a single structure never sees the filter.
+    supabase
+      .from("kg_structures")
+      .select("id, name, name_ar, center_type, color, sort_order, active")
+      .eq("tenant_id", ctx.tenant.id)
+      .order("sort_order")
+      .order("name"),
   ]);
   if (error) throw new Error(error.message);
 
-  const invoices = (invRows ?? []) as unknown as HubRow[];
+  const structures = (structureRows ?? []) as Structure[];
+  // Falls back to the rail's switcher, so the page and the sidebar never
+  // disagree about which structure is being read. And once the rail HAS
+  // narrowed, the in-page filter is hidden below — one question, one control.
+  const structureFilter =
+    sp.structure && structures.some((str) => str.id === sp.structure)
+      ? sp.structure
+      : (ctx.structureId ?? "all");
+  const monthInvoices = (invRows ?? []) as unknown as HubRow[];
+
+  // A child belongs to ONE structure, so unlike a tariff there is no shared row
+  // to keep in every view: narrowing to the jardin means the jardin's children,
+  // and a child filed under no structure is not in either list — the same
+  // reading as the roster's filter.
+  const invoices =
+    structureFilter === "all"
+      ? monthInvoices
+      : monthInvoices.filter((inv) => inv.kg_children?.structure_id === structureFilter);
   const childOptions: ChildOption[] = childRows ?? [];
 
   const billedChildIds = new Set(
@@ -162,17 +201,21 @@ export default async function BillingPage({
   // The due date shown is the one the issue step will write (0105): the
   // month's usual day, or nine days from today when issuing runs late, so an
   // invoice issued on the 15th is not born overdue.
-  const drafts = withEffective.filter(
-    ({ inv }) => inv.status === "draft" && Number(inv.total) > 0
-  );
-  const draftTotal = drafts.reduce((s, { inv }) => s + Number(inv.total), 0);
+  //
+  // Counted over the whole month even when one structure is on screen:
+  // kg_issue_invoices issues the month, so a button offering to issue "3" while
+  // it would spend twelve numbers would be lying about what it does.
+  const drafts = monthInvoices.filter((inv) => inv.status === "draft" && Number(inv.total) > 0);
+  const draftTotal = drafts.reduce((s, inv) => s + Number(inv.total), 0);
   const usualDue = `${month}-${String(INVOICE_DUE_DAY).padStart(2, "0")}`;
   const lateDue = addDays(today, INVOICE_DUE_DAY - 1);
   const issueDue = usualDue > lateDue ? usualDue : lateDue;
   const invoiced = invoices
     .filter((i) => i.status !== "void")
     .reduce((s, i) => s + Number(i.total), 0);
-  const collected = (payRows ?? []).reduce((s, p) => s + Number(p.amount), 0);
+  const collected = ((payRows ?? []) as unknown as PayRow[])
+    .filter((p) => structureFilter === "all" || p.kg_children?.structure_id === structureFilter)
+    .reduce((s, p) => s + Number(p.amount), 0);
   const outstanding = withEffective
     .filter(({ shown }) => shown === "unpaid" || shown === "partial" || shown === "overdue")
     .reduce((s, { inv }) => s + (Number(inv.total) - Number(inv.paid_amount)), 0);
@@ -185,6 +228,12 @@ export default async function BillingPage({
 
   const monthOptions = recentMonths(12).map((m) => ({ value: m, label: monthLabel(m, locale) }));
   const currentMonthLabel = monthLabel(month, locale);
+  // The three figures are read for what the filters say, and say so — the same
+  // reason the month is written under each of them.
+  const shownStructure = structures.find((str) => str.id === structureFilter);
+  const statHint = shownStructure
+    ? `${currentMonthLabel} · ${structureName(shownStructure, locale)}`
+    : currentMonthLabel;
 
   return (
     <div>
@@ -317,21 +366,21 @@ export default async function BillingPage({
         <MoneyStat
           label={t("hub.stats.invoiced")}
           value={formatDZD(invoiced, locale)}
-          hint={currentMonthLabel}
+          hint={statHint}
           icon={<Receipt />}
           tone="primary"
         />
         <MoneyStat
           label={t("hub.stats.collected")}
           value={formatDZD(collected, locale)}
-          hint={currentMonthLabel}
+          hint={statHint}
           icon={<Coins />}
           tone="income"
         />
         <MoneyStat
           label={t("hub.stats.outstanding")}
           value={formatDZD(outstanding, locale)}
-          hint={currentMonthLabel}
+          hint={statHint}
           icon={outstanding > 0 ? <TriangleAlert /> : <CircleCheck />}
           tone={outstanding > 0 ? "destructive" : "muted"}
           highlight={outstanding > 0}
@@ -339,7 +388,12 @@ export default async function BillingPage({
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <MonthFilter options={monthOptions} value={month} ariaLabel={t("hub.monthAria")} />
+        <div className="flex flex-wrap items-center gap-2">
+          <MonthFilter options={monthOptions} value={month} ariaLabel={t("hub.monthAria")} />
+          {!ctx.structureId && (
+            <StructureFilter structures={structures} value={structureFilter} />
+          )}
+        </div>
         <StatusChips chips={chips} value={filter} />
       </div>
 

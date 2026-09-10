@@ -44,6 +44,14 @@
     "fri": "Vendredi",
     "sat": "Samedi"
   },
+  "structures": {
+    "label": "Structure",
+    "wholeBuilding": "Tout l'établissement",
+    "filter": "Filtrer par structure",
+    "all": "Toutes les structures",
+    "empty": "Aucune activité dans cette structure",
+    "emptyDescription": "Créez une activité pour cette structure, ou ouvrez-en une à tout l'établissement."
+  },
   "dialog": {
     "newTitle": "Nouvelle activité",
     "editTitle": "Modifier l'activité",

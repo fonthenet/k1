@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,12 +12,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { DatePicker } from "@/components/shared/date-picker";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { addHoliday } from "./actions";
 
-export function AddHolidayDialog() {
+export function AddHolidayDialog({ structures = [] }: {
+  /** The structures of the establishment; the picker hides itself under two. */
+  structures?: Structure[];
+}) {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -26,6 +34,9 @@ export function AddHolidayDialog() {
   const [endDate, setEndDate] = useState("");
   const [closure, setClosure] = useState(true);
   const [tentative, setTentative] = useState(false);
+  // "" is the whole building, which is what most holidays are — the 1er
+  // Novembre shuts the crèche and the jardin alike.
+  const [structureId, setStructureId] = useState("");
   const [pending, startTransition] = useTransition();
 
   function onOpenChange(next: boolean) {
@@ -37,12 +48,15 @@ export function AddHolidayDialog() {
       setEndDate("");
       setClosure(true);
       setTentative(false);
+      setStructureId("");
     }
   }
 
   function submit() {
     startTransition(async () => {
-      const res = await addHoliday({ name, nameAr, date, endDate, closure, tentative });
+      const res = await addHoliday({
+        name, nameAr, date, endDate, closure, tentative, structureId,
+      });
       if (res.ok) {
         toast.success(tc("toasts.saved"));
         onOpenChange(false);
@@ -103,6 +117,32 @@ export function AddHolidayDialog() {
               />
             </div>
           </div>
+          {/* Shown only once the building has more than one structure. A crèche
+              running one activity would be choosing between one thing. */}
+          {structures.length > 1 && (
+            <div className="grid gap-2">
+              <Label htmlFor="holiday-structure">{t("holidays.structure")}</Label>
+              <Select
+                value={structureId || "all"}
+                onValueChange={(v) => setStructureId(v === "all" ? "" : v)}
+              >
+                <SelectTrigger id="holiday-structure" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("holidays.wholeBuilding")}</SelectItem>
+                  {structures
+                    .filter((s) => s.active)
+                    .map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {structureName(s, locale)}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">{t("holidays.structureHint")}</p>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Checkbox
               id="holiday-closure"

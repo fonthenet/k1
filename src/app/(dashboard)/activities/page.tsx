@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
-import { requireStaff } from "@/lib/tenant";
+import { requireStaff, scoped } from "@/lib/tenant";
 import { toOpeningHours } from "@/lib/week";
 import { formatDZD } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -14,14 +14,20 @@ import type { Activity } from "@/lib/types";
 import { ActivityActiveToggle } from "@/components/modules/classes/activity-active-toggle";
 import { ACTIVITY_CATEGORIES } from "@/components/modules/classes/class-types";
 import { ActivityDialog } from "@/components/modules/classes/activity-dialog";
+import { ActivityStructureFilter } from "@/components/modules/classes/activity-structure-filter";
 import { CategoryIcon } from "@/components/modules/classes/category-icon";
 import {
   asScheduleSlots,
   sortSchedule,
+  structureName,
   type ActivityFormValues,
+  type Structure,
 } from "@/components/modules/classes/class-types";
 
 type EnrollmentCountRow = { activity_id: string; status: string };
+
+/** The row as the table has it — `Activity` is shared and does not carry the column yet. */
+type ActivityRow = Activity & { structure_id: string | null };
 
 /** Row → the shape the create/edit dialog expects. */
 function toFormValues(a: Activity): ActivityFormValues {
@@ -39,7 +45,12 @@ function toFormValues(a: Activity): ActivityFormValues {
   };
 }
 
-export default async function ActivitiesPage() {
+export default async function ActivitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ structure?: string }>;
+}) {
+  const sp = await searchParams;
   const ctx = await requireStaff();
   const openingHours = toOpeningHours(
     (ctx.tenant as { opening_hours?: unknown }).opening_hours
@@ -48,22 +59,57 @@ export default async function ActivitiesPage() {
   const locale = await getLocale();
   const supabase = await createClient();
 
-  const [{ data: activityRows, error }, { data: enrollmentRows }] = await Promise.all([
-    supabase
-      .from("kg_activities")
-      .select("*")
-      .eq("tenant_id", ctx.tenant.id)
-      .order("active", { ascending: false })
-      .order("name"),
-    supabase
-      .from("kg_activity_enrollments")
-      .select("activity_id, status")
-      .eq("tenant_id", ctx.tenant.id)
-      .in("status", ["active", "requested"]),
-  ]);
+  const [{ data: activityRows, error }, { data: enrollmentRows }, { data: structureRows }] =
+    await Promise.all([
+      scoped(
+        supabase
+          .from("kg_activities")
+          .select("*")
+          .eq("tenant_id", ctx.tenant.id)
+          .order("active", { ascending: false })
+          .order("name"),
+        ctx
+      ),
+      supabase
+        .from("kg_activity_enrollments")
+        .select("activity_id, status")
+        .eq("tenant_id", ctx.tenant.id)
+        .in("status", ["active", "requested"]),
+      // The structures of the establishment (0125). One for most crèches, two
+      // for a building that runs a crèche and a jardin d'enfants side by side.
+      supabase
+        .from("kg_structures")
+        .select("id, name, name_ar, center_type, color, sort_order, active")
+        .eq("tenant_id", ctx.tenant.id)
+        .order("sort_order")
+        .order("name"),
+    ]);
 
   if (error) throw new Error(error.message);
-  const activities = (activityRows ?? []) as Activity[];
+  const activities = (activityRows ?? []) as ActivityRow[];
+  const structures = (structureRows ?? []) as Structure[];
+  const structureById = new Map(structures.map((s) => [s.id, s] as const));
+  /** Neither the filter nor the structure on a card is worth showing under two. */
+  const manyStructures = structures.length > 1;
+
+  // An id this building does not have is ignored rather than emptying the grid
+  // — a link kept from before a structure was deleted still opens the page.
+  // Falls back to the rail's switcher, so the page and the sidebar never
+  // disagree about which structure is being read. And once the rail HAS
+  // narrowed, the in-page filter is hidden below — one question, one control.
+  const structureFilter =
+    manyStructures && sp.structure && structureById.has(sp.structure)
+      ? sp.structure
+      : (ctx.structureId ?? "all");
+  // A structure's own activities, PLUS the ones open to the whole building:
+  // null is not a missing structure, it is every structure at once, and the
+  // jardin's parents can enrol in the building's chorale like anyone else.
+  const shown =
+    structureFilter === "all"
+      ? activities
+      : activities.filter(
+          (a) => a.structure_id === structureFilter || a.structure_id === null
+        );
 
   const activeByActivity = new Map<string, number>();
   const requestedByActivity = new Map<string, number>();
@@ -75,8 +121,18 @@ export default async function ActivitiesPage() {
   return (
     <div>
       <PageHeader title={t("list.title")} description={t("list.description")}>
-        {ctx.isAdmin && <ActivityDialog openingHours={openingHours} />}
+        {ctx.isAdmin && (
+          <ActivityDialog openingHours={openingHours} structures={structures} />
+        )}
       </PageHeader>
+
+      {manyStructures && activities.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {!ctx.structureId && (
+            <ActivityStructureFilter structures={structures} value={structureFilter} />
+          )}
+        </div>
+      )}
 
       {activities.length === 0 ? (
         <EmptyState
@@ -87,17 +143,32 @@ export default async function ActivitiesPage() {
           }
           title={t("list.empty")}
           description={t("list.emptyDescription")}
-          action={ctx.isAdmin ? <ActivityDialog openingHours={openingHours} /> : undefined}
+          action={
+            ctx.isAdmin ? (
+              <ActivityDialog openingHours={openingHours} structures={structures} />
+            ) : undefined
+          }
+        />
+      ) : shown.length === 0 ? (
+        <EmptyState
+          icon={
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground [&>svg]:size-7">
+              <Sparkles />
+            </span>
+          }
+          title={t("structures.empty")}
+          description={t("structures.emptyDescription")}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {activities.map((a) => {
+          {shown.map((a) => {
             const enrolled = activeByActivity.get(a.id) ?? 0;
             const requested = requestedByActivity.get(a.id) ?? 0;
             const full = a.capacity != null && enrolled >= a.capacity;
             const slots = sortSchedule(asScheduleSlots(a.schedule));
             const fee = Number(a.fee_amount);
             const displayName = locale === "ar" && a.name_ar ? a.name_ar : a.name;
+            const structure = a.structure_id ? structureById.get(a.structure_id) : null;
 
             return (
               <Card
@@ -140,11 +211,30 @@ export default async function ActivitiesPage() {
                         ) : (
                           <span className="font-medium text-success">{t("list.free")}</span>
                         )}
+                        {/* Which structure — and "the whole building" is a
+                            statement, not a blank: it says the jardin's
+                            children may enrol too. Both only once there is
+                            more than one structure to tell apart. */}
+                        {manyStructures && (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span>
+                              {structure
+                                ? structureName(structure, locale)
+                                : t("structures.wholeBuilding")}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                     {ctx.isAdmin && (
                       <div className="flex shrink-0 items-center gap-1">
-                        <ActivityDialog activity={toFormValues(a)} openingHours={openingHours} />
+                        <ActivityDialog
+                          activity={toFormValues(a)}
+                          openingHours={openingHours}
+                          structures={structures}
+                          structureId={a.structure_id}
+                        />
                         <ActivityActiveToggle activityId={a.id} active={a.active} />
                       </div>
                     )}

@@ -6,18 +6,23 @@
 // as a muted card until the office answers.
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 
 export function AddChildSuccess({
   tenantName,
   childName,
+  structure = null,
 }: {
   tenantName: string;
   childName: string;
+  /** The structure asked for, named in the message; null when there was one. */
+  structure?: Structure | null;
 }) {
   const t = useTranslations("portal.addChild");
+  const locale = useLocale();
 
   return (
     <div className="flex flex-col items-center pt-8 text-center">
@@ -30,7 +35,13 @@ export function AddChildSuccess({
 
       <h2 className="text-2xl font-bold tracking-tight">{t("success.title")}</h2>
       <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        {t("success.message", { name: tenantName, child: childName })}
+        {structure
+          ? t("success.messageStructure", {
+              name: tenantName,
+              child: childName,
+              structure: structureName(structure, locale),
+            })
+          : t("success.message", { name: tenantName, child: childName })}
       </p>
       <p className="mt-2 text-xs text-muted-foreground">{t("success.hint")}</p>
 

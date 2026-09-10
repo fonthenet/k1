@@ -51,6 +51,8 @@ const inviteSchema = z.object({
   jobTitle: z.string().max(120).optional(),
   /** A name-only membership (user_id null) the accepted login attaches to. */
   membershipId: z.uuid().optional(),
+  /** Where they will work (0145). Applied when the invite is accepted. */
+  structureIds: z.array(z.uuid()).max(50).optional(),
 });
 
 /**
@@ -101,6 +103,10 @@ export async function inviteStaff(
     jobTitle = member.job_title;
   }
 
+  // Only this establishment's active structures ride on the invite; the
+  // accept function filters again, but a foreign id should not even be stored.
+  const structureIds = await validStructureIds(supabase, ctx.tenant.id, parsed.data.structureIds);
+
   const { data, error } = await supabase
     .from("kg_staff_invites")
     .insert({
@@ -110,6 +116,7 @@ export async function inviteStaff(
       job_title: jobTitle,
       invited_by: ctx.user.id,
       membership_id: parsed.data.membershipId ?? null,
+      structure_ids: structureIds.length > 0 ? structureIds : null,
     })
     .select("token")
     .single();
@@ -436,7 +443,25 @@ const localMemberSchema = z.object({
   baseSalary: z.number().nonnegative().nullable(),
   hourlyRate: z.number().nonnegative().nullable(),
   hireDate: z.string().regex(DATE_RE).optional(),
+  /** Where they work (0141) — written right after the member exists. */
+  structureIds: z.array(z.uuid()).max(50).optional(),
 });
+
+/** The subset of `ids` that are this establishment's active structures. */
+async function validStructureIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  ids: string[] | undefined
+): Promise<string[]> {
+  if (!ids || ids.length === 0) return [];
+  const { data } = await supabase
+    .from("kg_structures")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("active", true)
+    .in("id", [...new Set(ids)]);
+  return (data ?? []).map((s) => s.id);
+}
 
 export type LocalMemberResult =
   | { ok: true; data: { id: string; staffCode: string; pinCode: string } }
@@ -475,6 +500,15 @@ export async function createLocalMember(
   }
 
   const row = (data ?? {}) as { id?: string; staff_code?: string; pin_code?: string };
+  // Placed the moment they exist. A failure here must not undo the hire —
+  // the member is real and the code/PIN are on their way to being printed —
+  // so it is not fatal; the Structures card on their file is one click away.
+  const structureIds = await validStructureIds(supabase, ctx.tenant.id, v.structureIds);
+  if (row.id && structureIds.length > 0) {
+    await supabase
+      .from("kg_membership_structures")
+      .insert(structureIds.map((structure_id) => ({ membership_id: row.id!, structure_id })));
+  }
   revalidatePath("/staff");
   return {
     ok: true,
@@ -484,4 +518,84 @@ export async function createLocalMember(
       pinCode: row.pin_code ?? "",
     },
   };
+}
+
+// ------------------------------------------------------------ class assignment
+
+/**
+ * Replace the list of classes one member is on — the reverse of
+ * setClassStaff in the classes module, and the direction a director actually
+ * thinks in when a new educator starts ("she takes the two small groups").
+ *
+ * Only this member's rows move. A class dropped here simply loses them; if
+ * they were its main educator the class is left without one rather than the
+ * flag being handed to whoever is left, because that would name a person in
+ * charge nobody chose. A class added here gets them as an ordinary member —
+ * who leads a class is decided from the class's own page, where the rest of
+ * its team is visible.
+ *
+ * kg_class_staff has no tenant_id; RLS scopes it through the class, so the
+ * class ids are checked against the tenant here before any write, and the
+ * membership must be one of this tenant's staff (never a parent's).
+ */
+export async function setStaffClasses(membershipId: string, classIds: string[]): Promise<Result> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(membershipId).success) return { ok: false, error: "invalid" };
+  const ids = z.array(z.uuid()).max(200).safeParse(classIds);
+  if (!ids.success) return { ok: false, error: "invalid" };
+  const wanted = [...new Set(ids.data)];
+
+  const supabase = await createClient();
+  const { data: member } = await supabase
+    .from("kg_memberships")
+    .select("id")
+    .eq("id", membershipId)
+    .eq("tenant_id", ctx.tenant.id)
+    .neq("role", "parent")
+    .maybeSingle();
+  if (!member) return { ok: false, error: "invalid" };
+
+  if (wanted.length > 0) {
+    const { data: classes } = await supabase
+      .from("kg_classes")
+      .select("id")
+      .eq("tenant_id", ctx.tenant.id)
+      .in("id", wanted);
+    if ((classes ?? []).length !== wanted.length) return { ok: false, error: "invalid" };
+  }
+
+  const { data: currentRows, error: readErr } = await supabase
+    .from("kg_class_staff")
+    .select("class_id, kg_classes!inner(tenant_id)")
+    .eq("membership_id", membershipId)
+    .eq("kg_classes.tenant_id", ctx.tenant.id);
+  if (readErr) return { ok: false, error: "generic" };
+  const current = new Set((currentRows ?? []).map((r) => r.class_id as string));
+
+  const toAdd = wanted.filter((id) => !current.has(id));
+  const toRemove = [...current].filter((id) => !wanted.includes(id));
+
+  // Additions first, removals second: a failure between the two leaves the
+  // member on one class too many, which is the recoverable side of the error.
+  if (toAdd.length > 0) {
+    const { error } = await supabase
+      .from("kg_class_staff")
+      .insert(toAdd.map((class_id) => ({ class_id, membership_id: membershipId, is_main: false })));
+    if (error) return { ok: false, error: error.code === "42501" ? "forbidden" : "generic" };
+  }
+  if (toRemove.length > 0) {
+    const { error } = await supabase
+      .from("kg_class_staff")
+      .delete()
+      .eq("membership_id", membershipId)
+      .in("class_id", toRemove);
+    if (error) return { ok: false, error: error.code === "42501" ? "forbidden" : "generic" };
+  }
+
+  revalidatePath("/staff");
+  revalidatePath(`/staff/${membershipId}`);
+  revalidatePath("/classes");
+  for (const id of [...toAdd, ...toRemove]) revalidatePath(`/classes/${id}`);
+  return { ok: true };
 }

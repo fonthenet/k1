@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,17 +11,39 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { DatePicker } from "@/components/shared/date-picker";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { createEnrollLink } from "./actions";
 
-export function CreateLinkDialog() {
+/** The Select's value for "the whole building" — structure_id NULL in the row. */
+const WHOLE_BUILDING = "all";
+
+export function CreateLinkDialog({ structures = [] }: {
+  /** The structures of the establishment; the picker hides itself under two. */
+  structures?: Structure[];
+}) {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [maxUses, setMaxUses] = useState("");
+  const active = structures.filter((s) => s.active);
+  // The default is the FIRST structure, not the whole building. A director
+  // writing a link by hand is almost always writing it for one of the two
+  // businesses — "the crèche's link for the rentrée" — and a link that lands
+  // applications in the building means the family has to pick a structure on
+  // the form's first screen, which is a decision the director is better placed
+  // to make than the family is. The building stays on offer, explained, for
+  // the poster in the hall that serves both doors. Under two structures there
+  // is no picker and "" keeps the row's structure_id NULL, as it always was.
+  const defaultStructureId = active.length > 1 ? active[0].id : "";
+  const [structureId, setStructureId] = useState(defaultStructureId);
   const [pending, startTransition] = useTransition();
 
   function onOpenChange(next: boolean) {
@@ -30,6 +52,7 @@ export function CreateLinkDialog() {
       setLabel("");
       setExpiresAt("");
       setMaxUses("");
+      setStructureId(defaultStructureId);
     }
   }
 
@@ -40,7 +63,7 @@ export function CreateLinkDialog() {
       return;
     }
     startTransition(async () => {
-      const res = await createEnrollLink({ label, expiresAt, maxUses: max });
+      const res = await createEnrollLink({ label, expiresAt, maxUses: max, structureId });
       if (res.ok) {
         toast.success(t("enrollment.created"));
         onOpenChange(false);
@@ -74,6 +97,46 @@ export function CreateLinkDialog() {
               placeholder={t("enrollment.labelPlaceholder")}
             />
           </div>
+          {/* Shown only once the building has more than one structure — signup
+              already makes one link per structure, so this is the picker for the
+              extra link a director writes by hand. */}
+          {active.length > 1 && (
+            <div className="grid gap-2">
+              <Label htmlFor="link-structure">{t("enrollment.structure")}</Label>
+              <Select
+                value={structureId || WHOLE_BUILDING}
+                onValueChange={(v) => setStructureId(v === WHOLE_BUILDING ? "" : v)}
+              >
+                <SelectTrigger id="link-structure" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* The structure's own colour is the one signal, the same dot
+                      the comms picker and the links table give it. */}
+                  {active.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      <span
+                        className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
+                        style={{ backgroundColor: s.color }}
+                        aria-hidden
+                      />
+                      {structureName(s, locale)}
+                    </SelectItem>
+                  ))}
+                  <SelectSeparator />
+                  <SelectItem value={WHOLE_BUILDING}>{t("enrollment.wholeBuilding")}</SelectItem>
+                </SelectContent>
+              </Select>
+              {/* The hint changes with the answer: a structure link files its
+                  applications there; a building link asks the family instead,
+                  and the director should know that before printing it. */}
+              <p className="text-xs text-muted-foreground">
+                {structureId
+                  ? t("enrollment.structureHint")
+                  : t("enrollment.wholeBuildingHint")}
+              </p>
+            </div>
+          )}
           {/* Subgrid, because "(facultatif)" makes one label wrap to two lines
               and the other not — without it the two controls sit at different
               heights. The rows are shared, so the inputs line up whatever the

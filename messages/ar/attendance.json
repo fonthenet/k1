@@ -20,6 +20,10 @@
     "all": "كل الأقسام",
     "presence": "{present, plural, zero {لا حاضر من أصل {total}} one {حاضر واحد من أصل {total}} two {حاضران من أصل {total}} few {# حاضرين من أصل {total}} many {# حاضرًا من أصل {total}} other {# حاضر من أصل {total}}}"
   },
+  "structures": {
+    "filter": "التصفية حسب الهيكل",
+    "all": "كل الهياكل"
+  },
   "counters": {
     "present": "{count, plural, =0 {لا أحد حاضر} one {حاضر واحد} two {حاضران} few {# حاضرين} many {# حاضرًا} other {# حاضر}}",
     "absent": "{count, plural, =0 {لا أحد غائب} one {غائب واحد} two {غائبان} few {# غائبين} many {# غائبًا} other {# غائب}}",

@@ -29,9 +29,13 @@ import { copyPreviousWeekMenus, publishWeekMenus } from "./actions";
  */
 export function CopyPreviousWeekButton({
   weekStart,
+  structureId,
   hasExisting,
 }: {
   weekStart: string;
+  /** The scope on screen; null = the whole building. Last week's crèche menus
+   *  copy onto next week's crèche, never onto the jardin's. */
+  structureId: string | null;
   /** Does the displayed week already have menu content to overwrite? */
   hasExisting: boolean;
 }) {
@@ -43,7 +47,7 @@ export function CopyPreviousWeekButton({
   function run() {
     setAsking(false);
     startTransition(async () => {
-      const res = await copyPreviousWeekMenus(weekStart);
+      const res = await copyPreviousWeekMenus(weekStart, structureId);
       if (res.ok) {
         toast.success(t("menus.toasts.copied", { count: res.count ?? 0 }));
         router.refresh();
@@ -91,7 +95,14 @@ export function CopyPreviousWeekButton({
  * Rendered only when there is an unpublished day with content, so it is absent
  * on a week that is already live rather than present and inert.
  */
-export function PublishWeekButton({ weekStart }: { weekStart: string }) {
+export function PublishWeekButton({
+  weekStart,
+  structureId,
+}: {
+  weekStart: string;
+  /** The scope on screen; null = the whole building. */
+  structureId: string | null;
+}) {
   const t = useTranslations("comms");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -102,7 +113,7 @@ export function PublishWeekButton({ weekStart }: { weekStart: string }) {
       disabled={pending}
       onClick={() =>
         startTransition(async () => {
-          const res = await publishWeekMenus(weekStart);
+          const res = await publishWeekMenus(weekStart, structureId);
           if (res.ok) {
             toast.success(t("menus.toasts.publishedWeek", { count: res.count ?? 0 }));
             router.refresh();

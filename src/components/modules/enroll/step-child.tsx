@@ -3,17 +3,35 @@
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { DatePicker, toISODate } from "@/components/shared/date-picker";
-import { BLOOD_TYPES, type WizardChild } from "./types";
+import { BLOOD_TYPES, type EnrollClass, type EnrollStructure, type WizardChild } from "./types";
 import { Baby } from "lucide-react";
 import { BigChoice, Field, StepHeader } from "./wizard-ui";
+import { AgeFitNotice } from "./step-structure";
 import { cn } from "@/lib/utils";
+
+/**
+ * What the public wizard knows about the building, so the birth date can be
+ * answered with "that is the Petite Section" — or "that age is the école's,
+ * switch?" — the moment it is typed, four steps before the class list.
+ * Optional: the portal's sibling wizard shares this step and passes nothing.
+ */
+export interface ChildAgeFit {
+  classes: readonly EnrollClass[];
+  structures: readonly EnrollStructure[];
+  /** The structure being registered for; null = none chosen / single structure. */
+  structureId: string | null;
+  /** Present on a whole-building link, where the family may change their answer. */
+  onSwitchStructure?: (id: string) => void;
+}
 
 export function StepChild({
   child,
   onChange,
+  fit,
 }: {
   child: WizardChild;
   onChange: (patch: Partial<WizardChild>) => void;
+  fit?: ChildAgeFit;
 }) {
   const t = useTranslations("enroll");
   const tc = useTranslations("common");
@@ -80,15 +98,26 @@ export function StepChild({
           </div>
         </fieldset>
 
-        <Field label={t("child.dob")} required>
-          <DatePicker
-            className="h-11 text-base"
-            maxDate={today}
-            fromYear={new Date().getFullYear() - 12}
-            value={child.dob}
-            onChange={(v) => onChange({ dob: v })}
-          />
-        </Field>
+        <div className="space-y-2">
+          <Field label={t("child.dob")} required>
+            <DatePicker
+              className="h-11 text-base"
+              maxDate={today}
+              fromYear={new Date().getFullYear() - 12}
+              value={child.dob}
+              onChange={(v) => onChange({ dob: v })}
+            />
+          </Field>
+          {fit && child.dob && (
+            <AgeFitNotice
+              dob={child.dob}
+              classes={fit.classes}
+              structures={fit.structures}
+              structureId={fit.structureId}
+              onSwitchStructure={fit.onSwitchStructure}
+            />
+          )}
+        </div>
 
         <div className="space-y-1.5">
           <span className="text-sm font-medium">

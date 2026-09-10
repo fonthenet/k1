@@ -6,7 +6,9 @@ import { z } from "zod";
 import { requireStaff } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { algiersInstant, algiersToday } from "@/lib/algiers";
+import { isOpenDayStr, toOpeningHours } from "@/lib/week";
 import { flushPush } from "@/app/actions/push";
+import { structureClosure } from "./closure";
 import { isAway, isPresentish } from "./status-config";
 
 export type ActionResult =
@@ -242,6 +244,8 @@ export async function setAttendanceText(
 const bulkSchema = z.object({
   date: dateStr,
   childIds: z.array(uuid).min(1).max(300),
+  /** The structure the register was showing; absent means the whole building. */
+  structureId: uuid.optional(),
 });
 
 /**
@@ -250,30 +254,40 @@ const bulkSchema = z.object({
  * Existing rows are never touched, which is also what keeps a parent's
  * absence report safe: the family said "sick" this morning, the row is there,
  * and the button walks past it.
+ *
+ * The children are named one by one by the caller, so the stamp lands on the
+ * rows the register was actually showing and nowhere else.
  */
 export async function markAllPresent(
   input: z.infer<typeof bulkSchema>
 ): Promise<ActionResult> {
   const parsed = bulkSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { date, childIds } = parsed.data;
+  const { date, childIds, structureId } = parsed.data;
   if (isFutureDate(date)) return { ok: false, error: "future" };
 
   const ctx = await requireStaff();
   const supabase = await createClient();
 
   // This is the one write that marks a whole room in a tap, so it is the one
-  // that must know the door was shut. kg_is_open_on carries both rules — the
-  // tenant's week and its confirmed holiday closures — so the register and
-  // the database cannot disagree about whether 1 November was a school day.
-  // A single child can still be marked by hand on a closed day: an
-  // exceptional opening is the office's call, a bulk stamp is not.
-  const { data: open, error: openError } = await supabase.rpc("kg_is_open_on", {
-    p_tenant: ctx.tenant.id,
-    p_date: date,
-  });
-  if (openError) return { ok: false, error: openError.message };
-  if (open === false) return { ok: false, error: "closed" };
+  // that must know the door was shut — and whose door. It used to ask
+  // kg_is_open_on, which reads the tenant's week and every closure in the
+  // building, so the jardin's school holiday refused the crèche's register.
+  // The two structure helpers answer for the structure the register was
+  // showing, and for the whole building when it was showing all of it. A
+  // single child can still be marked by hand on a closed day: an exceptional
+  // opening is the office's call, a bulk stamp is not.
+  const [hoursRes, closure] = await Promise.all([
+    supabase.rpc("kg_structure_hours", {
+      p_structure: structureId ?? null,
+      p_tenant: ctx.tenant.id,
+    }),
+    structureClosure(supabase, ctx.tenant.id, structureId ?? null, date),
+  ]);
+  if (hoursRes.error) return { ok: false, error: hoursRes.error.message };
+  if (closure.error) return { ok: false, error: closure.error };
+  if (closure.closed || !isOpenDayStr(toOpeningHours(hoursRes.data), date))
+    return { ok: false, error: "closed" };
 
   const { data: existing, error: selError } = await supabase
     .from("kg_attendance")

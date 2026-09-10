@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
+import { centerTypeOption } from "@/components/modules/settings/center-types";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,15 +53,27 @@ export function TxnDialog({
   categories,
   txn,
   trigger,
+  structures = [],
+  defaultStructureId = null,
 }: {
   kind: TxnKind;
   categories: { id: string; name: string; color: string }[];
   txn?: LedgerRow;
   trigger: React.ReactNode;
+  /** The building's active structures; the picker hides itself under two. */
+  structures?: Structure[];
+  /**
+   * Pre-filled for a NEW entry: the structure the rail is reading, if any.
+   * A default, not a restriction — the picker is right there — and a director
+   * who has narrowed the rail to the école is entering the école's bills.
+   */
+  defaultStructureId?: string | null;
 }) {
   const t = useTranslations("accounting");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
+  const [structureId, setStructureId] = useState<string>(NONE);
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState<string>(NONE);
   const [date, setDate] = useState("");
@@ -76,6 +90,7 @@ export function TxnDialog({
       setCategoryId(txn?.category?.id ?? NONE);
       setDate(txn?.date ?? isoDate(new Date()));
       setMethod(txn?.method ?? "cash");
+      setStructureId(txn ? (txn.structure_id ?? NONE) : (defaultStructureId ?? NONE));
       setDescription(txn?.description ?? "");
       setReference(txn?.reference ?? "");
       setItems(
@@ -111,6 +126,9 @@ export function TxnDialog({
         amount: parsedAmount,
         date,
         method,
+        // Only sent when the building has structures to choose from, so an
+        // ordinary crèche never writes the column at all.
+        structureId: structures.length > 1 ? (structureId === NONE ? null : structureId) : undefined,
         description: description.trim(),
         reference: reference.trim() || undefined,
         items: itemised
@@ -228,6 +246,34 @@ export function TxnDialog({
               </Select>
             </div>
           </div>
+
+          {/* Whose money it is. Income linked to a child's payment already knows
+              (the trigger reads the child's structure); a bill typed in here
+              has nobody to ask, so it asks the office. The whole building is a
+              real answer — the rent — not a missing one. */}
+          {structures.length > 1 && (
+            <div className="grid gap-2">
+              <Label>{t("txn.structure")}</Label>
+              <Select value={structureId} onValueChange={setStructureId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>{t("txn.structureAll")}</SelectItem>
+                  {structures.map((s) => {
+                    const { Icon } = centerTypeOption(s.center_type);
+                    return (
+                      <SelectItem key={s.id} value={s.id}>
+                        <Icon className="size-4" style={{ color: s.color }} aria-hidden />
+                        {structureName(s, locale)}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-pretty text-muted-foreground">{t("txn.structureHint")}</p>
+            </div>
+          )}
 
           {/* The shopping list. Optional on purpose: an electricity bill is one
               number and forcing it into a line item is ceremony. */}

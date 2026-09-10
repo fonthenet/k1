@@ -5,7 +5,8 @@
     "enrollment": "Enrolment links",
     "holidays": "Holidays",
     "documents": "Documents",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "subscription": "Subscription"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -26,7 +27,6 @@
     "infoTitle": "General information",
     "name": "Kindergarten name",
     "centerType": "Type of centre",
-    "centerTypeHint": "The kind of centre you run.",
     "wilaya": "Wilaya",
     "wilayaPlaceholder": "Select a wilaya",
     "commune": "Commune",
@@ -48,7 +48,17 @@
       "shortLink": "That link is shortened. Open it in Maps, then copy the full link from the address bar.",
       "noGeolocation": "Your browser cannot provide your location.",
       "denied": "Location refused. Allow location access, or paste a link."
-    }
+    },
+    "structuresHint": "What you run in this building. One structure per activity.",
+    "structuresEdit": "Edit",
+    "structuresDone": "Done",
+    "identity": "Identity",
+    "identityHint": "The name and logo families see.",
+    "structuresTitle": "Structures",
+    "contact": "Contact",
+    "contactHint": "How families reach you.",
+    "location": "Address",
+    "locationHint": "Where to find you, and the pin on the map."
   },
   "centerTypes": {
     "nursery": {
@@ -89,6 +99,9 @@
     "createDescription": "Generate a private link you can share on WhatsApp, Facebook or a printed poster.",
     "label": "Label",
     "labelPlaceholder": "2026 intake",
+    "structure": "Structure",
+    "structureHint": "Applications sent through this link arrive in this structure.",
+    "wholeBuilding": "The whole establishment",
     "expires": "Expiry date",
     "maxUses": "Maximum uses",
     "activeLabel": "Link active",
@@ -104,6 +117,7 @@
     "loadError": "Enrolment links could not be loaded.",
     "columns": {
       "label": "Label",
+      "structure": "Structure",
       "url": "Link",
       "uses": "Uses",
       "expires": "Expiry",
@@ -114,7 +128,9 @@
     "unlimited": "Unlimited",
     "noExpiry": "No expiry",
     "expired": "Expired",
-    "full": "Limit reached"
+    "full": "Limit reached",
+    "wholeBuildingHint": "The family will choose the structure at the start of the form.",
+    "shareTextStructure": "Hello! You can enrol your child at {structure} ({name}) using this link:"
   },
   "poster": {
     "title": "Enrolment poster",
@@ -149,6 +165,9 @@
     "nameAr": "Name in Arabic",
     "startDate": "Start date",
     "endDate": "End date",
+    "structure": "Structure",
+    "structureHint": "A public holiday closes the whole establishment; school holidays close one structure only.",
+    "wholeBuilding": "The whole establishment",
     "closureLabel": "Kindergarten closed",
     "tentativeLabel": "Date not yet confirmed",
     "tentativeBadge": "Approximate date",
@@ -267,6 +286,9 @@
   "hours": {
     "title": "Opening days and hours",
     "description": "The days the kindergarten takes children. One-off closures are handled under Holidays.",
+    "establishment": "Establishment",
+    "sameAsEstablishment": "Same hours as the establishment",
+    "sameAsEstablishmentHint": "This structure follows the establishment's week: change that week and this one changes with it.",
     "days": {
       "sun": "Sunday",
       "mon": "Monday",
@@ -283,5 +305,64 @@
     "summary": "{count, plural, one {# open day per week} other {# open days per week}}",
     "noneOpen": "Pick at least one open day.",
     "saved": "Opening hours saved"
+  },
+  "subscription": {
+    "title": "Subscription",
+    "description": "Your Rawdatik plan, your invoices, and how to pay.",
+    "planTitle": "Your plan",
+    "perMonth": "/ month",
+    "status": {
+      "trialing": "Trial",
+      "active": "Active",
+      "past_due": "Payment overdue",
+      "suspended": "Suspended",
+      "cancelled": "Cancelled"
+    },
+    "trialEnds": "Trial ends",
+    "nextInvoice": "Next invoice",
+    "owed": "{count, plural, one {# unpaid invoice} other {# unpaid invoices}} — {amount} outstanding.",
+    "howToPay": "How to pay",
+    "howToPayFallback": "In cash, by bank transfer or by CCP. Get in touch for the details and the reference to quote.",
+    "invoicesTitle": "Invoices",
+    "noInvoices": "No invoices yet.",
+    "invoiceStatus": {
+      "paid": "Paid",
+      "void": "Void",
+      "dueOn": "Due by {date}"
+    },
+    "pastDueTitle": "An invoice is overdue",
+    "pastDueBody": "Settle it to avoid your space being suspended. Once the payment is confirmed everything resumes automatically.",
+    "suspendedTitle": "Space suspended for an unpaid invoice",
+    "suspendedBody": "Your data is untouched. As soon as the payment is confirmed, access is restored automatically for your whole team.",
+    "none": "No subscription",
+    "noneHint": "Get in touch — this establishment has no plan yet.",
+    "trialCountdown": "{count, plural, one {# day left in your trial} other {# days left in your trial}}",
+    "trialEndsToday": "Your trial ends today",
+    "trialBody": "After that your first invoice of {amount} is issued. Nothing stops overnight — you will have time to settle it.",
+    "structuresBilled": "{count, plural, one {# structure} other {# structures}}",
+    "viewInvoice": "Invoice",
+    "invoiceDoc": "Subscription invoice",
+    "billedTo": "Billed to",
+    "issued": "Issued",
+    "dueDate": "Due",
+    "period": "Period",
+    "qty": "Qty",
+    "unitPrice": "Unit price",
+    "lineTotal": "Amount",
+    "total": "Total",
+    "paid": "Already paid",
+    "balance": "Balance due",
+    "paymentsReceived": "Payments received",
+    "lineLabel": "Rawdatik subscription — {plan} plan, per structure",
+    "print": "Print",
+    "method": {
+      "cash": "Cash",
+      "transfer": "Transfer",
+      "ccp": "CCP",
+      "card": "Card",
+      "other": "Other"
+    },
+    "changesFrom": "You went from {was} to {now} structures. The change applies from the invoice of {date}: {total} per month.",
+    "lineDescription": "Description"
   }
 }

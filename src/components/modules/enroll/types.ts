@@ -6,7 +6,31 @@ import type { AllergySeverity, FeePeriod, Gender, Relationship } from "@/lib/typ
 
 // ----- kg_get_enroll_link payload -----
 
-export interface EnrollActivity {
+/**
+ * A structure of the building, as the public link publishes it (0140).
+ *
+ * The colour and the centre type are here so the form can show the same chip
+ * the dashboard does — a family that has seen the crèche's teal on a flyer
+ * should meet it again on the first screen.
+ */
+export interface EnrollStructure {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  center_type: string;
+  color: string;
+}
+
+/**
+ * Every item the link publishes says which structure it belongs to.
+ * `null` is an answer, not a gap: it means THE WHOLE BUILDING — a tariff or
+ * an activity that a child of either structure can take.
+ */
+export interface EnrollScoped {
+  structure_id: string | null;
+}
+
+export interface EnrollActivity extends EnrollScoped {
   id: string;
   name: string;
   name_ar: string | null;
@@ -17,7 +41,7 @@ export interface EnrollActivity {
 }
 
 /** A monthly tariff offered on the public form (0057). */
-export interface EnrollFeePlan {
+export interface EnrollFeePlan extends EnrollScoped {
   id: string;
   name: string;
   name_ar: string | null;
@@ -25,8 +49,22 @@ export interface EnrollFeePlan {
   description: string | null;
 }
 
+/**
+ * A room the crèche runs, with the band that decides who belongs in it (0122).
+ *
+ * Names and bands only — capacity and occupancy are never published on an
+ * anonymous link. See kg_get_enroll_link.
+ */
+export interface EnrollClass extends EnrollScoped {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  age_min_months: number | null;
+  age_max_months: number | null;
+}
+
 /** A one-off admission fee, shown so the family sees the true first bill. */
-export interface EnrollAdmissionFee {
+export interface EnrollAdmissionFee extends EnrollScoped {
   id: string;
   name: string;
   name_ar: string | null;
@@ -45,9 +83,22 @@ export interface EnrollLinkData {
   longitude: number | null;
   link_id: string;
   label: string;
+  /**
+   * The structure this link was issued for, or null for a whole-building
+   * link. A structure link already comes with only that structure's items
+   * (plus the building-wide ones); a whole-building link carries everything
+   * and lets the form ask — see `structures`.
+   */
+  structure_id: string | null;
+  structure_name: string | null;
+  structure_name_ar: string | null;
+  /** Every active structure of the building, in the building's own order. */
+  structures: EnrollStructure[];
   activities: EnrollActivity[];
   fee_plans: EnrollFeePlan[];
   admission_fees: EnrollAdmissionFee[];
+  /** Added in 0122; absent from a response served before that migration. */
+  classes?: EnrollClass[];
 }
 
 // ----- Wizard state (persisted to localStorage for resume) -----
@@ -119,6 +170,54 @@ export interface WizardState {
    * kg_fee_plans id. Approval pre-selects it so staff confirm, not guess.
    */
   feePlanId: string;
+  /**
+   * The room the family is asking for. Seeded from the child's age the moment
+   * a birth date exists, so the common case is a confirmation rather than a
+   * question. "" = not answered; otherwise a kg_classes id.
+   */
+  classId: string;
+  /**
+   * Which structure of the building the family is registering for, on a
+   * whole-building link with more than one — the crèche or the école. "" =
+   * not asked or not answered yet. On a structure link the link's own
+   * structure wins and this stays empty (see effectiveStructureId).
+   */
+  structureId: string;
+}
+
+/**
+ * The wizard's screens, by index. Two of them are conditional — the structure
+ * question only exists on a whole-building link with a choice to make, and
+ * the account step is skipped for a signed-in visitor — so the wizard walks
+ * this order and steps over the ones that do not apply.
+ */
+export const STEP = {
+  welcome: 0,
+  structure: 1,
+  account: 2,
+  child: 3,
+  photo: 4,
+  guardians: 5,
+  health: 6,
+  activities: 7,
+  review: 8,
+} as const;
+export const TOTAL_STEPS = 9;
+
+/** The structure the application will land on: the link's, else the family's answer. */
+export function effectiveStructureId(link: EnrollLinkData, state: WizardState): string | null {
+  return link.structure_id ?? (state.structureId || null);
+}
+
+/**
+ * Keep an item if it belongs to the chosen structure or to the whole
+ * building. With no structure chosen (a single-structure crèche, or a link
+ * for the whole building before the family answers) nothing is narrowed —
+ * scoping what is READ, never what can be chosen.
+ */
+export function inStructure<T extends EnrollScoped>(items: readonly T[], structureId: string | null): T[] {
+  if (!structureId) return [...items];
+  return items.filter((i) => !i.structure_id || i.structure_id === structureId);
 }
 
 export const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
@@ -176,6 +275,8 @@ export function initialWizardState(): WizardState {
     },
     activityIds: [],
     feePlanId: "",
+    classId: "",
+    structureId: "",
   };
 }
 

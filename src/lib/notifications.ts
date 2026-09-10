@@ -16,6 +16,8 @@ export const NOTIFICATION_TYPES = [
   "application_status",
   // 0090 — a class event reaches that class's families and nobody else.
   "event",
+  // 0140 — a child moved between the structures of the building (kg_move_child).
+  "structure_changed",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -103,6 +105,12 @@ export function notificationHref(n: Pick<KgNotification, "type" | "data">, isPar
       return "/portal/payments";
     case "activity_request":
       return s("childId") ? `/children/${s("childId")}` : "/activities";
+    // The family lands on the child, whose card now says which structure; staff
+    // land on the same child's record, where the transfer history lives.
+    case "structure_changed":
+      return s("childId")
+        ? isParent ? `/portal/children/${s("childId")}` : `/children/${s("childId")}`
+        : isParent ? "/portal/children" : "/children";
     default:
       return isParent ? "/portal" : "/dashboard";
   }
@@ -219,10 +227,16 @@ export function renderNotification(
     plan: str("plan"),
     reason: str("reason"),
     // Which class a trip belongs to. A guardian with children in two classes
-    // otherwise reads two identical-looking rows.
-    className: str("className"),
+    // otherwise reads two identical-looking rows. A payload that carries the
+    // Arabic name too (structure_changed does) shows it to an Arabic reader.
+    className: (locale === "ar" && str("classNameAr")) || str("className"),
     // What the event actually is. Staff type it; until now nobody read it.
     description: str("description"),
+    // Which structure a child now belongs to (0140). The payload carries both
+    // scripts because a structure is named by the director in both; an Arabic
+    // reader gets the Arabic name when there is one and the French otherwise —
+    // never a blank.
+    structure: (locale === "ar" && str("structureNameAr")) || str("structureName"),
   };
   // A template is a plain `{var}` substitution with no conditionals, so an
   // absent value used to leave its separator behind — "3 September · 09:00 · "

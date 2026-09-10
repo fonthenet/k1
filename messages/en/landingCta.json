@@ -133,7 +133,7 @@
     "popular": "Most chosen",
     "cta": "Get started",
     "ctaPopular": "Start with this plan",
-    "footnote": "No commitment · Unlimited children and staff",
+    "footnote": "{days}-day free trial · No commitment · Unlimited children and staff",
     "tiers": {
       "essential": {
         "name": "Essential",

@@ -122,7 +122,10 @@
     "detailTitle": "Détail de la transaction",
     "linkedAdvance": "Avance sur salaire",
     "linkedPayment": "Liée à un paiement",
-    "linkedPayroll": "Versement de salaire"
+    "linkedPayroll": "Versement de salaire",
+    "structure": "Structure",
+    "structureAll": "Tout l'établissement",
+    "structureHint": "Le loyer est à tout le bâtiment ; les fournitures de l'école sont à l'école."
   },
   "categories": {
     "title": "Catégories",

@@ -34,7 +34,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex h-dvh gap-2 overflow-hidden bg-shell p-2 sm:gap-2.5 sm:p-2.5">
-      <Sidebar role={ctx.role} tenantName={ctx.tenant.name} logoUrl={logoUrl} />
+      <Sidebar
+        role={ctx.role}
+        tenantName={ctx.tenant.name}
+        logoUrl={logoUrl}
+        structures={ctx.structures}
+        activeStructureId={ctx.structureId}
+      />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-background shadow-sm ring-1 ring-border/70">
         <Topbar
           userId={ctx.user.id}
@@ -45,6 +51,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
           role={ctx.role}
           tenantName={ctx.tenant.name}
           logoUrl={logoUrl}
+          structures={ctx.structures}
+          activeStructureId={ctx.structureId}
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
         <InboxWidget

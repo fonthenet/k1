@@ -38,9 +38,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { DateTimePicker } from "@/components/shared/datetime-picker";
-import type { Audience } from "@/lib/types";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { deleteAnnouncement, saveAnnouncement } from "./actions";
-import { AUDIENCES, type AnnouncementRow, type ClassOption } from "./types";
+import {
+  audiencesFor,
+  type AnnouncementRow,
+  type ClassOption,
+  type CommsAudience,
+} from "./types";
 
 function toLocalInput(iso: string): string {
   const d = new Date(iso);
@@ -51,9 +56,13 @@ function toLocalInput(iso: string): string {
 export function AnnouncementDialog({
   announcement,
   classes,
+  structures,
 }: {
   announcement: AnnouncementRow | null;
   classes: ClassOption[];
+  /** The structures of the building (0125). Fewer than two and the audience
+   *  picker never mentions them. */
+  structures: Structure[];
 }) {
   const t = useTranslations("comms");
   const tc = useTranslations("common");
@@ -65,15 +74,21 @@ export function AnnouncementDialog({
   const [pending, startTransition] = useTransition();
   const [title, setTitle] = useState(announcement?.title ?? "");
   const [body, setBody] = useState(announcement?.body ?? "");
-  const [audience, setAudience] = useState<Audience>(announcement?.audience ?? "all");
+  const [audience, setAudience] = useState<CommsAudience>(announcement?.audience ?? "all");
   const [classId, setClassId] = useState(announcement?.class_id ?? "");
+  const [structureId, setStructureId] = useState(announcement?.structure_id ?? "");
   const [pinned, setPinned] = useState(announcement?.pinned ?? false);
   const [publishAt, setPublishAt] = useState(
     toLocalInput(announcement?.publish_at ?? new Date().toISOString())
   );
 
+  const audiences = audiencesFor(structures.length);
   const canSubmit =
-    title.trim() && publishAt && (audience !== "class" || classId) && !pending;
+    title.trim() &&
+    publishAt &&
+    (audience !== "class" || classId) &&
+    (audience !== "structure" || structureId) &&
+    !pending;
 
   function submit() {
     if (!canSubmit) return;
@@ -83,6 +98,7 @@ export function AnnouncementDialog({
         body,
         audience,
         classId: audience === "class" && classId ? classId : null,
+        structureId: audience === "structure" && structureId ? structureId : null,
         pinned,
         publishAt: new Date(publishAt).toISOString(),
       });
@@ -96,6 +112,7 @@ export function AnnouncementDialog({
           setBody("");
           setAudience("all");
           setClassId("");
+          setStructureId("");
           setPinned(false);
           setPublishAt(toLocalInput(new Date().toISOString()));
         }
@@ -144,12 +161,12 @@ export function AnnouncementDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label>{t("announcements.form.audience")}</Label>
-              <Select value={audience} onValueChange={(v) => setAudience(v as Audience)}>
+              <Select value={audience} onValueChange={(v) => setAudience(v as CommsAudience)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {AUDIENCES.map((a) => (
+                  {audiences.map((a) => (
                     <SelectItem key={a} value={a}>
                       {t(`audience.${a}`)}
                     </SelectItem>
@@ -157,6 +174,27 @@ export function AnnouncementDialog({
                 </SelectContent>
               </Select>
             </div>
+            {audience === "structure" && (
+              <div className="grid gap-1.5">
+                <Label>{t("announcements.form.structure")}</Label>
+                {/* Same shape as the class picker below, because it answers the
+                    same question — which half of the building is this for. */}
+                <Select value={structureId} onValueChange={setStructureId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("announcements.form.chooseStructure")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {structures
+                      .filter((s) => s.active || s.id === structureId)
+                      .map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {structureName(s, locale)}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {audience === "class" && (
               <div className="grid gap-1.5">
                 <Label>{t("announcements.form.class")}</Label>

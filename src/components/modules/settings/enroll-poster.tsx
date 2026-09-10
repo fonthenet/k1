@@ -11,6 +11,13 @@ export interface PosterData {
   url: string;
   kindergartenName: string;
   logoUrl: string | null;
+  /**
+   * The structure the link is for, in both scripts, or null for a link that
+   * serves the whole building. A building with a crèche and an école prints
+   * one poster per door; without this line the two sheets were identical
+   * apart from the QR code, and nobody can read a QR code.
+   */
+  structure?: { name: string; nameAr: string | null } | null;
 }
 
 /**
@@ -82,6 +89,20 @@ export function EnrollPoster({ data }: { data: PosterData }) {
             />
           )}
           <h1 className="text-3xl font-bold tracking-tight">{data.kindergartenName}</h1>
+          {data.structure && (
+            <p className="-mt-2 text-xl font-semibold text-black/70">
+              {/* A name a director typed, so each script keeps its own
+                  direction. The Arabic name is shown only when it differs —
+                  a structure named in Arabic once would otherwise print twice. */}
+              <span dir="auto">{data.structure.name}</span>
+              {data.structure.nameAr && data.structure.nameAr !== data.structure.name && (
+                <>
+                  {" · "}
+                  <span dir="rtl" lang="ar">{data.structure.nameAr}</span>
+                </>
+              )}
+            </p>
+          )}
           <div className="h-1 w-24 rounded-full bg-black/80" />
           <p className="text-2xl leading-snug font-bold" dir="rtl" lang="ar">
             {t("poster.heading.ar")}

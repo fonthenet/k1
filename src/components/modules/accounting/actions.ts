@@ -106,6 +106,13 @@ const txnSchema = z.object({
   description: z.string().min(1).max(300),
   reference: z.string().max(120).optional(),
   /**
+   * Which structure the money belongs to. NULL is the whole building — the
+   * rent, the electricity — and a legitimate answer; the école's supplies are
+   * the école's. Absent (undefined) on an edit leaves the column alone, so the
+   * inferred structure on a payment-linked row is never blanked.
+   */
+  structureId: z.uuid().nullable().optional(),
+  /**
    * When present and non-empty, the entry is itemised: `amount` is ignored and
    * the trigger derives it from these. Absent means the entry keeps whatever
    * single figure was typed, which is right for a bill that has no line items.
@@ -132,7 +139,20 @@ export async function saveTransaction(input: z.infer<typeof txnSchema>): Promise
     if (!cat) return { ok: false, error: "invalid" };
   }
 
-  const payload = {
+  // A structure from another establishment is refused, not silently
+  // dropped: unlike the public form, this is an office user who can fix it.
+  if (v.structureId) {
+    const { data: str } = await supabase
+      .from("kg_structures")
+      .select("id")
+      .eq("id", v.structureId)
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("active", true)
+      .maybeSingle();
+    if (!str) return { ok: false, error: "invalid" };
+  }
+
+  const payload: Record<string, unknown> = {
     kind: v.kind,
     category_id: v.categoryId,
     amount: v.amount,
@@ -141,6 +161,7 @@ export async function saveTransaction(input: z.infer<typeof txnSchema>): Promise
     description: v.description.trim(),
     reference: v.reference?.trim() || null,
   };
+  if (v.structureId !== undefined) payload.structure_id = v.structureId;
 
   // A shopping trip's total is the sum of its lines; the client's `amount` is
   // not consulted. The row goes in at 0 and the rollup trigger has the last

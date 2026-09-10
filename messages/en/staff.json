@@ -7,9 +7,14 @@
     "empty": "No team members yet",
     "emptyHint": "Invite your first team member to get started.",
     "loadError": "We couldn't load the team. Please try again.",
+    "filterStructure": "Filter by structure",
+    "allStructures": "All structures",
+    "noMatch": "No one in this structure yet",
+    "noMatchHint": "Nobody on the team teaches a class here yet.",
     "columns": {
       "member": "Member",
       "role": "Role",
+      "structure": "Structure",
       "code": "Code",
       "phone": "Phone",
       "hireDate": "Hired",
@@ -97,7 +102,9 @@
         "body": "This account already belongs to the kindergarten, so there is nothing to accept."
       },
       "open": "Open my workspace"
-    }
+    },
+    "structures": "Structures",
+    "structuresHint": "Where this person will work. Tick several if needed — leave empty for the whole building."
   },
   "edit": {
     "title": "Edit member",
@@ -272,5 +279,30 @@
     "staffCode": "Staff code",
     "pinCode": "PIN",
     "pinOnce": "The PIN is shown once. Write it down now — it is never displayed again."
+  },
+  "structures": {
+    "title": "Structures",
+    "hint": "Where this person works. One structure, or several — the kitchen feeds the whole building.",
+    "direct": "Assigned directly",
+    "viaClasses": "Through their classes: {classes}",
+    "notHere": "Not assigned",
+    "save": "Save",
+    "saved": "Structures saved",
+    "error": "Could not save the structures."
+  },
+  "classes": {
+    "title": "Classes",
+    "empty": "No class: this member works for the whole establishment.",
+    "assign": "Assign to classes",
+    "dialogTitle": "Classes of {name}",
+    "dialogDescription": "Tick the classes this person runs. The main educator of each class is chosen from the class's own page.",
+    "noneInBuilding": "No class has been created yet.",
+    "youLead": "Main educator of this class",
+    "mainIs": "Lead: {name}",
+    "noMain": "No main educator",
+    "submit": "Save ({count})",
+    "saved": "Classes saved",
+    "wholeBuilding": "Whole establishment",
+    "main": "Main"
   }
 }

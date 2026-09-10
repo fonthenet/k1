@@ -30,7 +30,8 @@
     "needIds": "Your contact details and phone number",
     "start": "Start enrollment",
     "resume": "Resume my enrollment",
-    "resumeNotice": "Your progress was saved on this phone."
+    "resumeNotice": "Your progress was saved on this phone.",
+    "introStructure": "This enrollment is for {structure}. Enroll your child in a few minutes, right from your phone. Your progress is saved so you can come back later."
   },
   "account": {
     "title": "Your parent account",
@@ -181,7 +182,11 @@
       "title": "First-month estimate",
       "total": "Total",
       "hint": "Indicative only: the exact invoice is drawn up by the crèche at admission. Per-session activities are billed as used."
-    }
+    },
+    "placement": "Structure and class",
+    "structure": "Structure",
+    "class": "Preferred class",
+    "classUndecided": "To decide with the crèche"
   },
   "success": {
     "title": "Application sent!",
@@ -226,7 +231,17 @@
     "reconsidered": "Application reopened",
     "openChild": "Open the child's record",
     "enrolledOn": "Enrolled",
-    "stageSaved": "Stage saved — nothing was sent to the family"
+    "stageSaved": "Stage saved — nothing was sent to the family",
+    "transferBadge": "Transfer · {name}",
+    "requestedStructure": "Requested structure",
+    "transferTitle": "Request to change structure",
+    "transferSentence": "<child></child> is currently in <from></from>; the family is asking for <to></to>.",
+    "transferNote": "Message from the family",
+    "noStructure": "no structure",
+    "transferNotEnrolled": "This child is no longer enrolled ({status}): a transfer only applies to an enrolled child.",
+    "transferChildMissing": "The child this transfer is about could not be found.",
+    "duplicateTitle": "A child with this name and date of birth already exists",
+    "duplicateHint": "If {name}'s family wants to change structure, make a transfer from the child's file rather than a second application: approving this one would create a second child, with a second badge and new admission fees."
   },
   "detail": {
     "back": "All applications",
@@ -290,7 +305,15 @@
     "billNow": "Invoice this month now",
     "billNowHint": "Raises this month's invoice straight away. Otherwise it is generated on the 1st of next month.",
     "admissionFees": "Admission fees (applied automatically)",
-    "familyChose": "Schedule chosen by the family on the enrolment form."
+    "familyChose": "Schedule chosen by the family on the enrolment form.",
+    "classFamilyAgrees": "Requested by the family — and it matches the child's age.",
+    "classFromAge": "Suggested from the child's age.",
+    "classFromAgeTie": "Several classes cover this age — this one has the most room.",
+    "classFamilyAsked": "The family asked for: {name}.",
+    "classNoFit": {
+      "outside": "The child's age falls outside every age range you have set.",
+      "unbanded": "No class has an age range yet — set them to get a suggestion."
+    }
   },
   "source": {
     "online": "Online form",
@@ -363,8 +386,43 @@
     "undecided": "I'll decide with the crèche",
     "undecidedHint": "The office will advise you when your file is reviewed."
   },
+  "classChoice": {
+    "title": "Preferred class",
+    "subtitle": "We suggest the one that matches your child's age. The crèche confirms.",
+    "forAge": "Their age",
+    "undecided": "Let the crèche decide",
+    "undecidedHint": "You'll discuss it together."
+  },
   "existingFamily": {
     "body": "You are already with us as {name}. No need to fill your own details in again — just add the new child.",
     "cta": "Add another child"
+  },
+  "approve": {
+    "requested": "Requested structure:",
+    "wholeBuilding": "Whole establishment",
+    "noStructure": "no structure",
+    "proposed": "proposed",
+    "landsIn": "Will be enrolled in: {name}",
+    "rehomed": "Will be enrolled in {to} — the family asked for {from}.",
+    "transferTitle": "Approve the transfer",
+    "transferDesc": "The child changes structure: their file, badge, family and history are kept. The family is notified.",
+    "transferFrom": "Today: {from}",
+    "transferTariffStops": "The old structure's own tariff stops on approval; tariffs valid for the whole establishment continue. Choose the new structure's tariff here.",
+    "confirmTransfer": "Confirm the transfer",
+    "transferred": "Transfer approved — the child has changed structure",
+    "keepRequestedClass": "Keep the class the family asked for"
+  },
+  "structure": {
+    "title": "Which structure?",
+    "subtitle": "This establishment runs more than one. Choose the one your child will join.",
+    "required": "Choose a structure to continue.",
+    "ageMonths": "{n} months",
+    "ageYears": "{n} years",
+    "ageRange": "{min} – {max}",
+    "ageFrom": "From {min}",
+    "ageUpTo": "Up to {max}",
+    "fitsHere": "At this age your child would join: {className}.",
+    "fitsElsewhere": "This age belongs to {structure}.",
+    "switch": "Switch structure"
   }
 }

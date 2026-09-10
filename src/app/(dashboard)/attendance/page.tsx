@@ -12,6 +12,8 @@ import {
   type RegisterRow,
 } from "@/components/modules/attendance/register-client";
 import { isPresentish } from "@/components/modules/attendance/status-config";
+import { structureClosure } from "@/components/modules/attendance/closure";
+import type { Structure } from "@/components/modules/classes/class-types";
 import { allergenLabel } from "@/lib/allergens";
 import { childDisplayName, intlLocale } from "@/lib/format";
 import { isValidDateStr, parseDateStr } from "@/components/modules/attendance/dates";
@@ -22,6 +24,7 @@ interface ClassRecord {
   id: string;
   name: string;
   name_ar: string | null;
+  structure_id: string | null;
 }
 
 interface ChildRecord {
@@ -32,6 +35,13 @@ interface ChildRecord {
   last_name_ar: string | null;
   photo_path: string | null;
   class_id: string | null;
+  structure_id: string | null;
+}
+
+interface RosterRecord {
+  id: string;
+  class_id: string | null;
+  structure_id: string | null;
 }
 
 interface AttendanceRecord {
@@ -63,17 +73,14 @@ interface PickupRecord {
   relationship: string | null;
 }
 
-interface HolidayRecord {
-  name: string;
-  name_ar: string | null;
-}
-
 const RELATIONSHIPS = ["father", "mother", "guardian", "grandparent", "sibling", "other"];
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function AttendancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; class?: string }>;
+  searchParams: Promise<{ date?: string; class?: string; structure?: string }>;
 }) {
   const ctx = await requireStaff();
   const t = await getTranslations("attendance");
@@ -91,12 +98,28 @@ export default async function AttendancePage({
   const today = algiersToday();
   const date = isValidDateStr(sp.date) ? sp.date : today;
   const activeClass = sp.class && sp.class !== "all" ? sp.class : "all";
+  // Which activity of the establishment the register is looking at. Only the
+  // shape is checked here — which structures exist is settled below, once they
+  // have been read. The database needs no such check: kg_structure_hours and
+  // kg_structure_closed_on both answer for the whole building when handed an
+  // id they do not know, which is what an unknown structure should mean.
+  // The URL wins where it says something — the tab bar on this page is an
+  // explicit, per-visit choice — but with nothing in it the page opens on
+  // whatever the sidebar switcher is set to, so the two controls never
+  // disagree about which structure the user is in.
+  const structureParam = sp.structure
+    ? UUID_RE.test(sp.structure)
+      ? sp.structure
+      : null
+    : ctx.structureId;
 
   const supabase = await createClient();
 
   let childrenQuery = supabase
     .from("kg_children")
-    .select("id, first_name, last_name, first_name_ar, last_name_ar, photo_path, class_id")
+    .select(
+      "id, first_name, last_name, first_name_ar, last_name_ar, photo_path, class_id, structure_id"
+    )
     .eq("tenant_id", ctx.tenant.id)
     .eq("status", "enrolled")
     .order("first_name")
@@ -111,11 +134,13 @@ export default async function AttendancePage({
     rosterRes,
     guardianLinksRes,
     pickupsRes,
-    holidayRes,
+    structuresRes,
+    hoursRes,
+    closure,
   ] = await Promise.all([
     supabase
       .from("kg_classes")
-      .select("id, name, name_ar")
+      .select("id, name, name_ar, structure_id")
       .eq("tenant_id", ctx.tenant.id)
       .order("name"),
     childrenQuery,
@@ -135,7 +160,7 @@ export default async function AttendancePage({
     // ids and class assignment only — no photos to sign, no names to carry.
     supabase
       .from("kg_children")
-      .select("id, class_id")
+      .select("id, class_id, structure_id")
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled"),
     // Who may collect a child. "Picked up by" used to be a free-text box, the
@@ -153,20 +178,24 @@ export default async function AttendancePage({
       .from("kg_authorized_pickups")
       .select("child_id, name, relationship")
       .eq("tenant_id", ctx.tenant.id),
-    // A confirmed closure covering this date. The weekly pattern only knows
-    // about weekdays; 1 November is a Sunday and a firm closure for the real
-    // client, and the register used to open it as an ordinary school day.
-    // `tentative` holidays are proposals (an unconfirmed Aïd) and do not
-    // close anything — the same rule kg_holidays encodes in 0068.
+    // The structures of the establishment (0127). One for most crèches, two for
+    // a building running a crèche and a jardin d'enfants side by side — and
+    // only then does anything about structures appear on this page.
     supabase
-      .from("kg_holidays")
-      .select("name, name_ar")
+      .from("kg_structures")
+      .select("id, name, name_ar, center_type, color, sort_order, active")
       .eq("tenant_id", ctx.tenant.id)
-      .eq("closure", true)
-      .eq("tentative", false)
-      .lte("date", date)
-      .or(`end_date.gte.${date},and(end_date.is.null,date.eq.${date})`)
-      .limit(1),
+      .order("sort_order")
+      .order("name"),
+    // The week this structure keeps, which is the tenant's until it sets its
+    // own. A jardin closed on Thursday is not a crèche closed on Thursday.
+    supabase.rpc("kg_structure_hours", {
+      p_structure: structureParam,
+      p_tenant: ctx.tenant.id,
+    }),
+    // And whether a holiday shuts this structure on this date — the jardin's
+    // school break must leave the crèche's register open.
+    structureClosure(supabase, ctx.tenant.id, structureParam, date),
   ]);
 
   const firstError =
@@ -177,14 +206,33 @@ export default async function AttendancePage({
     rosterRes.error ??
     guardianLinksRes.error ??
     pickupsRes.error ??
-    holidayRes.error;
+    structuresRes.error ??
+    hoursRes.error;
   if (firstError) throw new Error(firstError.message);
+  if (closure.error) throw new Error(closure.error);
 
-  const classes = (classesRes.data ?? []) as ClassRecord[];
-  const roster = (rosterRes.data ?? []) as { id: string; class_id: string | null }[];
-  const children = (childrenRes.data ?? []) as ChildRecord[];
+  const structures = (structuresRes.data ?? []) as Structure[];
+  // Settled against the structures that exist, and read by everything below:
+  // a link to a structure that has since been deleted opens the whole
+  // building rather than an empty register nobody can explain.
+  const activeStructure = structures.some((s) => s.id === structureParam)
+    ? structureParam
+    : null;
+  const inStructure = (id: string | null) =>
+    activeStructure === null || id === activeStructure;
+
+  // Narrowing happens here rather than in SQL because the answer depends on
+  // the structure list that arrives in the same round trip.
+  const classes = ((classesRes.data ?? []) as ClassRecord[]).filter((c) =>
+    inStructure(c.structure_id)
+  );
+  const roster = ((rosterRes.data ?? []) as RosterRecord[]).filter((r) =>
+    inStructure(r.structure_id)
+  );
+  const children = ((childrenRes.data ?? []) as ChildRecord[]).filter((c) =>
+    inStructure(c.structure_id)
+  );
   const attendance = (attendanceRes.data ?? []) as AttendanceRecord[];
-  const closedHoliday = ((holidayRes.data ?? []) as HolidayRecord[])[0] ?? null;
 
   const attendanceByChild = new Map(attendance.map((a) => [a.child_id, a]));
   const allergiesByChild = new Map<string, string[]>();
@@ -289,9 +337,7 @@ export default async function AttendancePage({
   });
 
   const dateObj = parseDateStr(date);
-  const openingHours = toOpeningHours(
-    (ctx.tenant as { opening_hours?: unknown }).opening_hours
-  );
+  const openingHours = toOpeningHours(hoursRes.data);
   const dateLabel = new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: "long",
     day: "numeric",
@@ -304,8 +350,8 @@ export default async function AttendancePage({
       <PageHeader title={t("title")} description={`${t("description")} — ${dateLabel}`} />
       <RegisterClient
         date={date}
-        isClosedDay={!isOpenDay(openingHours, dateObj) || closedHoliday !== null}
-        closedHoliday={closedHoliday}
+        isClosedDay={!isOpenDay(openingHours, dateObj) || closure.closed}
+        closedHoliday={closure.holiday}
         isFuture={date > today}
         dayLabel={new Intl.DateTimeFormat(intlLocale(locale), {
           weekday: "long",
@@ -313,6 +359,8 @@ export default async function AttendancePage({
         classes={classTabs}
         totals={{ present: presentAll, total: roster.length }}
         activeClass={activeClass}
+        structures={structures}
+        activeStructure={activeStructure ?? "all"}
         rows={rows}
       />
     </div>

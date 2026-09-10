@@ -3,6 +3,9 @@ import { CheckIcon, InfinityIcon, StarIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { formatDZD } from "@/lib/format";
+// Quoted from one constant so the promise on this page cannot drift from
+// the trial kg_create_tenant actually grants. See plans.ts.
+import { TRIAL_DAYS } from "@/components/modules/settings/plans";
 import { cn } from "@/lib/utils";
 import {
   CARD,
@@ -113,7 +116,7 @@ export async function PricingSection() {
 
         <p className="mx-auto mt-10 flex w-fit items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-pretty text-muted-foreground shadow-sm">
           <InfinityIcon className="size-4 shrink-0 text-primary" aria-hidden />
-          {t("footnote")}
+          {t("footnote", { days: TRIAL_DAYS })}
         </p>
       </div>
     </section>

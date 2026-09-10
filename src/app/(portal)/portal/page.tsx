@@ -31,9 +31,11 @@ import {
   classLabel,
   getMyChildren,
   getMyGuardianBadge,
+  getStructures,
   monthRange,
   toCheckinDialogChildren,
 } from "@/components/modules/portal/data";
+import { StructureChip } from "@/components/modules/portal/structure-chip";
 import {
   attendanceChipClasses,
   eatenKey,
@@ -98,12 +100,19 @@ type IncidentRow = {
   location: string | null;
 };
 
+/**
+ * `structure` joined the audience enum in 0138 (a notice for the families of
+ * one side of the building). `@/lib/types` has not caught up, so the widening
+ * is local; drop it once `Audience` carries the value.
+ */
+type PortalAudience = Audience | "structure";
+
 type AnnouncementRow = {
   id: string;
   title: string;
   body: string;
   publish_at: string;
-  audience: Audience;
+  audience: PortalAudience;
   class_id: string | null;
 };
 
@@ -113,7 +122,7 @@ type EventRow = {
   description: string | null;
   start_at: string;
   end_at: string | null;
-  audience: Audience;
+  audience: PortalAudience;
   class_id: string | null;
 };
 
@@ -140,10 +149,15 @@ export default async function PortalHomePage() {
 
   // The door badge belongs to the guardian, not to a child: fetched once here
   // and handed to every child card, never re-queried per card.
-  const [children, badge] = await Promise.all([
+  const [children, badge, structures] = await Promise.all([
     getMyChildren(supabase, ctx),
     getMyGuardianBadge(supabase, ctx, locale),
+    getStructures(supabase, ctx),
   ]);
+  // Which side of the building each child is on — said only when the
+  // building has two sides. See the children list for the same rule.
+  const multiStructure = structures.length > 1;
+  const structureById = new Map(structures.map((s) => [s.id, s]));
   const childIds = children.map((c) => c.id);
   // Today's attendance, journals and incidents are only asked about children
   // who attend. Dues are NOT filtered: a withdrawn child's last invoice is
@@ -282,10 +296,14 @@ export default async function PortalHomePage() {
   const earliestDue = dues.find((d) => d.due_date)?.due_date ?? null;
   const anyOverdue = dues.some((d) => d.due_date && d.due_date < today);
 
+  // `structure` rows pass on trust: RLS (0138) already hands a family only
+  // the notices of a structure one of its children is on, and the page has
+  // no cheaper way to re-check that than the database just did.
   const pinned = ((pinnedRes.data ?? []) as AnnouncementRow[]).filter(
     (a) =>
       a.audience === "all" ||
       a.audience === "parents" ||
+      a.audience === "structure" ||
       (a.audience === "class" && !!a.class_id && myClassIds.has(a.class_id))
   );
 
@@ -320,6 +338,7 @@ export default async function PortalHomePage() {
       (e) =>
         e.audience === "all" ||
         e.audience === "parents" ||
+        e.audience === "structure" ||
         (e.audience === "class" && !!e.class_id && myClassIds.has(e.class_id))
     )
     .filter(stillRelevant)
@@ -607,6 +626,8 @@ export default async function PortalHomePage() {
             const meals = report ? parseMeals(report.meals) : [];
             const band = attending ? todayBand(child.id) : [];
             const cls = classLabel(child, locale);
+            const structure =
+              multiStructure && child.structure_id ? structureById.get(child.structure_id) : undefined;
             return (
               <Card key={child.id} className="shadow-sm">
                 <CardContent className="grid gap-3.5">
@@ -633,14 +654,19 @@ export default async function PortalHomePage() {
                           </span>
                         )}
                       </div>
-                      {cls && (
-                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span
-                            className="size-2 rounded-full"
-                            style={{ backgroundColor: child.kg_classes?.color ?? "var(--gold)" }}
-                            aria-hidden
-                          />
-                          {cls}
+                      {(cls || structure) && (
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                          {cls && (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                className="size-2 rounded-full"
+                                style={{ backgroundColor: child.kg_classes?.color ?? "var(--gold)" }}
+                                aria-hidden
+                              />
+                              {cls}
+                            </span>
+                          )}
+                          {structure && <StructureChip structure={structure} locale={locale} />}
                         </div>
                       )}
                     </div>

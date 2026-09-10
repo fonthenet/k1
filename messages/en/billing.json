@@ -60,6 +60,7 @@
   },
   "filters": {
     "all": "All",
+    "draft": "Drafts",
     "unpaid": "Unpaid",
     "partial": "Partial",
     "paid": "Paid",
@@ -262,6 +263,8 @@
     "active": "Active",
     "inactive": "Inactive",
     "assignedCount": "{count, plural, =0 {No children assigned} one {# child assigned} other {# children assigned}}",
+    "count": "{count, plural, =0 {No plans} one {# plan} other {# plans}}",
+    "noneForStructure": "No plan of its own for this structure.",
     "saved": "Plan saved",
     "deleted": "Plan deleted",
     "inUse": "This plan is assigned to children. Deactivate it instead of deleting it.",
@@ -275,6 +278,8 @@
       "nameAr": "Name (Arabic)",
       "amount": "Amount (DZD)",
       "period": "Billing period",
+      "structure": "Structure",
+      "structureHint": "Leave it on “Whole building” for a price every family pays.",
       "planDescription": "Description",
       "active": "Active plan"
     },
@@ -314,6 +319,11 @@
       "successBilled": "Plan assigned — {amount} added to this month's invoice",
       "successNotBilled": "Plan assigned, but this month's invoice could not be updated. Please check it."
     }
+  },
+  "structures": {
+    "all": "All structures",
+    "filterAria": "Filter by structure",
+    "whole": "Whole building"
   },
   "arrears": {
     "title": "Arrears",

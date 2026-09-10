@@ -16,8 +16,10 @@ import {
   classLabel,
   getMyChildren,
   getMyGuardianBadge,
+  getStructures,
   toCheckinDialogChildren,
 } from "@/components/modules/portal/data";
+import { StructureChip } from "@/components/modules/portal/structure-chip";
 import {
   getMyOpenApplications,
   PendingApplications,
@@ -35,11 +37,16 @@ export default async function PortalChildrenPage() {
   // family that has just applied for a sibling must see both on one screen.
   // The door badge is per guardian, so it is fetched once here and shared by
   // every card below rather than re-queried per child.
-  const [children, applications, badge] = await Promise.all([
+  const [children, badge, structures] = await Promise.all([
     getMyChildren(supabase, ctx),
-    getMyOpenApplications(supabase, ctx),
     getMyGuardianBadge(supabase, ctx, locale),
+    getStructures(supabase, ctx),
   ]);
+  const applications = await getMyOpenApplications(supabase, ctx);
+  // A family with a child on each side of the building tells them apart by
+  // the structure; a family in an ordinary crèche never sees the word.
+  const multiStructure = structures.length > 1;
+  const structureById = new Map(structures.map((s) => [s.id, s]));
   // Same source as the home screen's summary line, so the two cannot disagree.
   const today = algiersToday();
   const dues = await getDuesByChild(
@@ -86,6 +93,8 @@ export default async function PortalChildrenPage() {
                   ? `${child.first_name_ar} ${child.last_name_ar}`
                   : null;
             const cls = classLabel(child, locale);
+            const structure =
+              multiStructure && child.structure_id ? structureById.get(child.structure_id) : undefined;
             return (
               // The card used to BE the link. It cannot stay one: the door-badge
               // action below is an interactive control of its own, and neither
@@ -139,6 +148,7 @@ export default async function PortalChildrenPage() {
                             {cls}
                           </span>
                         )}
+                        {structure && <StructureChip structure={structure} locale={locale} />}
                       </div>
 
                       {/* What is outstanding, and what it is FOR. An amount on
@@ -203,7 +213,7 @@ export default async function PortalChildrenPage() {
         </div>
       )}
 
-      <PendingApplications rows={applications} />
+      <PendingApplications rows={applications} structures={structures} />
 
       {/* Secondary on purpose: the children are what this page is about, and
           enrolling another one is something a family does once every few years. */}

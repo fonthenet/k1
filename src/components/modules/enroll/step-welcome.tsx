@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { setLocale } from "@/app/actions/locale";
 import { cn } from "@/lib/utils";
-import type { EnrollLinkData } from "./types";
+import { structureName } from "@/components/modules/classes/class-types";
+import type { EnrollLinkData, EnrollStructure } from "./types";
+import { StructureChip } from "./step-structure";
 
 export function StepWelcome({
   link,
@@ -27,6 +29,21 @@ export function StepWelcome({
   const [pending, startTransition] = useTransition();
 
   const location = [link.address, link.commune, link.wilaya].filter(Boolean).join(", ");
+  // A link issued for one structure of the building says so on the first
+  // screen — "the crèche" or "the école" — so a family sent the wrong link
+  // finds out before, not after, ten minutes of form. Whole-building links
+  // ask on the next step instead. The list only carries ACTIVE structures;
+  // a link whose structure has since been switched off still names it, in
+  // grey, from the two name fields the payload keeps beside the id.
+  const structure: EnrollStructure | null = link.structure_id
+    ? ((link.structures ?? []).find((s) => s.id === link.structure_id) ?? {
+        id: link.structure_id,
+        name: link.structure_name ?? "",
+        name_ar: link.structure_name_ar,
+        center_type: "kindergarten",
+        color: "",
+      })
+    : null;
   // A pin opens the exact spot; without one, hand the map the crèche's name
   // and town, which is what a parent would type anyway.
   const mapHref =
@@ -87,6 +104,7 @@ export function StepWelcome({
       <h1 className="text-2xl font-bold tracking-tight">
         {t("welcome.title", { name: link.tenant_name })}
       </h1>
+      {structure && <StructureChip structure={structure} className="mt-2" />}
       {location &&
         (mapHref ? (
           <a
@@ -104,7 +122,11 @@ export function StepWelcome({
             {location}
           </p>
         ))}
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{t("welcome.intro")}</p>
+      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+        {structure
+          ? t("welcome.introStructure", { structure: structureName(structure, locale) })
+          : t("welcome.intro")}
+      </p>
 
       <div className="mt-6 w-full rounded-2xl border bg-card p-4 text-start">
         <p className="mb-3 text-sm font-semibold">{t("welcome.needTitle")}</p>

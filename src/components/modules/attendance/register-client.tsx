@@ -39,6 +39,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -56,6 +63,7 @@ import {
 } from "@/components/shared/sortable-header";
 import { DatePicker } from "@/components/shared/date-picker";
 import { TimePicker } from "@/components/shared/time-picker";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { ATTENDANCE_STATUSES, STATUS_STYLES, isPresentish } from "./status-config";
 import { addDaysStr, toDateStr } from "./dates";
 import {
@@ -188,6 +196,8 @@ export function RegisterClient({
   classes,
   totals,
   activeClass,
+  structures,
+  activeStructure,
   rows,
 }: {
   date: string;
@@ -197,10 +207,15 @@ export function RegisterClient({
   /** After today in Algiers — the register is read-only there. */
   isFuture: boolean;
   dayLabel: string;
+  /** Already narrowed to `activeStructure` by the server. */
   classes: RegisterClassTab[];
-  /** Presence across every enrolled child, for the "all classes" tab. */
+  /** Presence across every child the register is showing, for the "all classes" tab. */
   totals: { present: number; total: number };
   activeClass: string;
+  /** The structures of the establishment (0127); the picker hides itself under two. */
+  structures: Structure[];
+  /** A structure id, or "all" — the whole building. */
+  activeStructure: string;
   rows: RegisterRow[];
 }) {
   const isToday = date === toDateStr(new Date());
@@ -225,8 +240,14 @@ export function RegisterClient({
     setOptimStatus({});
   }
 
-  const navigate = (d: string, c: string) =>
-    router.push(`/attendance?date=${d}&class=${encodeURIComponent(c)}`);
+  // The structure stays in the URL unless the caller is the one changing it,
+  // so paging through days never quietly widens the register back to the
+  // whole building.
+  const navigate = (d: string, c: string, s: string = activeStructure) =>
+    router.push(
+      `/attendance?date=${d}&class=${encodeURIComponent(c)}` +
+        (s === "all" ? "" : `&structure=${encodeURIComponent(s)}`)
+    );
 
   const displayStatus = (row: RegisterRow): AttendanceStatus | null =>
     optimStatus[row.child.id] ?? row.attendance?.status ?? null;
@@ -367,6 +388,15 @@ export function RegisterClient({
     });
   };
 
+  /**
+   * The stamp reaches exactly the children on screen and no further.
+   *
+   * `rows` is what the server sent for this structure and this class tab, so
+   * an educator looking at the jardin cannot mark the crèche's babies present
+   * by tapping a button whose label says "all". The structure travels with the
+   * call too: the day it is checked against is the jardin's calendar, not the
+   * building's.
+   */
   const handleBulk = () => {
     const unmarked = rows
       .filter((r) => displayStatus(r) === null)
@@ -377,7 +407,11 @@ export function RegisterClient({
     }
     setBulkPending(true);
     startTransition(async () => {
-      const res = await markAllPresent({ date, childIds: unmarked });
+      const res = await markAllPresent({
+        date,
+        childIds: unmarked,
+        structureId: activeStructure === "all" ? undefined : activeStructure,
+      });
       setBulkPending(false);
       if (!res.ok) errorToast(res.error);
       else {
@@ -509,11 +543,42 @@ export function RegisterClient({
               </>
             )}
           </div>
+
+          {/* Which activity of the establishment, beside which day — the two
+              questions that decide whose register this is. Only once there is
+              more than one: a crèche running a single structure must never be
+              asked to choose between one thing. Changing it drops back to all
+              classes, because the tabs below belong to the structure and a
+              class from the other one is not among them. */}
+          {structures.length > 1 && (
+            <Select
+              value={activeStructure}
+              onValueChange={(v) => navigate(date, "all", v)}
+            >
+              <SelectTrigger size="sm" className="w-44" aria-label={t("structures.filter")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("structures.all")}</SelectItem>
+                {structures.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {structureName(s, locale)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
-            <Link href="/attendance/history">
+            <Link
+              href={
+                activeStructure === "all"
+                  ? "/attendance/history"
+                  : `/attendance/history?structure=${encodeURIComponent(activeStructure)}`
+              }
+            >
               <History data-icon="inline-start" />
               {t("nav.history")}
             </Link>

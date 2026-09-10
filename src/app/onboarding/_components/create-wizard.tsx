@@ -66,7 +66,10 @@ export function CreateWizard() {
   const locale = useLocale();
   const [isPending, startTransition] = useTransition();
 
-  const [centerType, setCenterType] = useState<CenterType>(DEFAULT_CENTER_TYPE);
+  // A building may run more than one vertical — a crèche and a jardin
+  // d'enfants is the ordinary Algerian arrangement — so this is a list.
+  // One tick behaves exactly as the single picker did.
+  const [centerTypes, setCenterTypes] = useState<CenterType[]>([DEFAULT_CENTER_TYPE]);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
@@ -112,7 +115,7 @@ export function CreateWizard() {
         wilaya,
         commune: commune.trim() || undefined,
         phone: phone.trim() || undefined,
-        centerType,
+        centerTypes,
       });
       if (res && "error" in res) toast.error(t(`errors.${res.error}`));
       // On success the server action redirects to /dashboard.
@@ -129,13 +132,21 @@ export function CreateWizard() {
 
       <CenterTypePicker
         name="kg-center-type"
-        value={centerType}
-        onChange={setCenterType}
+        values={centerTypes}
+        onValuesChange={setCenterTypes}
         t={t}
         label={t("onboarding.centerType")}
         hint={t("onboarding.centerTypeHint")}
         disabled={isPending}
       />
+      {/* Only once they have ticked a second one. Telling the 90% who run one
+          thing that they could pick several is noise; confirming what a second
+          tick just did is not. */}
+      {centerTypes.length > 1 && (
+        <p className="-mt-3 text-xs text-muted-foreground">
+          {t("onboarding.centerTypeMulti", { count: centerTypes.length })}
+        </p>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">

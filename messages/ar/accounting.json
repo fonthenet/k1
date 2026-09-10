@@ -122,7 +122,10 @@
     "detailTitle": "تفاصيل المعاملة",
     "linkedAdvance": "تسبيق على الراتب",
     "linkedPayment": "مرتبطة بدفعة",
-    "linkedPayroll": "دفع راتب"
+    "linkedPayroll": "دفع راتب",
+    "structure": "الهيكل",
+    "structureAll": "المؤسسة كاملة",
+    "structureHint": "الإيجار على البناية كلها؛ لوازم المدرسة على المدرسة."
   },
   "categories": {
     "title": "الفئات",

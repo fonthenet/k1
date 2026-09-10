@@ -3,18 +3,25 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import type { KgRole } from "@/lib/types";
+import type { Structure } from "@/components/modules/classes/class-types";
 import { latinInitial } from "@/lib/format";
 import { NavLinks } from "./nav-links";
+import { StructureSwitcher } from "./structure-switcher";
 
 
 export function Sidebar({
   role,
   tenantName,
   logoUrl,
+  structures,
+  activeStructureId,
 }: {
   role: KgRole;
   tenantName: string;
   logoUrl?: string | null;
+  /** Empty or single for almost every crèche — the switcher hides itself. */
+  structures: Structure[];
+  activeStructureId: string | null;
 }) {
   const t = useTranslations("common");
 
@@ -48,6 +55,15 @@ export function Sidebar({
           <div className="truncate text-xs text-muted-foreground">{t("appName")}</div>
         </div>
       </div>
+      {/* Between the establishment and the navigation, because that is what it
+          is: the building is above it, and everything below it is read through
+          it. Its own padding rather than the nav's, so the nav's first item
+          does not sit tight against a control. */}
+      {structures.length > 1 && (
+        <div className="px-2.5 pt-3 pb-1">
+          <StructureSwitcher structures={structures} activeId={activeStructureId} />
+        </div>
+      )}
       <nav className="no-scrollbar flex-1 space-y-0.5 overflow-y-auto px-2.5 pb-3">
         <NavLinks role={role} />
       </nav>

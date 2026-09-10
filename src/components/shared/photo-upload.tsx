@@ -168,7 +168,7 @@ export interface PhotoUploadProps {
   /**
    * `dialog` — the avatar itself is the button and the controls open in a
    * dialog (dense staff screens). `inline` — controls always visible (the
-   * parent portal, where taking the photo is the point of the section).
+   * parent portal, where taking the photo is the point of the structure).
    */
   variant?: "dialog" | "inline";
   /** Inline variant only: drop the title/description when a Card already says it. */

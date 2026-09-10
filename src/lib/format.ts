@@ -113,12 +113,25 @@ export interface AgeParts {
  * defaults to the Algiers date and is a parameter so a test can pin it.
  */
 export function ageParts(dob: string, today: string = algiersTodayISO()): AgeParts {
+  const months = ageMonths(dob, today);
+  return { years: Math.floor(months / 12), months: months % 12 };
+}
+
+/**
+ * Completed months since a "yyyy-MM-dd" birth date — the unit crèches think in.
+ *
+ * `kg_classes` bands its rooms in months (`age_min_months`/`age_max_months`),
+ * so this is what places a child. Same calendar arithmetic and same Algiers
+ * default as `ageParts`, which is now written in terms of it: an age that
+ * disagreed with itself between the badge on a profile and the class proposed
+ * at approval would be worse than no proposal at all.
+ */
+export function ageMonths(dob: string, today: string = algiersTodayISO()): number {
   const [by, bm, bd] = dob.split("-").map(Number);
   const [ty, tm, td] = today.split("-").map(Number);
   let months = (ty - by) * 12 + (tm - bm);
   if (td < bd) months--;
-  months = Math.max(0, months);
-  return { years: Math.floor(months / 12), months: months % 12 };
+  return Math.max(0, months);
 }
 
 /**
@@ -200,6 +213,30 @@ export function ageFromDob(dob: string, t: AgeTranslator | string): string {
   const y = tr("years", { count: years });
   if (months === 0) return y;
   return tr("yearsAndMonths", { years: y, months: tr("months", { count: months }) });
+}
+
+/**
+ * A raw month count in words: "18" → "1 an 6 mois", "٣ سنوات و٤ أشهر".
+ *
+ * The class form asks for an age band in MONTHS, because that is the unit a
+ * crèche bands its rooms in and the unit the column stores. Above a year the
+ * number stops being readable — nobody checks "42" against "three and a half"
+ * in their head — and that band is now what places a child at approval, so a
+ * slip goes unnoticed until children are in the wrong room.
+ *
+ * Same three ICU messages as `ageFromDob`, so a band and a child's age are
+ * never phrased two different ways on two different screens. Returns null
+ * under a year, where the field already reads as months and an echo would
+ * just repeat it.
+ */
+export function monthsInWords(months: number, t: AgeTranslator | string): string | null {
+  if (!Number.isFinite(months) || months < 12) return null;
+  const tr = typeof t === "function" ? t : bridgeTranslator(t);
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  const y = tr("years", { count: years });
+  if (rest === 0) return y;
+  return tr("yearsAndMonths", { years: y, months: tr("months", { count: rest }) });
 }
 
 export function childDisplayName(

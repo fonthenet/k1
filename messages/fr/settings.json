@@ -5,7 +5,8 @@
     "enrollment": "Liens d'inscription",
     "holidays": "Jours fériés",
     "documents": "Documents",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "subscription": "Abonnement"
   },
   "errors": {
     "generic": "Une erreur est survenue. Réessayez.",
@@ -26,7 +27,6 @@
     "infoTitle": "Informations générales",
     "name": "Nom de l'établissement",
     "centerType": "Type d'établissement",
-    "centerTypeHint": "Le type de structure que vous gérez.",
     "wilaya": "Wilaya",
     "wilayaPlaceholder": "Choisir une wilaya",
     "commune": "Commune",
@@ -48,7 +48,17 @@
       "shortLink": "Ce lien est raccourci. Ouvrez-le dans Maps, puis copiez le lien complet depuis la barre d'adresse.",
       "noGeolocation": "Votre navigateur ne peut pas donner votre position.",
       "denied": "Position refusée. Autorisez la localisation, ou collez un lien."
-    }
+    },
+    "structuresHint": "Ce que vous faites dans ce bâtiment. Une structure par activité.",
+    "structuresEdit": "Modifier",
+    "structuresDone": "Terminé",
+    "identity": "Identité",
+    "identityHint": "Le nom et le logo que les familles voient.",
+    "structuresTitle": "Structures",
+    "contact": "Contact",
+    "contactHint": "Par où les familles vous joignent.",
+    "location": "Adresse",
+    "locationHint": "Où vous trouver, et le repère sur la carte."
   },
   "centerTypes": {
     "nursery": {
@@ -89,6 +99,9 @@
     "createDescription": "Générez un lien privé à partager sur WhatsApp, Facebook ou une affiche imprimée.",
     "label": "Libellé",
     "labelPlaceholder": "Rentrée 2026",
+    "structure": "Structure",
+    "structureHint": "Les demandes reçues par ce lien arrivent dans cette structure.",
+    "wholeBuilding": "Tout l'établissement",
     "expires": "Date d'expiration",
     "maxUses": "Utilisations maximum",
     "activeLabel": "Lien actif",
@@ -104,6 +117,7 @@
     "loadError": "Impossible de charger les liens d'inscription.",
     "columns": {
       "label": "Libellé",
+      "structure": "Structure",
       "url": "Lien",
       "uses": "Utilisations",
       "expires": "Expiration",
@@ -114,7 +128,9 @@
     "unlimited": "Illimité",
     "noExpiry": "Sans expiration",
     "expired": "Expiré",
-    "full": "Limite atteinte"
+    "full": "Limite atteinte",
+    "wholeBuildingHint": "La famille choisira la structure au début du formulaire.",
+    "shareTextStructure": "Bonjour ! Vous pouvez inscrire votre enfant à {structure} ({name}) via ce lien :"
   },
   "poster": {
     "title": "Affiche d'inscription",
@@ -149,6 +165,9 @@
     "nameAr": "Nom en arabe",
     "startDate": "Date de début",
     "endDate": "Date de fin",
+    "structure": "Structure",
+    "structureHint": "Une fête nationale ferme tout l'établissement ; les vacances scolaires ne ferment qu'une structure.",
+    "wholeBuilding": "Tout l'établissement",
     "closureLabel": "Établissement fermé",
     "tentativeLabel": "Date non encore confirmée",
     "tentativeBadge": "Date approximative",
@@ -267,6 +286,9 @@
   "hours": {
     "title": "Jours et horaires d'ouverture",
     "description": "Les jours où la crèche accueille les enfants. Les fermetures ponctuelles se gèrent dans Jours fériés.",
+    "establishment": "Établissement",
+    "sameAsEstablishment": "Mêmes horaires que l'établissement",
+    "sameAsEstablishmentHint": "Cette structure suit la semaine de l'établissement : si vous la modifiez, elle change ici aussi.",
     "days": {
       "sun": "Dimanche",
       "mon": "Lundi",
@@ -283,5 +305,64 @@
     "summary": "{count, plural, one {# jour d'ouverture par semaine} other {# jours d'ouverture par semaine}}",
     "noneOpen": "Sélectionnez au moins un jour d'ouverture.",
     "saved": "Horaires enregistrés"
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "description": "Votre formule Rawdatik, vos factures et comment régler.",
+    "planTitle": "Votre formule",
+    "perMonth": "/ mois",
+    "status": {
+      "trialing": "Période d'essai",
+      "active": "Actif",
+      "past_due": "Paiement en retard",
+      "suspended": "Suspendu",
+      "cancelled": "Résilié"
+    },
+    "trialEnds": "Fin de l'essai",
+    "nextInvoice": "Prochaine facture",
+    "owed": "{count, plural, one {# facture impayée} other {# factures impayées}} — {amount} à régler.",
+    "howToPay": "Comment régler",
+    "howToPayFallback": "En espèces, par virement bancaire ou par CCP. Contactez-nous pour recevoir les coordonnées et la référence à indiquer.",
+    "invoicesTitle": "Factures",
+    "noInvoices": "Aucune facture pour l'instant.",
+    "invoiceStatus": {
+      "paid": "Payée",
+      "void": "Annulée",
+      "dueOn": "À régler avant le {date}"
+    },
+    "pastDueTitle": "Une facture est en retard",
+    "pastDueBody": "Réglez-la pour éviter la suspension de votre espace. Une fois le paiement confirmé, tout reprend automatiquement.",
+    "suspendedTitle": "Espace suspendu pour facture impayée",
+    "suspendedBody": "Vos données sont intactes. Dès que le paiement est confirmé, l'accès est rétabli automatiquement pour toute votre équipe.",
+    "none": "Aucun abonnement",
+    "noneHint": "Contactez-nous : cet établissement n'a pas encore de formule.",
+    "trialCountdown": "{count, plural, one {Il vous reste # jour d'essai} other {Il vous reste # jours d'essai}}",
+    "trialEndsToday": "Votre essai se termine aujourd'hui",
+    "trialBody": "Ensuite, votre première facture de {amount} sera émise. Rien ne s'arrête du jour au lendemain : vous aurez le temps de régler.",
+    "structuresBilled": "{count, plural, one {# structure} other {# structures}}",
+    "viewInvoice": "Facture",
+    "invoiceDoc": "Facture d'abonnement",
+    "billedTo": "Facturé à",
+    "issued": "Émise le",
+    "dueDate": "Échéance",
+    "period": "Période",
+    "qty": "Qté",
+    "unitPrice": "Prix unitaire",
+    "lineTotal": "Montant",
+    "total": "Total",
+    "paid": "Déjà réglé",
+    "balance": "Reste à payer",
+    "paymentsReceived": "Règlements reçus",
+    "lineLabel": "Abonnement Rawdatik — formule {plan}, par structure",
+    "print": "Imprimer",
+    "method": {
+      "cash": "Espèces",
+      "transfer": "Virement",
+      "ccp": "CCP",
+      "card": "Carte",
+      "other": "Autre"
+    },
+    "changesFrom": "Vous êtes passé de {was} à {now} structures. Le changement prend effet sur la facture du {date} : {total} par mois.",
+    "lineDescription": "Désignation"
   }
 }

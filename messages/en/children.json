@@ -19,6 +19,7 @@
       "age": "Age",
       "class": "Class",
       "allergies": "Allergies",
+      "enrolled": "Enrolled",
       "tag": "Badge code",
       "status": "Status"
     },
@@ -27,7 +28,15 @@
     "sortLabel": "Sort by",
     "sortName": "Name",
     "sortClass": "Class",
-    "sortPresence": "Present first"
+    "sortPresence": "Present first",
+    "filterStructure": "Filter by structure",
+    "allStructures": "All structures",
+    "structureColumn": "Structure",
+    "bulkSelected": "{count, plural, one {# selected} other {# selected}}",
+    "bulkMove": "Move to…",
+    "bulkClear": "Clear selection",
+    "bulkSelectAll": "Select every child shown",
+    "bulkSelectOne": "Select {name}"
   },
   "status": {
     "pending": "Pending",
@@ -62,7 +71,14 @@
     "enrollmentDate": "Enrollment date",
     "photo": "Photo",
     "photoHint": "JPEG, PNG or WebP — 10 MB max",
-    "tagCodeOverride": "Assigned automatically. Change it only if you already have badges printed with your own numbering."
+    "tagCodeOverride": "Assigned automatically. Change it only if you already have badges printed with your own numbering.",
+    "structure": "Structure",
+    "structurePlaceholder": "Choose a structure",
+    "structureHint": "Without a class, the child is filed under the chosen structure.",
+    "structureFollowsClass": "Follows the class.",
+    "structureNone": "No structure",
+    "structureMoveHint": "To change structure, use \"{button}\" on the child's file: the tariff and the history follow.",
+    "structureUnfiledHint": "This child is not filed under any structure. Choose one here — this is not a move, nothing is closed or announced."
   },
   "addDialog": {
     "title": "Add a child",
@@ -403,5 +419,64 @@
     "error": "Something went wrong. Please try again.",
     "archived": "Child archived",
     "restored": "Child returned to the roster"
+  },
+  "move": {
+    "button": "Move",
+    "title": "Move the child",
+    "titleBulk": "Move {count, plural, one {# child} other {# children}}",
+    "step": "Step {step} of {total}",
+    "steps": {
+      "structure": "to which structure?",
+      "class": "into which class?",
+      "date": "from when?"
+    },
+    "current": "Current structure",
+    "noClassYet": "No class for now",
+    "suggested": "Suggested by age",
+    "noClassesInTarget": "This structure has no class yet. The child will be filed there without a class.",
+    "classNoFit": {
+      "outside": "The child's age falls outside every band that is set.",
+      "unbanded": "No class has an age band — set them to get a suggestion."
+    },
+    "effectiveDate": "Effective date",
+    "effectiveDateHint": "The register records the exit from the old structure the day before and the entry into the new one on that day.",
+    "fees": {
+      "title": "Monthly fee",
+      "none": "No monthly fee running.",
+      "stops": "Stops on {date}",
+      "continues": "Continues",
+      "newPlan": "New plan",
+      "noNewPlan": "No new plan",
+      "newPlanHint": "Optional. The chosen plan starts on the effective date; building-wide plans carry on by themselves."
+    },
+    "reason": "Reason",
+    "reasonHint": "Optional — shown in the child's history",
+    "summary": "The child moves to {structure} ({cls}) from {date}. The family will be told.",
+    "summaryBulk": "{count, plural, one {# child moves} other {# children move}} to {structure} ({cls}) from {date}. The families will be told.",
+    "confirm": "Move",
+    "confirmBulk": "Move {count, plural, one {# child} other {# children}}",
+    "toasts": {
+      "moved": "Child moved to {structure}",
+      "bulk": "{moved} moved, {failed, plural, =0 {no failures} one {# failure} other {# failures}}"
+    },
+    "errors": {
+      "invalid": "Incomplete request. Check the structure and the class.",
+      "forbidden": "Only the management can move a child.",
+      "notFound": "Child not found.",
+      "unknownClass": "This class no longer exists.",
+      "classNotInStructure": "This class does not belong to the chosen structure.",
+      "unknownStructure": "This structure no longer exists or is disabled.",
+      "noChange": "The child is already there.",
+      "feePlanNotInStructure": "This plan is not offered in the chosen structure.",
+      "error": "The move could not be saved. Please try again."
+    }
+  },
+  "transfers": {
+    "title": "History",
+    "empty": "No move between structures yet.",
+    "nowhere": "No structure",
+    "parentRequest": "Parents' request",
+    "by": "By {name}",
+    "byUnknown": "By a deleted account"
   }
 }

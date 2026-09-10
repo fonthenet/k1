@@ -3,7 +3,12 @@
     "all": "Everyone",
     "parents": "Parents",
     "staff": "Staff",
-    "class": "Class"
+    "class": "Class",
+    "structure": "Structure"
+  },
+  "structures": {
+    "wholeBuilding": "The whole building",
+    "scopeLabel": "Choose the structure"
   },
   "severity": {
     "minor": "Minor",
@@ -37,7 +42,9 @@
       "class": "Class",
       "chooseClass": "Choose a class",
       "pin": "Pin to the top of the feed",
-      "publishAt": "Publish date"
+      "publishAt": "Publish date",
+      "structure": "Structure",
+      "chooseStructure": "Choose a structure"
     },
     "createDialog": {
       "title": "New announcement",
@@ -106,7 +113,9 @@
       "chooseClass": "Choose a class",
       "color": "Colour",
       "willNotify": "{count, plural, =0 {Nobody will be notified} one {# person will be notified} other {# people will be notified}}",
-      "pastNoNotify": "This date has already passed — nobody will be notified. The event still appears in the calendar."
+      "pastNoNotify": "This date has already passed — nobody will be notified. The event still appears in the calendar.",
+      "structure": "Structure",
+      "chooseStructure": "Choose a structure"
     },
     "createDialog": {
       "title": "New event",
@@ -149,7 +158,8 @@
       "publishedHint": "An unpublished menu stays visible to staff only.",
       "submit": "Save",
       "detected": "Found in the menu, not ticked: {list}",
-      "addDetected": "Add"
+      "addDetected": "Add",
+      "descriptionFor": "Fill in the day's meals for {structure} and tick the allergens present."
     },
     "toasts": {
       "saved": "Menu saved",

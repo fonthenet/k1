@@ -35,6 +35,8 @@ export interface LedgerRow {
   related_advance_id: string | null;
   related_payroll_item_id: string | null;
   category: { id: string; name: string; color: string } | null;
+  /** Which structure the money belongs to; null is the whole building. */
+  structure_id?: string | null;
   /** Empty when the entry was never itemised, which is a valid state. */
   items?: TxnItemRow[];
 }

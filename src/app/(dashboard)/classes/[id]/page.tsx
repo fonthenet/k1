@@ -18,12 +18,16 @@ import { ClassStaffCard } from "@/components/modules/classes/class-staff-card";
 import { DeleteClassButton } from "@/components/modules/classes/delete-class-button";
 import { UnassignChildButton } from "@/components/modules/classes/unassign-child-button";
 import { allergenLabel } from "@/lib/allergens";
+import { ClassGlyph } from "@/components/modules/classes/class-icons";
+import type { AssignableStaff, StaffPlace } from "@/components/modules/classes/assign-staff-dialog";
 import {
   algiersToday,
-  yearsLabel,
+  ageRangeLabel,
+  structureName,
   type AssignCandidate,
   type AssignedStaff,
   type StaffOption,
+  type Structure,
 } from "@/components/modules/classes/class-types";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -55,6 +59,13 @@ type MembershipRow = {
   full_name: string | null;
   role: string;
   job_title: string | null;
+};
+
+/** Every assignment in the building, joined to the class it is on. */
+type PlacementRow = {
+  membership_id: string;
+  is_main: boolean;
+  kg_classes: { id: string; name: string; name_ar: string | null; structure_id: string | null } | null;
 };
 
 type CandidateRow = {
@@ -158,6 +169,8 @@ export default async function ClassDetailPage({
     { data: staffRows },
     { data: poolRows },
     { data: candidateRows },
+    { data: placementRows },
+    { data: structureRows },
   ] = await Promise.all([
     supabase
       .from("kg_children")
@@ -182,6 +195,20 @@ export default async function ClassDetailPage({
       .eq("status", "enrolled")
       .or(`class_id.is.null,class_id.neq.${id}`)
       .order("first_name"),
+    // Where everyone ALREADY is — the assign dialog shows it beside each
+    // name, so the director sees that Leïla leads Petite Section before
+    // giving her this class too. kg_class_staff has no tenant_id; it is
+    // scoped through the class it points at.
+    supabase
+      .from("kg_class_staff")
+      .select("membership_id, is_main, kg_classes!inner(id, name, name_ar, structure_id, tenant_id)")
+      .eq("kg_classes.tenant_id", ctx.tenant.id),
+    supabase
+      .from("kg_structures")
+      .select("id, name, name_ar, center_type, color, sort_order, active")
+      .eq("tenant_id", ctx.tenant.id)
+      .order("sort_order")
+      .order("name"),
   ]);
 
   const children = (childRows ?? []) as ClassChildRow[];
@@ -239,7 +266,6 @@ export default async function ClassDetailPage({
   );
 
   // --- staff card data ---
-  const assignedIds = new Set(assignedRows.map((r) => r.kg_memberships!.id));
   const toOption = (m: MembershipRow): StaffOption => ({
     membershipId: m.id,
     // Profile first (a person with an account may have corrected their own
@@ -250,7 +276,58 @@ export default async function ClassDetailPage({
   const assigned: AssignedStaff[] = assignedRows
     .map((r) => ({ ...toOption(r.kg_memberships as MembershipRow), isMain: r.is_main }))
     .sort((a, b) => Number(b.isMain) - Number(a.isMain) || a.name.localeCompare(b.name));
-  const available: StaffOption[] = pool.filter((m) => !assignedIds.has(m.id)).map(toOption);
+  // The building has to run more than one structure for the word to help;
+  // under one it would be the same label on every line.
+  const structures = (structureRows ?? []) as Structure[];
+  const structureById = new Map(structures.map((s) => [s.id, s] as const));
+  const manyStructures = structures.length > 1;
+  const placesByMember = new Map<string, StaffPlace[]>();
+  for (const row of (placementRows ?? []) as unknown as PlacementRow[]) {
+    if (!row.kg_classes || row.kg_classes.id === id) continue;
+    const str = row.kg_classes.structure_id
+      ? structureById.get(row.kg_classes.structure_id)
+      : undefined;
+    const list = placesByMember.get(row.membership_id) ?? [];
+    list.push({
+      classId: row.kg_classes.id,
+      className:
+        locale === "ar" && row.kg_classes.name_ar ? row.kg_classes.name_ar : row.kg_classes.name,
+      isMain: row.is_main,
+      // A class with no structure belongs to the whole building — said so,
+      // rather than shown as a class from nowhere.
+      structure: !manyStructures
+        ? null
+        : str
+          ? { name: structureName(str, locale), color: str.color }
+          : { name: t("assignStaff.wholeBuilding"), color: null },
+    });
+    placesByMember.set(row.membership_id, list);
+  }
+  // Direct assignments (0141): where a person works when no class says so.
+  const { data: directRows } = manyStructures
+    ? await supabase
+        .from("kg_membership_structures")
+        .select("membership_id, structure_id, kg_memberships!inner(tenant_id)")
+        .eq("kg_memberships.tenant_id", ctx.tenant.id)
+    : { data: [] as { membership_id: string; structure_id: string }[] };
+  const directByMember = new Map<string, { name: string; color: string }[]>();
+  for (const r of (directRows ?? []) as { membership_id: string; structure_id: string }[]) {
+    const str = structureById.get(r.structure_id);
+    if (!str) continue;
+    const list = directByMember.get(r.membership_id) ?? [];
+    list.push({ name: structureName(str, locale), color: str.color });
+    directByMember.set(r.membership_id, list);
+  }
+  // The dialog lists EVERYONE, the current team included — it edits the whole
+  // team, not the pool of people who could be added — which is why it does
+  // not take a filtered list.
+  const staffForDialog: AssignableStaff[] = pool
+    .map((m) => ({
+      ...toOption(m),
+      elsewhere: placesByMember.get(m.id) ?? [],
+      structures: directByMember.get(m.id) ?? [],
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // --- assign dialog data ---
   const candidates: AssignCandidate[] = ((candidateRows ?? []) as unknown as CandidateRow[]).map(
@@ -284,17 +361,7 @@ export default async function ClassDetailPage({
   const notMarked = Math.max(enrolledCount - marked, 0);
 
   const displayName = locale === "ar" && klass.name_ar ? klass.name_ar : klass.name;
-  const ageRange =
-    klass.age_min_months != null && klass.age_max_months != null
-      ? t("ageRange.between", {
-          min: yearsLabel(klass.age_min_months),
-          max: yearsLabel(klass.age_max_months),
-        })
-      : klass.age_min_months != null
-        ? t("ageRange.from", { min: yearsLabel(klass.age_min_months) })
-        : klass.age_max_months != null
-          ? t("ageRange.upTo", { max: yearsLabel(klass.age_max_months) })
-          : t("ageRange.none");
+  const ageRange = ageRangeLabel(klass.age_min_months, klass.age_max_months, t);
 
   const description = [ageRange, klass.room ? t("list.room", { room: klass.room }) : null]
     .filter(Boolean)
@@ -317,7 +384,7 @@ export default async function ClassDetailPage({
             }}
             aria-hidden
           >
-            <School className="size-6" />
+            <ClassGlyph icon={klass.icon} className="size-6" />
           </span>
           <div>
             <h2 className="text-2xl font-bold tracking-tight">{displayName}</h2>
@@ -337,6 +404,20 @@ export default async function ClassDetailPage({
             </>
           )}
         </div>
+      </div>
+
+      {/* The team comes first, full width, directly under the class name.
+          It used to be the last card in the side column, and the owner's
+          report was simply that they could not find where staff were
+          assigned. */}
+      <div className="mb-4">
+        <ClassStaffCard
+          classId={klass.id}
+          className={displayName}
+          assigned={assigned}
+          staff={staffForDialog}
+          canManage={canManage}
+        />
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-3">
@@ -506,13 +587,6 @@ export default async function ClassDetailPage({
               )}
             </CardContent>
           </Card>
-
-          <ClassStaffCard
-            classId={klass.id}
-            assigned={assigned}
-            available={available}
-            canManage={canManage}
-          />
         </div>
       </div>
     </div>

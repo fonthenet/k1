@@ -9,6 +9,8 @@ export interface EnrollLinkRow {
   max_uses: number | null;
   use_count: number;
   created_at: string;
+  /** Which structure the applications land in; null = the whole establishment. */
+  structure_id: string | null;
 }
 
 export interface HolidayRow {
@@ -19,6 +21,9 @@ export interface HolidayRow {
   name_ar: string | null;
   tentative: boolean;
   closure: boolean;
+  /** Null is an answer, not a gap: a national holiday shuts the whole building,
+   *  while vacances scolaires shut the jardin and leave the crèche open. */
+  structure_id: string | null;
 }
 
 export const TENANT_DOC_TYPES = ["agrement", "insurance", "conformity", "other"] as const;

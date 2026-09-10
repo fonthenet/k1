@@ -9,6 +9,10 @@ import type { Gender } from "@/lib/types";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { PrintButton } from "@/components/modules/dashboard/print-button";
+import {
+  SOLIDARITY_CENTER_TYPES,
+  type CenterType,
+} from "@/components/modules/settings/center-types";
 
 // ---------- local row types (schema: supabase/migrations) ----------
 
@@ -94,12 +98,31 @@ export default async function PrintRegisterPage({
     new Date(y, m - 1, 1)
   );
 
+  /**
+   * These are the SOLIDARITÉ NATIONALE registers — the ones the DAS inspector
+   * asks for. A building that also runs a primary school answers to Éducation
+   * Nationale for that half, and its pupils have no business on this sheet.
+   *
+   * Children whose section is null are INCLUDED rather than dropped: a null is
+   * a bug (the backfill left none and the delete guard refuses to create one),
+   * and a child silently missing from a legal register at an inspection is a
+   * worse failure than one listed who should not be. The reports page counts
+   * them and says so.
+   */
+  const { data: sectionRows } = await supabase
+    .from("kg_structures")
+    .select("id, center_type")
+    .eq("tenant_id", tid);
+  const excludedSectionIds = ((sectionRows ?? []) as { id: string; center_type: CenterType }[])
+    .filter((str) => !SOLIDARITY_CENTER_TYPES.includes(str.center_type))
+    .map((str) => str.id);
+
   let matricule: MatriculeRow[] = [];
   let exits: ExitRow[] = [];
   let loadError = false;
 
   if (kind === "matricule") {
-    const res = await supabase
+    const base = supabase
       .from("kg_children")
       .select(
         "id, first_name, last_name, first_name_ar, last_name_ar, dob, gender, enrollment_date, withdrawal_date, kg_child_guardians(is_primary, kg_guardians(first_name, last_name, first_name_ar, last_name_ar, relationship, phone, address))"
@@ -107,10 +130,37 @@ export default async function PrintRegisterPage({
       .eq("tenant_id", tid)
       .order("enrollment_date", { ascending: true, nullsFirst: false })
       .order("last_name");
+    // Chained in a ternary rather than reassigned into the variable: adding a
+    // filter to an already-built PostgREST builder widens its generic far
+    // enough that tsc gives up with "type instantiation is excessively deep".
+    const res =
+      excludedSectionIds.length > 0
+        ? await base.or(
+            `structure_id.is.null,structure_id.not.in.(${excludedSectionIds.join(",")})`
+          )
+        : await base;
     loadError = Boolean(res.error);
     matricule = (res.data ?? []) as unknown as MatriculeRow[];
   } else {
-    const res = await supabase
+    // Attendance carries no section of its own, so the exclusion is applied to
+    // the CHILDREN in the structures that do not belong on this register, and the
+    // rows are filtered by child_id.
+    //
+    // The list is built and length-checked before it is used: PostgREST turns
+    // an empty or null-bearing .in() into `id=in.(null)`, which Postgres
+    // rejects as an invalid uuid — and the error is swallowed, so the whole
+    // register would come back empty with no sign of why.
+    let excludedChildIds: string[] = [];
+    if (excludedSectionIds.length > 0) {
+      const { data: exCh } = await supabase
+        .from("kg_children")
+        .select("id")
+        .eq("tenant_id", tid)
+        .in("structure_id", excludedSectionIds);
+      excludedChildIds = ((exCh ?? []) as { id: string }[]).map((c) => c.id).filter(Boolean);
+    }
+
+    const aBase = supabase
       .from("kg_attendance")
       .select(
         "id, date, check_in_at, check_out_at, picked_up_by, notes, kg_children(first_name, last_name, first_name_ar, last_name_ar)"
@@ -121,6 +171,10 @@ export default async function PrintRegisterPage({
       .not("check_in_at", "is", null)
       .order("date")
       .order("check_in_at");
+    const res =
+      excludedChildIds.length > 0
+        ? await aBase.not("child_id", "in", `(${excludedChildIds.join(",")})`)
+        : await aBase;
     loadError = Boolean(res.error);
     exits = (res.data ?? []) as unknown as ExitRow[];
   }

@@ -27,7 +27,10 @@ export function MapEmbed({
       title={title}
       src={google ?? osmEmbedUrl(pin)}
       className={cn("block w-full border-0", className)}
-      loading="lazy"
+      // Eager on purpose. There is one map per page and the Embed API is
+      // free per load, so laziness saved nothing — and a lazy iframe is the
+      // classic way a map stays blank on a phone, where the browser decides
+      // it never came close enough to the viewport to bother.
       // Google's embed needs its own fullscreen control to work.
       allowFullScreen
       referrerPolicy="no-referrer-when-downgrade"

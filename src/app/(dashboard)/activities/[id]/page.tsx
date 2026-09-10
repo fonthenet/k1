@@ -33,8 +33,10 @@ import {
   algiersToday,
   asScheduleSlots,
   sortSchedule,
+  structureName,
   type ActivityFormValues,
   type EnrollCandidate,
+  type Structure,
 } from "@/components/modules/classes/class-types";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,6 +60,9 @@ type EnrollmentRow = {
   created_at: string;
   kg_children: ChildJoin | null;
 };
+
+/** The row as the table has it — `Activity` is shared and does not carry the column yet. */
+type ActivityRow = Activity & { structure_id: string | null };
 
 type CandidateRow = {
   id: string;
@@ -139,12 +144,32 @@ export default async function ActivityDetailPage({
       </div>
     );
   }
-  const activity = activityRow as Activity;
+  const activity = activityRow as ActivityRow;
 
   const canManage = ctx.isAdmin;
   const canEnroll = ctx.role !== "accountant";
 
-  const [{ data: enrollmentRows }, { data: candidateRows }, { data: paidRows }] = await Promise.all([
+  // Whom the add-a-child picker may offer. An activity that belongs to a
+  // structure offers that structure's children and nobody else's: an educator
+  // was being shown every child in the building, crèche babies among
+  // five-year-olds, and the wrong name bills that family the same day (0033).
+  // An activity open to the whole building (null) still offers everyone.
+  let candidateQuery = supabase
+    .from("kg_children")
+    .select("id, first_name, last_name, first_name_ar, last_name_ar")
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("status", "enrolled")
+    .order("first_name");
+  if (activity.structure_id) {
+    candidateQuery = candidateQuery.eq("structure_id", activity.structure_id);
+  }
+
+  const [
+    { data: enrollmentRows },
+    { data: candidateRows },
+    { data: paidRows },
+    { data: structureRows },
+  ] = await Promise.all([
     supabase
       .from("kg_activity_enrollments")
       .select(
@@ -153,12 +178,7 @@ export default async function ActivityDetailPage({
       .eq("tenant_id", ctx.tenant.id)
       .eq("activity_id", id)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("kg_children")
-      .select("id, first_name, last_name, first_name_ar, last_name_ar")
-      .eq("tenant_id", ctx.tenant.id)
-      .eq("status", "enrolled")
-      .order("first_name"),
+    candidateQuery,
     // Whose invoice for this month has already been paid into. Enrolling one of
     // those children adds a fee that `trg_kg_activity_enrollment_billing` (0033)
     // can no longer take back off the invoice, so the dialog has to say so
@@ -173,14 +193,27 @@ export default async function ActivityDetailPage({
           .neq("status", "void")
           .gt("paid_amount", 0)
       : Promise.resolve({ data: [] }),
+    // The structures of the establishment (0125) — for the edit dialog's
+    // picker, and to name this activity's own structure in the header.
+    supabase
+      .from("kg_structures")
+      .select("id, name, name_ar, center_type, color, sort_order, active")
+      .eq("tenant_id", ctx.tenant.id)
+      .order("sort_order")
+      .order("name"),
   ]);
+
+  const structures = (structureRows ?? []) as Structure[];
+  const structure = activity.structure_id
+    ? structures.find((s) => s.id === activity.structure_id) ?? null
+    : null;
 
   const enrollments = ((enrollmentRows ?? []) as unknown as EnrollmentRow[]).filter(
     (e) => e.kg_children
   );
 
   const requests = enrollments.filter((e) => e.status === "requested");
-  // Enrolled table shows the roster + its history; requests live in their own section.
+  // Enrolled table shows the roster + its history; requests live in their own card.
   const roster = enrollments.filter((e) => e.status !== "requested");
   const activeCount = enrollments.filter((e) => e.status === "active").length;
 
@@ -208,6 +241,11 @@ export default async function ActivityDetailPage({
         : "general"
     }` as Parameters<typeof t>[0]),
     fee > 0 ? `${formatDZD(fee, locale)} · ${t(`periods.${activity.fee_period}`)}` : t("list.free"),
+    // Under two structures this would be the same word on every activity —
+    // and it is here to explain why the add-a-child list is as short as it is.
+    ...(structures.length > 1
+      ? [structure ? structureName(structure, locale) : t("structures.wholeBuilding")]
+      : []),
   ].join(" · ");
 
   const className = (c: ChildJoin) =>
@@ -247,7 +285,12 @@ export default async function ActivityDetailPage({
           )}
           {canManage && (
             <>
-              <ActivityDialog activity={toFormValues(activity)} openingHours={openingHours} />
+              <ActivityDialog
+                activity={toFormValues(activity)}
+                openingHours={openingHours}
+                structures={structures}
+                structureId={activity.structure_id}
+              />
               <ActivityActiveToggle activityId={activity.id} active={activity.active} />
             </>
           )}

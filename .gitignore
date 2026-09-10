@@ -47,3 +47,6 @@ public/guide-shots/*.png
 
 # Agent worktrees (transient; created by the Workflow tool)
 .claude/worktrees/
+
+# Supabase CLI cache
+supabase/.temp/

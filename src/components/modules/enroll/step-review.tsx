@@ -2,12 +2,13 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import type { LucideIcon } from "lucide-react";
-import { Baby, Camera, ClipboardCheck, Clock, Loader2, Palette, Pencil, Send, Stethoscope, Users } from "lucide-react";
+import { Baby, Building2, Camera, ClipboardCheck, Clock, Loader2, Palette, Pencil, Send, Stethoscope, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatDate, formatDZD } from "@/lib/format";
-import type { EnrollLinkData, WizardState } from "./types";
+import { STEP, effectiveStructureId, inStructure, type EnrollLinkData, type WizardState } from "./types";
 import { StepHeader } from "./wizard-ui";
+import { StructureChip } from "./step-structure";
 import { allergenLabel } from "@/lib/allergens";
 
 function Section({
@@ -63,6 +64,8 @@ function Row({
 export function StepReview({
   state,
   link,
+  classId,
+  asksStructure,
   submitting,
   error,
   goTo,
@@ -70,6 +73,11 @@ export function StepReview({
 }: {
   state: WizardState;
   link: EnrollLinkData;
+  /** The room being asked for, with the age-derived default already applied
+   *  (the wizard's `classChoice`), or "undecided", or "". */
+  classId: string;
+  /** Whether this form asked the family which structure — decides where "edit" goes. */
+  asksStructure: boolean;
   submitting: boolean;
   error: string | null;
   goTo: (step: number) => void;
@@ -81,12 +89,23 @@ export function StepReview({
   const edit = t("review.edit");
 
   const { child, guardian1, guardian2, hasGuardian2, health } = state;
-  const chosenActivities = link.activities.filter((a) => state.activityIds.includes(a.id));
+  // Everything below is read through the chosen structure, exactly as the
+  // steps showed it — a crèche-only admission fee must not appear on an
+  // école application's first bill.
+  const structureId = effectiveStructureId(link, state);
+  const structure = (link.structures ?? []).find((s) => s.id === structureId) ?? null;
+  const chosenClass =
+    classId && classId !== "undecided"
+      ? (inStructure(link.classes ?? [], structureId).find((c) => c.id === classId) ?? null)
+      : null;
+  const chosenActivities = inStructure(link.activities, structureId).filter((a) =>
+    state.activityIds.includes(a.id),
+  );
   const chosenPlan =
     state.feePlanId && state.feePlanId !== "undecided"
-      ? ((link.fee_plans ?? []).find((f) => f.id === state.feePlanId) ?? null)
+      ? (inStructure(link.fee_plans ?? [], structureId).find((f) => f.id === state.feePlanId) ?? null)
       : null;
-  const admissionFees = link.admission_fees ?? [];
+  const admissionFees = inStructure(link.admission_fees ?? [], structureId);
   // What the family will actually be asked for in month one. Monthly activities
   // are included; per-session ones are billed as they happen, so promising a
   // figure for them here would be a promise the invoice cannot keep.
@@ -102,7 +121,38 @@ export function StepReview({
       <StepHeader icon={ClipboardCheck} title={t("review.title")} subtitle={t("review.subtitle")} />
 
       <div className="space-y-4">
-        <Section icon={Baby} title={t("review.child")} onEdit={() => goTo(2)} editLabel={edit}>
+        {/* Which side of the building, and which room. Shown whenever the
+            building has structures at all — on a structure link the family
+            did not choose, but they should still see where the file lands. */}
+        {(structure || (link.classes ?? []).length > 0) && (
+          <Section
+            icon={Building2}
+            title={t("review.placement")}
+            onEdit={() => goTo(asksStructure ? STEP.structure : STEP.activities)}
+            editLabel={edit}
+          >
+            {structure && (
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="shrink-0 text-muted-foreground">{t("review.structure")}</span>
+                <StructureChip structure={structure} />
+              </div>
+            )}
+            {(link.classes ?? []).length > 0 && (
+              <Row
+                label={t("review.class")}
+                value={
+                  chosenClass
+                    ? locale === "ar" && chosenClass.name_ar
+                      ? chosenClass.name_ar
+                      : chosenClass.name
+                    : t("review.classUndecided")
+                }
+              />
+            )}
+          </Section>
+        )}
+
+        <Section icon={Baby} title={t("review.child")} onEdit={() => goTo(STEP.child)} editLabel={edit}>
           <Row
             label={t("child.firstName")}
             value={
@@ -119,13 +169,13 @@ export function StepReview({
           <Row label={t("child.bloodType")} value={child.blood_type || null} ltr />
         </Section>
 
-        <Section icon={Camera} title={t("review.photo")} onEdit={() => goTo(3)} editLabel={edit}>
+        <Section icon={Camera} title={t("review.photo")} onEdit={() => goTo(STEP.photo)} editLabel={edit}>
           <p className={child.photo_path ? "font-medium text-primary" : "text-muted-foreground"}>
             {child.photo_path ? `✓ ${t("photo.uploaded")}` : t("review.noPhoto")}
           </p>
         </Section>
 
-        <Section icon={Users} title={t("review.guardians")} onEdit={() => goTo(4)} editLabel={edit}>
+        <Section icon={Users} title={t("review.guardians")} onEdit={() => goTo(STEP.guardians)} editLabel={edit}>
           {guardians.map((g, i) => (
             <div key={i} className="flex items-baseline justify-between gap-3">
               <span className="text-muted-foreground">
@@ -144,7 +194,7 @@ export function StepReview({
           )}
         </Section>
 
-        <Section icon={Stethoscope} title={t("review.health")} onEdit={() => goTo(5)} editLabel={edit}>
+        <Section icon={Stethoscope} title={t("review.health")} onEdit={() => goTo(STEP.health)} editLabel={edit}>
           <p className="font-medium">
             {t("review.allergiesCount", { count: health.allergies.length })}
           </p>
@@ -160,7 +210,7 @@ export function StepReview({
           )}
         </Section>
 
-        <Section icon={Clock} title={t("review.schedule")} onEdit={() => goTo(6)} editLabel={edit}>
+        <Section icon={Clock} title={t("review.schedule")} onEdit={() => goTo(STEP.activities)} editLabel={edit}>
           {chosenPlan ? (
             <div className="flex items-baseline justify-between gap-3">
               <span>
@@ -178,7 +228,7 @@ export function StepReview({
           )}
         </Section>
 
-        <Section icon={Palette} title={t("review.activities")} onEdit={() => goTo(6)} editLabel={edit}>
+        <Section icon={Palette} title={t("review.activities")} onEdit={() => goTo(STEP.activities)} editLabel={edit}>
           {chosenActivities.length === 0 ? (
             <p className="text-muted-foreground">{t("review.noActivities")}</p>
           ) : (

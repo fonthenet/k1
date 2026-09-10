@@ -27,10 +27,16 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DateTimePicker } from "@/components/shared/datetime-picker";
-import type { Audience } from "@/lib/types";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { deleteEvent, eventAudienceCount, saveEvent } from "./actions";
 import { dateAtTimeInput } from "./datetime";
-import { AUDIENCES, EVENT_COLORS, type ClassOption, type EventRow } from "./types";
+import {
+  audiencesFor,
+  EVENT_COLORS,
+  type ClassOption,
+  type CommsAudience,
+  type EventRow,
+} from "./types";
 
 function toLocalInput(iso: string): string {
   const d = new Date(iso);
@@ -46,12 +52,17 @@ function toLocalInput(iso: string): string {
 export function EventDialog({
   event,
   classes,
+  structures = [],
   defaultDate,
   defaultTime = "09:00",
   children,
 }: {
   event: EventRow | null;
   classes: ClassOption[];
+  /** The structures of the building (0125). Empty or single, and the audience
+   *  picker never offers one — the calendar page passes them only where there
+   *  is a choice to make. */
+  structures?: Structure[];
   /** YYYY-MM-DD used to seed a new event (ignored when editing). */
   defaultDate: string;
   /**
@@ -85,8 +96,9 @@ export function EventDialog({
     event ? toLocalInput(event.start_at) : dateAtTimeInput(defaultDate, defaultTime)
   );
   const [endAt, setEndAt] = useState(event?.end_at ? toLocalInput(event.end_at) : "");
-  const [audience, setAudience] = useState<Audience>(event?.audience ?? "all");
+  const [audience, setAudience] = useState<CommsAudience>(event?.audience ?? "all");
   const [classId, setClassId] = useState(event?.class_id ?? "");
+  const [structureId, setStructureId] = useState(event?.structure_id ?? "");
   const [color, setColor] = useState<string>(event?.color ?? EVENT_COLORS[0]);
   // Who this reaches, resolved by the same rule that will actually fan it out.
   // Stamped with the scope it was fetched for, so a count for "all" is never
@@ -96,14 +108,15 @@ export function EventDialog({
   // Recomputed on every scope change, including while the dialog is closed-open
   // again for a different event. A 'class' audience with no class chosen yet
   // reaches nobody, and says so rather than showing a stale number.
-  const scopeKey = `${audience}:${audience === "class" ? classId : ""}:${startAt}`;
+  const scopeKey = `${audience}:${audience === "class" ? classId : structureId}:${startAt}`;
   useEffect(() => {
     if (!open) return;
     let live = true;
     void eventAudienceCount(
       audience,
       audience === "class" ? classId || null : null,
-      startAt || null
+      startAt || null,
+      audience === "structure" ? structureId || null : null
     ).then(
       (r: { count: number; past: boolean }) => {
         if (live) setReach({ key: scopeKey, n: r.count, past: r.past });
@@ -112,7 +125,7 @@ export function EventDialog({
     return () => {
       live = false;
     };
-  }, [open, scopeKey, audience, classId, startAt]);
+  }, [open, scopeKey, audience, classId, structureId, startAt]);
 
   // Only ever the number for the scope currently on screen, and only when the
   // count actually succeeded — a failed lookup must not block saving an event.
@@ -123,11 +136,13 @@ export function EventDialog({
   const willNotify = current && current.n >= 0 ? current.n : null;
 
   const endBeforeStart = !!endAt && !!startAt && Date.parse(endAt) < Date.parse(startAt);
+  const audiences = audiencesFor(structures.length);
   const canSubmit =
     !!title.trim() &&
     !!startAt &&
     !endBeforeStart &&
     (audience !== "class" || !!classId) &&
+    (audience !== "structure" || !!structureId) &&
     !pending;
 
   function handleOpenChange(next: boolean) {
@@ -145,6 +160,7 @@ export function EventDialog({
         endAt: endAt ? new Date(endAt).toISOString() : null,
         audience,
         classId: audience === "class" && classId ? classId : null,
+        structureId: audience === "structure" && structureId ? structureId : null,
         color,
       });
       if (res.ok) {
@@ -156,6 +172,7 @@ export function EventDialog({
           setEndAt("");
           setAudience("all");
           setClassId("");
+          setStructureId("");
           setColor(EVENT_COLORS[0]);
         }
         router.refresh();
@@ -241,12 +258,12 @@ export function EventDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label>{t("calendar.form.audience")}</Label>
-              <Select value={audience} onValueChange={(v) => setAudience(v as Audience)}>
+              <Select value={audience} onValueChange={(v) => setAudience(v as CommsAudience)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {AUDIENCES.map((a) => (
+                  {audiences.map((a) => (
                     <SelectItem key={a} value={a}>
                       {t(`audience.${a}`)}
                     </SelectItem>
@@ -254,6 +271,32 @@ export function EventDialog({
                 </SelectContent>
               </Select>
             </div>
+            {audience === "structure" && (
+              <div className="grid gap-1.5">
+                <Label>{t("calendar.form.structure")}</Label>
+                <Select value={structureId} onValueChange={setStructureId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("calendar.form.chooseStructure")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {structures
+                      .filter((s) => s.active || s.id === structureId)
+                      .map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {/* The structure's own colour, the same dot the
+                              sidebar switcher and the comms picker give it. */}
+                          <span
+                            className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
+                            style={{ backgroundColor: s.color }}
+                            aria-hidden
+                          />
+                          {structureName(s, locale)}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {audience === "class" && (
               <div className="grid gap-1.5">
                 <Label>{t("calendar.form.class")}</Label>

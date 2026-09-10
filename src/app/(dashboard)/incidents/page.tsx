@@ -74,7 +74,7 @@ export default async function IncidentsPage({
     .limit(200);
   if (activeSeverity !== "all") incidentsQuery = incidentsQuery.eq("severity", activeSeverity);
 
-  const [incidentsRes, childrenRes] = await Promise.all([
+  const [incidentsRes, childrenRes, roomsRes] = await Promise.all([
     incidentsQuery,
     supabase
       .from("kg_children")
@@ -82,6 +82,14 @@ export default async function IncidentsPage({
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled")
       .order("first_name"),
+    // The rooms in service (0123), offered as suggestions on the location
+    // field — most incidents happen somewhere the crèche has already named.
+    supabase
+      .from("kg_rooms")
+      .select("name, name_ar")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("active", true)
+      .order("name"),
   ]);
 
   const firstError = incidentsRes.error ?? childrenRes.error;
@@ -90,6 +98,9 @@ export default async function IncidentsPage({
   const incidents = (incidentsRes.data ?? []) as unknown as IncidentRow[];
   const childrenOptions: ChildOption[] = childrenRes.data ?? [];
   const defaultOccurredAt = algiersLocalInput();
+  const roomNames = ((roomsRes.data ?? []) as { name: string; name_ar: string | null }[]).map(
+    (r) => (locale === "ar" && r.name_ar ? r.name_ar : r.name)
+  );
 
   const filters: { id: string; label: string }[] = [
     { id: "all", label: tc("labels.all") },
@@ -102,6 +113,7 @@ export default async function IncidentsPage({
         <IncidentDialog
           childrenOptions={childrenOptions}
           defaultOccurredAt={defaultOccurredAt}
+          rooms={roomNames}
         />
       </PageHeader>
 
@@ -133,6 +145,7 @@ export default async function IncidentsPage({
             <IncidentDialog
               childrenOptions={childrenOptions}
               defaultOccurredAt={defaultOccurredAt}
+              rooms={roomNames}
             />
           }
         />

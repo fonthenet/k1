@@ -15,6 +15,8 @@ import { CENTER_TYPE_OPTIONS, type CenterType } from "./center-types";
 export function CenterTypePicker({
   value,
   onChange,
+  values,
+  onValuesChange,
   t,
   label,
   hint,
@@ -22,8 +24,19 @@ export function CenterTypePicker({
   disabled = false,
   className,
 }: {
-  value: CenterType;
-  onChange: (value: CenterType) => void;
+  /** Single-select (the settings profile form). */
+  value?: CenterType;
+  onChange?: (value: CenterType) => void;
+  /**
+   * Multi-select (the founder wizard): an establishment may run more than one
+   * vertical in one building — a crèche and a jardin d'enfants is the ordinary
+   * Algerian arrangement. Each tick becomes one structure at creation.
+   *
+   * Pass `values`/`onValuesChange` INSTEAD of `value`/`onChange`; the grid
+   * switches to checkboxes and the roles change accordingly. Never both.
+   */
+  values?: CenterType[];
+  onValuesChange?: (values: CenterType[]) => void;
   /** Bound to a namespace carrying `centerTypes.*` — `auth` or `settings`. */
   t: (key: string) => string;
   label: string;
@@ -34,6 +47,21 @@ export function CenterTypePicker({
 }) {
   const labelId = `${name}-label`;
   const hintId = hint ? `${name}-hint` : undefined;
+  const multi = Array.isArray(values);
+  const chosen = multi ? values! : value ? [value] : [];
+
+  function toggle(type: CenterType) {
+    if (!multi) {
+      onChange?.(type);
+      return;
+    }
+    // Never empty: unticking the last one would leave an establishment that
+    // runs nothing, and kg_create_tenant would have to invent a structure anyway.
+    const next = chosen.includes(type)
+      ? chosen.filter((c) => c !== type)
+      : [...chosen, type];
+    if (next.length > 0) onValuesChange?.(next);
+  }
 
   return (
     <div className={cn("@container/types grid gap-2", className)}>
@@ -47,7 +75,7 @@ export function CenterTypePicker({
       )}
 
       <div
-        role="radiogroup"
+        role={multi ? "group" : "radiogroup"}
         aria-labelledby={labelId}
         aria-describedby={hintId}
         // Container queries, not viewport ones: this picker sits in a narrow
@@ -57,19 +85,24 @@ export function CenterTypePicker({
         className="mt-0.5 grid gap-2.5 @md/types:grid-cols-2 @3xl/types:grid-cols-3"
       >
         {CENTER_TYPE_OPTIONS.map(({ value: type, Icon, tile }) => {
-          const selected = value === type;
+          const selected = chosen.includes(type);
           return (
             <label
               key={type}
               className={cn("group flex", disabled ? "cursor-not-allowed" : "cursor-pointer")}
             >
               <input
-                type="radio"
-                name={name}
+                type={multi ? "checkbox" : "radio"}
+                name={multi ? `${name}-${type}` : name}
                 value={type}
                 checked={selected}
                 disabled={disabled}
-                onChange={() => onChange(type)}
+                onChange={() => toggle(type)}
+                // Chrome restores checkbox state across a same-URL reload and
+                // React absorbs it through onChange, so a founder who
+                // refreshes could find a vertical ticked that they never
+                // chose — and silently get a structure for it.
+                autoComplete="off"
                 className="peer sr-only"
               />
               <span

@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CalendarClock, GraduationCap, Inbox, LayoutList, TriangleAlert, Users } from "lucide-react";
-import { requireStaff } from "@/lib/tenant";
+import { requireStaff, scoped } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
@@ -12,12 +12,8 @@ import { StatCard } from "@/components/shared/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ApplicationCard } from "@/components/modules/enroll/application-card";
-import {
-  PIPELINE_STAGES,
-  STAGE_DOT,
-  byWaitlistOrder,
-  type ApplicationRecord,
-} from "@/components/modules/enroll/types";
+import { PIPELINE_STAGES, STAGE_DOT, byWaitlistOrder } from "@/components/modules/enroll/types";
+import type { ReviewApplication } from "@/components/modules/enroll/review-types";
 
 const VIEWS = ["pipeline", "waitlist", "rejected"] as const;
 type View = (typeof VIEWS)[number];
@@ -35,11 +31,25 @@ export default async function ApplicationsPage({
     ? (sp.view as View)
     : "pipeline";
 
-  const { data, error } = await supabase
-    .from("kg_applications")
-    .select("*, kg_fee_plans(name, name_ar, amount)")
-    .eq("tenant_id", ctx.tenant.id)
-    .order("created_at", { ascending: false });
+  // A family applies to a structure, not to the building — the link they were
+  // given carries it (0136). Narrowing here is what lets the école's
+  // registrar work through their own queue without reading the crèche's.
+  //
+  // The structure and the class come embedded so each card can say which
+  // side of the building it is for, by colour and name, without a second
+  // read per card. A transfer request (0140) is scoped by the structure the
+  // family wants to move TO, which is what the registrar of that structure
+  // needs to see; the child's current structure is on the detail page.
+  const { data, error } = await scoped(
+    supabase
+      .from("kg_applications")
+      .select(
+        "*, kg_fee_plans(name, name_ar, amount), kg_structures(id, name, name_ar, color, center_type), kg_classes(id, name, name_ar, structure_id)"
+      )
+      .eq("tenant_id", ctx.tenant.id)
+      .order("created_at", { ascending: false }),
+    ctx
+  );
 
   if (error) {
     return (
@@ -54,8 +64,11 @@ export default async function ApplicationsPage({
     );
   }
 
-  const apps = (data ?? []) as ApplicationRecord[];
+  const apps = (data ?? []) as unknown as ReviewApplication[];
   const canManage = ctx.isAdmin;
+  // The chip only means something when there is a choice of structure; on a
+  // single-structure crèche every file would carry the same word.
+  const showStructure = ctx.isMultiStructure;
 
   const byStage = new Map(
     PIPELINE_STAGES.map((s) => [s, apps.filter((a) => a.status === s)] as const)
@@ -168,7 +181,12 @@ export default async function ApplicationsPage({
                 {header}
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {lane.map((app) => (
-                    <ApplicationCard key={app.id} app={app} canManage={canManage} />
+                    <ApplicationCard
+                      key={app.id}
+                      app={app}
+                      canManage={canManage}
+                      showStructure={showStructure}
+                    />
                   ))}
                 </div>
               </section>
@@ -193,6 +211,7 @@ export default async function ApplicationsPage({
                   key={app.id}
                   app={app}
                   canManage={canManage}
+                  showStructure={showStructure}
                   waitlist={{
                     position: i + 1,
                     isFirst: i === 0,
@@ -214,7 +233,12 @@ export default async function ApplicationsPage({
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {rejected.map((app) => (
-              <ApplicationCard key={app.id} app={app} canManage={canManage} />
+              <ApplicationCard
+                key={app.id}
+                app={app}
+                canManage={canManage}
+                showStructure={showStructure}
+              />
             ))}
           </div>
         ))}

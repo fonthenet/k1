@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,21 +27,29 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { FeePeriod } from "@/lib/types";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { savePlan } from "./actions";
 import type { PlanOption } from "./billing-types";
 
 const PERIODS: FeePeriod[] = ["once", "monthly", "quarterly", "yearly", "per_session"];
 
-/** Create/edit dialog for a fee plan. Pass `plan` (+description) to edit. */
+/** Create/edit dialog for a fee plan. Pass `plan` (+description, structureId) to edit. */
 export function PlanDialog({
   plan,
   description,
+  structureId,
+  structures = [],
 }: {
   plan?: PlanOption;
   description?: string | null;
+  /** The plan's structure; null = a price the whole building pays. */
+  structureId?: string | null;
+  /** The structures of the establishment. The picker hides itself under two. */
+  structures?: Structure[];
 }) {
   const t = useTranslations("billing");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -51,6 +59,10 @@ export function PlanDialog({
     period: (plan?.period ?? "monthly") as FeePeriod,
     description: description ?? "",
     active: plan?.active ?? true,
+    // Unlike a class, a tariff defaults to no structure — a new price is one
+    // everybody pays until somebody says otherwise, and that is the answer a
+    // single-structure crèche needs to keep getting while the field is hidden.
+    structureId: structureId ?? "",
   });
   const [pending, startTransition] = useTransition();
 
@@ -67,6 +79,7 @@ export function PlanDialog({
         period: form.period,
         description: form.description || undefined,
         active: form.active,
+        structureId: form.structureId || null,
       });
       if (res.ok) {
         toast.success(t("plans.saved"));
@@ -146,6 +159,36 @@ export function PlanDialog({
                 </SelectContent>
               </Select>
             </div>
+            {/* Only once there IS a choice: a crèche running one activity must
+                never be asked which of its one structure a price belongs to. */}
+            {structures.length > 1 && (
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label htmlFor="plan-structure">{t("plans.dialog.structure")}</Label>
+                <Select
+                  value={form.structureId || "none"}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, structureId: v === "none" ? "" : v }))
+                  }
+                >
+                  <SelectTrigger id="plan-structure" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("structures.whole")}</SelectItem>
+                    {structures
+                      .filter((str) => str.active || str.id === form.structureId)
+                      .map((str) => (
+                        <SelectItem key={str.id} value={str.id}>
+                          {structureName(str, locale)}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t("plans.dialog.structureHint")}
+                </p>
+              </div>
+            )}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="plan-desc">{t("plans.dialog.planDescription")}</Label>

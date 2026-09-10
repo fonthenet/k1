@@ -20,15 +20,19 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/shared/date-picker";
 import type { Gender } from "@/lib/types";
+import { groupClassesByStructure, structureLabel } from "@/lib/structure-groups";
+import { centerTypeOption } from "@/components/modules/settings/center-types";
 import { updateChild, uploadChildPhoto } from "./actions";
-import type { ClassOption } from "./types";
+import type { ClassOption, StructureOption } from "./types";
 
 export interface EditableChild {
   id: string;
@@ -39,6 +43,9 @@ export interface EditableChild {
   dob: string;
   gender: Gender;
   class_id: string | null;
+  /** Which structure the child is filed under (0125). Optional for callers
+   *  written before the column existed. */
+  structure_id?: string | null;
   tag_code: string | null;
   blood_type: string | null;
   notes: string | null;
@@ -48,9 +55,12 @@ export interface EditableChild {
 export function EditChildDialog({
   child,
   classes,
+  structures = [],
 }: {
   child: EditableChild;
   classes: ClassOption[];
+  /** The building's active structures; below two nothing about them is shown. */
+  structures?: StructureOption[];
 }) {
   const t = useTranslations("children");
   const tc = useTranslations("common");
@@ -78,6 +88,30 @@ export function EditChildDialog({
 
   const canSubmit = form.firstName.trim() && form.lastName.trim() && form.dob && !pending;
 
+  const multi = structures.length > 1;
+  const currentStructureId = child.structure_id ?? null;
+  // The one case the select is live: a child filed under no structure and in
+  // no class (a legacy row, or one approved through a whole-building link
+  // before structures existed). Filing them somewhere is not a move — there
+  // is nothing to close or to announce — so it belongs here, not in the Move
+  // dialog. Everything else stays read-only, see below.
+  const [filedStructureId, setFiledStructureId] = useState<string | null>(null);
+  const chosenClass = classes.find((c) => c.id === form.classId) ?? null;
+  const followsClass = !!chosenClass?.structure_id;
+  // Read-only on purpose. Changing structure closes tariffs, ends activity
+  // enrolments, writes a transfer and tells the family — that is the Move
+  // dialog's job, and a select here would do the first of those things
+  // silently through the class trigger and none of the rest. So the rooms
+  // offered are the ones on this child's side of the building (plus the
+  // building's own), and the structure control only reports.
+  const unfiled = multi && !currentStructureId && form.classId === "none";
+  const shownStructureId = chosenClass?.structure_id ?? currentStructureId ?? filedStructureId;
+  const visibleClasses =
+    multi && currentStructureId
+      ? classes.filter((c) => c.structure_id === currentStructureId || !c.structure_id)
+      : classes;
+  const { groups, single } = groupClassesByStructure(visibleClasses, multi ? structures : []);
+
   function submit() {
     if (!canSubmit) return;
     startTransition(async () => {
@@ -99,6 +133,10 @@ export function EditChildDialog({
         dob: form.dob,
         gender: form.gender as Gender,
         classId: form.classId === "none" ? null : form.classId,
+        // Sent back unchanged so an update never blanks the column — except
+        // for an unfiled child being filed, the one case the select is live.
+        // The server derives it from the class when there is one anyway.
+        structureId: currentStructureId ?? (unfiled ? filedStructureId : null),
         tagCode: form.tagCode || undefined,
         bloodType: form.bloodType || undefined,
         notes: form.notes || undefined,
@@ -184,18 +222,57 @@ export function EditChildDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-1.5">
+          {multi && (
+            <div className="col-span-2 grid gap-1.5">
+              <Label>{t("form.structure")}</Label>
+              <Select
+                value={shownStructureId ?? undefined}
+                disabled={!unfiled}
+                onValueChange={(v) => setFiledStructureId(v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("form.structureNone")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {structures.map((s) => {
+                    const { Icon } = centerTypeOption(s.center_type);
+                    return (
+                      <SelectItem key={s.id} value={s.id}>
+                        <Icon className="size-4" style={{ color: s.color }} aria-hidden />
+                        {structureLabel(s, locale, "")}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {unfiled
+                  ? t("form.structureUnfiledHint")
+                  : `${followsClass ? `${t("form.structureFollowsClass")} ` : ""}${t("form.structureMoveHint", { button: t("move.button") })}`}
+              </p>
+            </div>
+          )}
+          <div className={multi ? "col-span-2 grid gap-1.5" : "grid gap-1.5"}>
             <Label>{t("form.class")}</Label>
             <Select value={form.classId} onValueChange={set("classId")}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">{t("form.noClass")}</SelectItem>
-                {classes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {locale === "ar" && c.name_ar ? c.name_ar : c.name}
-                  </SelectItem>
+                {groups.map((g) => (
+                  <SelectGroup key={g.structure?.id ?? "building"}>
+                    {!single && (
+                      <SelectLabel>
+                        {structureLabel(g.structure, locale, tc("structures.all"))}
+                      </SelectLabel>
+                    )}
+                    {g.classes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {locale === "ar" && c.name_ar ? c.name_ar : c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>

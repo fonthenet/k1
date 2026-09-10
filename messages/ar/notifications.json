@@ -131,6 +131,10 @@
     "event": {
       "title": "{name}",
       "body": "{date} · {time} · {className} · {description}"
+    },
+    "structure_changed": {
+      "title": "تغيير الهيكل — {child}",
+      "body": "{child} الآن في {structure} · {className}"
     }
   },
   "push": {

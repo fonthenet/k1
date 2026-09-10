@@ -2,6 +2,19 @@
 
 import type { Audience, IncidentSeverity } from "@/lib/types";
 
+/**
+ * The audience vocabulary as this module writes it: the four shared values plus
+ * "structure", which names one activity of the building (0125).
+ *
+ * Kept here rather than widened into `Audience` in @/lib/types because that type
+ * is the whole product's vocabulary and every reader of it — the parent portal
+ * filters announcements and events by hand, on top of RLS — has to learn the
+ * word before it can be safely used. Widening the shared type first would make
+ * those readers compile while silently dropping a structure's announcement on
+ * the floor.
+ */
+export type CommsAudience = Audience | "structure";
+
 export interface ClassOption {
   id: string;
   name: string;
@@ -23,8 +36,10 @@ export interface AnnouncementRow {
   id: string;
   title: string;
   body: string;
-  audience: Audience;
+  audience: CommsAudience;
   class_id: string | null;
+  /** Which structure this is addressed to; null = the whole building. */
+  structure_id: string | null;
   pinned: boolean;
   publish_at: string;
   created_by: string | null;
@@ -34,11 +49,20 @@ export interface AnnouncementRow {
 export const AUDIENCES: Audience[] = ["all", "parents", "staff", "class"];
 
 /**
- * Token tints for audience badges — one distinct hue per audience so a wall of
- * announcements stays scannable. All four come from THEME.md tokens, so dark
- * mode needs no overrides.
+ * The audiences a picker offers. "structure" appears only once the building
+ * actually runs more than one — asked to choose between a single structure and
+ * everybody, a crèche would be choosing between two names for the same people.
  */
-export function audienceClasses(audience: Audience): string {
+export function audiencesFor(structureCount: number): CommsAudience[] {
+  return structureCount > 1 ? [...AUDIENCES, "structure"] : AUDIENCES;
+}
+
+/**
+ * Token tints for audience badges — one distinct hue per audience so a wall of
+ * announcements stays scannable. All come from THEME.md tokens, so dark mode
+ * needs no overrides.
+ */
+export function audienceClasses(audience: CommsAudience): string {
   switch (audience) {
     case "all":
       return "border-transparent bg-primary/10 font-medium text-primary";
@@ -48,6 +72,10 @@ export function audienceClasses(audience: Audience): string {
       return "border-transparent bg-chart-4/15 font-medium text-chart-4";
     case "class":
       return "border-transparent bg-gold font-medium text-gold-foreground";
+    // No hue of its own: a structure carries its OWN colour, as a dot, exactly
+    // as it does on the staff list — a fifth tint here would compete with it.
+    case "structure":
+      return "border-border bg-muted/50 font-medium text-foreground";
   }
 }
 
@@ -75,8 +103,10 @@ export interface EventRow {
   description: string | null;
   start_at: string;
   end_at: string | null;
-  audience: Audience;
+  audience: CommsAudience;
   class_id: string | null;
+  /** Which structure this is addressed to; null = the whole building. */
+  structure_id: string | null;
   color: string;
 }
 

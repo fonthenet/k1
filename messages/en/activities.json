@@ -44,6 +44,14 @@
     "fri": "Friday",
     "sat": "Saturday"
   },
+  "structures": {
+    "label": "Structure",
+    "wholeBuilding": "Whole building",
+    "filter": "Filter by structure",
+    "all": "All structures",
+    "empty": "No activities in this structure",
+    "emptyDescription": "Create an activity for this structure, or open one to the whole building."
+  },
   "dialog": {
     "newTitle": "New activity",
     "editTitle": "Edit activity",

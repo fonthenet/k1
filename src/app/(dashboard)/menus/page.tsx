@@ -24,6 +24,9 @@ import {
 } from "@/components/modules/comms/dates";
 import { conflictsFor, type ChildAllergy } from "@/components/modules/comms/allergens";
 import { type MenuDayRow } from "@/components/modules/comms/types";
+import { StructurePicker } from "@/components/modules/comms/structure-picker";
+import { onStructure, resolveStructure } from "@/components/modules/comms/structures";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { allergenLabel as allergenLabelFor } from "@/lib/allergens";
 import { ChildLink } from "@/components/shared/entity-link";
 import { DAY_KEYS, isOpenDayStr, openDays, toOpeningHours } from "@/lib/week";
@@ -38,6 +41,7 @@ interface AllergyRow {
     first_name_ar: string | null;
     last_name_ar: string | null;
     status: string;
+    structure_id: string | null;
   } | null;
 }
 
@@ -46,7 +50,7 @@ const MEALS = ["breakfast", "lunch", "snack"] as const;
 export default async function MenusPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; structure?: string }>;
 }) {
   const ctx = await requireStaff();
   const t = await getTranslations("comms");
@@ -58,6 +62,29 @@ export default async function MenusPage({
   const currentWeek = sundayOf(today);
   const weekStart = sundayOf(isValidDateStr(sp.week) ? sp.week : today);
 
+  const supabase = await createClient();
+
+  // Read before everything else, because every query below is scoped by the
+  // answer: which structure's kitchen is this? The crèche eats purée while the
+  // jardin eats couscous, and kg_menus is keyed per structure so both can be
+  // written for the same day.
+  const { data: structureRows, error: structuresError } = await supabase
+    .from("kg_structures")
+    .select("id, name, name_ar, center_type, color, sort_order, active")
+    .eq("tenant_id", ctx.tenant.id)
+    .order("sort_order")
+    .order("name");
+  if (structuresError) throw new Error(structuresError.message);
+
+  const structures = (structureRows ?? []) as Structure[];
+  // Null is the answer for most crèches and a real one for the rest: one
+  // kitchen cooking the same lunch for the whole building.
+  // With no param, the sidebar switcher decides — the picker on this page and
+  // the switcher in the rail are the same question asked twice, and they have
+  // to give the same answer.
+  const structureId = resolveStructure(sp.structure ?? ctx.structureId ?? undefined, structures);
+  const structure = structures.find((s) => s.id === structureId) ?? null;
+
   // THE WEEK BELONGS TO THE CRÈCHE, NOT TO THIS FILE.
   //
   // This page used to take `weekStart + 4` and render five cards, Sunday
@@ -66,58 +93,81 @@ export default async function MenusPage({
   // and this page was a seventh it did not reach. The cost was real and
   // silent: a crèche open on Saturday could not write a Saturday menu at all,
   // and one closed on Thursday was invited to plan meals for a day it shuts.
+  //
+  // A structure keeps its own week when it has one: a jardin that shuts on
+  // Thursday while the crèche stays open must not be handed a Thursday card to
+  // fill. kg_structure_hours already resolves "its own hours, or the
+  // building's", so that fallback is not written a second time here.
+  const { data: structureHours } = structureId
+    ? await supabase.rpc("kg_structure_hours", {
+        p_structure: structureId,
+        p_tenant: ctx.tenant.id,
+      })
+    : { data: null };
   const openingHours = toOpeningHours(
-    (ctx.tenant as { opening_hours?: unknown }).opening_hours
+    structureHours ?? (ctx.tenant as { opening_hours?: unknown }).opening_hours
   );
   const weekEnd = addDaysStr(weekStart, 6);
   const days = dateRange(weekStart, weekEnd, 7).filter((d) => isOpenDayStr(openingHours, d));
 
-  const supabase = await createClient();
-
   // Everything planned from today onward, in one read, so the allergy check
   // can see past the week on screen — see `upcoming` below for why that
-  // matters. kg_menus is one row per day per tenant; a year of them is 260
+  // matters. kg_menus is one row per day per structure; a year of them is 260
   // rows, which is not worth a second round trip to avoid.
   const aheadFrom = addDaysStr(today, 1) > weekEnd ? addDaysStr(today, 1) : addDaysStr(weekEnd, 1);
 
   const [menusRes, allergiesRes, holidayRes, aheadRes] = await Promise.all([
-    supabase
-      .from("kg_menus")
-      .select("date, breakfast, lunch, snack, allergens, published")
-      .eq("tenant_id", ctx.tenant.id)
-      .gte("date", weekStart)
-      .lte("date", weekEnd),
+    onStructure(
+      supabase
+        .from("kg_menus")
+        .select("date, breakfast, lunch, snack, allergens, published")
+        .eq("tenant_id", ctx.tenant.id)
+        .gte("date", weekStart)
+        .lte("date", weekEnd),
+      structureId
+    ),
     supabase
       .from("kg_child_allergies")
       .select(
-        "child_id, allergen, kg_children(first_name, last_name, first_name_ar, last_name_ar, status)"
+        "child_id, allergen, kg_children(first_name, last_name, first_name_ar, last_name_ar, status, structure_id)"
       )
       .eq("tenant_id", ctx.tenant.id),
     // closure only: a tentative or non-closing entry (a school photo, an open
     // day) is a note on the calendar, not a day the kitchen stands down.
     supabase
       .from("kg_holidays")
-      .select("date, end_date, name, name_ar")
+      .select("date, end_date, name, name_ar, structure_id")
       .eq("tenant_id", ctx.tenant.id)
       .eq("closure", true)
       .lte("date", weekEnd)
       .or(`end_date.gte.${weekStart},and(end_date.is.null,date.gte.${weekStart})`),
-    supabase
-      .from("kg_menus")
-      .select("date, allergens")
-      .eq("tenant_id", ctx.tenant.id)
-      .gte("date", aheadFrom)
-      .order("date"),
+    onStructure(
+      supabase
+        .from("kg_menus")
+        .select("date, allergens")
+        .eq("tenant_id", ctx.tenant.id)
+        .gte("date", aheadFrom)
+        .order("date"),
+      structureId
+    ),
   ]);
 
   const firstError = menusRes.error ?? allergiesRes.error ?? holidayRes.error ?? aheadRes.error;
   if (firstError) throw new Error(firstError.message);
 
   // A holiday may be a single date or a range; both close every day they cover.
+  //
+  // Whose closure, though: a national holiday (structure_id null) shuts the
+  // whole address, an inspection at the jardin shuts only the jardin. The
+  // building's own week is therefore closed by the building's holidays alone —
+  // greying out its Monday because the jardin was shut would tell the crèche's
+  // cook to stop cooking. Same rule as kg_structure_closed_on.
   const closedBy = new Map<string, string>();
   for (const h of (holidayRes.data ?? []) as {
     date: string; end_date: string | null; name: string; name_ar: string | null;
+    structure_id: string | null;
   }[]) {
+    if (h.structure_id !== null && h.structure_id !== structureId) continue;
     const label = (locale === "ar" && h.name_ar) || h.name;
     for (const d of dateRange(h.date, h.end_date ?? h.date, 60)) {
       if (d >= weekStart && d <= weekEnd) closedBy.set(d, label);
@@ -136,9 +186,25 @@ export default async function MenusPage({
     });
   }
 
-  // Only enrolled children matter for the cross-check.
+  /**
+   * Only enrolled children matter for the cross-check — and only the ones who
+   * will actually be handed this food.
+   *
+   * Unioning the building was how planning the jardin's Friday fish flagged an
+   * eight-month-old in the crèche who is still on formula. The warning was
+   * true of the building and false of the meal, and a warning that is usually
+   * irrelevant is one the cook learns to scroll past — which is the failure
+   * mode that matters here.
+   *
+   * A child with no structure yet is counted in EVERY scope. They eat
+   * somewhere, nobody has said where, and the whole point of this list is that
+   * it is the one place a missing record must not read as "no allergy".
+   */
+  const eatsHere = (child: { structure_id: string | null }) =>
+    structureId === null || child.structure_id === null || child.structure_id === structureId;
+
   const allergies: ChildAllergy[] = ((allergiesRes.data ?? []) as unknown as AllergyRow[])
-    .filter((r) => r.kg_children?.status === "enrolled")
+    .filter((r) => r.kg_children?.status === "enrolled" && eatsHere(r.kg_children))
     .map((r) => ({
       childId: r.child_id,
       childName: childDisplayName(r.kg_children!, locale),
@@ -233,7 +299,9 @@ export default async function MenusPage({
     // Widest exposure first; the cook reads the top line and knows the worst.
     .sort((a, b) => b.children.length - a.children.length || a.allergen.localeCompare(b.allergen));
 
-  const href = (w: string) => `/menus?week=${w}`;
+  // Paging through the weeks keeps the kitchen you are planning for.
+  const href = (w: string) =>
+    structureId ? `/menus?week=${w}&structure=${structureId}` : `/menus?week=${w}`;
 
   const hasContentOn = (d: string) => {
     const m = menuByDate.get(d);
@@ -274,12 +342,21 @@ export default async function MenusPage({
   return (
     <div>
       <PageHeader title={t("menus.title")} description={openDaysLabel}>
-        {weekHasDrafts && <PublishWeekButton weekStart={weekStart} />}
-        <CopyPreviousWeekButton weekStart={weekStart} hasExisting={weekHasContent} />
+        {weekHasDrafts && <PublishWeekButton weekStart={weekStart} structureId={structureId} />}
+        <CopyPreviousWeekButton
+          weekStart={weekStart}
+          structureId={structureId}
+          hasExisting={weekHasContent}
+        />
       </PageHeader>
 
       {/* Week navigation */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        {/* Which kitchen, before which week: everything below is scoped by it.
+            Absent in a building with one structure — see roster.tsx. */}
+        {structures.length > 1 && (
+          <StructurePicker value={structureId} structures={structures} />
+        )}
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" asChild>
             <Link
@@ -434,7 +511,16 @@ export default async function MenusPage({
             /* The whole card opens the editor. It used to be a 28px pencil in
                the corner — a hard target on the office tablet, and invisible
                to anyone who did not go looking for it. */
-            <MenuDayDialog key={d} date={d} dateLabel={dayLabel(d)} menu={menu}>
+            <MenuDayDialog
+              key={d}
+              date={d}
+              dateLabel={dayLabel(d)}
+              structureId={structureId}
+              structureLabel={
+                structures.length > 1 && structure ? structureName(structure, locale) : undefined
+              }
+              menu={menu}
+            >
               <button
                 type="button"
                 aria-label={t("menus.editDay", { date: dayLabel(d) })}

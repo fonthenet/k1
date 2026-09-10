@@ -111,7 +111,8 @@
     "description": "Requests still with the office — they stay here until the kindergarten answers.",
     "sentOn": "Sent on {date}",
     "processing": "File received — being processed. The crèche will contact you.",
-    "closed": "File handled — contact the crèche about the next step."
+    "closed": "File handled — contact the crèche about the next step.",
+    "processingTransfer": "Structure change request received — the office will confirm."
   },
   "addChild": {
     "trigger": "Enrol another child",
@@ -128,19 +129,31 @@
       "title": "Request sent",
       "message": "{name} has received your request to enrol {child}. The team will review it and contact you soon.",
       "hint": "You can follow the request from “My children” until they answer.",
-      "back": "Back to my children"
+      "back": "Back to my children",
+      "messageStructure": "{name} has received your request to enrol {child} in “{structure}”. The team will review it and contact you soon."
     },
     "errors": {
       "required": "Please fill in the first name, last name, date of birth and gender.",
       "allergenRequired": "Please name the allergen on every line you added, or remove the empty one.",
       "generic": "The request could not be sent. Please try again in a moment.",
       "forbidden": "Your account is not linked to this kindergarten. Please contact the office.",
-      "noGuardianRecord": "Your account has no parent file at this kindergarten yet, so the request cannot be sent. Please contact the office."
+      "noGuardianRecord": "Your account has no parent file at this kindergarten yet, so the request cannot be sent. Please contact the office.",
+      "structureRequired": "Choose the structure your child will join."
     },
     "noGuardian": {
       "title": "Your account is not linked to a parent file",
       "description": "To enrol another child, your account must be linked to a parent file at this kindergarten. Contact the office to have it linked.",
       "action": "Message the office"
+    },
+    "structure": {
+      "title": "Which structure?",
+      "subtitle": "This establishment runs more than one. Choose the one your child will join.",
+      "reviewTitle": "Structure"
+    },
+    "classChoice": {
+      "title": "Preferred class",
+      "reviewLabel": "Preferred class",
+      "undecided": "The crèche decides"
     }
   },
   "messages": {
@@ -530,7 +543,8 @@
       "all": "Everyone",
       "parents": "Parents",
       "staff": "Team",
-      "class": "Class"
+      "class": "Class",
+      "structure": "Structure"
     }
   },
   "profile": {
@@ -625,6 +639,36 @@
     "errors": {
       "load": "Your details could not be loaded. Please try again in a moment.",
       "forbidden": "You are not allowed to change this. Contact the kindergarten office."
+    }
+  },
+  "classChoice": {
+    "forAge": "Their age",
+    "undecided": "Let the crèche decide",
+    "undecidedHint": "You will agree on it together."
+  },
+  "transfer": {
+    "trigger": "Change structure",
+    "title": "Change structure",
+    "description": "Ask for {name} to move to another structure of the establishment. The office will confirm.",
+    "structureLabel": "To which structure?",
+    "classLabel": "Preferred class",
+    "noteLabel": "A note for the office",
+    "notePlaceholder": "Why this change, from when…",
+    "decides": "This is a request: the office will confirm the move to “{structure}” and its date. Nothing changes until they answer.",
+    "decidesGeneric": "This is a request: the office will confirm the move and the date. Nothing changes until they answer.",
+    "submit": "Send the request",
+    "submitting": "Sending…",
+    "success": "Request sent for {name}. The office will confirm.",
+    "pending": "Request pending",
+    "pendingTo": "Request pending · {structure}",
+    "historyTitle": "History",
+    "historyFrom": "from {structure}",
+    "historyUnknown": "Structure removed",
+    "errors": {
+      "transferPending": "A request is already open for this child. The office will answer you.",
+      "sameStructure": "Your child is already in that structure.",
+      "notEnrolled": "Only an enrolled child can change structure. Please contact the office.",
+      "unknownStructure": "That structure is no longer offered. Reload the page."
     }
   }
 }

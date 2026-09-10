@@ -7,13 +7,16 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import type { LucideIcon } from "lucide-react";
-import { Baby, Camera, ClipboardCheck, Loader2, Pencil, Send, Stethoscope } from "lucide-react";
+import { Baby, Building2, Camera, ClipboardCheck, Loader2, Pencil, Send, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatDate } from "@/lib/format";
 import { StepHeader } from "@/components/modules/enroll/wizard-ui";
 import type { WizardChild } from "@/components/modules/enroll/types";
-import type { AddChildHealth } from "./add-child-wizard";
+import type { Structure } from "@/components/modules/classes/class-types";
+import type { AddChildHealth, AddChildStep } from "./add-child-wizard";
+import type { PortalClassOption } from "./portal-types";
+import { StructureChip } from "./structure-chip";
 import { allergenLabel } from "@/lib/allergens";
 
 function Section({
@@ -69,6 +72,8 @@ function Row({
 export function AddChildStepReview({
   child,
   health,
+  structure,
+  klass,
   submitting,
   error,
   goTo,
@@ -76,9 +81,13 @@ export function AddChildStepReview({
 }: {
   child: WizardChild;
   health: AddChildHealth;
+  /** The structure asked for; null in a one-structure building, where it was never asked. */
+  structure: Structure | null;
+  /** The room preference, if the family named one. */
+  klass: PortalClassOption | null;
   submitting: boolean;
   error: string | null;
-  goTo: (step: number) => void;
+  goTo: (step: AddChildStep) => void;
   onSubmit: () => void;
 }) {
   const t = useTranslations("portal.addChild");
@@ -93,7 +102,23 @@ export function AddChildStepReview({
       <StepHeader icon={ClipboardCheck} title={t("review.title")} subtitle={t("review.subtitle")} />
 
       <div className="space-y-4">
-        <Section icon={Baby} title={te("review.child")} onEdit={() => goTo(0)} editLabel={edit}>
+        {/* First because it was asked first, and because it is the one
+            answer the office cannot override at approval — the class may be
+            changed, the structure is the family's. */}
+        {structure && (
+          <Section
+            icon={Building2}
+            title={t("structure.reviewTitle")}
+            onEdit={() => goTo("structure")}
+            editLabel={edit}
+          >
+            <p className="font-medium">
+              <StructureChip structure={structure} locale={locale} />
+            </p>
+          </Section>
+        )}
+
+        <Section icon={Baby} title={te("review.child")} onEdit={() => goTo("child")} editLabel={edit}>
           <Row
             label={te("child.firstName")}
             value={
@@ -108,15 +133,25 @@ export function AddChildStepReview({
             value={child.gender ? te(`child.${child.gender}`) : null}
           />
           <Row label={te("child.bloodType")} value={child.blood_type || null} ltr />
+          <Row
+            label={t("classChoice.reviewLabel")}
+            value={
+              klass
+                ? locale === "ar" && klass.name_ar
+                  ? klass.name_ar
+                  : klass.name
+                : t("classChoice.undecided")
+            }
+          />
         </Section>
 
-        <Section icon={Camera} title={te("review.photo")} onEdit={() => goTo(1)} editLabel={edit}>
+        <Section icon={Camera} title={te("review.photo")} onEdit={() => goTo("photo")} editLabel={edit}>
           <p className={child.photo_path ? "font-medium text-primary" : "text-muted-foreground"}>
             {child.photo_path ? `✓ ${te("photo.uploaded")}` : te("review.noPhoto")}
           </p>
         </Section>
 
-        <Section icon={Stethoscope} title={te("review.health")} onEdit={() => goTo(2)} editLabel={edit}>
+        <Section icon={Stethoscope} title={te("review.health")} onEdit={() => goTo("health")} editLabel={edit}>
           <p className="font-medium">
             {te("review.allergiesCount", { count: namedAllergies.length })}
           </p>

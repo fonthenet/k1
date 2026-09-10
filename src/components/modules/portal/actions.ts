@@ -970,6 +970,11 @@ const siblingSchema = z.object({
   dietaryRestrictions: z.string().trim().max(500),
   doctorName: z.string().trim().max(120),
   doctorPhone: z.string().trim().max(40),
+  /** Which structure of the building the family is asking for (0140); null
+   *  on a one-structure building, where the question is never put. */
+  structureId: z.uuid().nullable(),
+  /** A room preference within it, or null for "the crèche decides". */
+  classId: z.uuid().nullable(),
 });
 
 /**
@@ -1053,12 +1058,21 @@ export async function submitSiblingApplication(
   };
 
   const supabase = await createClient();
+  // All seven arguments, always: the RPC has defaults for the last three, and
+  // a call that omits them is ambiguous to PostgREST against the older
+  // four-argument signature. The RPC validates the pair itself — a class in
+  // another structure is dropped, and a class alone names its structure.
   const { error } = await supabase.rpc("kg_submit_sibling_application", {
     p_tenant: ctx.tenant.id,
     p_child: child,
     p_health: health,
     // Activities are chosen per child once enrolled, from the child's own page.
     p_activity_ids: [],
+    p_structure_id: v.structureId,
+    p_class_id: v.classId,
+    // The short wizard does not ask for a tariff; the office picks one at
+    // approval, as it did before structures existed.
+    p_fee_plan_id: null,
   });
 
   if (error) {
@@ -1072,6 +1086,60 @@ export async function submitSiblingApplication(
   // The new request has to show up in the parent's own list straight away.
   revalidatePath("/portal/children");
   revalidatePath("/portal");
+  // Fire the queued push now — best-effort, never affects this action's result.
+  await flushPush();
+  return { ok: true };
+}
+
+// ------------------------------------------- asking to move a child (parent)
+// A family whose child is outgrowing the crèche side of the building asks for
+// the école side from the child's own page. Nothing here moves anyone: the
+// RPC files a kg_applications row with source = 'transfer' pointing at the
+// existing child, and the director approves it from the same queue as every
+// other request — the approval is what calls kg_move_child. The copy in the
+// dialog says so in as many words.
+
+/** The RPC's named refusals, each of which needs its own sentence. */
+type TransferError = ActionError | "transferPending" | "sameStructure" | "notEnrolled" | "unknownStructure";
+type TransferResult = { ok: true } | { ok: false; error: TransferError };
+
+const transferSchema = z.object({
+  childId: z.uuid(),
+  structureId: z.uuid(),
+  classId: z.uuid().nullable(),
+  note: z.string().trim().max(1000),
+});
+
+function mapTransferError(message: string): TransferError {
+  if (message.includes("transfer_pending")) return "transferPending";
+  if (message.includes("same_structure")) return "sameStructure";
+  if (message.includes("not_enrolled")) return "notEnrolled";
+  if (message.includes("unknown_structure")) return "unknownStructure";
+  if (message.includes("forbidden")) return "forbidden";
+  return "generic";
+}
+
+export async function requestTransfer(input: z.input<typeof transferSchema>): Promise<TransferResult> {
+  await getTenantContext();
+  const parsed = transferSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+
+  const supabase = await createClient();
+  // All four arguments, always — see submitSiblingApplication for why a call
+  // that leans on the defaults is refused as ambiguous.
+  const { error } = await supabase.rpc("kg_request_transfer", {
+    p_child: v.childId,
+    p_structure: v.structureId,
+    p_class: v.classId,
+    p_note: orNull(v.note),
+  });
+  if (error) return { ok: false, error: mapTransferError(error.message) };
+
+  // The child's page turns its button into "request pending" on the next
+  // render; the list page carries the request under "Demandes".
+  revalidatePath(`/portal/children/${v.childId}`);
+  revalidatePath("/portal/children");
   // Fire the queued push now — best-effort, never affects this action's result.
   await flushPush();
   return { ok: true };

@@ -29,17 +29,93 @@ export interface RosterChild {
   classNameAr: string | null;
   classColor: string | null;
   photoUrl: string | null;
-  allergyCount: number;
-  worstAllergy: AllergySeverity | null;
+  /** Every allergen on file. The badge shows the count and names them on
+   *  hover, so the roster answers "which ones?" without a page load. */
+  allergies: AllergyItem[];
+  /** When the child joined — `kg_children.enrollment_date`. Null on rows
+   *  created before the column had a default. */
+  enrollmentDate: string | null;
+  /** Which structure of the establishment (0125). Null only if a structure was lost. */
+  structure_id: string | null;
   /** Enrolled, but charged no tuition. Finance-only; false for everyone else. */
   noFeePlan: boolean;
 }
 
-export interface ClassOption {
+// A type alias rather than an interface, deliberately: `groupClassesByStructure`
+// (lib/structure-groups) accepts rows with an index signature, and TypeScript
+// grants that implicitly to object type aliases but never to interfaces —
+// an interface here fails to typecheck at every call site that groups classes.
+export type ClassOption = {
   id: string;
   name: string;
   name_ar: string | null;
   color: string;
+  /**
+   * Which structure the class belongs to (0125); null = the whole building.
+   * Optional so a caller that never learned about structures keeps compiling —
+   * a class without the field is grouped under the building, which is the
+   * only honest reading of "I was not told".
+   */
+  structure_id?: string | null;
+  /** The age band, when the caller loaded it — it is what makes a class
+   *  SUGGESTED rather than merely listed (see lib/class-fit). */
+  age_min_months?: number | null;
+  age_max_months?: number | null;
+};
+
+/**
+ * A structure of the building as the children dialogs need it: enough to draw
+ * the chip (colour + vertical icon) and name it in both scripts. The classes
+ * module's fuller `Structure` satisfies this, so pages can pass their rows on.
+ */
+export interface StructureOption {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  center_type: string;
+  color: string;
+}
+
+/**
+ * One monthly tariff the child is currently on, as the move dialog needs to
+ * reason about it: a plan owned by the OLD structure stops on a move, a
+ * building-wide one carries on. The names are the plan's, both scripts.
+ */
+export interface CurrentFeeRow {
+  id: string;
+  planId: string;
+  planName: string;
+  planNameAr: string | null;
+  amount: number;
+  /** The plan's structure; null = the whole building. */
+  structureId: string | null;
+}
+
+/** A monthly plan the child could be put on after a move. */
+export interface MoveFeePlanOption {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  amount: number;
+  structure_id: string | null;
+}
+
+/**
+ * One line of a child's "parcours" — a row of kg_child_transfers with every
+ * id already resolved to a name, so the section is a list and not a lookup.
+ */
+export interface ChildTransferRow {
+  id: string;
+  effective_date: string;
+  from_structure: { name: string; name_ar: string | null; color: string } | null;
+  to_structure: { name: string; name_ar: string | null; color: string } | null;
+  from_class: { id: string; name: string; name_ar: string | null } | null;
+  to_class: { id: string; name: string; name_ar: string | null } | null;
+  reason: string | null;
+  origin: "staff" | "parent_request";
+  /** Who did it, by display name — null when the account is gone. */
+  movedBy: string | null;
+  created_at: string;
 }
 
 /** kg_child_guardians joined with kg_guardians, flattened. */
@@ -211,6 +287,26 @@ export const badgeTone = {
 } as const;
 
 /** Allergy severity badges — mild (amber wash) / moderate (gold) / severe (solid red). */
+/** One allergen on a child's file — what the badge names on hover. */
+export interface AllergyItem {
+  allergen: string;
+  severity: AllergySeverity;
+}
+
+/**
+ * How the three severities order, so "the worst one on file" means the same
+ * thing everywhere.
+ *
+ * This lived privately in children/page.tsx while children/[id]/page.tsx
+ * re-derived it with `["mild","moderate","severe"].indexOf(...)`. Two copies
+ * of a safety ordering is one too many.
+ */
+export const SEVERITY_RANK: Record<AllergySeverity, number> = {
+  mild: 1,
+  moderate: 2,
+  severe: 3,
+};
+
 export function severityClasses(severity: AllergySeverity): string {
   switch (severity) {
     case "mild":

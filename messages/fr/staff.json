@@ -7,9 +7,14 @@
     "empty": "Aucun membre dans l'équipe",
     "emptyHint": "Invitez votre premier membre pour commencer.",
     "loadError": "Impossible de charger l'équipe. Réessayez.",
+    "filterStructure": "Filtrer par structure",
+    "allStructures": "Toutes les structures",
+    "noMatch": "Personne dans cette structure",
+    "noMatchHint": "Aucun membre de l'équipe n'y encadre encore de classe.",
     "columns": {
       "member": "Membre",
       "role": "Rôle",
+      "structure": "Structure",
       "code": "Code",
       "phone": "Téléphone",
       "hireDate": "Embauche",
@@ -97,7 +102,9 @@
         "body": "Ce compte appartient déjà à l'établissement : il n'y a rien à accepter."
       },
       "open": "Accéder à mon espace"
-    }
+    },
+    "structures": "Structures",
+    "structuresHint": "Où cette personne travaillera. Plusieurs possibles — laissez vide si c'est tout le bâtiment."
   },
   "edit": {
     "title": "Modifier le membre",
@@ -272,5 +279,30 @@
     "staffCode": "Code personnel",
     "pinCode": "Code PIN",
     "pinOnce": "Le PIN n'est affiché qu'une fois. Notez-le — il ne réapparaîtra jamais."
+  },
+  "structures": {
+    "title": "Structures",
+    "hint": "Où cette personne travaille. Une structure, ou plusieurs — la cuisine nourrit tout le bâtiment.",
+    "direct": "Affectation directe",
+    "viaClasses": "Par ses classes : {classes}",
+    "notHere": "Non affecté(e)",
+    "save": "Enregistrer",
+    "saved": "Structures enregistrées",
+    "error": "Impossible d'enregistrer les structures."
+  },
+  "classes": {
+    "title": "Classes",
+    "empty": "Aucune classe : ce membre travaille pour tout l'établissement.",
+    "assign": "Affecter aux classes",
+    "dialogTitle": "Classes de {name}",
+    "dialogDescription": "Cochez les classes que cette personne encadre. L'éducateur principal de chaque classe se choisit depuis la page de la classe.",
+    "noneInBuilding": "Aucune classe n'a encore été créée.",
+    "youLead": "Éducateur principal de cette classe",
+    "mainIs": "Principal : {name}",
+    "noMain": "Aucun éducateur principal",
+    "submit": "Enregistrer ({count})",
+    "saved": "Classes enregistrées",
+    "wholeBuilding": "Tout l'établissement",
+    "main": "Principal"
   }
 }

@@ -19,6 +19,7 @@
       "age": "Âge",
       "class": "Classe",
       "allergies": "Allergies",
+      "enrolled": "Inscrit le",
       "tag": "Code badge",
       "status": "Statut"
     },
@@ -27,7 +28,15 @@
     "sortLabel": "Trier par",
     "sortName": "Nom",
     "sortClass": "Classe",
-    "sortPresence": "Présents d'abord"
+    "sortPresence": "Présents d'abord",
+    "filterStructure": "Filtrer par structure",
+    "allStructures": "Toutes les structures",
+    "structureColumn": "Structure",
+    "bulkSelected": "{count, plural, one {# sélectionné} other {# sélectionnés}}",
+    "bulkMove": "Déplacer vers…",
+    "bulkClear": "Annuler la sélection",
+    "bulkSelectAll": "Sélectionner tous les enfants affichés",
+    "bulkSelectOne": "Sélectionner {name}"
   },
   "status": {
     "pending": "En attente",
@@ -62,7 +71,14 @@
     "enrollmentDate": "Date d'inscription",
     "photo": "Photo",
     "photoHint": "JPEG, PNG ou WebP — 10 Mo max",
-    "tagCodeOverride": "Attribué automatiquement. Ne le modifiez que si vous avez déjà des badges imprimés avec votre propre numérotation."
+    "tagCodeOverride": "Attribué automatiquement. Ne le modifiez que si vous avez déjà des badges imprimés avec votre propre numérotation.",
+    "structure": "Structure",
+    "structurePlaceholder": "Choisir une structure",
+    "structureHint": "Sans classe, l'enfant est rattaché à la structure choisie.",
+    "structureFollowsClass": "Suit la classe.",
+    "structureNone": "Aucune structure",
+    "structureMoveHint": "Pour changer de structure, utilisez « {button} » sur la fiche : le tarif et l'historique suivent.",
+    "structureUnfiledHint": "Cet enfant n'est rattaché à aucune structure. Choisissez-en une ici — ce n'est pas un déplacement, rien n'est clôturé ni annoncé."
   },
   "addDialog": {
     "title": "Ajouter un enfant",
@@ -403,5 +419,64 @@
     "error": "Une erreur est survenue. Réessayez.",
     "archived": "Enfant archivé",
     "restored": "Enfant remis sur la liste"
+  },
+  "move": {
+    "button": "Déplacer",
+    "title": "Déplacer l'enfant",
+    "titleBulk": "Déplacer {count, plural, one {# enfant} other {# enfants}}",
+    "step": "Étape {step} sur {total}",
+    "steps": {
+      "structure": "vers quelle structure ?",
+      "class": "dans quelle classe ?",
+      "date": "à partir de quand ?"
+    },
+    "current": "Structure actuelle",
+    "noClassYet": "Sans classe pour l'instant",
+    "suggested": "Suggérée par l'âge",
+    "noClassesInTarget": "Cette structure n'a pas encore de classe. L'enfant y sera rattaché sans classe.",
+    "classNoFit": {
+      "outside": "L'âge de l'enfant ne correspond à aucune tranche définie.",
+      "unbanded": "Aucune classe n'a de tranche d'âge — définissez-les pour obtenir une suggestion."
+    },
+    "effectiveDate": "Date d'effet",
+    "effectiveDateHint": "Le registre note la sortie de l'ancienne structure la veille et l'entrée dans la nouvelle ce jour-là.",
+    "fees": {
+      "title": "Mensualité",
+      "none": "Aucune mensualité en cours.",
+      "stops": "S'arrête le {date}",
+      "continues": "Continue",
+      "newPlan": "Nouvelle formule",
+      "noNewPlan": "Aucune nouvelle formule",
+      "newPlanHint": "Facultatif. La formule choisie démarre à la date d'effet ; les formules de tout l'établissement continuent d'elles-mêmes."
+    },
+    "reason": "Motif",
+    "reasonHint": "Facultatif — visible dans le parcours de l'enfant",
+    "summary": "L'enfant passe à {structure} ({cls}) à partir du {date}. La famille en sera informée.",
+    "summaryBulk": "{count, plural, one {# enfant passe} other {# enfants passent}} à {structure} ({cls}) à partir du {date}. Les familles en seront informées.",
+    "confirm": "Déplacer",
+    "confirmBulk": "Déplacer {count, plural, one {# enfant} other {# enfants}}",
+    "toasts": {
+      "moved": "Enfant déplacé vers {structure}",
+      "bulk": "{moved, plural, one {# déplacé} other {# déplacés}}, {failed, plural, =0 {aucun échec} one {# échec} other {# échecs}}"
+    },
+    "errors": {
+      "invalid": "Demande incomplète. Vérifiez la structure et la classe.",
+      "forbidden": "Seule la direction peut déplacer un enfant.",
+      "notFound": "Enfant introuvable.",
+      "unknownClass": "Cette classe n'existe plus.",
+      "classNotInStructure": "Cette classe n'appartient pas à la structure choisie.",
+      "unknownStructure": "Cette structure n'existe plus ou est désactivée.",
+      "noChange": "L'enfant est déjà à cet endroit.",
+      "feePlanNotInStructure": "Cette formule n'est pas proposée dans la structure choisie.",
+      "error": "Le déplacement n'a pas pu être enregistré. Réessayez."
+    }
+  },
+  "transfers": {
+    "title": "Parcours",
+    "empty": "Aucun déplacement entre structures pour le moment.",
+    "nowhere": "Sans structure",
+    "parentRequest": "Demande des parents",
+    "by": "Par {name}",
+    "byUnknown": "Par un compte supprimé"
   }
 }

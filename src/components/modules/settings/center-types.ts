@@ -31,6 +31,27 @@ export const CENTER_TYPES = [
 
 export type CenterType = (typeof CENTER_TYPES)[number];
 
+/**
+ * The verticals whose children belong in the Solidarité Nationale registers —
+ * the ones the DAS inspector asks for and that this product prints.
+ *
+ * Derived from the vertical rather than stored as a second answer: a crèche
+ * and a jardin d'enfants are licensed by Solidarité, while a tutoring centre,
+ * a therapy practice, an activity club and a holiday camp are not — their
+ * children are not enrolled pupils of a crèche and have no business on that
+ * sheet.
+ *
+ * Montessori is IN. A Montessori house running 3–6 is licensed exactly like a
+ * jardin d'enfants; one running older children is not, but a child wrongly
+ * listed is a question at an inspection while a child missing is a finding.
+ * When in doubt this list errs toward appearing.
+ */
+export const SOLIDARITY_CENTER_TYPES: readonly CenterType[] = [
+  "nursery",
+  "kindergarten",
+  "montessori",
+];
+
 /** Mirrors the column default in the migration. */
 export const DEFAULT_CENTER_TYPE: CenterType = "kindergarten";
 
@@ -46,7 +67,8 @@ const TILE_TONES = [
   "bg-tile-4 text-chart-5",
 ] as const;
 
-const ICONS: Record<CenterType, LucideIcon> = {
+/** Exported so any surface can show a vertical's glyph without re-mapping it. */
+export const CENTER_TYPE_ICON: Record<CenterType, LucideIcon> = {
   nursery: Baby,
   kindergarten: School,
   montessori: Blocks,
@@ -65,7 +87,7 @@ export interface CenterTypeOption {
 
 export const CENTER_TYPE_OPTIONS: CenterTypeOption[] = CENTER_TYPES.map((value, i) => ({
   value,
-  Icon: ICONS[value],
+  Icon: CENTER_TYPE_ICON[value],
   tile: TILE_TONES[i % TILE_TONES.length],
 }));
 

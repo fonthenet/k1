@@ -224,6 +224,28 @@ export interface PortalChildInvoices {
   invoices: PortalInvoice[];
 }
 
+/**
+ * A class as the portal's pickers need it: name, band, structure. Never the
+ * capacity or the head count — how full a room is stays the office's
+ * business, as it does on the public form. Declared here rather than in
+ * data.ts because the pickers are client components and data.ts is
+ * server-only.
+ *
+ * An object-literal type, not an interface and not an intersection with
+ * `ClassBand`: groupClassesByStructure accepts `ClassInStructure`, which
+ * carries an index signature, and only a plain object-literal type gets the
+ * implicit one that satisfies it. Structurally it is still a ClassBand.
+ */
+export type PortalClassOption = {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  age_min_months: number | null;
+  age_max_months: number | null;
+  /** Null = a class of the whole building. */
+  structure_id: string | null;
+};
+
 // ----- Contact validation -----
 
 /**

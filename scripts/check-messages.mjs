@@ -6,8 +6,16 @@
 //      happy, and the UI renders the raw key. That is how the whole
 //      Facturation tab of a child shipped as "children.billing.columns.total".
 //
-// This checks both. Only literal keys are verified; template keys like
-// t(`status.${x}`) are reported as unresolved namespaces, not failures.
+//   3. A key is BUILT from a template — t(`filters.${f}`) — over a list that
+//      later grew a member. Parity is happy, the literal scan never sees the
+//      key, and the page throws MISSING_MESSAGE at runtime for whichever
+//      member is new. That is how "draft" reached the billing filters in all
+//      three locales without a single check firing.
+//
+// This checks all three. Template keys are resolved wherever the variable can
+// be traced to a const array of string literals in the same file; the ones
+// that cannot be traced are COUNTED and printed, so "checked" never quietly
+// means "checked the easy half".
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
@@ -101,8 +109,150 @@ for (const file of files) {
   }
 }
 
+// Exported string-literal lists, project-wide.
+//
+// Most of these unions do not live next to the component that renders them —
+// STATUSES, ROLES, SEVERITIES sit in a shared types module and are imported.
+// Without following the import, every one of those templates was "untraceable"
+// and the check covered only the handful of lists declared inline.
+const EXPORTED_LISTS = new Map();
+for (const file of files) {
+  const src = readFileSync(file, "utf8");
+  for (const m of src.matchAll(
+    /export\s+const\s+([A-Za-z_]\w*)\s*(?::[^=\n]+)?=\s*\[([^\]]*)\]\s*(?:as\s+const)?/g
+  )) {
+    const items = [...m[2].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+    const noise = m[2].replace(/"[^"]*"/g, "").replace(/[\s,]/g, "");
+    if (!items.length || noise) continue;
+    // A name exported from two files with different members cannot be resolved
+    // by name alone — drop it rather than check against the wrong one.
+    if (EXPORTED_LISTS.has(m[1]) &&
+        EXPORTED_LISTS.get(m[1]).join("\u0000") !== items.join("\u0000")) {
+      EXPORTED_LISTS.set(m[1], null);
+      continue;
+    }
+    if (!EXPORTED_LISTS.has(m[1])) EXPORTED_LISTS.set(m[1], items);
+  }
+}
+
+// ---- 3. keys built from a template over a known list
+//
+// Only the shapes that actually appear in this codebase, because a general
+// solution here is a type checker and this is a 100-line script:
+//
+//     const FILTERS = ["all", "draft", ...] as const
+//     FILTERS.map((f) => t(`filters.${f}`))
+//     for (const s of STATUSES) t(`status.${s}.label`)
+//
+// A member whose message is missing fails. A template whose variable cannot be
+// traced to a list is counted as unchecked and reported.
+let dynamicChecked = 0;
+const untraceable = [];
+
+for (const file of files) {
+  const src = readFileSync(file, "utf8");
+
+  const binds = [];
+  for (const m of src.matchAll(
+    /const\s+(\w+)\s*=\s*(?:await\s+)?(?:useTranslations|getTranslations)\(\s*"([^"]+)"\s*\)/g
+  )) {
+    binds.push({ at: m.index, name: m[1], ns: m[2] });
+  }
+  if (binds.length === 0) continue;
+  const nsFor = (name, at) => {
+    let best = null;
+    for (const b of binds) if (b.name === name && b.at < at) best = b;
+    return best?.ns ?? null;
+  };
+
+  // const NAME = ["a", "b"] — string-literal lists only.
+  const lists = new Map();
+  for (const m of src.matchAll(/const\s+([A-Za-z_]\w*)\s*(?::[^=\n]+)?=\s*\[([^\]]*)\]\s*(?:as\s+const)?/g)) {
+    const items = [...m[2].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+    const noise = m[2].replace(/"[^"]*"/g, "").replace(/[\s,]/g, "");
+    if (items.length && !noise) lists.set(m[1], items);
+  }
+  // Names this file imports resolve to their exported definition, unless the
+  // file shadows them with a local const (checked first, above).
+  for (const m of src.matchAll(/import\s*(?:type\s*)?\{([^}]*)\}\s*from/g)) {
+    for (const raw of m[1].split(",")) {
+      const name = raw.replace(/\btype\b/, "").split(/\s+as\s+/)[0].trim();
+      if (!name || lists.has(name)) continue;
+      const members = EXPORTED_LISTS.get(name);
+      if (members) lists.set(name, members);
+    }
+  }
+
+  // Which list does a loop variable range over?
+  //
+  // Positional, for the same reason nsFor is: one file maps `key` over the tab
+  // list in one component and over an info list in another. Keying by name
+  // alone collapses them onto whichever came last and invents failures against
+  // the wrong list — which is exactly what the first run of this check did.
+  const loops = [];
+  const remember = (at, v, l) => {
+    if (lists.has(l)) loops.push({ at, name: v, members: lists.get(l) });
+  };
+  for (const m of src.matchAll(/\b([A-Za-z_]\w*)\s*\.\s*(?:map|flatMap|forEach|filter)\s*\(\s*\(?\s*([A-Za-z_]\w*)/g)) {
+    remember(m.index, m[2], m[1]);
+  }
+  for (const m of src.matchAll(/for\s*\(\s*const\s+([A-Za-z_]\w*)\s+of\s+([A-Za-z_]\w*)/g)) {
+    remember(m.index, m[1], m[2]);
+  }
+  // Anything that rebinds the name in a way this script cannot follow KILLS the
+  // binding from that point on, rather than letting a stale one stand:
+  //
+  //     ([["a", x], ["b", y]] as const).map(([key, value]) => t(`info.${key}`))
+  //     const key = eatenKey(m.eaten);          t(`eaten.${key}`)
+  //
+  // Both reuse a name an earlier .map() bound to a real list, and checking the
+  // template against that list produced six confident, wrong failures. An
+  // untraceable variable is reported as unchecked — never guessed at.
+  for (const m of src.matchAll(/\b(?:const|let|var)\s+([A-Za-z_]\w*)\s*=\s*(?!\[)/g)) {
+    loops.push({ at: m.index, name: m[1], members: null });
+  }
+  for (const m of src.matchAll(/\.\s*(?:map|flatMap|forEach|filter)\s*\(\s*\(?\s*[[{]\s*([A-Za-z_]\w*)/g)) {
+    loops.push({ at: m.index, name: m[1], members: null });
+  }
+
+  const listFor = (name, at) => {
+    let best = null;
+    for (const l of loops) if (l.name === name && l.at < at) best = l;
+    return best?.members ?? null;
+  };
+
+  // t(`prefix.${VAR}suffix`)
+  for (const m of src.matchAll(/\b(\w+)\(\s*`([^`$]*)\$\{\s*([A-Za-z_]\w*)\s*\}([^`$]*)`/g)) {
+    const [, fn, prefix, varName, suffix] = m;
+    const ns = nsFor(fn, m.index);
+    if (!ns) continue;
+    const [nsFile, ...nsRest] = ns.split(".");
+    if (!messages[BASE][nsFile]) continue;
+    const members = listFor(varName, m.index);
+    if (!members) {
+      untraceable.push(`${file}: ${ns}.${prefix}\${${varName}}${suffix}`);
+      continue;
+    }
+    for (const member of members) {
+      const path = [...nsRest, `${prefix}${member}${suffix}`].join(".");
+      dynamicChecked++;
+      if (!has(nsFile, path)) {
+        fail(`${file}: ${nsFile}.${path} is not defined in any locale (built from \`${prefix}\${${varName}}${suffix}\`)`);
+      }
+    }
+  }
+}
+
+if (untraceable.length) {
+  console.log(`\n${untraceable.length} template key(s) not statically traceable — verify by hand:`);
+  for (const u of untraceable) console.log(`  · ${u}`);
+}
+
 if (failures) {
   console.error(`\n${failures} message problem(s).`);
   process.exit(1);
 }
-console.log("messages OK — locales in parity, every literal key resolves");
+console.log(
+  `\nmessages OK — locales in parity, every literal key resolves, ` +
+    `${dynamicChecked} template key(s) resolved`
+);

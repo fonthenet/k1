@@ -133,7 +133,7 @@
     "popular": "Le plus choisi",
     "cta": "Commencer",
     "ctaPopular": "Commencer avec cette formule",
-    "footnote": "Sans engagement · Enfants et personnel illimités",
+    "footnote": "{days} jours d'essai gratuit · Sans engagement · Enfants et personnel illimités",
     "tiers": {
       "essential": {
         "name": "Essentiel",

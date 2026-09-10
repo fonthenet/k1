@@ -60,6 +60,7 @@
   },
   "filters": {
     "all": "Toutes",
+    "draft": "Brouillons",
     "unpaid": "Impayées",
     "partial": "Partielles",
     "paid": "Payées",
@@ -262,6 +263,8 @@
     "active": "Active",
     "inactive": "Inactive",
     "assignedCount": "{count, plural, =0 {Aucun enfant assigné} one {# enfant assigné} other {# enfants assignés}}",
+    "count": "{count, plural, =0 {Aucune formule} one {# formule} other {# formules}}",
+    "noneForStructure": "Aucune formule propre à cette structure.",
     "saved": "Formule enregistrée",
     "deleted": "Formule supprimée",
     "inUse": "Cette formule est assignée à des enfants. Désactivez-la plutôt que de la supprimer.",
@@ -275,6 +278,8 @@
       "nameAr": "Nom (arabe)",
       "amount": "Montant (DA)",
       "period": "Périodicité",
+      "structure": "Structure",
+      "structureHint": "Laissez sur « Tout l'établissement » pour un tarif que toutes les familles paient.",
       "planDescription": "Description",
       "active": "Formule active"
     },
@@ -314,6 +319,11 @@
       "successBilled": "Formule assignée — {amount} ajoutés à la facture de ce mois",
       "successNotBilled": "Formule assignée, mais la facture du mois n'a pas pu être mise à jour. À vérifier."
     }
+  },
+  "structures": {
+    "all": "Toutes les structures",
+    "filterAria": "Filtrer par structure",
+    "whole": "Tout l'établissement"
   },
   "arrears": {
     "title": "Impayés",

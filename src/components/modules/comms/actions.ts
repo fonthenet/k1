@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { flushPush } from "@/app/actions/push";
 import { addDaysStr, dateRange } from "./dates";
+import { onStructure } from "./structures";
 import { isOpenDayStr, toOpeningHours, type OpeningHours } from "@/lib/week";
 
 export type ActionResult =
@@ -37,12 +38,19 @@ const announcementSchema = z
   .object({
     title: z.string().trim().min(1).max(200),
     body: z.string().trim().max(5000),
-    audience: z.enum(["all", "parents", "staff", "class"]),
+    audience: z.enum(["all", "parents", "staff", "class", "structure"]),
     classId: z.uuid().nullable(),
+    structureId: z.uuid().nullable(),
     pinned: z.boolean(),
     publishAt: isoDateTime,
   })
-  .refine((d) => d.audience !== "class" || d.classId !== null, { message: "class required" });
+  .refine((d) => d.audience !== "class" || d.classId !== null, { message: "class required" })
+  // The same guard the class audience has, and for the same reason: an
+  // audience naming a structure with no structure named reaches nobody, and
+  // reads on the wall as if it had reached somebody.
+  .refine((d) => d.audience !== "structure" || d.structureId !== null, {
+    message: "structure required",
+  });
 
 export async function saveAnnouncement(
   announcementId: string | null,
@@ -58,6 +66,7 @@ export async function saveAnnouncement(
     body: d.body,
     audience: d.audience,
     class_id: d.audience === "class" ? d.classId : null,
+    structure_id: d.audience === "structure" ? d.structureId : null,
     pinned: d.pinned,
     publish_at: d.publishAt,
   };
@@ -211,11 +220,15 @@ const eventSchema = z
     description: optionalText,
     startAt: isoDateTime,
     endAt: isoDateTime.nullable(),
-    audience: z.enum(["all", "parents", "staff", "class"]),
+    audience: z.enum(["all", "parents", "staff", "class", "structure"]),
     classId: z.uuid().nullable(),
+    structureId: z.uuid().nullable(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   })
   .refine((d) => d.audience !== "class" || d.classId !== null, { message: "class required" })
+  .refine((d) => d.audience !== "structure" || d.structureId !== null, {
+    message: "structure required",
+  })
   .refine((d) => !d.endAt || Date.parse(d.endAt) >= Date.parse(d.startAt), {
     message: "end before start",
   });
@@ -236,6 +249,7 @@ export async function saveEvent(
     end_at: d.endAt,
     audience: d.audience,
     class_id: d.audience === "class" ? d.classId : null,
+    structure_id: d.audience === "structure" ? d.structureId : null,
     color: d.color,
   };
 
@@ -281,6 +295,8 @@ export async function deleteEvent(eventId: string): Promise<ActionResult> {
 
 const menuDaySchema = z.object({
   date: dateStr,
+  /** Whose lunch. Null = the whole building: one kitchen, one menu (0125). */
+  structureId: z.uuid().nullable(),
   breakfast: optionalText,
   lunch: optionalText,
   snack: optionalText,
@@ -295,18 +311,39 @@ export async function saveMenuDay(input: z.infer<typeof menuDaySchema>): Promise
   const d = parsed.data;
 
   const supabase = await createClient();
-  const { error } = await supabase.from("kg_menus").upsert(
-    {
-      tenant_id: ctx.tenant.id,
-      date: d.date,
-      breakfast: d.breakfast,
-      lunch: d.lunch,
-      snack: d.snack,
-      allergens: d.allergens,
-      published: d.published,
-    },
-    { onConflict: "tenant_id,date" }
-  );
+  const meals = {
+    breakfast: d.breakfast,
+    lunch: d.lunch,
+    snack: d.snack,
+    allergens: d.allergens,
+    published: d.published,
+  };
+
+  // Read, then write — deliberately not an upsert.
+  //
+  // A day's identity is now (tenant, date, coalesce(structure_id, …)): an
+  // EXPRESSION index, because null means the whole building and two nulls must
+  // collide instead of stacking two menus on one day. PostgREST's on_conflict
+  // takes bare column names, so it can name neither that index nor the plain
+  // (tenant, date) one it replaced.
+  const { data: existing, error: readErr } = await onStructure(
+    supabase.from("kg_menus").select("id").eq("tenant_id", ctx.tenant.id).eq("date", d.date),
+    d.structureId
+  ).maybeSingle();
+  if (readErr) return mapDbError(readErr);
+
+  const { error } = existing
+    ? await supabase
+        .from("kg_menus")
+        .update(meals)
+        .eq("id", existing.id)
+        .eq("tenant_id", ctx.tenant.id)
+    : await supabase.from("kg_menus").insert({
+        ...meals,
+        tenant_id: ctx.tenant.id,
+        date: d.date,
+        structure_id: d.structureId,
+      });
   if (error) return mapDbError(error);
   revalidatePath("/menus");
   return { ok: true };
@@ -315,6 +352,27 @@ export async function saveMenuDay(input: z.infer<typeof menuDaySchema>): Promise
 /** The crèche's own week, not a hardcoded one. See src/lib/week.ts. */
 function tenantHours(tenant: unknown): OpeningHours {
   return toOpeningHours((tenant as { opening_hours?: unknown }).opening_hours);
+}
+
+/**
+ * The week kept by the scope being planned for.
+ *
+ * A jardin that shuts on Thursday while the crèche stays open is the reason
+ * this is not simply the tenant's week: copying or publishing "the week" for
+ * the jardin must not invent a Thursday. kg_structure_hours already answers
+ * "its own hours, or the building's" — the coalesce is not restated here.
+ */
+async function scopeHours(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenant: { id: string },
+  structureId: string | null
+): Promise<OpeningHours> {
+  if (structureId === null) return tenantHours(tenant);
+  const { data } = await supabase.rpc("kg_structure_hours", {
+    p_structure: structureId,
+    p_tenant: tenant.id,
+  });
+  return data ? toOpeningHours(data) : tenantHours(tenant);
 }
 
 /** Dates in [start, start+6] the crèche actually opens on. */
@@ -339,46 +397,95 @@ function openDatesOfWeek(hours: OpeningHours, start: string): string[] {
  * Saturday-opening crèche's Saturday and invented menus for a Thursday-closed
  * one. Both ends now follow the stored opening hours.
  */
-export async function copyPreviousWeekMenus(weekStart: string): Promise<ActionResult> {
+export async function copyPreviousWeekMenus(
+  weekStart: string,
+  /** The scope being planned; null = the whole building. */
+  structureId: string | null = null
+): Promise<ActionResult> {
   const ctx = await requireStaff();
   if (!dateStr.safeParse(weekStart).success) return { ok: false, error: "invalid" };
-
-  const hours = tenantHours(ctx.tenant);
-  const targets = new Set(openDatesOfWeek(hours, weekStart));
-  if (targets.size === 0) return { ok: true, count: 0 };
+  if (structureId !== null && !z.uuid().safeParse(structureId).success)
+    return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
+  const targets = new Set(
+    openDatesOfWeek(await scopeHours(supabase, ctx.tenant, structureId), weekStart)
+  );
+  if (targets.size === 0) return { ok: true, count: 0 };
+
   const prevStart = addDaysStr(weekStart, -7);
-  const { data: prevRows, error } = await supabase
-    .from("kg_menus")
-    .select("date, breakfast, lunch, snack, allergens")
-    .eq("tenant_id", ctx.tenant.id)
-    .gte("date", prevStart)
-    .lte("date", addDaysStr(prevStart, 6));
+  const { data: prevRows, error } = await onStructure(
+    supabase
+      .from("kg_menus")
+      .select("date, breakfast, lunch, snack, allergens")
+      .eq("tenant_id", ctx.tenant.id)
+      .gte("date", prevStart)
+      .lte("date", addDaysStr(prevStart, 6)),
+    structureId
+  );
   if (error) return mapDbError(error);
   if (!prevRows || prevRows.length === 0) return { ok: true, count: 0 };
 
-  const rows = prevRows
+  const planned = prevRows
     .map((r) => ({ ...r, date: addDaysStr(r.date, 7) }))
     // A source day whose mirror is a closed day this week has nowhere to go.
     .filter((r) => targets.has(r.date))
     .map((r) => ({
-      tenant_id: ctx.tenant.id,
-      date: r.date,
-      breakfast: r.breakfast,
-      lunch: r.lunch,
-      snack: r.snack,
-      allergens: r.allergens,
-      published: false,
+      date: r.date as string,
+      meals: {
+        breakfast: r.breakfast,
+        lunch: r.lunch,
+        snack: r.snack,
+        allergens: r.allergens,
+        published: false,
+      },
     }));
-  if (rows.length === 0) return { ok: true, count: 0 };
+  if (planned.length === 0) return { ok: true, count: 0 };
 
-  const { error: upErr } = await supabase
-    .from("kg_menus")
-    .upsert(rows, { onConflict: "tenant_id,date" });
-  if (upErr) return mapDbError(upErr);
+  // The days of the target week that already exist for this scope. Same reason
+  // saveMenuDay reads first: the unique key is an expression index no
+  // on_conflict can name, so an overwrite has to be an update by id.
+  const { data: existing, error: exErr } = await onStructure(
+    supabase
+      .from("kg_menus")
+      .select("id, date")
+      .eq("tenant_id", ctx.tenant.id)
+      .gte("date", weekStart)
+      .lte("date", addDaysStr(weekStart, 6)),
+    structureId
+  );
+  if (exErr) return mapDbError(exErr);
+  const idByDate = new Map((existing ?? []).map((r) => [r.date as string, r.id as string]));
+
+  const fresh = planned
+    .filter((p) => !idByDate.has(p.date))
+    .map((p) => ({
+      ...p.meals,
+      tenant_id: ctx.tenant.id,
+      date: p.date,
+      structure_id: structureId,
+    }));
+  if (fresh.length > 0) {
+    const { error: insErr } = await supabase.from("kg_menus").insert(fresh);
+    if (insErr) return mapDbError(insErr);
+  }
+
+  const overwritten = await Promise.all(
+    planned
+      .filter((p) => idByDate.has(p.date))
+      .map((p) =>
+        supabase
+          .from("kg_menus")
+          .update(p.meals)
+          .eq("id", idByDate.get(p.date)!)
+          .eq("tenant_id", ctx.tenant.id)
+      )
+  );
+  const failed = overwritten.find((r) => r.error);
+  if (failed?.error) return mapDbError(failed.error);
+
   revalidatePath("/menus");
-  return { ok: true, count: rows.length };
+  return { ok: true, count: planned.length };
 }
 
 /**
@@ -391,22 +498,32 @@ export async function copyPreviousWeekMenus(weekStart: string): Promise<ActionRe
  * tells a parent the kitchen has decided there is nothing to eat, which is a
  * different statement from "we have not filled this in yet".
  */
-export async function publishWeekMenus(weekStart: string): Promise<ActionResult> {
+export async function publishWeekMenus(
+  weekStart: string,
+  /** The scope being published; null = the whole building. */
+  structureId: string | null = null
+): Promise<ActionResult> {
   const ctx = await requireStaff();
   if (!dateStr.safeParse(weekStart).success) return { ok: false, error: "invalid" };
-
-  const dates = openDatesOfWeek(tenantHours(ctx.tenant), weekStart);
-  if (dates.length === 0) return { ok: true, count: 0 };
+  if (structureId !== null && !z.uuid().safeParse(structureId).success)
+    return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("kg_menus")
-    .update({ published: true })
-    .eq("tenant_id", ctx.tenant.id)
-    .in("date", dates)
-    .eq("published", false)
-    .or("breakfast.not.is.null,lunch.not.is.null,snack.not.is.null")
-    .select("date");
+  const dates = openDatesOfWeek(await scopeHours(supabase, ctx.tenant, structureId), weekStart);
+  if (dates.length === 0) return { ok: true, count: 0 };
+
+  // Scoped, so publishing the jardin's week leaves the crèche's drafts alone —
+  // they are a different kitchen's plan and a different button's job.
+  const { data, error } = await onStructure(
+    supabase
+      .from("kg_menus")
+      .update({ published: true })
+      .eq("tenant_id", ctx.tenant.id)
+      .in("date", dates)
+      .eq("published", false)
+      .or("breakfast.not.is.null,lunch.not.is.null,snack.not.is.null"),
+    structureId
+  ).select("date");
   if (error) return mapDbError(error);
   revalidatePath("/menus");
   return { ok: true, count: data?.length ?? 0 };
@@ -490,7 +607,8 @@ export async function eventAudienceCount(
   /** The event's start. An event that has already started notifies nobody —
    *  the count has to know that, or it promises an audience the insert trigger
    *  will refuse. */
-  startAt: string | null
+  startAt: string | null,
+  structureId: string | null = null
 ): Promise<{ count: number; past: boolean }> {
   const ctx = await requireStaff();
   const supabase = await createClient();
@@ -499,6 +617,11 @@ export async function eventAudienceCount(
     p_audience: audience,
     p_class: classId,
     p_start_at: startAt,
+    // Sent only when it is the question being asked. p_structure has a default,
+    // so the four-argument call is still the one PostgREST resolves for every
+    // other audience — and stays resolvable on a database that has not learned
+    // the word yet.
+    ...(structureId !== null ? { p_structure: structureId } : {}),
   });
   // Decided here, not in the component: the client cannot read a clock during
   // render without breaking React's purity rule, and the server's clock is the

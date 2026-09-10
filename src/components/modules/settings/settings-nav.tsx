@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BellRing, Building2, CalendarDays, FileText, Link2 } from "lucide-react";
+import { BellRing, Building2, CalendarDays, CreditCard, FileText, Link2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ const ITEMS = [
   { href: "/settings/holidays", key: "holidays", exact: false, Icon: CalendarDays },
   { href: "/settings/documents", key: "documents", exact: false, Icon: FileText },
   { href: "/settings/notifications", key: "notifications", exact: false, Icon: BellRing },
+  { href: "/settings/subscription", key: "subscription", exact: false, Icon: CreditCard },
 ] as const;
 
 /** Pill navigation across the admin settings pages. */

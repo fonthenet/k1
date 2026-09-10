@@ -66,8 +66,74 @@ const childSchema = z.object({
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   gender: z.enum(["male", "female"]),
   classId: z.uuid().nullable(),
+  /**
+   * Which structure of the building (0125). Only consulted when there is no
+   * class: a class carries its own structure and wins, here and in the DB
+   * trigger. Optional so callers written before structures existed still
+   * parse — they get the single-structure default below, or null.
+   */
+  structureId: z.uuid().nullable().optional(),
   tagCode: tagCodeText,
 });
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * The structure a child record should carry, decided the way the DB decides it.
+ *
+ * A class names its structure, and the trigger `kg_sync_child_structure` will
+ * overwrite whatever the form said with the class's — so rather than let a
+ * silent override happen downstream, the same answer is computed here and
+ * the form's pick is ignored on purpose. With no class, the form's pick is
+ * checked against THIS tenant's active structures (the foreign key only says
+ * the id exists somewhere), and a one-structure crèche that never sees a
+ * structure control still gets its children filed on the only register
+ * there is. `undefined` means "leave the column alone" — an update that
+ * says nothing about the structure must not blank one.
+ */
+async function resolveStructure(
+  supabase: Supabase,
+  tenantId: string,
+  classId: string | null,
+  structureId: string | null | undefined
+): Promise<{ ok: true; structureId: string | null | undefined } | { ok: false }> {
+  if (classId) {
+    const { data: cls } = await supabase
+      .from("kg_classes")
+      .select("structure_id")
+      .eq("id", classId)
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    // A class from another tenant is an invalid input, not a class with no
+    // structure — RLS would refuse the write anyway, but say so plainly.
+    if (!cls) return { ok: false };
+    if (cls.structure_id) return { ok: true, structureId: cls.structure_id as string };
+    // A building-wide class says nothing about the structure; fall through to
+    // the form's pick, exactly as the trigger leaves the column untouched.
+  }
+  if (structureId) {
+    const { data: structure } = await supabase
+      .from("kg_structures")
+      .select("id")
+      .eq("id", structureId)
+      .eq("tenant_id", tenantId)
+      .eq("active", true)
+      .maybeSingle();
+    if (!structure) return { ok: false };
+    return { ok: true, structureId };
+  }
+  if (structureId === undefined) return { ok: true, structureId: undefined };
+  // Nothing chosen. In a building with exactly one structure that IS the
+  // answer; with several, an unplaced child stays unfiled until someone
+  // decides, which is visible and therefore fixable.
+  const { data: structures } = await supabase
+    .from("kg_structures")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("active", true)
+    .limit(2);
+  return { ok: true, structureId: structures?.length === 1 ? (structures[0].id as string) : null };
+}
 
 export async function createChild(input: z.input<typeof childSchema>): Promise<ActionResult> {
   const ctx = await requireStaff();
@@ -76,6 +142,11 @@ export async function createChild(input: z.input<typeof childSchema>): Promise<A
   const d = parsed.data;
 
   const supabase = await createClient();
+  // On create there is no column to "leave alone": an omitted structure is a
+  // null pick, which the single-structure default may still fill.
+  const structure = await resolveStructure(supabase, ctx.tenant.id, d.classId, d.structureId ?? null);
+  if (!structure.ok) return { ok: false, error: "invalid" };
+
   const { data, error } = await supabase
     .from("kg_children")
     .insert({
@@ -87,6 +158,7 @@ export async function createChild(input: z.input<typeof childSchema>): Promise<A
       dob: d.dob,
       gender: d.gender,
       class_id: d.classId,
+      structure_id: structure.structureId ?? null,
       tag_code: d.tagCode,
       status: "enrolled",
     })
@@ -122,6 +194,13 @@ export async function updateChild(
   const d = parsed.data;
 
   const supabase = await createClient();
+  // The edit form is not the way to change structure — that is kg_move_child's
+  // job, with its tariff closure and its transfer record. So a structure is
+  // written here only when the class implies it, or when the form named one
+  // for a child with no class; an omitted value leaves the column as it was.
+  const structure = await resolveStructure(supabase, ctx.tenant.id, d.classId, d.structureId);
+  if (!structure.ok) return { ok: false, error: "invalid" };
+
   const { error } = await supabase
     .from("kg_children")
     .update({
@@ -132,6 +211,7 @@ export async function updateChild(
       dob: d.dob,
       gender: d.gender,
       class_id: d.classId,
+      ...(structure.structureId !== undefined ? { structure_id: structure.structureId } : {}),
       tag_code: d.tagCode,
       blood_type: d.bloodType,
       notes: d.notes,
@@ -142,6 +222,154 @@ export async function updateChild(
   if (error) return mapDbError(error);
   revalidateChild(childId);
   return { ok: true };
+}
+
+// ===== Moving between structures (0140) =====
+
+/**
+ * What kg_move_child can refuse, spelt so the dialog can say it in the
+ * reader's language. The RPC raises these as exception text; anything it
+ * did not foresee is "error".
+ */
+export type MoveError =
+  | "invalid"
+  | "forbidden"
+  | "notFound"
+  | "unknownClass"
+  | "classNotInStructure"
+  | "unknownStructure"
+  | "noChange"
+  | "feePlanNotInStructure"
+  | "error";
+
+export type MoveResult =
+  | { ok: true; transferId: string }
+  | { ok: false; error: MoveError };
+
+function mapMoveError(message: string): MoveError {
+  const m = message.toLowerCase();
+  if (m.includes("class_not_in_structure")) return "classNotInStructure";
+  if (m.includes("fee_plan_not_in_structure")) return "feePlanNotInStructure";
+  if (m.includes("unknown_structure")) return "unknownStructure";
+  if (m.includes("unknown_class")) return "unknownClass";
+  if (m.includes("no_change")) return "noChange";
+  if (m.includes("not_found")) return "notFound";
+  if (m.includes("forbidden")) return "forbidden";
+  return "error";
+}
+
+const moveSchema = z.object({
+  childId: z.uuid(),
+  /** The target structure. Required: a move is INTO somewhere. */
+  structureId: z.uuid(),
+  /** Null = "no class for now" in the target structure. */
+  classId: z.uuid().nullable(),
+  /** Defaults to today in Algiers when omitted — the RPC applies kg_today(). */
+  effectiveDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  /** A monthly plan to start on the effective date; null keeps whatever
+   *  building-wide tariff survives the move and nothing else. */
+  feePlanId: z.uuid().nullable().optional(),
+  reason: z
+    .string()
+    .trim()
+    .max(1000)
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
+/**
+ * Move one child to another structure (and class) in one act.
+ *
+ * Everything that makes a move a move — closing the old structure's own
+ * tariff and activities, writing kg_child_transfers, telling the family —
+ * happens inside kg_move_child, in one transaction. This wrapper only checks
+ * the shape of the request and translates the RPC's refusals. Admin-only in
+ * SQL; checked here too so a non-admin gets a plain answer rather than a
+ * database error dressed as one.
+ */
+export async function moveChild(input: z.input<typeof moveSchema>): Promise<MoveResult> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  const parsed = moveSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const d = parsed.data;
+
+  const supabase = await createClient();
+  // Every argument is passed, defaults included: the Supabase client cannot
+  // tell two overloads apart that differ only by a defaulted parameter.
+  const { data, error } = await supabase.rpc("kg_move_child", {
+    p_child: d.childId,
+    p_structure: d.structureId,
+    p_class: d.classId,
+    p_effective: d.effectiveDate ?? null,
+    p_fee_plan: d.feePlanId ?? null,
+    p_reason: d.reason,
+    p_origin: "staff",
+  });
+  if (error) return { ok: false, error: mapMoveError(error.message) };
+  if (typeof data !== "string") return { ok: false, error: "error" };
+
+  revalidateChild(d.childId);
+  revalidatePath("/classes");
+  revalidatePath("/billing");
+  return { ok: true, transferId: data };
+}
+
+export interface MoveManyResult {
+  moved: number;
+  failed: { id: string; error: MoveError }[];
+}
+
+/**
+ * The roster's bulk move: the same verb, once per child.
+ *
+ * One RPC call per child rather than one big transaction, on purpose. The
+ * transfers are independent facts — twelve children moved and one refused
+ * (already there, say) is a result the director can act on, whereas a single
+ * rollback would undo twelve correct moves because of the thirteenth. No
+ * tariff is chosen here: a tariff is a decision about one family.
+ */
+export async function moveChildren(
+  childIds: string[],
+  structureId: string,
+  classId: string | null,
+  effectiveDate: string | null,
+  reason: string | null
+): Promise<MoveManyResult> {
+  const ctx = await requireStaff();
+  const ids = [...new Set(childIds)].filter((id) => z.uuid().safeParse(id).success);
+  if (!ctx.isAdmin) return { moved: 0, failed: ids.map((id) => ({ id, error: "forbidden" })) };
+  if (ids.length === 0 || !z.uuid().safeParse(structureId).success) {
+    return { moved: 0, failed: ids.map((id) => ({ id, error: "invalid" })) };
+  }
+  const reasonText = reason?.trim().slice(0, 1000) || null;
+  const effective = effectiveDate && /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) ? effectiveDate : null;
+
+  const supabase = await createClient();
+  const result: MoveManyResult = { moved: 0, failed: [] };
+  for (const id of ids) {
+    const { error } = await supabase.rpc("kg_move_child", {
+      p_child: id,
+      p_structure: structureId,
+      p_class: classId,
+      p_effective: effective,
+      p_fee_plan: null,
+      p_reason: reasonText,
+      p_origin: "staff",
+    });
+    if (error) result.failed.push({ id, error: mapMoveError(error.message) });
+    else result.moved += 1;
+  }
+
+  revalidatePath("/children");
+  for (const id of ids) revalidatePath(`/children/${id}`);
+  revalidatePath("/classes");
+  revalidatePath("/billing");
+  return result;
 }
 
 /**

@@ -3,7 +3,12 @@
     "all": "Tout le monde",
     "parents": "Parents",
     "staff": "Équipe",
-    "class": "Classe"
+    "class": "Classe",
+    "structure": "Structure"
+  },
+  "structures": {
+    "wholeBuilding": "Tout le bâtiment",
+    "scopeLabel": "Choisir la structure"
   },
   "severity": {
     "minor": "Mineur",
@@ -37,7 +42,9 @@
       "class": "Classe",
       "chooseClass": "Choisir une classe",
       "pin": "Épingler en haut du fil",
-      "publishAt": "Date de publication"
+      "publishAt": "Date de publication",
+      "structure": "Structure",
+      "chooseStructure": "Choisir une structure"
     },
     "createDialog": {
       "title": "Nouvelle annonce",
@@ -106,7 +113,9 @@
       "chooseClass": "Choisir une classe",
       "color": "Couleur",
       "willNotify": "{count, plural, =0 {Personne ne sera notifié} one {# personne sera notifiée} other {# personnes seront notifiées}}",
-      "pastNoNotify": "Cette date est déjà passée — personne ne sera notifié. L’événement reste au calendrier."
+      "pastNoNotify": "Cette date est déjà passée — personne ne sera notifié. L’événement reste au calendrier.",
+      "structure": "Structure",
+      "chooseStructure": "Choisir une structure"
     },
     "createDialog": {
       "title": "Nouvel événement",
@@ -149,7 +158,8 @@
       "publishedHint": "Un menu non publié reste visible uniquement par l'équipe.",
       "submit": "Enregistrer",
       "detected": "Détecté dans le menu, non coché : {list}",
-      "addDetected": "Ajouter"
+      "addDetected": "Ajouter",
+      "descriptionFor": "Renseignez les repas du jour pour {structure} et cochez les allergènes présents."
     },
     "toasts": {
       "saved": "Menu enregistré",

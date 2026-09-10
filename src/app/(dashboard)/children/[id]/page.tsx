@@ -27,12 +27,16 @@ import { requireStaff, signedMediaUrl } from "@/lib/tenant";
 import { ageFromDob, childDisplayName, formatDZD, formatDate, formatTime, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type {
-  AllergySeverity, Attendance, AttendanceStatus, Child, FeePeriod, Gender, InvoiceStatus,
+  Attendance, AttendanceStatus, Child, FeePeriod, Gender, InvoiceStatus,
 } from "@/lib/types";
 import { ChildPhotoControl } from "@/components/modules/children/photo-controls";
 import { ConsentsSection } from "@/components/modules/children/consents-section";
 import { DocumentsSection } from "@/components/modules/children/documents-section";
 import { EditChildDialog } from "@/components/modules/children/edit-child-dialog";
+import { MoveChildButton } from "@/components/modules/children/move-child-dialog";
+import { TransferHistory } from "@/components/modules/children/transfer-history";
+import { centerTypeOption } from "@/components/modules/settings/center-types";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import type { GuardianCredentialState } from "@/components/modules/children/guardian-credentials-control";
 import { GuardiansSection } from "@/components/modules/children/guardians-section";
 import { HealthSection } from "@/components/modules/children/health-section";
@@ -51,15 +55,19 @@ import { algiersToday } from "@/components/modules/billing/dates";
 import { AssignFeeDialog } from "@/components/modules/billing/assign-fee-dialog";
 import { isOpenInvoice, owedHref } from "@/components/modules/billing/owed-link";
 import type { PlanOption } from "@/components/modules/billing/billing-types";
+import { AllergyBadge } from "@/components/modules/children/allergy-badge";
 import {
   attendanceStatusClasses,
   childStatusClasses,
   CONSENT_TYPES,
   invoiceStatusClasses,
-  severityClasses,
   type AllergyRow,
   type ChildDocumentRow,
   type ChildHealthRow,
+  type ChildTransferRow,
+  type ClassOption,
+  type CurrentFeeRow,
+  type MoveFeePlanOption,
   type ConsentState,
   type ConsentType,
   type GuardianLink,
@@ -148,7 +156,29 @@ type FeeJoinRow = {
   discount_pct: number;
   start_date: string;
   end_date: string | null;
-  kg_fee_plans: { name: string; name_ar: string | null; amount: number; period: FeePeriod } | null;
+  kg_fee_plans: {
+    name: string;
+    name_ar: string | null;
+    amount: number;
+    period: FeePeriod;
+    /** The plan's structure; null = the whole building. Decides whether a
+     *  move ends it (0140). */
+    structure_id: string | null;
+  } | null;
+};
+
+/** One kg_child_transfers row with its joins, before the names are resolved. */
+type TransferJoinRow = {
+  id: string;
+  effective_date: string;
+  reason: string | null;
+  origin: "staff" | "parent_request";
+  moved_by: string | null;
+  created_at: string;
+  from_structure: { name: string; name_ar: string | null; color: string } | null;
+  to_structure: { name: string; name_ar: string | null; color: string } | null;
+  from_class: { id: string; name: string; name_ar: string | null } | null;
+  to_class: { id: string; name: string; name_ar: string | null } | null;
 };
 
 type InvoiceRow = {
@@ -266,7 +296,7 @@ export default async function ChildProfilePage({
     ctx.isFinance
       ? supabase
           .from("kg_fee_plans")
-          .select("id, name, name_ar, amount, period, active")
+          .select("id, name, name_ar, amount, period, active, structure_id")
           .eq("tenant_id", ctx.tenant.id)
           .eq("active", true)
           .eq("period", "monthly")
@@ -276,7 +306,7 @@ export default async function ChildProfilePage({
       ? supabase
           .from("kg_child_fees")
           .select(
-            "id, fee_plan_id, custom_amount, discount_pct, start_date, end_date, kg_fee_plans(name, name_ar, amount, period)"
+            "id, fee_plan_id, custom_amount, discount_pct, start_date, end_date, kg_fee_plans(name, name_ar, amount, period, structure_id)"
           )
           .eq("child_id", id)
           .eq("tenant_id", ctx.tenant.id)
@@ -506,6 +536,17 @@ export default async function ChildProfilePage({
     ...p,
     amount: Number(p.amount),
   }));
+  // The same plans, tagged with their structure, for the move dialog to
+  // offer only the target's own and the building's.
+  const movePlans: MoveFeePlanOption[] = (
+    (planRows ?? []) as (PlanOption & { structure_id: string | null })[]
+  ).map((p) => ({
+    id: p.id,
+    name: p.name,
+    name_ar: p.name_ar,
+    amount: Number(p.amount),
+    structure_id: p.structure_id ?? null,
+  }));
   // The live monthly assignment, so the dialog opens on what this child is
   // actually on rather than empty.
   const currentFee = fees.find(
@@ -518,6 +559,22 @@ export default async function ChildProfilePage({
       f.kg_fee_plans?.period === "monthly" &&
       (f.end_date === null || f.end_date > billingToday)
   );
+  // Every live monthly tariff, with its plan's structure, so the move dialog
+  // can say which of them the move will stop before the director confirms.
+  const currentFees: CurrentFeeRow[] = fees
+    .filter(
+      (f) =>
+        f.kg_fee_plans?.period === "monthly" &&
+        (f.end_date === null || f.end_date > billingToday)
+    )
+    .map((f) => ({
+      id: f.id,
+      planId: f.fee_plan_id,
+      planName: f.kg_fee_plans!.name,
+      planNameAr: f.kg_fee_plans!.name_ar,
+      amount: Number(f.custom_amount ?? f.kg_fee_plans!.amount),
+      structureId: f.kg_fee_plans!.structure_id ?? null,
+    }));
   const invoices = (invoicesRes.data ?? []) as InvoiceRow[];
 
   // What this child owes, right now. Computed from kg_child_balance rather than
@@ -579,16 +636,74 @@ export default async function ChildProfilePage({
   const prevMonth = shiftMonth(month, -1);
   const nextMonth = shiftMonth(month, 1);
 
-  const classes = child.kg_classes
-    ? [{ id: child.kg_classes.id, name: child.kg_classes.name, name_ar: child.kg_classes.name_ar, color: child.kg_classes.color }]
-    : [];
-  // EditChildDialog needs the full class list to reassign classes.
-  const { data: allClasses } = await supabase
-    .from("kg_classes")
-    .select("id, name, name_ar, color")
-    .eq("tenant_id", ctx.tenant.id)
-    .order("name");
-  const classOptions = allClasses ?? classes;
+  // The whole building's rooms and structures, on purpose unscoped: the
+  // rail may be narrowed to the crèche, but the point of the move dialog is
+  // the OTHER side, and the edit dialog's grouping is what tells the reader
+  // which side a room is on. Age bands ride along so the move dialog can
+  // propose a room. The transfers are this child's parcours (0140).
+  const [{ data: allClasses }, { data: structureRows }, { data: transferRows }] =
+    await Promise.all([
+      supabase
+        .from("kg_classes")
+        .select("id, name, name_ar, color, structure_id, age_min_months, age_max_months")
+        .eq("tenant_id", ctx.tenant.id)
+        .order("name"),
+      supabase
+        .from("kg_structures")
+        .select("id, name, name_ar, center_type, color, sort_order, active")
+        .eq("tenant_id", ctx.tenant.id)
+        .eq("active", true)
+        .order("sort_order")
+        .order("name"),
+      supabase
+        .from("kg_child_transfers")
+        .select(
+          "id, effective_date, reason, origin, moved_by, created_at, " +
+            "from_structure:kg_structures!kg_child_transfers_from_structure_id_fkey(name, name_ar, color), " +
+            "to_structure:kg_structures!kg_child_transfers_to_structure_id_fkey(name, name_ar, color), " +
+            "from_class:kg_classes!kg_child_transfers_from_class_id_fkey(id, name, name_ar), " +
+            "to_class:kg_classes!kg_child_transfers_to_class_id_fkey(id, name, name_ar)"
+        )
+        .eq("child_id", id)
+        .eq("tenant_id", ctx.tenant.id)
+        .order("effective_date", { ascending: false })
+        .order("created_at", { ascending: false }),
+    ]);
+  const classOptions: ClassOption[] = (allClasses ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    name_ar: c.name_ar,
+    color: c.color,
+    structure_id: c.structure_id ?? null,
+    age_min_months: c.age_min_months ?? null,
+    age_max_months: c.age_max_months ?? null,
+  }));
+  const structures = (structureRows ?? []) as Structure[];
+  const multiStructure = structures.length > 1;
+  const structure = structures.find((s) => s.id === child.structure_id) ?? null;
+  const StructureIcon = structure ? centerTypeOption(structure.center_type).Icon : null;
+
+  // Who moved the child, by name. kg_profiles is readable across the tenant
+  // (pr_sel), so one query resolves every row; an account since deleted
+  // simply reads as nobody, which is the truth.
+  const transferJoins = ((transferRows ?? []) as unknown as TransferJoinRow[]);
+  const moverIds = [...new Set(transferJoins.map((r) => r.moved_by).filter((v): v is string => !!v))];
+  const { data: moverRows } = moverIds.length > 0
+    ? await supabase.from("kg_profiles").select("id, full_name").in("id", moverIds)
+    : { data: [] as { id: string; full_name: string | null }[] };
+  const moverName = new Map((moverRows ?? []).map((m) => [m.id, m.full_name]));
+  const transfers: ChildTransferRow[] = transferJoins.map((r) => ({
+    id: r.id,
+    effective_date: r.effective_date,
+    from_structure: r.from_structure,
+    to_structure: r.to_structure,
+    from_class: r.from_class,
+    to_class: r.to_class,
+    reason: r.reason,
+    origin: r.origin === "parent_request" ? "parent_request" : "staff",
+    movedBy: (r.moved_by && moverName.get(r.moved_by)) || null,
+    created_at: r.created_at,
+  }));
 
   return (
     <div>
@@ -615,13 +730,29 @@ export default async function ChildProfilePage({
             dob: child.dob,
             gender: child.gender as Gender,
             class_id: child.class_id,
+            structure_id: child.structure_id,
             tag_code: child.tag_code,
             blood_type: child.blood_type,
             notes: child.notes,
             enrollment_date: child.enrollment_date,
           }}
           classes={classOptions}
+          structures={structures}
         />
+        {/* The verb for the crèche→école move (0140). Admins only, and only
+            where there is somewhere to move TO — a one-structure crèche
+            changes class from the edit dialog as it always did. */}
+        {ctx.isAdmin && multiStructure && (
+          <MoveChildButton
+            childIds={[child.id]}
+            structures={structures}
+            classes={classOptions}
+            currentStructureId={child.structure_id}
+            dob={child.dob}
+            currentFees={currentFees}
+            feePlans={movePlans}
+          />
+        )}
         <StatusActions childId={child.id} status={child.status} />
       </PageHeader>
 
@@ -690,32 +821,31 @@ export default async function ChildProfilePage({
                   {t("billing.settled")}
                 </Badge>
               )}
-              {/* The badge names a count; the answer to "which three?" is one tab
-                  away, and reading it was the reason anybody looked. */}
-              {allergies.length > 0 && (
-                <Badge
-                  asChild
-                  variant="tinted"
-                  className={severityClasses(
-                    allergies.reduce<AllergySeverity>(
-                      (worst, a) =>
-                        ["mild", "moderate", "severe"].indexOf(a.severity) >
-                        ["mild", "moderate", "severe"].indexOf(worst)
-                          ? a.severity
-                          : worst,
-                      "mild"
-                    )
-                  )}
-                >
-                  <Link href={`/children/${child.id}?tab=health`}>
-                    {t("allergyBadge", { count: allergies.length })}
-                  </Link>
-                </Badge>
-              )}
+              {/* The badge names a count; "which three?" used to be a tab away,
+                  and reading it was the reason anybody looked. It now answers
+                  on hover, and still links for the tablet at the door. */}
+              <AllergyBadge
+                allergens={allergies}
+                href={`/children/${child.id}?tab=health`}
+              />
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
               <span>{t(`gender.${child.gender}`)}</span>
               <span className="tabular-nums">{formatDate(child.dob, locale)}</span>
+              {/* Which side of the building. Only said when the building
+                  has sides: the structure's own colour and vertical icon,
+                  the same chip the sidebar switcher draws. */}
+              {multiStructure && structure && StructureIcon && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-card/70 px-2.5 py-0.5 ring-1 ring-inset ring-border">
+                  <span
+                    className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
+                    style={{ backgroundColor: structure.color }}
+                    aria-hidden
+                  />
+                  <StructureIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                  {structureName(structure, locale)}
+                </span>
+              )}
               {className && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-card/70 px-2.5 py-0.5 ring-1 ring-inset ring-border">
                   {/* per-class colour comes from kg_classes.color (user data) */}
@@ -814,6 +944,10 @@ export default async function ChildProfilePage({
               </dl>
             </CardContent>
           </Card>
+
+          {/* The parcours: every move between structures, as the register
+              will read it. Shown wherever a move is possible or has happened. */}
+          {(multiStructure || transfers.length > 0) && <TransferHistory rows={transfers} />}
 
           <GuardiansSection
             tenantId={ctx.tenant.id}

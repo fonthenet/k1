@@ -131,6 +131,10 @@
     "event": {
       "title": "{name}",
       "body": "{date} · {time} · {className} · {description}"
+    },
+    "structure_changed": {
+      "title": "Changement de structure — {child}",
+      "body": "{child} est désormais dans {structure} · {className}"
     }
   },
   "push": {

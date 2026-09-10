@@ -14,7 +14,7 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { requireStaff } from "@/lib/tenant";
+import { requireStaff, scoped } from "@/lib/tenant";
 import { childDisplayName, formatDZD, formatDate, formatTime, initials, intlLocale } from "@/lib/format";
 import type {
   AttendanceStatus,
@@ -133,51 +133,72 @@ export default async function DashboardPage() {
     annRes,
     arrearsRes,
   ] = await Promise.all([
-    supabase.rpc("kg_dashboard_stats", { p_tenant: tid }),
+    // Both arguments always, so PostgREST picks the two-argument overload
+    // rather than having to choose between two that a defaulted parameter
+    // would have made ambiguous (PGRST203). 0139.
+    supabase.rpc("kg_dashboard_stats", { p_tenant: tid, p_structure: ctx.structureId }),
     supabase
       .from("kg_attendance")
       .select("child_id, status, check_in_at, check_out_at, picked_up_by, absence_reason")
       .eq("tenant_id", tid)
       .eq("date", today),
-    supabase
-      .from("kg_children")
-      .select(
-        "id, first_name, last_name, first_name_ar, last_name_ar, class_id",
-      )
-      .eq("tenant_id", tid)
-      .eq("status", "enrolled")
-      .order("first_name"),
+    scoped(
+      supabase
+        .from("kg_children")
+        .select(
+          "id, first_name, last_name, first_name_ar, last_name_ar, class_id",
+        )
+        .eq("tenant_id", tid)
+        .eq("status", "enrolled")
+        .order("first_name"),
+      ctx
+    ),
     supabase.from("kg_child_allergies").select("child_id").eq("tenant_id", tid),
-    supabase
-      .from("kg_classes")
-      .select("id, name, name_ar, color")
-      .eq("tenant_id", tid),
-    supabase
-      .from("kg_transactions")
-      .select("kind, amount, date")
-      .eq("tenant_id", tid)
-      .gte("date", sixMonthsAgo),
+    scoped(
+      supabase
+        .from("kg_classes")
+        .select("id, name, name_ar, color")
+        .eq("tenant_id", tid),
+      ctx
+    ),
+    scoped(
+      supabase
+        .from("kg_transactions")
+        .select("kind, amount, date")
+        .eq("tenant_id", tid)
+        .gte("date", sixMonthsAgo),
+      ctx
+    ),
+    // NOT scoped, and neither is the allergy read above. An incident without a
+    // parent acknowledgement is chased by whoever is on duty, not by whoever
+    // happens to be reading the école's half of the dashboard.
     supabase
       .from("kg_incidents")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tid)
       .is("parent_ack_at", null),
-    supabase
-      .from("kg_holidays")
-      .select("id, name, name_ar, date")
-      .eq("tenant_id", tid)
-      .eq("tentative", true)
-      .gte("date", today)
-      .order("date")
-      .limit(10),
-    supabase
-      .from("kg_announcements")
-      .select("id, title, body, audience, pinned, publish_at")
-      .eq("tenant_id", tid)
-      .lte("publish_at", now.toISOString())
-      .order("pinned", { ascending: false })
-      .order("publish_at", { ascending: false })
-      .limit(4),
+    scoped(
+      supabase
+        .from("kg_holidays")
+        .select("id, name, name_ar, date")
+        .eq("tenant_id", tid)
+        .eq("tentative", true)
+        .gte("date", today)
+        .order("date")
+        .limit(10),
+      ctx
+    ),
+    scoped(
+      supabase
+        .from("kg_announcements")
+        .select("id, title, body, audience, pinned, publish_at")
+        .eq("tenant_id", tid)
+        .lte("publish_at", now.toISOString())
+        .order("pinned", { ascending: false })
+        .order("publish_at", { ascending: false })
+        .limit(4),
+      ctx
+    ),
     // Money is finance-only: an educator's dashboard never even asks who owes
     // what (and `kg_arrears_summary` would raise `forbidden` if it did).
     ctx.isFinance

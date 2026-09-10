@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Star, UserRoundPlus, X } from "lucide-react";
@@ -10,34 +10,36 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { initialsFromName } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { addClassStaff, removeClassStaff, setMainClassStaff } from "./actions";
-import type { AssignedStaff, StaffOption } from "./class-types";
+import { removeClassStaff, setMainClassStaff } from "./actions";
+import { AssignStaffDialog, type AssignableStaff } from "./assign-staff-dialog";
+import type { AssignedStaff } from "./class-types";
 
-/** Staff assignment card for a class: list, add, remove, mark main educator. */
+/**
+ * The team on a class: who is on it, who leads it, and one button to change
+ * both. The row buttons (star, remove) stay for the quick single change; the
+ * dialog is for composing the team, and is the only place that shows where
+ * each person already works.
+ */
 export function ClassStaffCard({
   classId,
+  className,
   assigned,
-  available,
+  staff,
   canManage,
 }: {
   classId: string;
+  /** Locale-resolved class name, for the dialog title. */
+  className: string;
   assigned: AssignedStaff[];
-  available: StaffOption[];
+  /** Every active member, each with the other classes they are already on. */
+  staff: AssignableStaff[];
   canManage: boolean;
 }) {
   const t = useTranslations("classes");
   const router = useRouter();
-  const [picked, setPicked] = useState("");
   const [pending, startTransition] = useTransition();
 
   function run(fn: () => Promise<{ ok: boolean }>, successMsg: string) {
@@ -52,16 +54,6 @@ export function ClassStaffCard({
     });
   }
 
-  function add() {
-    if (!picked) return;
-    const membershipId = picked;
-    setPicked("");
-    run(
-      () => addClassStaff(classId, membershipId, assigned.length === 0),
-      t("toasts.staffAdded")
-    );
-  }
-
   return (
     <Card className="shadow-sm">
       <CardHeader>
@@ -71,8 +63,21 @@ export function ClassStaffCard({
           </span>
           {t("detail.staff.title")}
         </CardTitle>
+        {canManage && (
+          // In the header, not under the list: this card is full width and
+          // sits right under the class name, so the button is where the eye
+          // lands — the old one was the last control on the page.
+          <CardAction>
+            <AssignStaffDialog
+              classId={classId}
+              className={className}
+              staff={staff}
+              assigned={assigned}
+            />
+          </CardAction>
+        )}
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent>
         {assigned.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-4 text-center">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
@@ -81,12 +86,16 @@ export function ClassStaffCard({
             <p className="text-sm text-muted-foreground">{t("detail.staff.empty")}</p>
           </div>
         )}
+        {/* One row per person, side by side once there is room: the card is
+            as wide as the page now, and a single column of three people
+            would leave most of it empty. */}
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {assigned.map((s) => (
           <div
             key={s.membershipId}
             className={cn(
               "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border p-2.5 transition-colors",
-              s.isMain ? "border-gold/40 bg-gold/5" : "border-transparent hover:bg-muted/40"
+              s.isMain ? "border-gold/40 bg-gold/5" : "border-border hover:bg-muted/40"
             )}
           >
             <Avatar className="size-9 ring-1 ring-border">
@@ -101,7 +110,8 @@ export function ClassStaffCard({
               <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
                 <Link
                   href={`/staff/${s.membershipId}`}
-                  className="text-sm font-semibold text-pretty hover:underline"
+                  dir="auto"
+                  className="text-start text-sm font-semibold text-pretty hover:underline"
                 >
                   {s.name}
                 </Link>
@@ -113,7 +123,7 @@ export function ClassStaffCard({
                 )}
               </div>
               {s.subtitle && (
-                <div className="truncate text-xs text-muted-foreground">{s.subtitle}</div>
+                <div dir="auto" className="truncate text-start text-xs text-muted-foreground">{s.subtitle}</div>
               )}
             </div>
             {canManage && (
@@ -150,41 +160,7 @@ export function ClassStaffCard({
             )}
           </div>
         ))}
-
-        {canManage && (
-          // Stacked, not side by side: this card sits in a one-third column and
-          // Card is overflow-hidden, so a row that does not fit is not wrapped —
-          // it is cut off. At sm and up there is room to sit them on one line.
-          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
-            <Select value={picked} onValueChange={setPicked}>
-              <SelectTrigger className="w-full min-w-0 sm:flex-1">
-                <SelectValue placeholder={t("detail.staff.selectPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {available.length === 0 ? (
-                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                    {t("detail.staff.noneAvailable")}
-                  </div>
-                ) : (
-                  available.map((s) => (
-                    <SelectItem key={s.membershipId} value={s.membershipId}>
-                      {s.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              className="w-full shrink-0 sm:w-auto"
-              onClick={add}
-              disabled={!picked || pending}
-            >
-              <UserRoundPlus data-icon="inline-start" />
-              {t("detail.staff.add")}
-            </Button>
-          </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

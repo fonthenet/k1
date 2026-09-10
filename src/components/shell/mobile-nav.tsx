@@ -14,7 +14,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NavLinks } from "./nav-links";
+import { StructureSwitcher } from "./structure-switcher";
 import type { KgRole } from "@/lib/types";
+import type { Structure } from "@/components/modules/classes/class-types";
 import { latinInitial } from "@/lib/format";
 
 /**
@@ -33,10 +35,14 @@ export function MobileNav({
   role,
   tenantName,
   logoUrl,
+  structures,
+  activeStructureId,
 }: {
   role: KgRole;
   tenantName: string;
   logoUrl?: string | null;
+  structures: Structure[];
+  activeStructureId: string | null;
 }) {
   const t = useTranslations("common");
   const locale = useLocale();
@@ -83,6 +89,11 @@ export function MobileNav({
             <div className="truncate text-xs text-muted-foreground">{t("appName")}</div>
           </div>
         </SheetHeader>
+        {structures.length > 1 && (
+          <div className="px-2.5 pt-3 pb-1">
+            <StructureSwitcher structures={structures} activeId={activeStructureId} />
+          </div>
+        )}
         <nav className="no-scrollbar flex-1 space-y-0.5 overflow-y-auto px-2.5 pb-4">
           <NavLinks role={role} onNavigate={() => setOpen(false)} />
         </nav>

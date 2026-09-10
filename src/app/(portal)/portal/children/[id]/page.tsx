@@ -11,6 +11,8 @@ import {
   IdCard,
   Moon,
   Phone,
+  Hourglass,
+  Route,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -31,13 +33,20 @@ import type { AllergySeverity, AttendanceStatus, CheckinMethod, FeePeriod } from
 import {
   algiersMonth,
   classLabel,
+  getChildTransfers,
   getMyChildren,
   getMyGuardianBadge,
+  getPendingTransfer,
+  getPortalClasses,
+  getStructures,
   monthRange,
   shiftMonth,
   toCheckinDialogChildren,
   type PortalChildRow,
 } from "@/components/modules/portal/data";
+import { StructureChip } from "@/components/modules/portal/structure-chip";
+import { RequestTransferDialog } from "@/components/modules/portal/request-transfer-dialog";
+import { structureName } from "@/components/modules/classes/class-types";
 import {
   attendanceStatusClasses,
   eatenKey,
@@ -210,7 +219,7 @@ function worstSeverity(rows: PortalAllergy[]): AllergySeverity {
   );
 }
 
-/** Small tinted square that fronts a journal line or a section title. */
+/** Small tinted square that fronts a journal line or a section heading. */
 function IconTile({ tone, children }: { tone: "primary" | "gold" | "danger"; children: React.ReactNode }) {
   return (
     <span
@@ -286,7 +295,7 @@ export default async function PortalChildDetailPage({
   // Allergies always load: the header carries the safety badge on every tab.
   // So does the door badge, which is per guardian and therefore fetched once
   // here — the header raises it for this child without another query.
-  const [photoUrls, badge, { data: allergyRows }] = await Promise.all([
+  const [photoUrls, badge, { data: allergyRows }, structures, transfers] = await Promise.all([
     // Every sibling's face, not only this child's: the corner badge opens on
     // the whole family, and a tab without a photo is one a parent has to read
     // instead of recognise. These are storage signatures over children this
@@ -299,8 +308,29 @@ export default async function PortalChildDetailPage({
       .eq("child_id", child.id)
       .eq("tenant_id", ctx.tenant.id)
       .order("created_at"),
+    getStructures(supabase, ctx),
+    // The child's moves between structures — read on every tab because the
+    // "Parcours" block sits in the header, and a family whose child moved
+    // in September should see it whichever tab they land on.
+    getChildTransfers(supabase, child.id),
   ]);
   const allergies = (allergyRows ?? []) as PortalAllergy[];
+
+  // The structure is a fact about this child only in a building that has
+  // more than one; in the ordinary crèche the word never appears. Asking to
+  // move needs the rooms of the other side and the state of any request
+  // already filed — both fetched only when there is somewhere to move to.
+  const multiStructure = structures.length > 1;
+  const structureById = new Map(structures.map((s) => [s.id, s]));
+  const childStructure = child.structure_id ? structureById.get(child.structure_id) ?? null : null;
+  const canAskToMove = multiStructure && child.status === "enrolled";
+  const [classOptions, pendingTransfer] = await Promise.all([
+    canAskToMove ? getPortalClasses(supabase, ctx) : Promise.resolve([]),
+    canAskToMove ? getPendingTransfer(supabase, child) : Promise.resolve(null),
+  ]);
+  const pendingTarget = pendingTransfer?.toStructureId
+    ? structureById.get(pendingTransfer.toStructureId) ?? null
+    : null;
 
   const photoUrl = photoUrls[children.findIndex((c) => c.id === child.id)] ?? null;
   // Today's attendance is not loaded on this page (the attendance tab fetches a
@@ -645,6 +675,10 @@ export default async function PortalChildDetailPage({
                     {cls}
                   </span>
                 )}
+                {/* Which side of the building, only when there are two. */}
+                {multiStructure && childStructure && (
+                  <StructureChip structure={childStructure} locale={locale} />
+                )}
               </div>
 
               {/* What is outstanding for THIS child, on every tab of their
@@ -681,6 +715,75 @@ export default async function PortalChildDetailPage({
             </div>
           </CardContent>
         </Card>
+
+        {/* ===== Asking to move to the other structure =====
+             One control, or the state of the request it already sent — never
+             both. The request goes to the director's queue; the button is not
+             offered while one is open, because the RPC would refuse a second
+             and a family should not have to learn that from an error. */}
+        {canAskToMove && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {pendingTransfer ? (
+              <span className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-warning/40 bg-warning/15 px-3 text-sm font-medium text-foreground">
+                <Hourglass className="size-4 shrink-0" aria-hidden />
+                {pendingTarget
+                  ? t("transfer.pendingTo", { structure: structureName(pendingTarget, locale) })
+                  : t("transfer.pending")}
+              </span>
+            ) : (
+              <RequestTransferDialog
+                childId={child.id}
+                childName={name}
+                dob={child.dob}
+                currentStructureId={child.structure_id}
+                structures={structures}
+                classes={classOptions}
+              />
+            )}
+          </div>
+        )}
+
+        {/* ===== Parcours — the moves the child has made, read-only =====
+             Written only by kg_move_child, so this is the record the register
+             prints, not a draft. A family sees their own history; a building
+             with one structure never has rows here and shows nothing. */}
+        {transfers.length > 0 && (
+          <Card className="mt-3 shadow-sm">
+            <CardHeader className="flex flex-row items-center gap-3">
+              <IconTile tone="primary">
+                <Route />
+              </IconTile>
+              <CardTitle className="text-base font-semibold">{t("transfer.historyTitle")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ol className="grid gap-2 text-sm">
+                {transfers.map((tr) => {
+                  const to = tr.to_structure_id ? structureById.get(tr.to_structure_id) ?? null : null;
+                  const from = tr.from_structure_id ? structureById.get(tr.from_structure_id) ?? null : null;
+                  return (
+                    <li key={tr.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {formatDate(tr.effective_date, locale)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        {to ? (
+                          <StructureChip structure={to} locale={locale} className="font-medium" />
+                        ) : (
+                          <span className="font-medium">{t("transfer.historyUnknown")}</span>
+                        )}
+                        {from && (
+                          <span className="ms-2 text-xs text-muted-foreground">
+                            {t("transfer.historyFrom", { structure: structureName(from, locale) })}
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* ===== Tabs (URL-driven so each tab loads only its own data) ===== */}

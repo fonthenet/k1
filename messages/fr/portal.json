@@ -111,7 +111,8 @@
     "description": "Les demandes encore chez l'administration restent ici jusqu'à la réponse du jardin d'enfants.",
     "sentOn": "Envoyée le {date}",
     "processing": "Dossier reçu — en cours de traitement. La crèche vous contactera.",
-    "closed": "Dossier traité — contactez la crèche pour la suite."
+    "closed": "Dossier traité — contactez la crèche pour la suite.",
+    "processingTransfer": "Demande de changement de structure reçue — la direction confirmera."
   },
   "addChild": {
     "trigger": "Inscrire un autre enfant",
@@ -128,19 +129,31 @@
       "title": "Demande envoyée",
       "message": "{name} a bien reçu votre demande d'inscription pour {child}. L'équipe l'examinera et vous recontactera très vite.",
       "hint": "Vous suivez la demande depuis « Mes enfants » jusqu'à la réponse.",
-      "back": "Retour à mes enfants"
+      "back": "Retour à mes enfants",
+      "messageStructure": "{name} a bien reçu votre demande d'inscription pour {child} dans « {structure} ». L'équipe l'examinera et vous recontactera très vite."
     },
     "errors": {
       "required": "Renseignez le prénom, le nom, la date de naissance et le genre.",
       "allergenRequired": "Nommez l'allergène sur chaque ligne ajoutée, ou supprimez la ligne vide.",
       "generic": "L'envoi de la demande a échoué. Réessayez dans un instant.",
       "forbidden": "Votre compte n'est pas rattaché à ce jardin d'enfants. Contactez l'administration.",
-      "noGuardianRecord": "Votre compte n'a pas encore de fiche parent dans ce jardin d'enfants : la demande ne peut pas être envoyée. Contactez l'administration."
+      "noGuardianRecord": "Votre compte n'a pas encore de fiche parent dans ce jardin d'enfants : la demande ne peut pas être envoyée. Contactez l'administration.",
+      "structureRequired": "Choisissez la structure qui accueillera votre enfant."
     },
     "noGuardian": {
       "title": "Votre compte n'est rattaché à aucune fiche parent",
       "description": "Pour inscrire un autre enfant, votre compte doit être rattaché à une fiche parent de ce jardin d'enfants. Contactez l'administration pour la rattacher.",
       "action": "Écrire à l'administration"
+    },
+    "structure": {
+      "title": "Pour quelle structure ?",
+      "subtitle": "L'établissement en compte plusieurs. Choisissez celle qui accueillera votre enfant.",
+      "reviewTitle": "Structure"
+    },
+    "classChoice": {
+      "title": "Classe souhaitée",
+      "reviewLabel": "Classe souhaitée",
+      "undecided": "La crèche décide"
     }
   },
   "messages": {
@@ -530,7 +543,8 @@
       "all": "Tout le monde",
       "parents": "Parents",
       "staff": "Équipe",
-      "class": "Classe"
+      "class": "Classe",
+      "structure": "Structure"
     }
   },
   "profile": {
@@ -625,6 +639,36 @@
     "errors": {
       "load": "Vos informations n'ont pas pu être chargées. Réessayez dans un instant.",
       "forbidden": "Vous n'êtes pas autorisé à modifier cette information. Contactez le bureau de la crèche."
+    }
+  },
+  "classChoice": {
+    "forAge": "Son âge",
+    "undecided": "Laisser la crèche décider",
+    "undecidedHint": "Vous en discuterez ensemble."
+  },
+  "transfer": {
+    "trigger": "Changer de structure",
+    "title": "Changer de structure",
+    "description": "Demandez le passage de {name} vers une autre structure de l'établissement. La direction confirmera.",
+    "structureLabel": "Vers quelle structure ?",
+    "classLabel": "Classe souhaitée",
+    "noteLabel": "Un mot pour la direction",
+    "notePlaceholder": "Pourquoi ce changement, à partir de quand…",
+    "decides": "Ceci est une demande : la direction confirmera le passage vers « {structure} » et sa date. Rien ne change avant sa réponse.",
+    "decidesGeneric": "Ceci est une demande : la direction confirmera le changement et la date. Rien ne change avant sa réponse.",
+    "submit": "Envoyer la demande",
+    "submitting": "Envoi en cours…",
+    "success": "Demande envoyée pour {name}. La direction confirmera.",
+    "pending": "Demande en cours",
+    "pendingTo": "Demande en cours · {structure}",
+    "historyTitle": "Parcours",
+    "historyFrom": "depuis {structure}",
+    "historyUnknown": "Structure retirée",
+    "errors": {
+      "transferPending": "Une demande est déjà en cours pour cet enfant. La direction vous répondra.",
+      "sameStructure": "Votre enfant est déjà dans cette structure.",
+      "notEnrolled": "Seul un enfant inscrit peut changer de structure. Contactez l'administration.",
+      "unknownStructure": "Cette structure n'est plus proposée. Rechargez la page."
     }
   }
 }

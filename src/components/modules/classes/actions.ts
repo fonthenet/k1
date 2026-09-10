@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isWithinHours, toOpeningHours } from "@/lib/week";
 import { requireStaff } from "@/lib/tenant";
 import { ACTIVITY_CATEGORIES, SCHEDULE_DAYS, algiersToday } from "./class-types";
+import { CLASS_ICON_KEYS } from "./class-icons";
+import { CENTER_TYPES } from "@/components/modules/settings/center-types";
 
 export type ActionResult =
   | { ok: true; id?: string }
@@ -42,8 +44,14 @@ const classSchema = z.object({
   ageMinMonths: z.number().int().min(0).max(120).nullable(),
   ageMaxMonths: z.number().int().min(0).max(120).nullable(),
   capacity: z.number().int().min(1).max(200),
-  room: optionalText,
+  // The room is chosen from kg_rooms now (0123). The old free-text column is
+  // maintained as a mirror by a trigger, so nothing writes it from here.
+  roomId: z.union([z.uuid(), z.literal(""), z.null()]).optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  // Only a key this build actually renders. Anything else is dropped rather
+  // than stored, so the column can never feed an unknown string to a renderer.
+  icon: z.enum(CLASS_ICON_KEYS as [string, ...string[]]).nullable().optional(),
+  structureId: z.union([z.uuid(), z.literal(""), z.null()]).optional(),
 });
 
 export async function saveClass(
@@ -64,8 +72,10 @@ export async function saveClass(
     age_min_months: d.ageMinMonths,
     age_max_months: d.ageMaxMonths,
     capacity: d.capacity,
-    room: d.room,
+    room_id: d.roomId || null,
     color: d.color,
+    icon: d.icon ?? null,
+    structure_id: d.structureId || null,
   };
 
   const supabase = await createClient();
@@ -264,6 +274,106 @@ export async function setMainClassStaff(
     .eq("membership_id", membershipId);
   if (error) return mapDbError(error);
   revalidateClass(classId);
+  return { ok: true };
+}
+
+/**
+ * Replace a class's whole team in one call: who is on it, and who leads it.
+ *
+ * The one-at-a-time add/remove/setMain actions above still exist for the row
+ * buttons, but a dialog that ticks four people and stars one should not fire
+ * six requests and leave the class half-changed when the third one fails. This
+ * diffs the current rows against the desired list and writes only the delta,
+ * so an untouched member keeps their row (and the history nothing references
+ * yet) rather than being deleted and recreated.
+ *
+ * Not atomic: there is no RPC for this and the writes are three statements.
+ * The order is chosen so a failure mid-way leaves the team larger rather than
+ * smaller — additions before removals, and the main flag last. A class that
+ * briefly has one extra educator is a nuisance; a class with nobody is what a
+ * parent notices.
+ *
+ * `mainMembershipId` null means no main educator, which is a legitimate answer
+ * (a class run by two equal assistants), not a validation failure.
+ */
+export async function setClassStaff(
+  classId: string,
+  membershipIds: string[],
+  mainMembershipId: string | null
+): Promise<ActionResult> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(classId).success) return { ok: false, error: "invalid" };
+  const ids = z.array(z.uuid()).max(100).safeParse(membershipIds);
+  if (!ids.success) return { ok: false, error: "invalid" };
+  const wanted = [...new Set(ids.data)];
+  if (mainMembershipId !== null && !wanted.includes(mainMembershipId))
+    return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  if (!(await classInTenant(supabase, ctx.tenant.id, classId)))
+    return { ok: false, error: "invalid" };
+
+  // Every id must be one of THIS tenant's staff. RLS on kg_class_staff only
+  // checks the class side, so without this a membership id from another crèche
+  // (or a parent's) could be attached to the class.
+  if (wanted.length > 0) {
+    const { data: members } = await supabase
+      .from("kg_memberships")
+      .select("id")
+      .eq("tenant_id", ctx.tenant.id)
+      .neq("role", "parent")
+      .in("id", wanted);
+    if ((members ?? []).length !== wanted.length) return { ok: false, error: "invalid" };
+  }
+
+  const { data: currentRows, error: readErr } = await supabase
+    .from("kg_class_staff")
+    .select("membership_id, is_main")
+    .eq("class_id", classId);
+  if (readErr) return mapDbError(readErr);
+  const current = new Set((currentRows ?? []).map((r) => r.membership_id as string));
+
+  const toAdd = wanted.filter((id) => !current.has(id));
+  const toRemove = [...current].filter((id) => !wanted.includes(id));
+
+  if (toAdd.length > 0) {
+    const { error } = await supabase
+      .from("kg_class_staff")
+      .insert(toAdd.map((membership_id) => ({ class_id: classId, membership_id, is_main: false })));
+    if (error) return mapDbError(error);
+  }
+  if (toRemove.length > 0) {
+    const { error } = await supabase
+      .from("kg_class_staff")
+      .delete()
+      .eq("class_id", classId)
+      .in("membership_id", toRemove);
+    if (error) return mapDbError(error);
+  }
+
+  // The flag is rewritten for the whole class rather than toggled, so a row
+  // that was main before and is no longer wanted as such is cleared too.
+  const { error: clearErr } = await supabase
+    .from("kg_class_staff")
+    .update({ is_main: false })
+    .eq("class_id", classId)
+    .neq("membership_id", mainMembershipId ?? "00000000-0000-0000-0000-000000000000");
+  if (clearErr) return mapDbError(clearErr);
+  if (mainMembershipId) {
+    const { error } = await supabase
+      .from("kg_class_staff")
+      .update({ is_main: true })
+      .eq("class_id", classId)
+      .eq("membership_id", mainMembershipId);
+    if (error) return mapDbError(error);
+  }
+
+  revalidateClass(classId);
+  // The member pages derive "which structures does this person work in" from
+  // these rows, so every person who joined or left needs theirs refreshed.
+  revalidatePath("/staff");
+  for (const id of [...toAdd, ...toRemove]) revalidatePath(`/staff/${id}`);
   return { ok: true };
 }
 
@@ -489,5 +599,194 @@ export async function resolveActivityRequest(
   if (error) return mapDbError(error);
   revalidateActivity(activityId);
   if (row?.child_id) revalidatePath(`/children/${row.child_id}`);
+  return { ok: true };
+}
+
+// ===== Rooms (RLS: member reads, admin writes — 0123) =====
+
+const roomSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  nameAr: optionalText,
+  capacity: z.number().int().min(1).max(500).nullable(),
+  floor: optionalText,
+  notes: optionalText,
+  active: z.boolean(),
+});
+
+function revalidateRooms(classId?: string) {
+  // A room's name is shown on every class card and on each class page, so a
+  // rename has to invalidate those too — the trigger already rewrote the
+  // mirrored text, but Next has the old HTML cached.
+  revalidatePath("/classes");
+  if (classId) revalidatePath(`/classes/${classId}`);
+  revalidatePath("/incidents");
+}
+
+export async function saveRoom(
+  roomId: string | null,
+  input: z.input<typeof roomSchema>
+): Promise<ActionResult> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  const parsed = roomSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const d = parsed.data;
+
+  const row = {
+    name: d.name,
+    name_ar: d.nameAr,
+    capacity: d.capacity,
+    floor: d.floor,
+    notes: d.notes,
+    active: d.active,
+  };
+
+  const supabase = await createClient();
+  if (roomId) {
+    if (!z.uuid().safeParse(roomId).success) return { ok: false, error: "invalid" };
+    const { error } = await supabase
+      .from("kg_rooms")
+      .update(row)
+      .eq("id", roomId)
+      .eq("tenant_id", ctx.tenant.id);
+    if (error) return mapDbError(error);
+    revalidateRooms();
+    return { ok: true, id: roomId };
+  }
+
+  const { data, error } = await supabase
+    .from("kg_rooms")
+    .insert({ ...row, tenant_id: ctx.tenant.id })
+    .select("id")
+    .single();
+  if (error) return mapDbError(error);
+  revalidateRooms();
+  return { ok: true, id: data.id };
+}
+
+/**
+ * Delete a room — refused while any class still sits in it.
+ *
+ * The FK is ON DELETE SET NULL, so the database would happily accept this and
+ * quietly unassign every class in the room. Same shape as the class delete
+ * guard: say what is in the way instead of doing something surprising.
+ */
+export async function deleteRoom(roomId: string): Promise<ActionResult> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(roomId).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("kg_classes")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("room_id", roomId);
+  if ((count ?? 0) > 0) return { ok: false, error: "inUse" };
+
+  const { error } = await supabase
+    .from("kg_rooms")
+    .delete()
+    .eq("id", roomId)
+    .eq("tenant_id", ctx.tenant.id);
+  if (error) return mapDbError(error);
+  revalidateRooms();
+  return { ok: true };
+}
+
+// ===== Sections (RLS: member reads, admin writes — 0125) =====
+
+const structureSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  nameAr: optionalText,
+  centerType: z.enum(CENTER_TYPES),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  sortOrder: z.number().int().min(0).max(999),
+  active: z.boolean(),
+});
+
+function revalidateStructures(structureId?: string) {
+  void structureId;
+  // A structure names a structure on the class cards, filters the roster and decides
+  // which children a printed register contains — all three go stale on a
+  // rename, and the register most of all.
+  revalidatePath("/classes");
+  revalidatePath("/children");
+  revalidatePath("/reports");
+}
+
+export async function saveStructure(
+  structureId: string | null,
+  input: z.input<typeof structureSchema>
+): Promise<ActionResult> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  const parsed = structureSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const d = parsed.data;
+
+  const row = {
+    name: d.name,
+    name_ar: d.nameAr,
+    center_type: d.centerType,
+    color: d.color,
+    sort_order: d.sortOrder,
+    active: d.active,
+  };
+
+  const supabase = await createClient();
+  if (structureId) {
+    if (!z.uuid().safeParse(structureId).success) return { ok: false, error: "invalid" };
+    const { error } = await supabase
+      .from("kg_structures")
+      .update(row)
+      .eq("id", structureId)
+      .eq("tenant_id", ctx.tenant.id);
+    if (error) return mapDbError(error);
+    revalidateStructures(structureId);
+    return { ok: true, id: structureId };
+  }
+
+  const { data, error } = await supabase
+    .from("kg_structures")
+    .insert({ ...row, tenant_id: ctx.tenant.id })
+    .select("id")
+    .single();
+  if (error) return mapDbError(error);
+  revalidateStructures();
+  return { ok: true, id: data.id };
+}
+
+/**
+ * Delete a structure — refused while any class or child still belongs to it.
+ *
+ * Both foreign keys are ON DELETE SET NULL, so the database would accept this
+ * and quietly leave children on neither side of the regulatory split, missing
+ * from BOTH inspection registers. That is precisely the failure this table
+ * exists to prevent, so the guard counts children as well as classes.
+ */
+export async function deleteStructure(structureId: string): Promise<ActionResult> {
+  const ctx = await requireStaff();
+  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(structureId).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const [classes, children] = await Promise.all([
+    supabase.from("kg_classes").select("id", { count: "exact", head: true })
+      .eq("tenant_id", ctx.tenant.id).eq("structure_id", structureId),
+    supabase.from("kg_children").select("id", { count: "exact", head: true })
+      .eq("tenant_id", ctx.tenant.id).eq("structure_id", structureId),
+  ]);
+  if ((classes.count ?? 0) > 0 || (children.count ?? 0) > 0) {
+    return { ok: false, error: "inUse" };
+  }
+
+  const { error } = await supabase
+    .from("kg_structures")
+    .delete()
+    .eq("id", structureId)
+    .eq("tenant_id", ctx.tenant.id);
+  if (error) return mapDbError(error);
+  revalidateStructures();
   return { ok: true };
 }

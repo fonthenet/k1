@@ -6,6 +6,7 @@ import {
   BabyIcon,
   BanknoteX,
   Bell,
+  Building2,
   CalendarDays,
   CalendarX2,
   ClipboardList,
@@ -65,6 +66,8 @@ const ICONS: Record<string, LucideIcon> = {
   advance_requested: HandCoins,
   advance_approved: HandCoins,
   advance_rejected: HandCoins,
+  // 0140 — the child moved from one structure of the building to another.
+  structure_changed: Building2,
 };
 
 // Tokens only. Gold tints take `gold-ink` for text — the raw gold hue is far
@@ -110,6 +113,9 @@ const TONES: Record<string, string> = {
   advance_requested: "bg-gold-muted text-gold-ink",
   advance_approved: "bg-success/10 text-success",
   advance_rejected: "bg-muted text-muted-foreground",
+  // A change to the child's enrolment, same warm tone as enrollment_changed:
+  // big news for the family, and not an alarm.
+  structure_changed: "bg-gold-muted text-gold-ink",
 };
 
 /** The square icon tile that opens every notification row. */

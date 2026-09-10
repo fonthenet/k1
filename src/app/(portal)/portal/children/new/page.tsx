@@ -6,6 +6,9 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/tenant";
 import { AddChildWizard } from "@/components/modules/portal/add-child-wizard";
+import { getPortalClasses, getStructures } from "@/components/modules/portal/data";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * An existing family enrolling another child.
@@ -15,8 +18,13 @@ import { AddChildWizard } from "@/components/modules/portal/add-child-wizard";
  * that refusal, but a parent should not fill in four steps to discover it — so
  * the same condition is checked here, before the form is offered at all.
  */
-export default async function PortalNewChildPage() {
+export default async function PortalNewChildPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ structure?: string }>;
+}) {
   const ctx = await getTenantContext();
+  const sp = await searchParams;
   const t = await getTranslations("portal.addChild");
   const supabase = await createClient();
 
@@ -55,5 +63,23 @@ export default async function PortalNewChildPage() {
     );
   }
 
-  return <AddChildWizard userId={ctx.user.id} tenantName={ctx.tenant.name} />;
+  // The structures and rooms of the building, for the first step and the
+  // room proposed from the birth date. `?structure=` arrives from a link
+  // that already said which side (a structure's own enrolment link, package
+  // C); anything that is not a uuid is ignored rather than trusted.
+  const [structures, classes] = await Promise.all([
+    getStructures(supabase, ctx),
+    getPortalClasses(supabase, ctx),
+  ]);
+  const initialStructureId = sp.structure && UUID_RE.test(sp.structure) ? sp.structure : null;
+
+  return (
+    <AddChildWizard
+      userId={ctx.user.id}
+      tenantName={ctx.tenant.name}
+      structures={structures}
+      classes={classes}
+      initialStructureId={initialStructureId}
+    />
+  );
 }

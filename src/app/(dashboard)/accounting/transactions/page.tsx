@@ -35,6 +35,7 @@ import { TxnDetailDialog } from "@/components/modules/accounting/txn-detail-dial
 import { TxnDialog } from "@/components/modules/accounting/txn-dialog";
 import { TxnFilters } from "@/components/modules/accounting/txn-filters";
 import { TxnRowActions } from "@/components/modules/accounting/txn-row-actions";
+import { structureName } from "@/components/modules/classes/class-types";
 import { EmptyIcon, MoneyStat } from "@/components/modules/billing/finance-ui";
 import { ENTITY_LINK_CLASS } from "@/components/shared/entity-link";
 import {
@@ -75,6 +76,7 @@ interface RawTxn {
   /** The payslip route is keyed by run + item, and the row only carries the item. */
   kg_payroll_items: { id: string; run_id: string } | null;
   kg_txn_categories: { id: string; name: string; color: string } | null;
+  structure_id: string | null;
   kg_transaction_items:
     | {
         id: string;
@@ -141,7 +143,7 @@ export default async function TransactionsPage({
     .from("kg_transactions")
     .select(
       "id, kind, amount, date, method, description, reference, related_payment_id, " +
-        "related_advance_id, related_payroll_item_id, " +
+        "related_advance_id, related_payroll_item_id, structure_id, " +
         // Pinned to the constraint rather than left to PostgREST to resolve by
         // table name: the day a second column here points at kg_payroll_items
         // the embed becomes ambiguous, and that fails the whole query — the
@@ -197,6 +199,7 @@ export default async function TransactionsPage({
     )
   );
 
+  const structureById = new Map(ctx.structures.map((s) => [s.id, s] as const));
   const rows: LedgerRow[] = rawRows.map((tx) => ({
     id: tx.id,
     kind: tx.kind,
@@ -208,6 +211,7 @@ export default async function TransactionsPage({
     related_payment_id: tx.related_payment_id,
     related_advance_id: tx.related_advance_id,
     related_payroll_item_id: tx.related_payroll_item_id,
+    structure_id: tx.structure_id,
     category: tx.kg_txn_categories,
     // Sorted here rather than in the query: PostgREST cannot order an embedded
     // resource, and the list is short.
@@ -357,6 +361,8 @@ export default async function TransactionsPage({
           <TxnDialog
             kind="income"
             categories={incomeCategories}
+            structures={ctx.structures}
+            defaultStructureId={ctx.structureId}
             trigger={
               <Button variant="outline">
                 <Plus data-icon="inline-start" />
@@ -367,6 +373,8 @@ export default async function TransactionsPage({
           <TxnDialog
             kind="expense"
             categories={expenseCategories}
+            structures={ctx.structures}
+            defaultStructureId={ctx.structureId}
             trigger={
               <Button>
                 <Plus data-icon="inline-start" />
@@ -456,20 +464,35 @@ export default async function TransactionsPage({
                             )}
                           </TableCell>
                           <TableCell>
-                            {tx.category ? (
-                              <Badge
-                                variant="outline"
-                                className="gap-1.5 bg-card text-muted-foreground"
-                              >
-                                <span
-                                  className="size-2 rounded-full"
-                                  style={{ backgroundColor: tx.category.color }}
-                                />
-                                {tx.category.name}
-                              </Badge>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">—</span>
-                            )}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {tx.category ? (
+                                <Badge
+                                  variant="outline"
+                                  className="gap-1.5 bg-card text-muted-foreground"
+                                >
+                                  <span
+                                    className="size-2 rounded-full"
+                                    style={{ backgroundColor: tx.category.color }}
+                                  />
+                                  {tx.category.name}
+                                </Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
+                              {/* Whose money, when the building has sides. A
+                                  row with no structure is the building's and
+                                  says nothing — the absence is the label. */}
+                              {ctx.isMultiStructure && tx.structure_id && structureById.get(tx.structure_id) && (
+                                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                  <span
+                                    className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
+                                    style={{ backgroundColor: structureById.get(tx.structure_id)!.color }}
+                                    aria-hidden
+                                  />
+                                  {structureName(structureById.get(tx.structure_id)!, locale)}
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {t(`methods.${tx.method}`)}
@@ -492,6 +515,7 @@ export default async function TransactionsPage({
                                   categories={
                                     tx.kind === "income" ? incomeCategories : expenseCategories
                                   }
+                                  structures={ctx.structures}
                                 />
                               )}
                             </TableCell>

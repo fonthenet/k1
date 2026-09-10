@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -39,14 +39,17 @@ function hourOf(time: string | undefined, fallback: number): number {
   return time ? Number(time.slice(0, 2)) : fallback;
 }
 import type { FeePeriod } from "@/lib/types";
+import { setActivityStructure } from "@/app/(dashboard)/activities/actions";
 import { saveActivity } from "./actions";
 import {
   ACTIVITY_CATEGORIES,
   FEE_PERIODS,
   SCHEDULE_DAYS,
+  structureName,
   type ActivityCategory,
   type ActivityFormValues,
   type ScheduleDay,
+  type Structure,
 } from "./class-types";
 
 interface SlotRow {
@@ -67,14 +70,21 @@ function initialSlots(activity?: ActivityFormValues): SlotRow[] {
 export function ActivityDialog({
   activity,
   openingHours = DEFAULT_OPENING_HOURS,
+  structures = [],
+  structureId = null,
 }: {
   activity?: ActivityFormValues;
   /** The crèche's week. Bounds both the day list and each slot's time. */
   openingHours?: OpeningHours;
+  /** The structures of the establishment (0125); the picker hides itself under two. */
+  structures?: Structure[];
+  /** Beside `activity` rather than in it: ActivityFormValues is shared. */
+  structureId?: string | null;
 }) {
   const days = openDays(openingHours);
   const t = useTranslations("activities");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -89,6 +99,10 @@ export function ActivityDialog({
     period: (activity?.fee_period ?? "monthly") as FeePeriod,
     capacity: activity?.capacity != null ? String(activity.capacity) : "",
     active: activity?.active ?? true,
+    // Empty is the whole building, and that is the right default: an activity
+    // nobody has restricted is open to every child in it. A class defaults the
+    // other way — it must sit in one structure to reach a register.
+    structureId: structureId ?? "",
   });
   const [slots, setSlots] = useState<SlotRow[]>(() => initialSlots(activity));
   const [pending, startTransition] = useTransition();
@@ -120,7 +134,15 @@ export function ActivityDialog({
         active: form.active,
       });
       if (res.ok) {
-        toast.success(t("toasts.saved"));
+        // The structure travels in its own write — see setActivityStructure —
+        // and only where the field was offered, so a one-structure crèche
+        // makes no second call and nothing overwrites its null.
+        const placed =
+          structures.length > 1 && res.id
+            ? await setActivityStructure(res.id, form.structureId || null)
+            : { ok: true };
+        if (placed.ok) toast.success(t("toasts.saved"));
+        else toast.error(t("toasts.error"));
         setOpen(false);
         router.refresh();
       } else {
@@ -249,6 +271,33 @@ export function ActivityDialog({
                 </SelectContent>
               </Select>
             </div>
+            {/* Only once there IS a choice: a crèche running one structure is
+                not asked which one every activity is in. */}
+            {structures.length > 1 && (
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label htmlFor="act-structure">{t("structures.label")}</Label>
+                <Select
+                  value={form.structureId || "none"}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, structureId: v === "none" ? "" : v }))
+                  }
+                >
+                  <SelectTrigger id="act-structure" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("structures.wholeBuilding")}</SelectItem>
+                    {structures
+                      .filter((str) => str.active || str.id === form.structureId)
+                      .map((str) => (
+                        <SelectItem key={str.id} value={str.id}>
+                          {structureName(str, locale)}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="grid gap-1.5">

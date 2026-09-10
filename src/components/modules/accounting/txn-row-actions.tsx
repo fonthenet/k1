@@ -19,15 +19,18 @@ import { Button } from "@/components/ui/button";
 import { formatDZD } from "@/lib/format";
 import { deleteTransaction } from "./actions";
 import { TxnDialog } from "./txn-dialog";
+import type { Structure } from "@/components/modules/classes/class-types";
 import type { LedgerRow } from "./types";
 
 /** Edit + delete controls for an editable ledger row (admin, current month). */
 export function TxnRowActions({
   txn,
   categories,
+  structures = [],
 }: {
   txn: LedgerRow;
   categories: { id: string; name: string; color: string }[];
+  structures?: Structure[];
 }) {
   const t = useTranslations("accounting");
   const tc = useTranslations("common");
@@ -47,6 +50,7 @@ export function TxnRowActions({
       <TxnDialog
         kind={txn.kind}
         categories={categories}
+        structures={structures}
         txn={txn}
         trigger={
           <Button variant="ghost" size="icon-sm" aria-label={tc("actions.edit")}>

@@ -13,7 +13,7 @@ export type InvoiceStatus = "draft" | "sent" | "unpaid" | "partial" | "paid" | "
 export type PaymentMethod = "cash" | "cib" | "edahabia" | "bank_transfer" | "cheque" | "chargily" | "other";
 export type TxnKind = "income" | "expense";
 export type PayrollStatus = "draft" | "finalized" | "paid";
-export type Audience = "all" | "parents" | "staff" | "class";
+export type Audience = "all" | "parents" | "staff" | "class" | "structure";
 export type IncidentSeverity = "minor" | "moderate" | "serious";
 export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
 
@@ -59,11 +59,17 @@ export interface Membership {
 export interface KgClass {
   id: string; tenant_id: string; name: string; name_ar: string | null;
   age_min_months: number | null; age_max_months: number | null;
-  capacity: number; room: string | null; color: string;
+  capacity: number; room: string | null; room_id: string | null; color: string;
+  /** A curated key from CLASS_ICONS (0124); null renders the default. */
+  icon: string | null;
+  /** The structure of the establishment this class belongs to (0125). */
+  structure_id: string | null;
 }
 
 export interface Child {
   id: string; tenant_id: string; class_id: string | null;
+  /** Which structure of the establishment (0125); follows the class. */
+  structure_id: string | null;
   first_name: string; last_name: string;
   first_name_ar: string | null; last_name_ar: string | null;
   dob: string; gender: Gender; photo_path: string | null; blood_type: string | null;

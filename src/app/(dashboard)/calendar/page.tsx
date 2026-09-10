@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { requireStaff } from "@/lib/tenant";
+import { requireStaff, scoped } from "@/lib/tenant";
 import { DAY_KEYS, toOpeningHours } from "@/lib/week";
 import { formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ import {
   type ClassOption,
   type EventRow,
 } from "@/components/modules/comms/types";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 
 interface HolidayRow {
   id: string;
@@ -78,38 +79,62 @@ export default async function CalendarPage({
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
-  const [eventsRes, holidaysRes, classesRes, upcomingRes] = await Promise.all([
-    supabase
-      .from("kg_events")
-      .select(
-        "id, title, description, start_at, end_at, audience, class_id, color",
-      )
-      .eq("tenant_id", ctx.tenant.id)
-      // 1-day padding so Algiers-local bucketing never drops an edge event.
-      .gte("start_at", `${addDaysStr(gridStart, -1)}T00:00:00Z`)
-      .lt("start_at", `${addDaysStr(gridEnd, 2)}T00:00:00Z`)
-      .order("start_at"),
-    supabase
-      .from("kg_holidays")
-      .select("id, date, end_date, name, name_ar, tentative, closure")
-      .eq("tenant_id", ctx.tenant.id)
-      .gte("date", addDaysStr(gridStart, -60))
-      .lte("date", gridEnd)
-      .order("date"),
+  const [eventsRes, holidaysRes, classesRes, upcomingRes, structuresRes] = await Promise.all([
+    scoped(
+      supabase
+        .from("kg_events")
+        .select(
+          "id, title, description, start_at, end_at, audience, class_id, structure_id, color",
+        )
+        .eq("tenant_id", ctx.tenant.id)
+        // 1-day padding so Algiers-local bucketing never drops an edge event.
+        .gte("start_at", `${addDaysStr(gridStart, -1)}T00:00:00Z`)
+        .lt("start_at", `${addDaysStr(gridEnd, 2)}T00:00:00Z`)
+        .order("start_at"),
+      ctx
+    ),
+    // The école's school break and the address's public holidays, together.
+    scoped(
+      supabase
+        .from("kg_holidays")
+        .select("id, date, end_date, name, name_ar, tentative, closure")
+        .eq("tenant_id", ctx.tenant.id)
+        .gte("date", addDaysStr(gridStart, -60))
+        .lte("date", gridEnd)
+        .order("date"),
+      ctx
+    ),
+    // Not narrowed: these feed the event dialogs, which must still be able
+    // to address a crèche class while the rail is reading the école.
     supabase
       .from("kg_classes")
       .select("id, name, name_ar")
       .eq("tenant_id", ctx.tenant.id)
       .order("name"),
+    scoped(
+      supabase
+        .from("kg_events")
+        .select(
+          "id, title, description, start_at, end_at, audience, class_id, structure_id, color",
+        )
+        .eq("tenant_id", ctx.tenant.id)
+        .gte("start_at", nowIso)
+        .order("start_at")
+        .limit(6),
+      ctx
+    ),
+    // The structures of the building, so an event can be addressed to one of
+    // them — the école's open day is not the crèche's. Not narrowed to the
+    // rail's scope: the dialog's options are never scoped, only what is read.
+    // The dialog hides the audience under two, so a single-structure crèche
+    // never sees the word.
     supabase
-      .from("kg_events")
-      .select(
-        "id, title, description, start_at, end_at, audience, class_id, color",
-      )
+      .from("kg_structures")
+      .select("id, name, name_ar, center_type, color, sort_order, active")
       .eq("tenant_id", ctx.tenant.id)
-      .gte("start_at", nowIso)
-      .order("start_at")
-      .limit(6),
+      .eq("active", true)
+      .order("sort_order")
+      .order("name"),
   ]);
 
   const firstError =
@@ -123,6 +148,8 @@ export default async function CalendarPage({
   const holidays = (holidaysRes.data ?? []) as HolidayRow[];
   const classes: ClassOption[] = classesRes.data ?? [];
   const upcoming = (upcomingRes.data ?? []) as EventRow[];
+  const structures = (structuresRes.data ?? []) as Structure[];
+  const structureById = new Map(structures.map((s) => [s.id, s]));
 
   const eventsByDay = new Map<string, EventRow[]>();
   for (const ev of events) {
@@ -149,10 +176,16 @@ export default async function CalendarPage({
     if (!c) return null;
     return locale === "ar" && c.name_ar ? c.name_ar : c.name;
   };
+  // A class and a structure name themselves rather than their kind — "Le
+  // préscolaire" says more than "Structure" does.
+  const structureOf = (ev: EventRow) =>
+    ev.structure_id ? (structureById.get(ev.structure_id) ?? null) : null;
   const audienceLabel = (ev: EventRow) =>
     ev.audience === "class"
       ? (className(ev.class_id) ?? t("audience.class"))
-      : t(`audience.${ev.audience}`);
+      : ev.audience === "structure" && structureOf(ev)
+        ? structureName(structureOf(ev)!, locale)
+        : t(`audience.${ev.audience}`);
 
   const href = (m: string) => `/calendar?month=${m}`;
   const fullDayLabel = (d: string) =>
@@ -175,6 +208,7 @@ export default async function CalendarPage({
         <EventDialog
           event={null}
           classes={classes}
+          structures={structures}
           defaultDate={today}
           defaultTime={defaultTimeFor(today)}
         />
@@ -267,6 +301,7 @@ export default async function CalendarPage({
                     <EventDialog
                       event={null}
                       classes={classes}
+                      structures={structures}
                       defaultDate={d}
                       defaultTime={defaultTimeFor(d)}
                     >
@@ -305,6 +340,7 @@ export default async function CalendarPage({
                         key={ev.id}
                         event={ev}
                         classes={classes}
+                        structures={structures}
                         defaultDate={d}
                       >
                         <button
@@ -362,6 +398,7 @@ export default async function CalendarPage({
                     <EventDialog
                       event={ev}
                       classes={classes}
+                      structures={structures}
                       defaultDate={startDay}
                     >
                       <button
@@ -391,6 +428,15 @@ export default async function CalendarPage({
                             audienceClasses(ev.audience),
                           )}
                         >
+                          {/* The structure's own colour as a dot, as on the
+                              announcements list; the badge stays neutral. */}
+                          {ev.audience === "structure" && structureOf(ev) && (
+                            <span
+                              className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
+                              style={{ backgroundColor: structureOf(ev)!.color }}
+                              aria-hidden
+                            />
+                          )}
                           {audienceLabel(ev)}
                         </Badge>
                       </button>

@@ -505,6 +505,10 @@ const planSchema = z.object({
   period: z.enum(["once", "monthly", "quarterly", "yearly", "per_session"]),
   description: optionalText,
   active: z.boolean(),
+  // Null is a real answer, not a missing one: a price the whole building pays.
+  // The empty string is what the picker sends when a crèche has one structure
+  // and never sees the field.
+  structureId: z.union([z.uuid(), z.literal(""), z.null()]).optional(),
 });
 
 export async function savePlan(
@@ -523,6 +527,7 @@ export async function savePlan(
     period: d.period,
     description: d.description,
     active: d.active,
+    structure_id: d.structureId || null,
   };
 
   const supabase = await createClient();

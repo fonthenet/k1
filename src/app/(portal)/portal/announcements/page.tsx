@@ -7,14 +7,19 @@ import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/tenant";
 import { formatDate, formatTime } from "@/lib/format";
 import type { Audience } from "@/lib/types";
-import { getMyChildren } from "@/components/modules/portal/data";
+import { getMyChildren, getStructures } from "@/components/modules/portal/data";
+import { structureName } from "@/components/modules/classes/class-types";
+
+/** `structure` joined the enum in 0138; `@/lib/types` has not caught up yet. */
+type PortalAudience = Audience | "structure";
 
 type AnnouncementRow = {
   id: string;
   title: string;
   body: string;
-  audience: Audience;
+  audience: PortalAudience;
   class_id: string | null;
+  structure_id: string | null;
   pinned: boolean;
   publish_at: string;
 };
@@ -31,10 +36,10 @@ export default async function PortalAnnouncementsPage() {
   const myClassIds = new Set(children.map((c) => c.class_id).filter((id): id is string => !!id));
 
   const nowIso = new Date().toISOString();
-  const [{ data: annRows }, { data: classRows }] = await Promise.all([
+  const [{ data: annRows }, { data: classRows }, structures] = await Promise.all([
     supabase
       .from("kg_announcements")
-      .select("id, title, body, audience, class_id, pinned, publish_at")
+      .select("id, title, body, audience, class_id, structure_id, pinned, publish_at")
       .eq("tenant_id", ctx.tenant.id)
       .lte("publish_at", nowIso)
       .order("pinned", { ascending: false })
@@ -44,15 +49,20 @@ export default async function PortalAnnouncementsPage() {
       .from("kg_classes")
       .select("id, name, name_ar, color")
       .eq("tenant_id", ctx.tenant.id),
+    getStructures(supabase, ctx),
   ]);
 
   const classById = new Map(((classRows ?? []) as ClassRow[]).map((c) => [c.id, c]));
+  const structureById = new Map(structures.map((s) => [s.id, s]));
 
-  // Parents see everything addressed to all/parents, plus their own children's classes.
+  // Parents see everything addressed to all/parents, plus their own children's
+  // classes. A `structure` notice passes on trust: RLS (0138) already hands a
+  // family only the notices of a structure one of its children is on.
   const announcements = ((annRows ?? []) as AnnouncementRow[]).filter(
     (a) =>
       a.audience === "all" ||
       a.audience === "parents" ||
+      a.audience === "structure" ||
       (a.audience === "class" && !!a.class_id && myClassIds.has(a.class_id))
   );
 
@@ -75,12 +85,24 @@ export default async function PortalAnnouncementsPage() {
         <div className="grid gap-3">
           {announcements.map((a) => {
             const cls = a.class_id ? classById.get(a.class_id) : undefined;
+            const structure = a.structure_id ? structureById.get(a.structure_id) : undefined;
+            // The badge names the class or the structure it was written for,
+            // in the reader's script, and borrows that thing's own colour —
+            // the one signal a family already knows it by.
             const audienceLabel =
               a.audience === "class" && cls
                 ? locale === "ar" && cls.name_ar
                   ? cls.name_ar
                   : cls.name
-                : t(`announcements.audience.${a.audience}`);
+                : a.audience === "structure" && structure
+                  ? structureName(structure, locale)
+                  : t(`announcements.audience.${a.audience}`);
+            const audienceColor =
+              a.audience === "class" && cls
+                ? cls.color
+                : a.audience === "structure" && structure
+                  ? structure.color
+                  : null;
             return (
               <Card
                 key={a.id}
@@ -104,8 +126,8 @@ export default async function PortalAnnouncementsPage() {
                         variant="outline"
                         className="font-semibold"
                         style={
-                          a.audience === "class" && cls
-                            ? { borderColor: cls.color, color: cls.color }
+                          audienceColor
+                            ? { borderColor: audienceColor, color: audienceColor }
                             : undefined
                         }
                       >

@@ -12,6 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  STEP,
+  TOTAL_STEPS,
+  effectiveStructureId,
+  inStructure,
   initialWizardState,
   type AppChildPayload,
   type AppGuardianPayload,
@@ -23,6 +27,7 @@ import {
 } from "./types";
 import { SoftWash } from "@/components/shared/soft-wash";
 import { StepWelcome } from "./step-welcome";
+import { StepStructure } from "./step-structure";
 import { StepAccount } from "./step-account";
 import { StepChild } from "./step-child";
 import { StepPhoto } from "./step-photo";
@@ -33,10 +38,16 @@ import { StepReview } from "./step-review";
 import { StepSuccess } from "./step-success";
 import { flushPush } from "@/app/actions/push";
 import { isPhoneAlias } from "@/lib/auth-identifier";
+import { suggestClassPerStructure } from "@/lib/class-fit";
 
-// 0 welcome · 1 account · 2 child · 3 photo · 4 guardians · 5 health · 6 activities · 7 review
-const TOTAL_STEPS = 8;
-const STORAGE_VERSION = 1;
+// The step order lives in STEP (types.ts): welcome · structure · account ·
+// child · photo · guardians · health · activities · review.
+//
+// Version 2 inserted the structure step after welcome, which shifted every
+// index after it by one. A draft saved under version 1 is not thrown away —
+// a family halfway through on the day of the deploy would lose ten minutes
+// of typing — its step is shifted instead (see the resume effect).
+const STORAGE_VERSION = 2;
 
 function storageKey(token: string) {
   return `kg-enroll-${token}`;
@@ -129,10 +140,23 @@ export function EnrollWizard({
       const raw = localStorage.getItem(storageKey(token));
       if (raw) {
         const parsed = JSON.parse(raw) as { v: number; state: WizardState };
-        if (parsed.v === STORAGE_VERSION && parsed.state) {
+        if ((parsed.v === STORAGE_VERSION || parsed.v === 1) && parsed.state) {
           const restored: WizardState = { ...initialWizardState(), ...parsed.state };
+          // A version-1 draft counted its steps without the structure step.
+          if (parsed.v === 1 && restored.step >= STEP.structure) restored.step += 1;
+          // …and never answered it. A family that started before the step
+          // existed is sent back to it rather than past it, or their file
+          // would land on no register at all.
+          if (
+            link.structure_id === null &&
+            (link.structures ?? []).length > 1 &&
+            !restored.structureId &&
+            restored.step > STEP.structure
+          ) {
+            restored.step = STEP.structure;
+          }
           // A signed-out visitor must pass through the account step again.
-          if (!initialUser && restored.step > 1) restored.step = 1;
+          if (!initialUser && restored.step > STEP.account) restored.step = STEP.account;
           // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
           setState(restored);
           if (restored.step > 0) setResumed(true);
@@ -167,6 +191,43 @@ export function EnrollWizard({
     },
     [update]
   );
+
+  // ----- the structure, and everything read through it -----
+  // A whole-building link with two structures asks; a structure link has
+  // the answer already; a one-structure crèche has nothing to ask. The
+  // narrowing is of what the family is SHOWN — a class, a tariff, an
+  // admission fee, an activity of the other structure — never of what the
+  // link can do.
+  const structures = link.structures ?? [];
+  const asksStructure = link.structure_id === null && structures.length > 1;
+  const structureId = effectiveStructureId(link, state);
+  const allClasses = link.classes ?? [];
+  const classes = inStructure(allClasses, structureId);
+  const feePlans = inStructure(link.fee_plans ?? [], structureId);
+  const activities = inStructure(link.activities, structureId);
+
+  /**
+   * Changing structure drops the choices that belonged to the other one.
+   * Kept in one place because the change can come from the structure step
+   * or from the "this age is the école's — switch" link under the birth date.
+   * (A plain function: the React Compiler memoises it, and a hand-written
+   * useCallback over a `link.x ?? []` fallback is what it refuses to keep.)
+   */
+  const chooseStructure = (id: string) => {
+    setState((s) => {
+      if (s.structureId === id) return s;
+      const keep = <T extends { id: string; structure_id: string | null }>(items: T[], chosen: string) =>
+        inStructure(items, id).some((i) => i.id === chosen);
+      return {
+        ...s,
+        structureId: id,
+        classId: s.classId === "undecided" || keep(allClasses, s.classId) ? s.classId : "",
+        feePlanId:
+          s.feePlanId === "undecided" || keep(link.fee_plans ?? [], s.feePlanId) ? s.feePlanId : "",
+        activityIds: s.activityIds.filter((a) => keep(link.activities, a)),
+      };
+    });
+  };
 
   // Prefill guardian 1 from the account once authenticated.
   //
@@ -208,12 +269,15 @@ export function EnrollWizard({
   }, [initialUser, prefillGuardian1]);
 
   const validate = (step: number): string | null => {
-    if (step === 2) {
+    if (step === STEP.structure) {
+      if (!state.structureId) return t("structure.required");
+    }
+    if (step === STEP.child) {
       const c = state.child;
       if (!c.first_name.trim() || !c.last_name.trim() || !c.dob || !c.gender)
         return t("errors.requiredFields");
     }
-    if (step === 4) {
+    if (step === STEP.guardians) {
       const g1 = state.guardian1;
       if (!g1.first_name.trim() || !g1.last_name.trim() || !g1.phone.trim())
         return t("errors.guardianRequired");
@@ -223,18 +287,23 @@ export function EnrollWizard({
           return t("errors.guardianRequired");
       }
     }
-    if (step === 5) {
+    if (step === STEP.health) {
       if (state.health.allergies.some((a) => !a.allergen.trim()))
         return t("errors.allergenRequired");
     }
-    if (step === 6) {
+    if (step === STEP.activities) {
       // The schedule is the family's monthly bill — the one question this form
       // exists to carry. "Undecided" is an allowed answer; silence is not.
-      if ((link.fee_plans ?? []).length > 0 && !state.feePlanId)
+      if (feePlans.length > 0 && !state.feePlanId)
         return t("errors.scheduleRequired");
     }
     return null;
   };
+
+  /** The two conditional screens: no structure question without a choice
+   *  to make, no account screen for someone already signed in. */
+  const skipped = (step: number) =>
+    (step === STEP.structure && !asksStructure) || (step === STEP.account && !!user);
 
   const next = () => {
     const problem = validate(state.step);
@@ -243,21 +312,50 @@ export function EnrollWizard({
       return;
     }
     let target = state.step + 1;
-    if (target === 1 && user) target = 2; // skip account when signed in
+    while (skipped(target)) target += 1;
     goTo(Math.min(target, TOTAL_STEPS - 1));
   };
 
   const back = () => {
     let target = state.step - 1;
-    if (target === 1 && user) target = 0;
+    while (target > 0 && skipped(target)) target -= 1;
     goTo(Math.max(target, 0));
   };
 
+  // The progress line counts the screens this family actually sees — "step
+  // 2 of 7", not "2 of 8" with a ghost step nobody was shown.
+  const shownSteps = Array.from({ length: TOTAL_STEPS }, (_, i) => i).filter(
+    (i) => i > STEP.welcome && !skipped(i),
+  );
+  const progressCurrent = shownSteps.filter((i) => i <= state.step).length;
+  const progressTotal = shownSteps.length;
+
   // ----- submit -----
+  /**
+   * The room the family is asking for, defaulted to the one their child's age
+   * fits.
+   *
+   * Derived here rather than stored in initialWizardState: when the wizard is
+   * created there is no birth date yet and the crèche's rooms have not
+   * arrived. Deriving also means the default FOLLOWS a corrected birth date
+   * right up until the family picks a room themselves — after which
+   * `state.classId` is set and wins.
+   */
+  const perStructure = state.child.dob ? suggestClassPerStructure(classes, state.child.dob) : null;
+  // Read for the chosen structure; a building-wide room (no structure) is
+  // the fallback answer for either side. With no structure in play the
+  // `null` bucket holds every class, so nothing changes for a plain crèche.
+  const suggestedClassId =
+    perStructure?.get(structureId)?.classId ?? perStructure?.get(null)?.classId ?? "";
+  const classChoice = state.classId || suggestedClassId;
+  /** "undecided" is a real answer, but it is not a class: it reaches the
+   *  reviewer as no request, which is exactly what it means. */
+  const submittedClassId = classChoice && classChoice !== "undecided" ? classChoice : null;
+
   const submit = async () => {
     if (!user) {
       setError(t("errors.notSignedIn"));
-      goTo(1);
+      goTo(STEP.account);
       return;
     }
     setSubmitting(true);
@@ -308,6 +406,13 @@ export function EnrollWizard({
         p_guardians: guardians,
         p_health: health,
         p_activity_ids: state.activityIds,
+        // "undecided" is a real answer from the family, but it is not a class:
+        // it reaches the reviewer as no request, which is what it means.
+        p_class_id: submittedClassId,
+        // The link's own structure, or the family's answer on a whole-building
+        // link. The RPC lets the link win regardless; sending it anyway keeps
+        // the eight-argument call unambiguous (see 0140 §8).
+        p_structure_id: structureId,
       });
       if (err) {
         setError(err.message === "invalid_link" ? t("invalid.title") : t("errors.generic"));
@@ -333,8 +438,9 @@ export function EnrollWizard({
 
   // ----- render -----
   const step = state.step;
-  const showProgress = !submitted && step > 0;
-  const showFooterNav = !submitted && step >= 2 && step <= 6;
+  const showProgress = !submitted && step > STEP.welcome;
+  const showFooterNav =
+    !submitted && step >= STEP.structure && step <= STEP.activities && step !== STEP.account;
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-background">
@@ -345,17 +451,17 @@ export function EnrollWizard({
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="truncate text-sm font-semibold">{link.tenant_name}</p>
               <p className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                {t("progress", { current: step, total: TOTAL_STEPS - 1 })}
+                {t("progress", { current: progressCurrent, total: progressTotal })}
               </p>
             </div>
-            <Progress value={(step / (TOTAL_STEPS - 1)) * 100} className="h-2" />
+            <Progress value={(progressCurrent / progressTotal) * 100} className="h-2" />
           </div>
         )}
 
         <div className="flex-1">
           {submitted ? (
             <StepSuccess tenantName={link.tenant_name} />
-          ) : step === 0 ? (
+          ) : step === STEP.welcome ? (
             <>
               {/* Eight steps of child-and-parent details, for someone this
                   crèche already holds a record of, ends in a duplicate of
@@ -367,13 +473,28 @@ export function EnrollWizard({
                     <span>{t("existingFamily.body", { name: existingFamily })}</span>
                   </p>
                   <Button asChild size="sm" className="mt-3">
-                    <Link href="/portal/children/new">{t("existingFamily.cta")}</Link>
+                    <Link
+                      href={
+                        link.structure_id
+                          ? `/portal/children/new?structure=${link.structure_id}`
+                          : "/portal/children/new"
+                      }
+                    >
+                      {t("existingFamily.cta")}
+                    </Link>
                   </Button>
                 </div>
               )}
               <StepWelcome link={link} logoUrl={logoUrl} resumed={resumed} onStart={next} />
             </>
-          ) : step === 1 ? (
+          ) : step === STEP.structure ? (
+            <StepStructure
+              structures={structures}
+              classes={allClasses}
+              structureId={state.structureId}
+              onChange={chooseStructure}
+            />
+          ) : step === STEP.account ? (
             <StepAccount
               user={user}
               onAuthed={(u) => {
@@ -381,20 +502,26 @@ export function EnrollWizard({
                 prefillGuardian1(u);
               }}
               onSignedOut={() => setUser(null)}
-              onNext={() => goTo(2)}
+              onNext={() => goTo(STEP.child)}
             />
-          ) : step === 2 ? (
+          ) : step === STEP.child ? (
             <StepChild
               child={state.child}
               onChange={(patch) => update({ child: { ...state.child, ...patch } })}
+              fit={{
+                classes: allClasses,
+                structures,
+                structureId,
+                onSwitchStructure: asksStructure ? chooseStructure : undefined,
+              }}
             />
-          ) : step === 3 ? (
+          ) : step === STEP.photo ? (
             <StepPhoto
               user={user}
               photoPath={state.child.photo_path}
               onUploaded={(path) => update({ child: { ...state.child, photo_path: path } })}
             />
-          ) : step === 4 ? (
+          ) : step === STEP.guardians ? (
             <StepGuardians
               guardian1={state.guardian1}
               guardian2={state.guardian2}
@@ -405,17 +532,25 @@ export function EnrollWizard({
               onToggleG2={(has) => update({ hasGuardian2: has })}
               onPickupNote={(note) => update({ pickupNote: note })}
             />
-          ) : step === 5 ? (
+          ) : step === STEP.health ? (
             <StepHealth
               health={state.health}
               onChange={(patch) => update({ health: { ...state.health, ...patch } })}
             />
-          ) : step === 6 ? (
+          ) : step === STEP.activities ? (
             <StepActivities
-              activities={link.activities}
-              feePlans={link.fee_plans ?? []}
+              activities={activities}
+              feePlans={feePlans}
               feePlanId={state.feePlanId}
               onPlanChange={(id) => update({ feePlanId: id })}
+              classes={classes}
+              classId={classChoice}
+              onClassChange={(id) => update({ classId: id })}
+              childDob={state.child.dob}
+              allClasses={allClasses}
+              structures={structures}
+              structureId={structureId}
+              onSwitchStructure={asksStructure ? chooseStructure : undefined}
               selectedIds={state.activityIds}
               onToggle={(id) =>
                 update({
@@ -429,6 +564,8 @@ export function EnrollWizard({
             <StepReview
               state={state}
               link={link}
+              classId={classChoice}
+              asksStructure={asksStructure}
               submitting={submitting}
               error={error}
               goTo={goTo}
@@ -437,7 +574,7 @@ export function EnrollWizard({
           )}
         </div>
 
-        {!submitted && step >= 2 && error && step !== 7 && (
+        {!submitted && step >= STEP.structure && step !== STEP.account && error && step !== STEP.review && (
           <Alert variant="destructive" className="mt-4">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -455,7 +592,7 @@ export function EnrollWizard({
           </div>
         )}
 
-        {!submitted && step === 7 && (
+        {!submitted && step === STEP.review && (
           <div className="mt-4">
             <Button variant="ghost" size="lg" className="h-11 w-full" onClick={back}>
               <ArrowLeft className="size-4 rtl:rotate-180" data-icon="inline-start" />

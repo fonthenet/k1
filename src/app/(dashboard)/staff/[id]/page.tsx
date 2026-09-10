@@ -26,11 +26,36 @@ import { TimesheetEntryDialog } from "@/components/modules/staff/timesheet-entry
 import {
   algiersMonth, algiersToday, durationMinutes, monthRange, recentMonths,
 } from "@/components/modules/staff/dates";
-import { memberName } from "@/lib/member-names";
+import { fetchProfileNames, memberName, memberNameIn } from "@/lib/member-names";
 import { LEAVE_STATUS_BADGE, MEMBER_STATUS_BADGE, ROLE_BADGE } from "@/components/modules/staff/maps";
 import type {
   LeaveRequest, MemberStatus, PayrollItemWithRun, ProfileLite, SalaryAdvance, StaffRole,
 } from "@/components/modules/staff/staff-types";
+import { StructureChips } from "@/components/modules/staff/structure-chips";
+import { StaffClassesCard, type StaffClassOption } from "@/components/modules/staff/classes-card";
+import { StructuresCard } from "@/components/modules/staff/structures-card";
+import type { Structure } from "@/components/modules/classes/class-types";
+
+/** This member's own kg_class_staff rows, joined to the class. */
+type OwnClassRow = {
+  is_main: boolean;
+  kg_classes: { id: string; structure_id: string | null } | null;
+};
+
+type ClassRow = {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  structure_id: string | null;
+  color: string;
+  icon: string | null;
+};
+
+/** The main educator of each class, for the "you would join…" line. */
+type MainRow = {
+  class_id: string;
+  kg_memberships: { id: string; user_id: string | null; full_name: string | null } | null;
+};
 
 export default async function StaffMemberPage({
   params,
@@ -84,7 +109,17 @@ export default async function StaffMemberPage({
   // rendering the <Tabs> anyway gave them an empty tab bar under it.
   const hasTabs = canSeeTimesheets || canSeeLeaves || canSeeSalary || ctx.isAdmin;
 
-  const [{ data: profile }, { data: timesheets }, { data: leaves }, { data: advances }, { data: payrollItems }] =
+  const [
+    { data: profile },
+    { data: timesheets },
+    { data: leaves },
+    { data: advances },
+    { data: payrollItems },
+    { data: structureRows },
+    { data: classStaffRows },
+    { data: classRows },
+    { data: mainRows },
+  ] =
     await Promise.all([
       supabase
         .from("kg_profiles")
@@ -125,12 +160,95 @@ export default async function StaffMemberPage({
             .eq("tenant_id", ctx.tenant.id)
             .eq("membership_id", member.id)
         : Promise.resolve({ data: [] as PayrollItemWithRun[] }),
+      // The structures of the establishment (0125), and the classes this member
+      // is on. kg_memberships carries no structure_id on purpose — a cook
+      // belongs to the building — so where they work is derived from the two.
+      supabase
+        .from("kg_structures")
+        .select("id, name, name_ar, center_type, color, sort_order, active")
+        .eq("tenant_id", ctx.tenant.id)
+        .order("sort_order")
+        .order("name"),
+      // kg_class_staff has no tenant_id of its own; it is scoped through the
+      // class it points at, which is also where the structure lives.
+      supabase
+        .from("kg_class_staff")
+        .select("is_main, kg_classes!inner(id, structure_id, tenant_id)")
+        .eq("membership_id", member.id)
+        .eq("kg_classes.tenant_id", ctx.tenant.id),
+      // Every class in the building, for the Classes card and its dialog.
+      // Not scoped by the switcher: a person can be assigned to either side
+      // of the building whichever side is on screen.
+      supabase
+        .from("kg_classes")
+        .select("id, name, name_ar, structure_id, color, icon")
+        .eq("tenant_id", ctx.tenant.id)
+        .order("name"),
+      supabase
+        .from("kg_class_staff")
+        .select("class_id, kg_memberships!inner(id, user_id, full_name), kg_classes!inner(tenant_id)")
+        .eq("is_main", true)
+        .eq("kg_classes.tenant_id", ctx.tenant.id),
     ]);
 
   const name = memberName(member, profile?.full_name) ?? "—";
   const parts = name.split(" ");
   const role = member.role as StaffRole;
   const status = (member.status === "disabled" ? "disabled" : member.status) as MemberStatus;
+
+  const structures = (structureRows ?? []) as Structure[];
+  // Direct assignments (0141): where the person works when no class says so.
+  // Read separately so the long Promise.all above keeps its shape.
+  const { data: directRows } = await supabase
+    .from("kg_membership_structures")
+    .select("structure_id")
+    .eq("membership_id", member.id);
+  const directStructureIds = (directRows ?? []).map((r) => r.structure_id);
+  // Under two structures the word means nothing — every member would carry the
+  // same chip. A class filed under none adds nothing either: it already belongs
+  // to the whole building, which is what showing no chip at all says.
+  const manyStructures = structures.length > 1;
+  const ownClasses = ((classStaffRows ?? []) as unknown as OwnClassRow[]).filter(
+    (r) => r.kg_classes
+  );
+  const taughtIn = new Set(
+    ownClasses.map((r) => r.kg_classes?.structure_id).filter((id): id is string => !!id)
+  );
+  // The union, same as kg_member_structures: direct assignments plus the
+  // structures of the classes they teach.
+  const memberStructures = structures.filter(
+    (s) => taughtIn.has(s.id) || directStructureIds.includes(s.id)
+  );
+  // For the Structures card: which classes put the person in each structure,
+  // so a structure that comes from a class is shown locked and explained.
+  const viaClasses: Record<string, string[]> = {};
+  for (const r of ownClasses) {
+    const sid = r.kg_classes?.structure_id;
+    if (!sid) continue;
+    const cls = (classRows ?? []).find((c) => c.id === r.kg_classes?.id);
+    const label = cls ? (locale === "ar" && cls.name_ar ? cls.name_ar : cls.name) : null;
+    if (label) (viaClasses[sid] ??= []).push(label);
+  }
+
+  // The Classes card: every class with its current main educator's name, so
+  // the dialog can say who this person would be working under.
+  const mains = ((mainRows ?? []) as unknown as MainRow[]).filter((r) => r.kg_memberships);
+  const mainProfileNames = await fetchProfileNames(
+    supabase,
+    mains.map((r) => r.kg_memberships!.user_id)
+  );
+  const mainByClass = new Map(
+    mains.map((r) => [
+      r.class_id,
+      { id: r.kg_memberships!.id, name: memberNameIn(r.kg_memberships!, mainProfileNames) },
+    ])
+  );
+  const classOptions: StaffClassOption[] = ((classRows ?? []) as ClassRow[]).map((c) => ({
+    ...c,
+    mainName: mainByClass.get(c.id)?.name ?? null,
+    mainMembershipId: mainByClass.get(c.id)?.id ?? null,
+  }));
+  const mine = ownClasses.map((r) => ({ classId: r.kg_classes!.id, isMain: r.is_main }));
 
   // Cards are door keys: admins only, and only theirs (RLS enforces the rest).
   const { data: cardRows } = ctx.isAdmin
@@ -197,6 +315,7 @@ export default async function StaffMemberPage({
               <span className="text-xl font-bold tracking-tight text-foreground">{name}</span>
               <Badge className={ROLE_BADGE[role]}>{t(`roles.${role}`)}</Badge>
               <Badge className={MEMBER_STATUS_BADGE[status]}>{t(`memberStatus.${status}`)}</Badge>
+              {manyStructures && <StructureChips structures={memberStructures} locale={locale} />}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
               {member.job_title && <span>{member.job_title}</span>}
@@ -216,6 +335,24 @@ export default async function StaffMemberPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Where they work, then what they do there. The structures card hides
+          itself for a one-structure building. */}
+      <StructuresCard
+        membershipId={member.id}
+        structures={structures.filter((s) => s.active)}
+        direct={directStructureIds}
+        viaClasses={viaClasses}
+        canManage={ctx.isAdmin}
+      />
+      <StaffClassesCard
+        membershipId={member.id}
+        memberName={name}
+        mine={mine}
+        classes={classOptions}
+        structures={structures}
+        canManage={ctx.isAdmin}
+      />
 
       {hasTabs && (
         <Tabs defaultValue={canSeeTimesheets ? "timesheets" : canSeeLeaves ? "leaves" : ctx.isAdmin ? "cards" : "salary"}>

@@ -24,7 +24,9 @@ export default async function EnrollPosterPage({
     ? (
         await (await createClient())
           .from("kg_enroll_links")
-          .select("id, token, label, active")
+          // The structure comes with the link so the sheet can name it — the
+          // crèche's poster and the école's must not be the same sheet.
+          .select("id, token, label, active, structure:kg_structures(name, name_ar)")
           .eq("id", id)
           .eq("tenant_id", ctx.tenant.id)
           .maybeSingle()
@@ -54,6 +56,13 @@ export default async function EnrollPosterPage({
 
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const logoUrl = await signedMediaUrl(ctx.tenant.logo_url);
+  // PostgREST types a to-one embed as an object, but the generated types are
+  // not in this build, so the shape is narrowed by hand.
+  const structureRow = link.structure as unknown as
+    | { name: string; name_ar: string | null }
+    | { name: string; name_ar: string | null }[]
+    | null;
+  const structure = Array.isArray(structureRow) ? (structureRow[0] ?? null) : structureRow;
 
   return (
     <div>
@@ -72,6 +81,7 @@ export default async function EnrollPosterPage({
           url: `${base}/enroll/${link.token}`,
           kindergartenName: ctx.tenant.name,
           logoUrl,
+          structure: structure ? { name: structure.name, nameAr: structure.name_ar } : null,
         }}
       />
     </div>

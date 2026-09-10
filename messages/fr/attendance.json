@@ -20,6 +20,10 @@
     "all": "Toutes les classes",
     "presence": "{present, plural, =0 {0 présent sur {total}} one {# présent sur {total}} other {# présents sur {total}}}"
   },
+  "structures": {
+    "filter": "Filtrer par structure",
+    "all": "Toutes les structures"
+  },
   "counters": {
     "present": "{count, plural, =0 {0 présent} one {# présent} other {# présents}}",
     "absent": "{count, plural, =0 {0 absent} one {# absent} other {# absents}}",

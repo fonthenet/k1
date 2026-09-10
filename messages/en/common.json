@@ -126,5 +126,12 @@
     "system": "Match my phone",
     "light": "Light",
     "dark": "Dark"
+  },
+  "structures": {
+    "label": "What you are looking at",
+    "switch": "Switch structure",
+    "all": "The whole establishment",
+    "allHint": "{count} structures",
+    "viewing": "Showing this structure"
   }
 }

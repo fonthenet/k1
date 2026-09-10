@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/card";
 import { Wordmark } from "@/components/landing/wordmark";
 import { LocaleToggle } from "@/app/(auth)/_components/locale-toggle";
+import { Zellige } from "@/app/(auth)/_components/zellige";
 import {
   centerTypeLabel,
   centerTypeOption,
@@ -39,6 +40,7 @@ import {
 } from "./_components/pending-applications";
 import { CreateWizard } from "./_components/create-wizard";
 import { OpenWorkspaceButton } from "./_components/open-workspace-button";
+import { SignOutButton } from "./_components/sign-out-button";
 import { chooseWorkspace } from "./actions";
 import { displayIdentity } from "@/lib/auth-identifier";
 
@@ -58,6 +60,33 @@ const ROLE_TONE: Record<KgRole, { pill: string; dot: string }> = {
   accountant: { pill: "bg-primary/10 text-primary", dot: "bg-primary" },
   parent: { pill: "bg-secondary text-secondary-foreground", dot: "bg-muted-foreground" },
 };
+
+/**
+ * Who you are signed in as — and the control to stop being them.
+ *
+ * All three states of this page can be a dead end for the wrong account: a
+ * family waiting on a decision has no workspace to open, the wizard is not
+ * what a parent came for, and the chooser lists someone else's crèches. The
+ * pill named the account and offered nothing to do about it, so a parent who
+ * had signed up with the wrong address was stuck with the browser's back
+ * button. Sign out goes where every other sign-out in the app goes.
+ */
+function IdentityRow({ label, className }: { label: string; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5",
+        className,
+      )}
+    >
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+        <SchoolIcon className="size-3.5 text-primary" aria-hidden />
+        {label}
+      </span>
+      <SignOutButton />
+    </div>
+  );
+}
 
 export default async function OnboardingPage({
   searchParams,
@@ -120,16 +149,45 @@ export default async function OnboardingPage({
   const waitingParent =
     memberships.length === 0 && pending.length > 0 && !forceCreate && claimCode === "";
 
+  /**
+   * One workspace is not a choice.
+   *
+   * A parent belongs to exactly one crèche, so signing in put them on a page
+   * headed "choose your workspace" listing a single card, above an invitation
+   * to found a kindergarten. Every account with one membership went through
+   * that — staff too. The cookie does not need writing first: with a single
+   * membership getTenantContext resolves to the same tenant either way.
+   *
+   * ?create=1 and a claim code are deliberate detours and are excluded above,
+   * so neither can be swallowed by this.
+   */
+  if (!showWizard && memberships.length === 1) {
+    redirect(memberships[0].role === "parent" ? "/portal" : "/dashboard");
+  }
+
+  /** Nobody here manages a crèche — so don't lead with founding one. */
+  const parentOnly = memberships.length > 0 && memberships.every((m) => m.role === "parent");
+
   return (
     <div className="relative min-h-dvh overflow-hidden bg-background">
+      {/* The same surface as /login and /signup.
+          This page sat outside the (auth) route group and so never got that
+          layout's background: a parent signed up on tilework and landed here
+          on two blurred blobs, which read as a different product. Same three
+          washes, same zellige, same opacities — the join should be invisible. */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[26rem] bg-[radial-gradient(ellipse_75%_100%_at_50%_0%,var(--primary),transparent_70%)] opacity-[0.09]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_12%_0%,var(--primary),transparent_62%)] opacity-[0.13]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -top-24 -end-24 size-80 rounded-full bg-gold/10 blur-3xl"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_92%_8%,var(--gold),transparent_58%)] opacity-[0.16]"
         aria-hidden
       />
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_65%_at_50%_108%,var(--primary),transparent_66%)] opacity-[0.10]"
+        aria-hidden
+      />
+      <Zellige className="pointer-events-none absolute inset-0 size-full text-primary opacity-[0.055]" />
 
       <header className="relative mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
         {/* The logo is the way out. This screen can be a dead end — a family
@@ -186,12 +244,10 @@ export default async function OnboardingPage({
               </Link>
             </div>
 
-            <p className="mt-6 flex justify-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
-                <SchoolIcon className="size-3.5 text-primary" aria-hidden />
-                {t("onboarding.signedInAs", { email: displayIdentity(user.email) })}
-              </span>
-            </p>
+            <IdentityRow
+              className="mt-6"
+              label={t("onboarding.signedInAs", { email: displayIdentity(user.email) })}
+            />
           </div>
         ) : showWizard ? (
           <div className="mx-auto max-w-3xl">
@@ -286,12 +342,10 @@ export default async function OnboardingPage({
               </CardContent>
             </Card>
 
-            <p className="mt-6 flex justify-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
-                <SchoolIcon className="size-3.5 text-primary" aria-hidden />
-                {t("onboarding.signedInAs", { email: displayIdentity(user.email) })}
-              </span>
-            </p>
+            <IdentityRow
+              className="mt-6"
+              label={t("onboarding.signedInAs", { email: displayIdentity(user.email) })}
+            />
           </div>
         ) : (
           <div>
@@ -368,26 +422,41 @@ export default async function OnboardingPage({
                 );
               })}
 
-              <Link
-                href="/onboarding?create=1"
-                className="group flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/60 p-6 text-center transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
-              >
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
-                  <PlusIcon className="size-5" aria-hidden />
-                </span>
-                <span className="font-semibold text-foreground">{t("onboarding.createNew")}</span>
-                <span className="max-w-[28ch] text-xs text-muted-foreground text-pretty">
-                  {t("onboarding.createNewHint")}
-                </span>
-              </Link>
+              {/* A tile the size of a crèche card, but only for someone who
+                  might actually want one. A parent with children at two
+                  crèches was being offered "found a kindergarten" as an equal
+                  third option; for them it drops to the quiet link below. */}
+              {!parentOnly && (
+                <Link
+                  href="/onboarding?create=1"
+                  className="group flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/60 p-6 text-center transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
+                >
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+                    <PlusIcon className="size-5" aria-hidden />
+                  </span>
+                  <span className="font-semibold text-foreground">{t("onboarding.createNew")}</span>
+                  <span className="max-w-[28ch] text-xs text-muted-foreground text-pretty">
+                    {t("onboarding.createNewHint")}
+                  </span>
+                </Link>
+              )}
             </div>
 
-            <p className="mt-10 flex justify-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
-                <SchoolIcon className="size-3.5 text-primary" aria-hidden />
-                {t("onboarding.signedInAs", { email: displayIdentity(user.email) })}
-              </span>
-            </p>
+            {parentOnly && (
+              <div className="mt-8 border-t border-border/60 pt-5 text-center">
+                <Link
+                  href="/onboarding?create=1"
+                  className="rounded text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                >
+                  {t("onboarding.pending.founderLink")}
+                </Link>
+              </div>
+            )}
+
+            <IdentityRow
+              className="mt-10"
+              label={t("onboarding.signedInAs", { email: displayIdentity(user.email) })}
+            />
           </div>
         )}
       </main>

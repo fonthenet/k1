@@ -2,7 +2,10 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Check, Copy, KeyRound, UserPlus } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
+import { centerTypeOption } from "@/components/modules/settings/center-types";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,9 +28,22 @@ const INVITABLE_ROLES = STAFF_ROLES.filter((r) => r !== "owner");
 // Radix Select cannot represent "nothing chosen" with an empty string.
 const NEW_MEMBER = "__new__";
 
-export function InviteDialog() {
+export function InviteDialog({ structures = [] }: { structures?: Structure[] }) {
   const t = useTranslations("staff");
   const tc = useTranslations("common");
+  const locale = useLocale();
+  // Where the person will work — asked at the hire, because that is when the
+  // director knows. Several may be ticked (the cook feeds both sides). Shown
+  // only for a building with more than one structure.
+  const placeable = structures.filter((s) => s.active);
+  const [structureIds, setStructureIds] = useState<Set<string>>(new Set());
+  const toggleStructure = (id: string) =>
+    setStructureIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const [open, setOpen] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [role, setRole] = useState<StaffRole>("educator");
@@ -99,6 +115,7 @@ export function InviteDialog() {
           payType,
           baseSalary: payType === "monthly" ? amount : null,
           hourlyRate: payType === "hourly" ? amount : null,
+          structureIds: [...structureIds],
         });
         if (res.ok) {
           setIssued({ staffCode: res.data.staffCode, pinCode: res.data.pinCode });
@@ -113,6 +130,7 @@ export function InviteDialog() {
         role: effectiveRole === "owner" ? "admin" : effectiveRole,
         jobTitle: jobTitle || undefined,
         membershipId: attached?.id,
+        structureIds: [...structureIds],
       });
       if (res.ok) {
         setLink(res.data.link);
@@ -300,6 +318,38 @@ export function InviteDialog() {
                     placeholder={t("invite.jobTitlePlaceholder")}
                   />
                 </div>
+                {placeable.length > 1 && (
+                  <div className="grid gap-2">
+                    <Label>{t("invite.structures")}</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {placeable.map((s) => {
+                        const { Icon } = centerTypeOption(s.center_type);
+                        const on = structureIds.has(s.id);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() => toggleStructure(s.id)}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm transition",
+                              on ? "border-transparent" : "border-border hover:bg-muted/50"
+                            )}
+                            style={
+                              on
+                                ? { backgroundColor: `${s.color}14`, boxShadow: `inset 0 0 0 1.5px ${s.color}` }
+                                : undefined
+                            }
+                          >
+                            <Icon className="size-3.5" style={{ color: s.color }} aria-hidden />
+                            {structureName(s, locale)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-pretty text-muted-foreground">{t("invite.structuresHint")}</p>
+                  </div>
+                )}
               </>
             )}
             {mode === "local" && (

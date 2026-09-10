@@ -32,7 +32,7 @@ export interface MyGuardianDetails {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Tinted square that fronts a section title — the portal's house style. */
+/** Tinted square that fronts a section heading — the portal's house style. */
 function IconTile({ children }: { children: React.ReactNode }) {
   return (
     <span

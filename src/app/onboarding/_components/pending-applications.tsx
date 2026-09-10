@@ -48,10 +48,15 @@ export async function PendingApplicationsNotice({
 }: {
   rows: Row[];
   /**
-   * True when this IS the page — a family whose only business here is the wait.
-   * It then gets the heading, and the accent is spent on the hourglass alone:
-   * a gold border, a gold wash AND a gold tile is one fact wearing colour
-   * three times, which is what the rest of the product was corrected for.
+   * True when this IS the page — a family whose only business here is the
+   * wait — rather than a notice above something else.
+   *
+   * It changes CONTENT, not styling. An earlier pass also stripped the gold
+   * surface and the hourglass tile here, reasoning that a wash plus a border
+   * plus a tinted tile is one fact wearing colour three times. That rule is
+   * real, but this card is the whole page and the accent is the only warmth
+   * on it; plain white delivered "we have your file, relax" like a disabled
+   * row. The owner asked for it back exactly as it was, and he is right.
    */
   primary?: boolean;
 }) {
@@ -61,35 +66,21 @@ export async function PendingApplicationsNotice({
 
   return (
     <Card
-      className={
-        primary
-          ? "border border-border shadow-sm ring-0"
-          : "border border-gold/35 bg-gold-muted/40 shadow-sm ring-0"
-      }
+      className="border border-gold/35 bg-gold-muted/40 shadow-sm ring-0"
     >
       <CardContent className="grid gap-3">
         <div className="flex items-start gap-3.5">
           <span
             aria-hidden
-            className={
-              primary
-                ? "flex size-10 shrink-0 items-center justify-center text-gold-ink"
-                : "flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gold text-gold-foreground"
-            }
+            className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gold text-gold-foreground"
           >
-            <Hourglass className={primary ? "size-6" : "size-5"} />
+            <Hourglass className="size-5" />
           </span>
           <div className="min-w-0">
-            <div
-              className={
-                primary
-                  ? "font-heading text-xl font-semibold tracking-tight text-foreground"
-                  : "text-sm font-semibold text-foreground"
-              }
-            >
+            <div className="text-sm font-semibold text-foreground">
               {t("title", { count: rows.length })}
             </div>
-            <p className="mt-1 text-sm leading-relaxed text-pretty text-muted-foreground">
+            <p className="mt-0.5 text-sm leading-relaxed text-pretty text-muted-foreground">
               {t("description")}
             </p>
           </div>
