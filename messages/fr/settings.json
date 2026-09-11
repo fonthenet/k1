@@ -61,6 +61,9 @@
     "locationHint": "Où vous trouver, et le repère sur la carte."
   },
   "centerTypes": {
+    "private_primary": {"name":"École primaire privée","desc":"Enseignement primaire privé. Sélectionnez aussi les autres cycles proposés par votre établissement."},
+    "private_middle": {"name":"École privée · cycle moyen","desc":"Enseignement moyen privé, distinct du soutien scolaire."},
+    "private_secondary": {"name":"École privée · cycle secondaire","desc":"Enseignement secondaire privé, distinct du soutien scolaire."},
     "nursery": {
       "name": "Crèche",
       "desc": "Accueil des bébés et tout-petits à la journée."

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { EyeIcon, EyeOffIcon, Loader2Icon, MailCheckIcon } from "lucide-react";
@@ -26,7 +25,6 @@ interface AuthFormProps {
 
 export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
   const t = useTranslations("auth");
-  const router = useRouter();
   const [fullName, setFullName] = useState("");
   // Email or phone — a parent who has a mobile and no address they ever check
   // should not be turned away at the first field. `email` holds whichever they
@@ -76,10 +74,10 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
     }
 
     setSubmitting(true);
-    if (mode === "login") setRememberPreference(remember);
-    const supabase = createClient();
 
     try {
+      if (mode === "login") setRememberPreference(remember);
+      const supabase = createClient();
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({
           email: identity.email,
@@ -127,8 +125,12 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
           return;
         }
       }
-      router.push(next);
-      router.refresh();
+      // Start a fresh server request with the new cookies, rather than reusing
+      // an unauthenticated route from the client router cache.
+      const target = new URL(next, window.location.origin);
+      window.location.assign(
+        target.origin === window.location.origin ? target.href : "/after-login",
+      );
     } catch {
       toast.error(t("errors.generic"));
       setSubmitting(false);

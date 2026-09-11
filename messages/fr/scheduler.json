@@ -1,0 +1,41 @@
+{
+  "add": "Ajouter une séance",
+  "intro": "Choisissez un programme, affectez un membre de l’équipe et vérifiez les dates avant d’enregistrer.",
+  "choose": "Choisir une option",
+  "chooseDate": "Choisir une date",
+  "noPrograms": "Créez un programme actif pour une classe que vous pouvez encadrer avant de planifier des séances.",
+  "noStaff": "Aucun membre actif de l’équipe n’est affecté à cette classe.",
+  "assignStaff": "Affecter le personnel sur la page de la classe",
+  "range": "Dates du programme : du {start} au {end}",
+  "timezone": "Tous les horaires sont en heure locale d’Algérie (format 24 heures).",
+  "repeatHint": "Une séance par semaine, le même jour. La première séance est comprise dans le total.",
+  "preview": "Dates à réserver",
+  "conflictNotice": "Cet aperçu présente les dates, pas les disponibilités. La base de données vérifie les conflits de classe et de personnel lors de l’enregistrement de la série complète.",
+  "outsideRange": "En dehors des dates du programme",
+  "previewHint": "Choisissez une date valide et de 1 à 16 séances pour afficher toutes les dates.",
+  "close": "Fermer et garder les modifications",
+  "saving": "Enregistrement des séances...",
+  "save": "Enregistrer les séances",
+  "fields": {
+    "programId": "Programme de la classe",
+    "membershipId": "Membre de l’équipe affecté",
+    "title": "Titre de la séance",
+    "kind": "Type de séance",
+    "date": "Date de la première séance",
+    "start": "Heure de début",
+    "end": "Heure de fin",
+    "weeks": "Nombre de séances hebdomadaires (1 à 16)"
+  },
+  "validation": {
+    "program": "Choisissez un programme actif pour une classe que vous pouvez encadrer.",
+    "staff": "Choisissez un membre de l’équipe affecté à cette classe.",
+    "title": "Saisissez un titre de 1 à 200 caractères.",
+    "kind": "Choisissez un type de séance adapté à cette classe.",
+    "date": "Choisissez une date valide.",
+    "range": "La première séance doit être comprise dans les dates du programme.",
+    "time": "Choisissez une heure valide au format 24 heures.",
+    "order": "L’heure de fin doit être après l’heure de début, le même jour.",
+    "weeks": "Saisissez un nombre entier de 1 à 16.",
+    "recurrence": "Toutes les séances doivent être comprises dans les dates du programme. Changez la première date ou réduisez le nombre de semaines."
+  }
+}

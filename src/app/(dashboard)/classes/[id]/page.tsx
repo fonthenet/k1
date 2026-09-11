@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Baby, CalendarCheck, School, Users } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
+import { ClassLearningLink } from "@/components/modules/learning/class-link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -411,6 +412,7 @@ export default async function ClassDetailPage({
           report was simply that they could not find where staff were
           assigned. */}
       <div className="mb-4">
+        <ClassLearningLink classId={klass.id} />
         <ClassStaffCard
           classId={klass.id}
           className={displayName}

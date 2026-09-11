@@ -1,4 +1,9 @@
 import Link from "next/link";
+import { WorkspaceStart } from "@/components/modules/dashboard/workspace-start";
+import { SetupChecklist } from "@/components/modules/learning/setup-checklist";
+import { SchoolDashboard } from "@/components/modules/learning/school-dashboard";
+import { learningProfile } from "@/components/modules/learning/domain";
+import { workspaceType } from "@/components/modules/settings/workspace-profile";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
   Baby,
@@ -109,6 +114,9 @@ const LIST_LIMIT = 8;
 
 export default async function DashboardPage() {
   const ctx = await requireStaff();
+  if (learningProfile(workspaceType(ctx.structures, ctx.structureId)) === "academic") {
+    return <SchoolDashboard ctx={ctx} />;
+  }
   const supabase = await createClient();
   const [t, locale] = await Promise.all([
     getTranslations("dashboard"),
@@ -349,6 +357,9 @@ export default async function DashboardPage() {
           name: ctx.tenant.name,
         })}
       />
+
+      <WorkspaceStart type={workspaceType(ctx.structures, ctx.structureId)} role={ctx.role} />
+      <SetupChecklist ctx={ctx} />
 
       {statsRes.error && (
         <Alert variant="destructive">

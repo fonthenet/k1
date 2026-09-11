@@ -10,6 +10,8 @@ import {
 } from "@/components/modules/settings/center-types";
 import { getTranslations } from "next-intl/server";
 import { SLUG_RE } from "./constants";
+import { isPrivateSchool } from "@/components/modules/settings/private-school-types";
+import { privateSchoolsAvailable } from "@/components/modules/settings/private-school-support";
 
 const createSchema = z.object({
   name: z.string().trim().min(2).max(80),
@@ -26,7 +28,7 @@ export type CreateKindergartenInput = z.infer<typeof createSchema>;
 
 export async function createKindergarten(
   input: CreateKindergartenInput
-): Promise<{ error: "invalidInput" | "nameTaken" | "slugTaken" | "generic" } | void> {
+): Promise<{ error: "invalidInput" | "nameTaken" | "slugTaken" | "schoolUnavailable" | "generic" } | void> {
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) return { error: "invalidInput" };
   const { name, slug, wilaya, commune, phone, centerTypes } = parsed.data;
@@ -37,6 +39,10 @@ export async function createKindergarten(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/onboarding");
+
+  if (types.some(isPrivateSchool) && !(await privateSchoolsAvailable())) {
+    return { error: "schoolUnavailable" };
+  }
 
   // One round trip creates the establishment, the owner membership, the
   // txn categories AND one section per vertical — so a founder can never land

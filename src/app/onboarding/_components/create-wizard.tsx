@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { WorkspacePreview } from "@/components/modules/settings/workspace-preview";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { CheckIcon, Loader2Icon, XIcon } from "lucide-react";
@@ -147,6 +148,8 @@ export function CreateWizard() {
           {t("onboarding.centerTypeMulti", { count: centerTypes.length })}
         </p>
       )}
+
+      <WorkspacePreview types={centerTypes} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">

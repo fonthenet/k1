@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ParentLearningLink } from "@/components/modules/learning/parent-link";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
   Baby,
@@ -606,6 +607,7 @@ export default async function PortalChildDetailPage({
 
   return (
     <div className="grid gap-4">
+      <ParentLearningLink />
       {/* ===== Header ===== */}
       <div>
         <Button asChild variant="ghost" size="sm" className="-ms-2 mb-2 text-muted-foreground">

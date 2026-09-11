@@ -27,6 +27,9 @@ export const CENTER_TYPES = [
   "therapy_center",
   "activity_center",
   "camp",
+  "private_primary",
+  "private_middle",
+  "private_secondary",
 ] as const;
 
 export type CenterType = (typeof CENTER_TYPES)[number];
@@ -76,6 +79,9 @@ export const CENTER_TYPE_ICON: Record<CenterType, LucideIcon> = {
   therapy_center: HeartHandshake,
   activity_center: Palette,
   camp: Tent,
+  private_primary: School,
+  private_middle: School,
+  private_secondary: GraduationCap,
 };
 
 export interface CenterTypeOption {

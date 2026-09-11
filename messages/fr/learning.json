@@ -1,0 +1,226 @@
+{
+  "creator": {
+    "intro": "Construisez un programme à partir d'un modèle modifiable. Choisissez une classe, une idée, puis adaptez-la.",
+    "resume": "Reprendre la modification",
+    "schedule": "Planifier la première séance",
+    "create": "Créer le programme",
+    "steps": {
+      "class": "Choisir la classe",
+      "template": "Choisir un programme",
+      "review": "Contenu et dates"
+    },
+    "classTitle": "À qui s'adresse ce programme ?",
+    "classHint": "Choisissez une classe ou un groupe existant. Le type de structure détermine les suggestions.",
+    "templateTitle": "Partez d'une idée, pas d'un formulaire vide",
+    "templateHint": "Choisissez un point de départ. Tout sera modifiable à l'étape suivante.",
+    "customHint": "Commencez avec votre propre titre et vos objectifs.",
+    "replace": "Continuer avec un autre modèle remplace votre titre et vos objectifs modifiés. Les dates sont conservées.",
+    "reviewTitle": "Adaptez le programme",
+    "reviewHint": "Vérifiez le contenu et définissez la période du programme.",
+    "scheduleHint": "Cette étape crée uniquement le programme. Affectez ensuite l'équipe et les horaires dans le planning hebdomadaire. Aucune séance ni notification aux familles n'est générée ici.",
+    "close": "Fermer · garder les modifications",
+    "back": "Retour",
+    "continue": "Continuer"
+  },
+  "templateIntro": "Choisissez une classe existante, puis un programme suggéré ou créez le vôtre.",
+  "templateDisclaimer": "Suggestions modifiables, ni programme officiel algérien ni protocole clinique. Adaptez-les à l'âge et au niveau du groupe.",
+  "customProgram": "Créer un programme personnalisé",
+  "reuseProgram": "Réutiliser : {title}",
+  "weeklyIdeas": "Idées d'activités hebdomadaires",
+  "applyTemplate": "Utiliser ce modèle",
+  "replaceHint": "Remplace le titre et les objectifs ci-dessous. Les dates restent inchangées ; aucune séance n'est créée.",
+  "chooseClassFirst": "Choisissez une classe pour voir les suggestions adaptées.",
+  "programNextStep": "Après l'enregistrement, ouvrez le planning hebdomadaire pour affecter l'équipe et planifier les séances. Les programmes enregistrés sont réutilisables dans cette liste.",
+  "templates": {
+    "sensory": {
+      "title": "Découverte sensorielle",
+      "objectives": "Explorer les textures, les sons et les couleurs par le jeu accompagné. Observer les réactions de chaque enfant et respecter son rythme.",
+      "activities": "Exploration des textures\nDécouverte des sons\nTri des couleurs"
+    },
+    "movement": {
+      "title": "Motricité et coordination",
+      "objectives": "Travailler l'équilibre, la coordination et le mouvement avec des jeux accompagnés adaptés à l'âge.",
+      "activities": "Jeux d'équilibre\nRythme et mouvement\nParcours moteur simple"
+    },
+    "routines": {
+      "title": "Routines et autonomie",
+      "objectives": "Accompagner la participation aux routines quotidiennes avec une aide adaptée aux besoins de chaque enfant.",
+      "activities": "Rituel d'accueil\nRangement collectif\nPréparation des transitions"
+    },
+    "stories": {
+      "title": "Langage et histoires",
+      "objectives": "Développer l'écoute, le vocabulaire et l'expression orale à travers les histoires, les images et les échanges.",
+      "activities": "Discussion autour d'un album\nRaconter une histoire\nComptines et jeux de mots"
+    },
+    "numbers": {
+      "title": "Nombres et formes",
+      "objectives": "Découvrir le dénombrement, le tri et les formes avec du matériel concret et des jeux.",
+      "activities": "Tri d'objets\nJeux de comptage\nDécouverte des formes"
+    },
+    "creative": {
+      "title": "Expression créative",
+      "objectives": "Explorer des matériaux et exprimer ses idées par l'art, la musique et des projets collectifs.",
+      "activities": "Dessin et collage\nAtelier rythmique\nCréation collective"
+    },
+    "practical": {
+      "title": "Vie pratique",
+      "objectives": "Développer la concentration, la coordination et l'autonomie avec des tâches quotidiennes soigneusement préparées.",
+      "activities": "Verser et transvaser\nPrendre soin du matériel\nRanger son travail"
+    },
+    "arabic": {
+      "title": "Langue arabe",
+      "objectives": "Choisir une unité adaptée au niveau et définir les objectifs de lecture, d'expression orale et d'écriture.",
+      "activities": "Lecture guidée\nTravail du vocabulaire\nCourte production écrite"
+    },
+    "maths": {
+      "title": "Mathématiques",
+      "objectives": "Choisir un thème adapté au niveau du groupe. Construire la compréhension par des exemples, des exercices et la résolution de problèmes.",
+      "activities": "Découverte d'une notion\nExercices guidés\nRésolution de problèmes"
+    },
+    "french": {
+      "title": "Langue française",
+      "objectives": "Adapter les objectifs de vocabulaire, d'écoute, d'expression orale et d'écriture au niveau linguistique du groupe.",
+      "activities": "Activité d'écoute\nConversation guidée\nLecture et écriture"
+    },
+    "english": {
+      "title": "Langue anglaise",
+      "objectives": "Développer le vocabulaire et la communication à travers des tâches adaptées au niveau linguistique du groupe.",
+      "activities": "Écoute et vocabulaire\nConversation en binômes\nCourte tâche de lecture ou d'écriture"
+    },
+    "science": {
+      "title": "Exploration scientifique",
+      "objectives": "Choisir un thème adapté au niveau. Travailler l'observation, le questionnement et l'explication à partir d'indices.",
+      "activities": "Question et observation\nInvestigation accompagnée\nDiscussion des résultats"
+    },
+    "communication": {
+      "title": "Communication en groupe",
+      "objectives": "Préparer des activités collectives non cliniques favorisant l'expression, l'écoute et la participation. Adapter avec le professionnel responsable.",
+      "activities": "Échanges à tour de rôle\nExpression à partir d'images\nHistoire partagée"
+    },
+    "cooperation": {
+      "title": "Coopération et vie de groupe",
+      "objectives": "Travailler l'écoute, le tour de rôle et la collaboration autour d'un objectif commun, selon les besoins du groupe.",
+      "activities": "Jeu coopératif\nProjet collectif\nBilan en groupe"
+    }
+  },
+  "title": "Pédagogie et programmes hebdomadaires",
+  "description": "Classes, équipes affectées, programmes, séances et progression réunis dans un seul espace.",
+  "profiles": {
+    "academic": "Matières, cours et évaluations",
+    "care": "Routines et développement",
+    "therapy": "Accompagnement collectif",
+    "activities": "Ateliers et activités",
+    "development": "Apprentissages et observations"
+  },
+  "profileHints": {
+    "academic": "Créez vos programmes par matière et saisissez les devoirs et examens. Les barèmes sont configurables ; il ne s'agit pas de bulletins officiels.",
+    "care": "Organisez les routines et activités adaptées à l'âge. Suivez le développement par observation, sans notes d'examen.",
+    "therapy": "Planifiez les séances collectives ici. Le module Séances reste dédié aux plans individuels et notes cliniques confidentielles.",
+    "activities": "Organisez ateliers et programmes saisonniers avec les équipes et groupes affectés.",
+    "development": "Préparez les activités hebdomadaires et suivez les progrès par des observations du développement."
+  },
+  "programs": "Programmes",
+  "week": "Emploi du temps",
+  "assessments": "Évaluations et observations",
+  "newProgram": "Ajouter un programme pédagogique",
+  "newLesson": "Planifier des séances",
+  "newAssessment": "Créer une évaluation",
+  "choose": "Choisir…",
+  "save": "Enregistrer",
+  "saving": "Enregistrement…",
+  "saved": "Enregistré.",
+  "fields": {
+    "template": "Modèle de programme",
+    "class": "Classe / groupe",
+    "title": "Titre / matière",
+    "objectives": "Objectifs pédagogiques",
+    "startsOn": "Début du programme",
+    "endsOn": "Fin du programme",
+    "program": "Programme de classe",
+    "kind": "Type",
+    "date": "Date",
+    "staff": "Membre de l'équipe affectée",
+    "start": "Début",
+    "end": "Fin",
+    "weeks": "Répéter chaque semaine (1 à 16 séances)",
+    "maxScore": "Barème maximal",
+    "outcome": "Résultat",
+    "score": "Note",
+    "feedback": "Retour visible par la famille après publication"
+  },
+  "kinds": {
+    "lesson": "Cours",
+    "activity": "Activité",
+    "care": "Routine de soin",
+    "therapy": "Accompagnement collectif",
+    "observation": "Observation du développement",
+    "test": "Devoir",
+    "exam": "Examen"
+  },
+  "outcomes": {
+    "emerging": "En émergence",
+    "developing": "En cours d'acquisition",
+    "secure": "Acquis",
+    "absent": "Absent",
+    "graded": "Noté"
+  },
+  "errors": {
+    "closed": "Une ou plusieurs séances sont hors horaires d'ouverture ou sur un jour de fermeture. Choisissez une autre date ou un autre horaire.",
+    "staffAssignment": "Ce membre n'est plus affecté à la classe. Choisissez un membre actif de son équipe.",
+    "archivedProgram": "Ce programme est archivé. Choisissez un programme actif.",
+    "programDates": "Toutes les séances doivent respecter les dates du programme. Réduisez la répétition ou changez la première date.",
+    "invalid": "Vérifiez dates, inscription, affectation et note. Toutes les séances doivent être comprises dans le programme. Retirez la publication avant de modifier un résultat.",
+    "failed": "Enregistrement impossible. Réessayez.",
+    "forbidden": "Seuls les administrateurs et l'équipe pédagogique affectée à cette classe peuvent modifier ces données.",
+    "conflict": "Cette classe ou cet intervenant a déjà une séance à cette heure. Aucune séance de la série n'a été enregistrée."
+  },
+  "staffHint": "Affectez d'abord le personnel depuis la classe. Seuls les membres actifs de son équipe sont proposés.",
+  "repeatHint": "La série est enregistrée en une seule opération. Les dates doivent respecter le programme ; les conflits sont refusés. Horaires locaux d'Algérie.",
+  "scoreHint": "Uniquement pour les devoirs et examens. Les observations utilisent des niveaux de développement.",
+  "programFirst": "Créez une classe et un programme actif avant de planifier.",
+  "empty": "Rien de planifié pour le moment.",
+  "allClasses": "Toutes les classes",
+  "filter": "Afficher la semaine",
+  "previous": "Semaine précédente",
+  "next": "Semaine suivante",
+  "classes": "Classes et équipes",
+  "students": "Élèves / enfants",
+  "staff": "Personnel",
+  "activities": "Activités",
+  "sessions": "Séances individuelles",
+  "open": "Ouvrir",
+  "archive": "Archiver le programme",
+  "restore": "Restaurer le programme",
+  "archived": "Archivé",
+  "complete": "Marquer terminée",
+  "cancel": "Annuler la séance",
+  "reschedule": "Restaurer la séance",
+  "scheduled": "Prévue",
+  "completed": "Terminée",
+  "cancelled": "Annulée",
+  "draft": "Brouillon",
+  "published": "Publié aux familles",
+  "publish": "Publier les résultats enregistrés aux familles",
+  "unpublish": "Retirer la publication pour modifier",
+  "publishHint": "Seuls les résultats enregistrés sont publiés. Aucune note n'est attribuée aux élèves non renseignés. Retirez la publication avant toute correction.",
+  "roster": "Résultats de la classe",
+  "noStudents": "Aucun apprenant inscrit dans cette classe. Affectez-les depuis la classe.",
+  "noResult": "Aucun résultat saisi",
+  "parentTitle": "Programmes et progression",
+  "parentHint": "Seuls les programmes des classes de vos enfants et leurs résultats publiés apparaissent ici.",
+  "back": "Retour à la pédagogie",
+  "setupTitle": "Préparer votre espace",
+  "setupHint": "Complétez ces étapes pour chaque structure. Aucune classe, personne ou inscription fictive n'est créée.",
+  "setup": {
+    "classes": "Créer les classes / groupes",
+    "staff": "Affecter une équipe à chaque classe",
+    "students": "Inscrire et affecter les apprenants",
+    "programs": "Créer un programme pour chaque classe",
+    "schedule": "Planifier les séances hebdomadaires",
+    "billing": "Configurer les frais avant les admissions"
+  },
+  "done": "Prêt",
+  "todo": "À configurer",
+  "dateRange": "Dates du programme",
+  "setupOpen": "Ouvrir la configuration"
+}

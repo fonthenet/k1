@@ -61,6 +61,9 @@
     "locationHint": "Where to find you, and the pin on the map."
   },
   "centerTypes": {
+    "private_primary": {"name":"Private primary school","desc":"Private primary education. Select other cycles too if your school offers them."},
+    "private_middle": {"name":"Private middle school","desc":"Private middle-cycle education, separate from tutoring."},
+    "private_secondary": {"name":"Private secondary school","desc":"Private secondary-cycle education, separate from tutoring."},
     "nursery": {
       "name": "Nursery",
       "desc": "Full-day care for babies and toddlers."

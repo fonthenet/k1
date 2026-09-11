@@ -9,6 +9,9 @@
 // card is styled from React state (selection) and `peer-focus-visible` (focus).
 
 import { CheckCircle2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { isPrivateSchool } from "./private-school-types";
+import { usePrivateSchoolSupport } from "./use-private-school-support";
 import { cn } from "@/lib/utils";
 import { CENTER_TYPE_OPTIONS, type CenterType } from "./center-types";
 
@@ -46,6 +49,8 @@ export function CenterTypePicker({
   className?: string;
 }) {
   const labelId = `${name}-label`;
+  const schoolsAvailable = usePrivateSchoolSupport();
+  const tw = useTranslations("dashboard.workspace");
   const hintId = hint ? `${name}-hint` : undefined;
   const multi = Array.isArray(values);
   const chosen = multi ? values! : value ? [value] : [];
@@ -86,17 +91,19 @@ export function CenterTypePicker({
       >
         {CENTER_TYPE_OPTIONS.map(({ value: type, Icon, tile }) => {
           const selected = chosen.includes(type);
+          const unavailable = isPrivateSchool(type) && !schoolsAvailable;
+          const optionDisabled = disabled || unavailable;
           return (
             <label
               key={type}
-              className={cn("group flex", disabled ? "cursor-not-allowed" : "cursor-pointer")}
+              className={cn("group flex", optionDisabled ? "cursor-not-allowed" : "cursor-pointer")}
             >
               <input
                 type={multi ? "checkbox" : "radio"}
                 name={multi ? `${name}-${type}` : name}
                 value={type}
                 checked={selected}
-                disabled={disabled}
+                disabled={optionDisabled}
                 onChange={() => toggle(type)}
                 // Chrome restores checkbox state across a same-URL reload and
                 // React absorbs it through onChange, so a founder who
@@ -112,7 +119,7 @@ export function CenterTypePicker({
                   selected
                     ? "border-primary/55 bg-primary/5 shadow-sm ring-2 ring-primary/25"
                     : "border-border bg-card group-hover:border-primary/30 group-hover:bg-secondary/40",
-                  disabled && "opacity-60"
+                  optionDisabled && "opacity-60"
                 )}
               >
                 <span
@@ -131,6 +138,7 @@ export function CenterTypePicker({
                   <span className="mt-1 block text-xs leading-snug text-muted-foreground text-pretty">
                     {t(`centerTypes.${type}.desc`)}
                   </span>
+                  {unavailable && <span className="mt-2 block text-xs font-medium">{tw("schoolUnavailable")}</span>}
                 </span>
                 <CheckCircle2Icon
                   aria-hidden

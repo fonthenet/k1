@@ -6,6 +6,7 @@ import type { KgRole } from "@/lib/types";
 import type { Structure } from "@/components/modules/classes/class-types";
 import { latinInitial } from "@/lib/format";
 import { NavLinks } from "./nav-links";
+import { workspaceType } from "@/components/modules/settings/workspace-profile";
 import { StructureSwitcher } from "./structure-switcher";
 
 
@@ -65,7 +66,7 @@ export function Sidebar({
         </div>
       )}
       <nav className="no-scrollbar flex-1 space-y-0.5 overflow-y-auto px-2.5 pb-3">
-        <NavLinks role={role} />
+        <NavLinks role={role} workspace={workspaceType(structures, activeStructureId)} />
       </nav>
     </aside>
   );

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-import { navFor } from "./nav-items";
+import { workspaceNav, type NavItem } from "./nav-items";
+import type { WorkspaceType } from "@/components/modules/settings/workspace-profile";
+import { isPrivateSchool } from "@/components/modules/settings/private-school-types";
 import type { KgRole } from "@/lib/types";
 
 /**
@@ -17,17 +19,20 @@ import type { KgRole } from "@/lib/types";
  */
 export function NavLinks({
   role,
+  workspace = "mixed",
   onNavigate,
 }: {
   role: KgRole;
+  workspace?: WorkspaceType;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const t = useTranslations("common");
+  const tw = useTranslations("dashboard.workspace");
+  const tl = useTranslations("learning");
+  const { primary, other } = workspaceNav(role, workspace);
 
-  return (
-    <>
-      {navFor(role).map((item) => {
+  function renderLink(item: NavItem) {
         const active = pathname === item.href || pathname.startsWith(item.href + "/");
         const Icon = item.icon;
         return (
@@ -54,10 +59,19 @@ export function NavLinks({
                   : "text-muted-foreground group-hover:text-sidebar-foreground"
               )}
             />
-            <span className="truncate">{t(`nav.${item.key}`)}</span>
+            <span className="truncate">{item.key === "learning" ? tl("title") : isPrivateSchool(workspace) && item.key === "children" ? tw("pupils") : t(`nav.${item.key}`)}</span>
           </Link>
         );
-      })}
+  }
+
+  return (
+    <>
+      <p className="px-3 pb-2 pt-4 text-xs font-semibold text-muted-foreground">{tw(`${workspace}.title`)}</p>
+      {primary.map(renderLink)}
+      <details key={`${workspace}:${pathname}`} open={other.some((item) => pathname === item.href || pathname.startsWith(item.href + "/"))} className="pt-2">
+        <summary className="cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring">{tw("otherTools")}</summary>
+        {other.map(renderLink)}
+      </details>
     </>
   );
 }

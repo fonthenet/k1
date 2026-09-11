@@ -6,11 +6,12 @@
 // page is looking at a desktop.
 
 import type { KgRole } from "@/lib/types";
+import { WORKSPACE_PRIORITIES, type WorkspaceType } from "@/components/modules/settings/workspace-profile";
 import {
   LayoutDashboard, Baby, ClipboardList, CalendarCheck, School, Palette,
   Users, Receipt, Wallet, Megaphone, MessageSquare, CalendarDays, Stethoscope,
   ListChecks, UtensilsCrossed, BarChart3, Settings, MonitorSmartphone, ShieldAlert,
-  HandCoins,
+  HandCoins, BookOpen,
 } from "lucide-react";
 
 export interface NavItem {
@@ -26,6 +27,7 @@ const NAV: NavItem[] = [
   { href: "/applications", key: "applications", icon: ClipboardList, roles: ["owner", "admin"] },
   { href: "/attendance", key: "attendance", icon: CalendarCheck },
   { href: "/classes", key: "classes", icon: School },
+  { href: "/learning", key: "learning", icon: BookOpen },
   { href: "/activities", key: "activities", icon: Palette },
   { href: "/sessions", key: "sessions", icon: Stethoscope },
   { href: "/tasks", key: "tasks", icon: ListChecks },
@@ -50,4 +52,13 @@ const NAV: NavItem[] = [
 
 export function navFor(role: KgRole): NavItem[] {
   return NAV.filter((item) => !item.roles || item.roles.includes(role));
+}
+
+export function workspaceNav(role: KgRole, type: WorkspaceType) {
+  const available = navFor(role);
+  const keys: readonly string[] = ["dashboard", ...WORKSPACE_PRIORITIES[type], "incidents"];
+  return {
+    primary: keys.flatMap((key) => available.filter((item) => item.key === key)),
+    other: available.filter((item) => !keys.includes(item.key)),
+  };
 }

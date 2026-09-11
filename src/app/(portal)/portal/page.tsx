@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ParentLearningLink } from "@/components/modules/learning/parent-link";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
   Baby,
@@ -505,6 +506,7 @@ export default async function PortalHomePage() {
       {/* Re-renders this page when the door tablet writes, and once a minute
           while the tab is visible — see the component for why both. */}
       <PortalHomeRefresh userId={ctx.user.id} />
+      <ParentLearningLink />
 
       {/* ===== Greeting — the anchor of the page: full brand gradient, white ink. ===== */}
       <div className="rounded-2xl bg-gradient-to-br from-brand-from via-brand-via to-brand-to p-5 text-primary-foreground shadow-lg">

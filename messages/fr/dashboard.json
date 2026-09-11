@@ -1,4 +1,48 @@
 {
+  "workspace": {
+    "private_primary": {"title":"École primaire privée · vie des classes","description":"Organisez les classes, les dossiers des élèves, les présences et le calendrier scolaire."},
+    "private_middle": {"title":"École privée · cycle moyen","description":"Retrouvez le calendrier, les classes et les présences, puis les dossiers individuels des élèves."},
+    "private_secondary": {"title":"École privée · cycle secondaire","description":"Organisez le calendrier scolaire, les classes et le suivi des élèves, avec un accès direct aux présences."},
+    "schoolUnavailable": "L’inscription des écoles privées n’est pas encore disponible.",
+    "pupils": "Élèves",
+    "schoolScope": "Les classes, les présences et le calendrier sont disponibles. Les matières, les notes et les bulletins ne sont pas encore inclus.",
+    "eyebrow": "Votre établissement en Algérie",
+    "otherTools": "Autres outils",
+    "preview": "Votre espace de travail",
+    "local": "Arabe, français et anglais. Tarifs en dinars algériens. Configurez vos jours d’ouverture et vos fermetures dans les paramètres.",
+    "nursery": {
+      "title": "Crèche · accueil quotidien",
+      "description": "Commencez par les arrivées, les dossiers des enfants, les repas et les échanges avec les familles."
+    },
+    "kindergarten": {
+      "title": "Jardin d’enfants · vie des groupes",
+      "description": "Organisez les groupes, préparez les activités et suivez les présences au fil de la journée."
+    },
+    "montessori": {
+      "title": "Montessori · parcours d’apprentissage",
+      "description": "Retrouvez les activités, les dossiers individuels et les groupes. Consignez le suivi dans les séances."
+    },
+    "edu_center": {
+      "title": "Centre éducatif · cours",
+      "description": "Organisez les cours, les groupes et les présences. Ce profil concerne le soutien scolaire et les centres de formation, pas la gestion d’une école primaire, d’un CEM ou d’un lycée."
+    },
+    "therapy_center": {
+      "title": "Centre spécialisé · suivi",
+      "description": "Accédez aux séances, aux dossiers individuels et au calendrier pour organiser le suivi de chaque enfant."
+    },
+    "activity_center": {
+      "title": "Club d’activités · ateliers",
+      "description": "Planifiez les ateliers, organisez les groupes et suivez les présences des participants."
+    },
+    "camp": {
+      "title": "Camp de vacances · programme du jour",
+      "description": "Planifiez le programme, les activités et les arrivées, avec un accès rapide à la borne d’accueil."
+    },
+    "mixed": {
+      "title": "Toutes les sections · vue d’ensemble",
+      "description": "Pilotez l’ensemble de l’établissement. Sélectionnez une section pour retrouver les outils adaptés à son activité."
+    }
+  },
   "title": "Tableau de bord",
   "subtitle": "{date} — voici l'activité de {name}.",
   "statsError": "Impossible de charger les statistiques. Actualisez la page.",

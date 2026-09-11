@@ -1,0 +1,226 @@
+{
+  "creator": {
+    "intro": "Build a program from a ready-to-edit starting point. Choose a class, pick an idea, then make it yours.",
+    "resume": "Continue editing",
+    "schedule": "Schedule the first session",
+    "create": "Create program",
+    "steps": {
+      "class": "Choose class",
+      "template": "Pick a program",
+      "review": "Review & dates"
+    },
+    "classTitle": "Who is this program for?",
+    "classHint": "Select an existing class or group. Its business type determines the suggestions.",
+    "templateTitle": "Start with an idea, not a blank form",
+    "templateHint": "Choose a starting point. You can edit everything next.",
+    "customHint": "Start from your own title and objectives.",
+    "replace": "Continuing with a different template replaces your edited title and objectives. Dates are preserved.",
+    "reviewTitle": "Make it yours",
+    "reviewHint": "Review the content and set when the program runs.",
+    "scheduleHint": "This creates the program only. Next, choose staff and times in the weekly timetable. No sessions or family notifications are generated here.",
+    "close": "Close · keep edits",
+    "back": "Back",
+    "continue": "Continue"
+  },
+  "templateIntro": "Start with an existing class, then choose a suggested program or write your own.",
+  "templateDisclaimer": "Editable suggestions, not official Algerian curriculum or clinical protocols. Adapt them to the group's age and level.",
+  "customProgram": "Create a custom program",
+  "reuseProgram": "Reuse: {title}",
+  "weeklyIdeas": "Weekly activity ideas",
+  "applyTemplate": "Use this template",
+  "replaceHint": "Replaces the title and objectives below. Dates stay unchanged; no sessions are created.",
+  "chooseClassFirst": "Choose a class to see relevant suggestions.",
+  "programNextStep": "After saving, open Weekly timetable to assign staff and schedule sessions. Saved programs can be reused from this list.",
+  "templates": {
+    "sensory": {
+      "title": "Sensory discovery",
+      "objectives": "Explore textures, sounds and colours through supervised play. Observe each child's responses and respect their pace.",
+      "activities": "Texture exploration\nSound discovery\nColour sorting"
+    },
+    "movement": {
+      "title": "Movement & coordination",
+      "objectives": "Practise balance, coordination and movement through age-appropriate supervised games.",
+      "activities": "Balance games\nRhythm and movement\nSimple movement course"
+    },
+    "routines": {
+      "title": "Daily routines & independence",
+      "objectives": "Support participation in familiar daily routines, with help adapted to each child's needs.",
+      "activities": "Welcome routine\nTidying together\nPreparing for transitions"
+    },
+    "stories": {
+      "title": "Language & stories",
+      "objectives": "Develop listening, vocabulary and oral expression through stories, pictures and conversation.",
+      "activities": "Picture-book discussion\nStory retelling\nSongs and word games"
+    },
+    "numbers": {
+      "title": "Numbers & shapes",
+      "objectives": "Explore counting, sorting and shapes through concrete materials and play.",
+      "activities": "Sorting objects\nCounting games\nShape discovery"
+    },
+    "creative": {
+      "title": "Creative expression",
+      "objectives": "Explore materials and express ideas through art, music and collaborative projects.",
+      "activities": "Drawing and collage\nRhythm workshop\nShared creation"
+    },
+    "practical": {
+      "title": "Practical life",
+      "objectives": "Develop concentration, coordination and independence with carefully prepared everyday tasks.",
+      "activities": "Pouring and transferring\nCaring for materials\nPutting work away"
+    },
+    "arabic": {
+      "title": "Arabic language",
+      "objectives": "Choose a grade-appropriate unit and define reading, oral expression and writing objectives.",
+      "activities": "Guided reading\nVocabulary practice\nShort writing task"
+    },
+    "maths": {
+      "title": "Mathematics",
+      "objectives": "Select a topic for the group's level. Build understanding through worked examples, practice and problem solving.",
+      "activities": "Concept exploration\nGuided exercises\nProblem-solving review"
+    },
+    "french": {
+      "title": "French language",
+      "objectives": "Adapt vocabulary, listening, speaking and writing objectives to the group's language level.",
+      "activities": "Listening activity\nGuided conversation\nReading and writing practice"
+    },
+    "english": {
+      "title": "English language",
+      "objectives": "Build vocabulary and communication skills through tasks adapted to the group's language level.",
+      "activities": "Listening and vocabulary\nPair conversation\nShort reading or writing task"
+    },
+    "science": {
+      "title": "Scientific exploration",
+      "objectives": "Choose a level-appropriate topic. Practise observation, questioning and explaining evidence.",
+      "activities": "Question and observation\nSupervised investigation\nDiscuss findings"
+    },
+    "communication": {
+      "title": "Group communication",
+      "objectives": "Plan non-clinical group activities that encourage expression, listening and participation. Adapt with the responsible professional.",
+      "activities": "Turn-taking conversation\nPicture-based expression\nShared story"
+    },
+    "cooperation": {
+      "title": "Cooperation & group life",
+      "objectives": "Practise listening, turn-taking and working towards a shared goal, adapted to the group's needs.",
+      "activities": "Cooperative game\nShared project\nGroup reflection"
+    }
+  },
+  "title": "Learning & weekly plans",
+  "description": "Real classes, assigned staff, programs, sessions and learner progress in one place.",
+  "profiles": {
+    "academic": "Subjects, lessons & assessments",
+    "care": "Care routines & development",
+    "therapy": "Group support & progress",
+    "activities": "Workshops & weekly activities",
+    "development": "Learning experiences & observations"
+  },
+  "profileHints": {
+    "academic": "Build your own subject programs and record tests or exams. Grading scales are configurable; these are not official report cards.",
+    "care": "Plan care routines and age-appropriate activities. Follow development with observations, not exam marks.",
+    "therapy": "Plan group sessions here. Use the Sessions module for individual therapeutic plans and confidential clinical notes.",
+    "activities": "Organize workshops and seasonal programs around assigned teams and groups.",
+    "development": "Plan weekly activities and follow each child's progress with developmental observations."
+  },
+  "programs": "Programs",
+  "week": "Weekly timetable",
+  "assessments": "Assessments & observations",
+  "newProgram": "Add a learning program",
+  "newLesson": "Schedule sessions",
+  "newAssessment": "Create an assessment",
+  "choose": "Choose…",
+  "save": "Save",
+  "saving": "Saving…",
+  "saved": "Saved successfully.",
+  "fields": {
+    "template": "Program template",
+    "class": "Class / group",
+    "title": "Title / subject",
+    "objectives": "Learning objectives",
+    "startsOn": "Program starts",
+    "endsOn": "Program ends",
+    "program": "Class program",
+    "kind": "Type",
+    "date": "Date",
+    "staff": "Assigned team member",
+    "start": "Start time",
+    "end": "End time",
+    "weeks": "Repeat weekly (1–16 occurrences)",
+    "maxScore": "Maximum mark",
+    "outcome": "Outcome",
+    "score": "Mark",
+    "feedback": "Feedback visible to the family after publication"
+  },
+  "kinds": {
+    "lesson": "Lesson",
+    "activity": "Activity",
+    "care": "Care routine",
+    "therapy": "Group support",
+    "observation": "Development observation",
+    "test": "Test",
+    "exam": "Exam"
+  },
+  "outcomes": {
+    "emerging": "Emerging",
+    "developing": "Developing",
+    "secure": "Achieved",
+    "absent": "Absent",
+    "graded": "Graded"
+  },
+  "errors": {
+    "closed": "One or more sessions fall outside opening hours or on a closure day. Choose another date or time.",
+    "staffAssignment": "This staff member is no longer assigned to the class. Choose an active class team member.",
+    "archivedProgram": "This program is archived. Choose an active program.",
+    "programDates": "Every occurrence must fit within the program dates. Shorten the repeat period or change the first date.",
+    "invalid": "Check the dates, enrollment, staff assignment and mark. Program dates must contain every session; published results must be unpublished before editing.",
+    "failed": "Could not save. Please try again.",
+    "forbidden": "Only administrators and this class's assigned teaching team may change these records.",
+    "conflict": "This class or staff member already has a session at that time. No sessions in this series were saved."
+  },
+  "staffHint": "Assign staff on the class page first. Only active members of that class's team appear here.",
+  "repeatHint": "The complete series saves together. Dates must fit the program; conflicting bookings are rejected. All times are Algeria local time.",
+  "scoreHint": "Used only for tests and exams. Observations use developmental outcomes instead.",
+  "programFirst": "Create a class and an active program before scheduling.",
+  "empty": "Nothing planned yet.",
+  "allClasses": "All classes",
+  "filter": "Show week",
+  "previous": "Previous week",
+  "next": "Next week",
+  "classes": "Classes & teams",
+  "students": "Students / children",
+  "staff": "Staff",
+  "activities": "Activities",
+  "sessions": "Individual sessions",
+  "open": "Open",
+  "archive": "Archive program",
+  "restore": "Restore program",
+  "archived": "Archived",
+  "complete": "Mark completed",
+  "cancel": "Cancel session",
+  "reschedule": "Restore session",
+  "scheduled": "Scheduled",
+  "completed": "Completed",
+  "cancelled": "Cancelled",
+  "draft": "Draft",
+  "published": "Published to families",
+  "publish": "Publish saved results to families",
+  "unpublish": "Unpublish to edit",
+  "publishHint": "Only saved results are published. Unsaved pupils are not given a mark. Unpublish before correcting a result.",
+  "roster": "Class results",
+  "noStudents": "No enrolled learners in this class. Assign them from the class page.",
+  "noResult": "No result recorded",
+  "parentTitle": "Weekly plans & progress",
+  "parentHint": "Only your children's class plans and published results appear here.",
+  "back": "Back to learning",
+  "setupTitle": "Set up your workspace",
+  "setupHint": "Complete these steps for each structure. No fictitious classes, staff or students are created for you.",
+  "setup": {
+    "classes": "Create classes / groups",
+    "staff": "Assign a team to every class",
+    "students": "Enroll and assign learners",
+    "programs": "Create a program for every class",
+    "schedule": "Schedule weekly sessions",
+    "billing": "Configure fees before admissions"
+  },
+  "done": "Ready",
+  "todo": "Needs setup",
+  "dateRange": "Program dates",
+  "setupOpen": "Open setup"
+}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CalendarLearning } from "@/components/modules/learning/calendar-learning";
 import { getLocale, getTranslations } from "next-intl/server";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -213,6 +214,7 @@ export default async function CalendarPage({
           defaultTime={defaultTimeFor(today)}
         />
       </PageHeader>
+      <CalendarLearning ctx={ctx} start={gridStart} end={gridEnd} />
 
       {/* Month navigation */}
       <div className="mb-4 flex flex-wrap items-center gap-2">

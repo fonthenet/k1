@@ -14,6 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NavLinks } from "./nav-links";
+import { workspaceType } from "@/components/modules/settings/workspace-profile";
 import { StructureSwitcher } from "./structure-switcher";
 import type { KgRole } from "@/lib/types";
 import type { Structure } from "@/components/modules/classes/class-types";
@@ -95,7 +96,7 @@ export function MobileNav({
           </div>
         )}
         <nav className="no-scrollbar flex-1 space-y-0.5 overflow-y-auto px-2.5 pb-4">
-          <NavLinks role={role} onNavigate={() => setOpen(false)} />
+          <NavLinks role={role} workspace={workspaceType(structures, activeStructureId)} onNavigate={() => setOpen(false)} />
         </nav>
       </SheetContent>
     </Sheet>

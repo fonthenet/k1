@@ -27,6 +27,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { saveStructure } from "./actions";
+import { isPrivateSchool } from "@/components/modules/settings/private-school-types";
+import { usePrivateSchoolSupport } from "@/components/modules/settings/use-private-school-support";
 import { CLASS_COLORS, type Structure } from "./class-types";
 import {
   CENTER_TYPES,
@@ -46,6 +48,8 @@ export function StructureDialog({
   trigger?: "button" | "chip";
 }) {
   const t = useTranslations("classes");
+  const schoolsAvailable = usePrivateSchoolSupport();
+  const tw = useTranslations("dashboard.workspace");
   const tc = useTranslations("common");
   const tSettings = useTranslations("settings");
   const router = useRouter();
@@ -163,8 +167,9 @@ export function StructureDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {CENTER_TYPES.map((k) => (
-                    <SelectItem key={k} value={k}>
+                    <SelectItem key={k} value={k} disabled={isPrivateSchool(k) && !schoolsAvailable}>
                       {tSettings(`centerTypes.${k}.name`)}
+                      {isPrivateSchool(k) && !schoolsAvailable ? ` · ${tw("schoolUnavailable")}` : null}
                     </SelectItem>
                   ))}
                 </SelectContent>

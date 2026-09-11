@@ -1,4 +1,48 @@
 {
+  "workspace": {
+    "private_primary": {"title":"Private primary school · class life","description":"Organize classes, pupil records, attendance and the school calendar."},
+    "private_middle": {"title":"Private middle school · school day","description":"Start with the calendar, class groups and attendance, then open individual pupil records."},
+    "private_secondary": {"title":"Private secondary school · pupil follow-up","description":"Organize the school calendar, classes and pupil records, with daily attendance close at hand."},
+    "schoolUnavailable": "Private-school registration is not available yet.",
+    "pupils": "Pupils",
+    "schoolScope": "Classes, attendance and the calendar are available. Subjects, marks and report cards are not included yet.",
+    "eyebrow": "Your establishment in Algeria",
+    "otherTools": "Other tools",
+    "preview": "Your workspace",
+    "local": "Arabic, French and English. Fees in Algerian dinars. Configure your own opening days and holidays in Settings.",
+    "nursery": {
+      "title": "Nursery · daily care",
+      "description": "Start with arrivals, child records, meals and communication with families."
+    },
+    "kindergarten": {
+      "title": "Kindergarten · classroom life",
+      "description": "Organize groups, prepare activities and follow attendance throughout the day."
+    },
+    "montessori": {
+      "title": "Montessori · learning journeys",
+      "description": "Start with activities, individual child records and groups. Use sessions to record follow-up."
+    },
+    "edu_center": {
+      "title": "Educational center · lessons",
+      "description": "Organize lessons, groups and attendance. This profile is for tutoring and learning centers, not primary or secondary school administration."
+    },
+    "therapy_center": {
+      "title": "Specialized center · follow-up",
+      "description": "Start with sessions, individual records and the calendar to organize each child's follow-up."
+    },
+    "activity_center": {
+      "title": "Activity club · workshops",
+      "description": "Plan workshops, organize groups and track participant attendance."
+    },
+    "camp": {
+      "title": "Holiday camp · daily program",
+      "description": "Plan the program, activities and arrivals, with quick access to the reception kiosk."
+    },
+    "mixed": {
+      "title": "All sections · owner overview",
+      "description": "Manage the whole establishment. Select a section to see the tools most relevant to its activity."
+    }
+  },
   "title": "Dashboard",
   "subtitle": "{date} — here's what's happening at {name}.",
   "statsError": "We couldn't load the statistics. Please refresh the page.",

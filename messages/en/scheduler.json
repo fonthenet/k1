@@ -1,0 +1,41 @@
+{
+  "add": "Add session",
+  "intro": "Choose a program, assign its team member and review the dates before saving.",
+  "choose": "Choose an option",
+  "chooseDate": "Choose a date",
+  "noPrograms": "Create an active program for a class you can teach before scheduling sessions.",
+  "noStaff": "No active team member is assigned to this class.",
+  "assignStaff": "Assign staff on the class page",
+  "range": "Program dates: {start} to {end}",
+  "timezone": "All times are Algeria local time (24-hour format).",
+  "repeatHint": "One session per week on the same weekday. The first session counts toward the total.",
+  "preview": "Dates to be booked",
+  "conflictNotice": "This is a date preview, not an availability check. The database validates class and staff conflicts when you save the complete series.",
+  "outsideRange": "Outside the program dates",
+  "previewHint": "Choose a valid date and 1 to 16 occurrences to see every session.",
+  "close": "Close and keep edits",
+  "saving": "Saving sessions...",
+  "save": "Save sessions",
+  "fields": {
+    "programId": "Class program",
+    "membershipId": "Assigned team member",
+    "title": "Session title",
+    "kind": "Session type",
+    "date": "First session date",
+    "start": "Start time",
+    "end": "End time",
+    "weeks": "Number of weekly sessions (1 to 16)"
+  },
+  "validation": {
+    "program": "Choose an active program for a class you can teach.",
+    "staff": "Choose a team member assigned to this class.",
+    "title": "Enter a title between 1 and 200 characters.",
+    "kind": "Choose a session type suitable for this class.",
+    "date": "Choose a valid date.",
+    "range": "The first session must fall within the program dates.",
+    "time": "Choose a valid time in 24-hour format.",
+    "order": "End time must be later than start time on the same day.",
+    "weeks": "Enter a whole number from 1 to 16.",
+    "recurrence": "Every session must fall within the program dates. Change the first date or reduce the number of weeks."
+  }
+}
