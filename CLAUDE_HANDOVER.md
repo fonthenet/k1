@@ -16,11 +16,17 @@ customer types. Do not claim official Algerian curriculum or legal compliance.
 
 ## Environment and safety
 
-- Active checkout: `/Users/pc/Documents/New project`, branch `main` at handover.
+- Intended checkout for continued work: `/Users/pc/Documents/K1`, branch `main`.
+  Implementation commit `4342eae` was originally created in
+  `/Users/pc/Documents/New project`, then transferred to K1 by a local fast-forward.
+  K1's existing untracked `Rawdatik/` folder was left untouched. Nothing was pushed.
 - Repository supplied by user: https://github.com/fonthenet/k1.
 - Next.js 16.3.3, React 19.2.8, next-intl, Tailwind 4, Radix/shadcn, Supabase.
 - Read relevant `node_modules/next/dist/docs/` before changing Next.js code.
 - Dev preview: http://127.0.0.1:3000. Login endpoint last returned HTTP 200.
+  The server was started from the original New project checkout, not K1. Verify
+  its process working directory before continuing; transferring the commit did
+  not restart or move the server.
 - Supabase is configured. Never print or commit .env files, keys or auth tokens.
   A previously supplied env path was `/Users/pc/Documents/K1 Project/rawdatik/.env.local`;
   do not assume that older folder is the active checkout.
