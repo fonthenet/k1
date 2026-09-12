@@ -5,7 +5,7 @@ specialised centres: online enrolment, daily attendance and kiosk check-in,
 invoicing in dinars, accounting and payroll, a parent portal, and the printable
 registers an inspection asks for. Arabic first, then English, then French.
 
-Stack: Next.js 16 (App Router), TypeScript, Tailwind v4 + shadcn/ui,
+Stack:Next.js 16 (App Router), TypeScript, Tailwind v4 + shadcn/ui,
 next-intl, Supabase (Postgres with row-level security as the only permission
 layer, auth, private storage). Deployed on Vercel.
 
