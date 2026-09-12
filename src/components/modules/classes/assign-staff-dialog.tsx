@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ClassChip } from "@/components/shared/class-chip";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { initialsFromName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { setClassStaff } from "./actions";
@@ -29,6 +31,8 @@ export interface StaffPlace {
   classId: string;
   /** Locale-resolved class name. */
   className: string;
+  /** kg_classes.color — the dot the class chip carries. */
+  classColor: string;
   isMain: boolean;
   /**
    * The structure the class sits in. Null when the crèche runs a single
@@ -228,54 +232,50 @@ export function AssignStaffDialog({
                           onCheckedChange={() => toggle(s.membershipId)}
                         />
                         <Avatar className="size-9 shrink-0 ring-1 ring-border">
-                          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                          <AvatarFallback className="bg-secondary text-xs font-semibold text-primary">
                             {initialsFromName(s.name) || "?"}
                           </AvatarFallback>
                         </Avatar>
                         <span className="min-w-0 flex-1">
-                          <span dir="auto" className="block text-start text-sm font-semibold text-pretty">
-                            {s.name}
+                          {/* Inline bdi, never a block with text-start: an
+                              Arabic name in the French dialog stays beside
+                              its avatar instead of jumping to the far edge
+                              of the row. */}
+                          <span className="block text-sm font-semibold">
+                            <bdi>{s.name}</bdi>
                           </span>
                           {s.subtitle && (
-                            <span dir="auto" className="block truncate text-start text-xs text-muted-foreground">
-                              {s.subtitle}
+                            <span className="block truncate text-xs text-muted-foreground">
+                              <bdi>{s.subtitle}</bdi>
                             </span>
                           )}
                           {s.elsewhere.length > 0 && (
                             <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                               <span>{t("assignStaff.alreadyOn")}</span>
+                              {/* Each place is the class as its chip, then the
+                                  structure as its dot — two marks side by
+                                  side, never one pill holding both. */}
                               {s.elsewhere.map((p) => (
-                                <span
-                                  key={p.classId}
-                                  className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-foreground/80"
-                                >
+                                <span key={p.classId} className="inline-flex items-center gap-1.5">
+                                  {/* Leads that class: the muted star says so
+                                      without spending gold a second time in
+                                      the dialog. */}
                                   {p.isMain && (
                                     <Star
-                                      className="size-3 fill-current text-gold"
+                                      className="size-3 fill-current text-muted-foreground"
                                       aria-label={t("detail.staff.main")}
                                     />
                                   )}
-                                  {p.className}
-                                  {p.structure && (
-                                    <>
-                                      <span aria-hidden className="text-muted-foreground">
-                                        ·
-                                      </span>
-                                      {/* kg_structures.color is user data,
-                                          hence the inline style. No dot for
-                                          the whole building. */}
-                                      {p.structure.color && (
-                                        <span
-                                          className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-                                          style={{ backgroundColor: p.structure.color }}
-                                          aria-hidden
-                                        />
-                                      )}
-                                      <span className="text-muted-foreground">
-                                        {p.structure.name}
-                                      </span>
-                                    </>
-                                  )}
+                                  <ClassChip name={p.className} color={p.classColor} />
+                                  {p.structure &&
+                                    (p.structure.color ? (
+                                      <StructureMark
+                                        structure={{ name: p.structure.name, color: p.structure.color }}
+                                        className="text-xs text-muted-foreground"
+                                      />
+                                    ) : (
+                                      <span className="text-muted-foreground">{p.structure.name}</span>
+                                    ))}
                                 </span>
                               ))}
                             </span>
@@ -284,17 +284,7 @@ export function AssignStaffDialog({
                             <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                               <span>{t("assignStaff.worksIn")}</span>
                               {s.structures!.map((st) => (
-                                <span
-                                  key={st.name}
-                                  className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-foreground/80"
-                                >
-                                  <span
-                                    className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-                                    style={{ backgroundColor: st.color }}
-                                    aria-hidden
-                                  />
-                                  {st.name}
-                                </span>
+                                <StructureMark key={st.name} structure={st} className="text-xs" />
                               ))}
                             </span>
                           )}
@@ -308,7 +298,7 @@ export function AssignStaffDialog({
                           className={cn(
                             "mt-1 size-8 shrink-0",
                             isMain
-                              ? "text-gold hover:text-gold"
+                              ? "text-gold-ink hover:text-gold-ink"
                               : "text-muted-foreground hover:text-foreground"
                           )}
                           aria-pressed={isMain}
@@ -324,11 +314,12 @@ export function AssignStaffDialog({
                 })}
               </div>
             </ScrollArea>
-            <p className="text-xs text-muted-foreground">
-              {main === null && selected.size > 0
-                ? t("assignStaff.noMainHint")
-                : t("assignStaff.mainHint")}
-            </p>
+            {/* One sentence explains the star already (the description);
+                the hint only appears when a team is about to be saved
+                without a lead, which is the case worth a second line. */}
+            {main === null && selected.size > 0 && (
+              <p className="text-xs text-muted-foreground">{t("assignStaff.noMainHint")}</p>
+            )}
           </>
         )}
 

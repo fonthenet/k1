@@ -58,7 +58,7 @@ export function ChildPhoto({
       onSave={(path) => setMyChildPhoto({ childId, path })}
       onRemove={() => removeMyChildPhoto(childId)}
       labels={buildPhotoLabels(t, tc)}
-      avatarClassName="size-14 ring-2 ring-gold/25"
+      avatarClassName="size-14 ring-1 ring-primary/15"
     />
   );
 }

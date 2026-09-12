@@ -4,11 +4,9 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { School, Star } from "lucide-react";
+import { ChevronRight, School } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -20,9 +18,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SectionCard } from "@/components/shared/section-card";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { groupClassesByStructure, structureLabel } from "@/lib/structure-groups";
 import { cn } from "@/lib/utils";
-import { ClassGlyph } from "@/components/modules/classes/class-icons";
 import type { Structure } from "@/components/modules/classes/class-types";
 import { setStaffClasses } from "./actions";
 
@@ -49,10 +48,15 @@ export type StaffClassOption = {
  *
  * The classes page answers "who runs this class?"; this card answers the
  * other question — "what does Leïla teach?" — which is the one a director
- * asks when someone starts, leaves, or is moved across the building. The
- * dialog shows each class's current main educator so the director sees who
- * this person would be joining, and does not accidentally give a class two
- * heads: who leads a class is set from the class's own page.
+ * asks when someone starts, leaves, or is moved across the building. One
+ * divided list, one line per class: the class's dot and name, then the
+ * single gold-ink word "Principal" when this person leads it. The group
+ * rows name the structure, so where the person works is said by the
+ * classes themselves and needs no card of its own.
+ *
+ * The dialog shows each class's current main educator so the director sees
+ * who this person would be joining, and does not accidentally give a class
+ * two heads: who leads a class is set from the class's own page.
  */
 export function StaffClassesCard({
   membershipId,
@@ -110,180 +114,159 @@ export function StaffClassesCard({
   }
 
   const whole = t("classes.wholeBuilding");
+  const className = (c: StaffClassOption) => (locale === "ar" && c.name_ar ? c.name_ar : c.name);
 
-  /** Structure heading: colour dot + name; only once the building has more than one. */
-  const heading = (structure: (typeof myGroups)[number]["structure"]) =>
-    single ? null : (
-      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        {structure?.color && (
-          // kg_structures.color is user data, hence the inline style.
-          <span
-            className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-            style={{ backgroundColor: structure.color }}
-            aria-hidden
-          />
-        )}
-        {structureLabel(structure, locale, whole)}
-      </div>
-    );
+  /** Group row: the structure's inline mark; plain text for the whole building. */
+  const groupRow = (structure: (typeof myGroups)[number]["structure"]) => (
+    <div className="bg-muted/40 px-4 py-1.5 text-xs font-medium text-muted-foreground">
+      {structure ? (
+        <StructureMark
+          structure={{ name: structureLabel(structure, locale, whole), color: structure.color ?? "var(--primary)" }}
+          className="text-xs"
+        />
+      ) : (
+        whole
+      )}
+    </div>
+  );
 
   return (
-    <Card className="mb-6 border border-border shadow-sm ring-0">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2.5 text-base font-semibold">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <School className="size-4" />
-          </span>
+    <SectionCard
+      icon={School}
+      tone={0}
+      title={
+        <span className="flex items-center gap-2">
           {t("classes.title")}
           {myClasses.length > 0 && (
-            <span className="tabular-nums text-muted-foreground">{myClasses.length}</span>
+            <span className="font-normal tabular-nums text-muted-foreground" dir="ltr">
+              {myClasses.length}
+            </span>
           )}
-        </CardTitle>
-        {canManage && (
-          <CardAction>
-            <Dialog
-              open={open}
-              onOpenChange={(v) => {
-                setOpen(v);
-                if (v) setSelected(new Set(mineIds));
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <School data-icon="inline-start" />
-                  {t("classes.assign")}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{t("classes.dialogTitle", { name: memberName })}</DialogTitle>
-                  <DialogDescription>{t("classes.dialogDescription")}</DialogDescription>
-                </DialogHeader>
-                {classes.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    {t("classes.noneInBuilding")}
-                  </p>
-                ) : (
-                  <ScrollArea className="max-h-[50vh] rounded-md border">
-                    <div className="divide-y">
-                      {allGroups.map((g) => (
-                        <div key={g.structure?.id ?? "building"} className="divide-y">
-                          {!allSingle && (
-                            <div className="bg-muted/40 px-3 py-1.5">{heading(g.structure)}</div>
-                          )}
-                          {g.classes.map((c) => {
-                            const checked = selected.has(c.id);
-                            const leadsIt = c.mainMembershipId === membershipId;
-                            return (
-                              <label
-                                key={c.id}
-                                className={cn(
-                                  "flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors",
-                                  checked ? "bg-primary/5" : "hover:bg-muted/40"
-                                )}
-                              >
-                                <Checkbox checked={checked} onCheckedChange={() => toggle(c.id)} />
-                                <ClassTile color={c.color} icon={c.icon} size="sm" />
-                                <span className="min-w-0 flex-1">
-                                  <span dir="auto" className="block truncate text-start text-sm font-medium">
-                                    {locale === "ar" && c.name_ar ? c.name_ar : c.name}
-                                  </span>
-                                  {/* Who leads it today — the person being
-                                      added would work under them. When it is
-                                      this very member, say so rather than
-                                      printing their own name back. */}
-                                  <span className="block truncate text-xs text-muted-foreground">
-                                    {leadsIt
-                                      ? t("classes.youLead")
-                                      : c.mainName
-                                        ? t("classes.mainIs", { name: c.mainName })
-                                        : t("classes.noMain")}
-                                  </span>
+        </span>
+      }
+      hint={t("classes.hint")}
+      className={cn("mb-6", myClasses.length > 0 && "pb-0")}
+      contentClassName={myClasses.length > 0 ? "px-0" : undefined}
+      action={
+        canManage ? (
+          <Dialog
+            open={open}
+            onOpenChange={(v) => {
+              setOpen(v);
+              if (v) setSelected(new Set(mineIds));
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <School data-icon="inline-start" />
+                {t("classes.assign")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>{t("classes.title")}</DialogTitle>
+                {/* The name on its own line, never inside a sentence: a name
+                    ending in a Latin token would scramble an Arabic title. */}
+                <DialogDescription>
+                  <bdi dir="auto" className="block text-start font-medium text-foreground">
+                    {memberName}
+                  </bdi>
+                  {t("classes.dialogHint")}
+                </DialogDescription>
+              </DialogHeader>
+              {classes.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  {t("classes.noneInBuilding")}
+                </p>
+              ) : (
+                <ScrollArea className="max-h-[50vh] rounded-md border">
+                  <div className="divide-y">
+                    {allGroups.map((g) => (
+                      <div key={g.structure?.id ?? "building"} className="divide-y">
+                        {!allSingle && groupRow(g.structure)}
+                        {g.classes.map((c) => {
+                          const checked = selected.has(c.id);
+                          const leadsIt = c.mainMembershipId === membershipId;
+                          return (
+                            <label
+                              key={c.id}
+                              className={cn(
+                                "flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors",
+                                checked ? "bg-primary/5" : "hover:bg-muted/40"
+                              )}
+                            >
+                              <Checkbox checked={checked} onCheckedChange={() => toggle(c.id)} />
+                              <span className="min-w-0 flex-1">
+                                <bdi dir="auto" className="block truncate text-start text-sm font-medium">
+                                  {className(c)}
+                                </bdi>
+                                {/* Who leads it today — the person being
+                                    added would work under them. When it is
+                                    this very member, say so rather than
+                                    printing their own name back. */}
+                                <span className="block truncate text-xs text-muted-foreground">
+                                  {leadsIt
+                                    ? t("classes.leadsIt")
+                                    : c.mainName
+                                      ? t("classes.leadIs", { name: c.mainName })
+                                      : t("classes.noMain")}
                                 </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-                    {tc("actions.cancel")}
-                  </Button>
-                  <Button onClick={submit} disabled={pending || classes.length === 0}>
-                    {t("classes.submit", { count: selected.size })}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </CardAction>
-        )}
-      </CardHeader>
-      <CardContent>
-        {myClasses.length === 0 ? (
-          // No class is a legitimate answer for a cook or the director, so
-          // this is a sentence, not an alarm.
-          <p className="text-sm text-muted-foreground">{t("classes.empty")}</p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {myGroups.map((g) => (
-              <div key={g.structure?.id ?? "building"} className="space-y-1.5">
-                {heading(g.structure)}
-                {g.classes.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/classes/${c.id}`}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl border p-2.5 transition-colors hover:bg-primary/5",
-                      mainOn.has(c.id) ? "border-gold/40 bg-gold/5" : "border-border"
-                    )}
-                  >
-                    <ClassTile color={c.color} icon={c.icon} />
-                    <span dir="auto" className="min-w-0 flex-1 truncate text-start text-sm font-semibold">
-                      {locale === "ar" && c.name_ar ? c.name_ar : c.name}
-                    </span>
-                    {mainOn.has(c.id) && (
-                      <Badge className="shrink-0 border-transparent bg-gold font-medium text-gold-foreground">
-                        <Star aria-hidden />
-                        {t("classes.main")}
-                      </Badge>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-/** The class's own colour as a tinted tile — the same treatment the classes pages use. */
-function ClassTile({
-  color,
-  icon,
-  size = "md",
-}: {
-  color: string;
-  icon: string | null;
-  size?: "sm" | "md";
-}) {
-  return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-lg text-foreground",
-        size === "sm" ? "size-7" : "size-9"
-      )}
-      style={{
-        backgroundColor: `color-mix(in oklch, ${color} 20%, transparent)`,
-        boxShadow: `inset 0 0 0 1px color-mix(in oklch, ${color} 45%, transparent)`,
-      }}
-      aria-hidden
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+                  {tc("actions.cancel")}
+                </Button>
+                <Button onClick={submit} disabled={pending || classes.length === 0}>
+                  {t("classes.submit", { count: selected.size })}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        ) : undefined
+      }
     >
-      <ClassGlyph icon={icon} className={size === "sm" ? "size-3.5" : "size-4"} />
-    </span>
+      {myClasses.length === 0 ? (
+        // No class is a legitimate answer for a cook or the director, so
+        // this is a sentence, not an alarm.
+        <p className="text-sm text-muted-foreground">{t("classes.empty")}</p>
+      ) : (
+        <div className="divide-y divide-border border-t border-border">
+          {myGroups.map((g) => (
+            <div key={g.structure?.id ?? "building"} className="divide-y divide-border">
+              {!single && groupRow(g.structure)}
+              {g.classes.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/classes/${c.id}`}
+                  className="flex h-11 items-center gap-3 px-4 transition-colors hover:bg-primary/5"
+                >
+                  {/* kg_classes.color is user data, hence the inline style. */}
+                  <span
+                    className="size-2 shrink-0 rounded-full ring-1 ring-inset ring-foreground/10"
+                    style={{ backgroundColor: c.color }}
+                    aria-hidden
+                  />
+                  <bdi dir="auto" className="min-w-0 flex-1 truncate text-start text-sm font-medium">
+                    {className(c)}
+                  </bdi>
+                  {mainOn.has(c.id) && (
+                    <span className="shrink-0 text-xs font-medium text-gold-ink">{t("classes.lead")}</span>
+                  )}
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />
+                </Link>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </SectionCard>
   );
 }

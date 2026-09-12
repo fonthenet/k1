@@ -50,10 +50,13 @@ export function TimePicker({
 
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger id={id} className={cn("w-full", className)}>
+      <SelectTrigger id={id} className={cn("h-8 w-full", className)}>
         <span className="flex items-center gap-2">
           <ClockIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <SelectValue>{value || "--:--"}</SelectValue>
+          {/* A clock value is an LTR island whatever the page direction. */}
+          <SelectValue>
+            <span className="tabular-nums" dir="ltr">{value || "--:--"}</span>
+          </SelectValue>
         </span>
       </SelectTrigger>
       <SelectContent className="max-h-64">

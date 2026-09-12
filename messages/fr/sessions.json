@@ -1,5 +1,5 @@
 {
-  "title": "Séances",
+  "title": "Suivi individuel",
   "description": "Séances individuelles de prise en charge et de soutien, et les programmes qui suivent les progrès de chaque enfant.",
   "tabs": {
     "schedule": "Planning",
@@ -20,7 +20,9 @@
     "allTherapists": "Tous les intervenants",
     "type": "Type",
     "allTypes": "Tous les types",
-    "unassigned": "Non attribué"
+    "unassigned": "Non attribué",
+    "view": "Affichage",
+    "count": "{count, plural, =0 {Aucune séance} one {# séance} other {# séances}}"
   },
   "types": {
     "speech": "Orthophonie",
@@ -62,7 +64,10 @@
     "emptyTitle": "Rien de programmé",
     "emptyDescription": "Aucune séance ne correspond à cette période ou à ces filtres. Changez la date ou programmez une nouvelle séance.",
     "rating": "Progrès {value} sur 5",
-    "published": "Partagée avec le parent"
+    "published": "Partagée avec le parent",
+    "columns": {
+      "time": "Heure"
+    }
   },
   "newSession": {
     "trigger": "Nouvelle séance",
@@ -163,7 +168,9 @@
       "removeGoal": "Retirer l'objectif",
       "notes": "Notes",
       "submit": "Créer le programme"
-    }
+    },
+    "allStatuses": "Tous les statuts",
+    "count": "{count, plural, =0 {Aucun programme} one {# programme} other {# programmes}}"
   },
   "programDetail": {
     "notFound": "Programme introuvable",
@@ -212,5 +219,9 @@
     "goalDeleted": "Objectif supprimé",
     "statusSaved": "Statut du programme mis à jour",
     "error": "Une erreur est survenue. Réessayez."
+  },
+  "conflicts": {
+    "conflictTherapist": "L’intervenant a déjà une séance ou un cours à cette heure.",
+    "conflictRoom": "La salle est déjà réservée à cette heure."
   }
 }

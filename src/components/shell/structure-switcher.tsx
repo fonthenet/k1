@@ -5,10 +5,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { Building2, Check, ChevronsUpDown } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { setActiveStructure } from "@/app/actions/structure";
-import { centerTypeOption } from "@/components/modules/settings/center-types";
+import { centerTypeLabel } from "@/components/modules/settings/center-types";
+import { StructureTile } from "@/components/shared/structure-mark";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,11 @@ import { cn } from "@/lib/utils";
  * "Tout l'établissement" leads, and the structures are what you narrow TO.
  * A control that read like an account switcher would suggest the school's
  * children are somewhere the director cannot reach.
+ *
+ * This is the ONE place the scope is said. Trigger and rows are the standalone
+ * structure tile the settings page draws, with the structure's type as the
+ * caption — the caption used to read "Structure affichée", which told you
+ * nothing the tinted tile had not already told you.
  */
 export function StructureSwitcher({
   structures,
@@ -35,6 +41,7 @@ export function StructureSwitcher({
   className?: string;
 }) {
   const t = useTranslations("common.structures");
+  const ts = useTranslations("settings");
   const locale = useLocale();
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -42,7 +49,11 @@ export function StructureSwitcher({
   if (structures.length < 2) return null;
 
   const active = structures.find((s) => s.id === activeId) ?? null;
-  const ActiveIcon = active ? centerTypeOption(active.center_type).Icon : Building2;
+  const tileOf = (s: Structure) => ({
+    name: structureName(s, locale),
+    color: s.color,
+    center_type: s.center_type,
+  });
 
   function choose(id: string | null) {
     setOpen(false);
@@ -66,50 +77,58 @@ export function StructureSwitcher({
         {/* The structure's own colour is the one signal here: a director who
             has scoped to the école should be able to tell at a glance, from
             anywhere in the app, without reading the label. On "the whole
-            building" there is nothing to signal, so the dot goes grey rather
+            building" there is nothing to signal, so the tile goes grey rather
             than picking a structure's colour arbitrarily. */}
-        <span
-          className="flex size-7 shrink-0 items-center justify-center rounded-lg"
-          style={
-            active
-              ? { backgroundColor: `${active.color}1f`, color: active.color }
-              : undefined
-          }
-        >
-          <ActiveIcon className={cn("size-4", !active && "text-muted-foreground")} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-xs font-medium">
-            {active ? structureName(active, locale) : t("all")}
-          </span>
-          <span className="block truncate text-[11px] text-muted-foreground">
-            {active ? t("viewing") : t("allHint", { count: structures.length })}
-          </span>
-        </span>
+        {active ? (
+          <StructureTile
+            structure={tileOf(active)}
+            caption={centerTypeLabel(active.center_type, ts)}
+            className="min-w-0 flex-1"
+          />
+        ) : (
+          <WholeBuildingTile label={t("all")} caption={t("allHint", { count: structures.length })} />
+        )}
         <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" className="w-60">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-          {t("label")}
-        </DropdownMenuLabel>
-        <DropdownMenuItem onSelect={() => choose(null)} className="gap-2">
-          <Building2 className="size-4 text-muted-foreground" />
-          <span className="flex-1 truncate">{t("all")}</span>
-          {!active && <Check className="size-4 text-primary" />}
+      {/* Same width as the trigger, so the menu reads as the trigger unfolding
+          rather than a second control appearing beside it. */}
+      <DropdownMenuContent align="start" className="w-(--radix-dropdown-menu-trigger-width)">
+        <DropdownMenuItem onSelect={() => choose(null)} className="gap-2 py-1.5">
+          <WholeBuildingTile label={t("all")} caption={t("allHint", { count: structures.length })} />
+          {!active && <Check className="size-4 shrink-0 text-primary" />}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {structures.map((s) => {
-          const { Icon } = centerTypeOption(s.center_type);
-          return (
-            <DropdownMenuItem key={s.id} onSelect={() => choose(s.id)} className="gap-2">
-              <Icon className="size-4" style={{ color: s.color }} />
-              <span className="flex-1 truncate">{structureName(s, locale)}</span>
-              {active?.id === s.id && <Check className="size-4 text-primary" />}
-            </DropdownMenuItem>
-          );
-        })}
+        {structures.map((s) => (
+          <DropdownMenuItem key={s.id} onSelect={() => choose(s.id)} className="gap-2 py-1.5">
+            <StructureTile
+              structure={tileOf(s)}
+              caption={centerTypeLabel(s.center_type, ts)}
+              className="min-w-0 flex-1"
+            />
+            {active?.id === s.id && <Check className="size-4 shrink-0 text-primary" />}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/**
+ * The whole building, drawn with the anatomy of a StructureTile but without a
+ * structure: a grey tile and the building glyph. It is not a structure, so it
+ * has no colour and no type; the caption counts what it contains.
+ */
+function WholeBuildingTile({ label, caption }: { label: string; caption: string }) {
+  return (
+    <span className="inline-flex min-w-0 flex-1 items-center gap-2">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-hidden>
+        <Building2 className="size-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-medium">{label}</span>
+        <span className="block truncate text-xs text-muted-foreground">{caption}</span>
+      </span>
+    </span>
   );
 }

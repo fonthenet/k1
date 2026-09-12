@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ParentLearningLink } from "@/components/modules/learning/parent-link";
+import { Fragment, type ReactNode } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
   Baby,
@@ -10,7 +10,6 @@ import {
   Eye,
   HeartPulse,
   IdCard,
-  Moon,
   Phone,
   Hourglass,
   Route,
@@ -18,8 +17,8 @@ import {
   Sparkles,
   Stethoscope,
   TriangleAlert,
-  UtensilsCrossed,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, signedMediaUrl } from "@/lib/tenant";
 import { ageFromDob, childDisplayName, formatDZD, formatDate, formatPhone, formatTime, telHref } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { normaliseSchedule } from "@/lib/activity-schedule";
 import type { AllergySeverity, AttendanceStatus, CheckinMethod, FeePeriod } from "@/lib/types";
+import { roomName } from "@/components/modules/classes/class-types";
 import {
   algiersMonth,
   classLabel,
@@ -45,17 +46,16 @@ import {
   toCheckinDialogChildren,
   type PortalChildRow,
 } from "@/components/modules/portal/data";
-import { StructureChip } from "@/components/modules/portal/structure-chip";
+import { StructureMark } from "@/components/shared/structure-mark";
+import { FactsLine } from "@/components/modules/portal/facts-line";
+import { StatusPill } from "@/components/shared/status-pill";
+import { SectionCard } from "@/components/shared/section-card";
 import { RequestTransferDialog } from "@/components/modules/portal/request-transfer-dialog";
 import { structureName } from "@/components/modules/classes/class-types";
-import {
-  attendanceStatusClasses,
-  eatenKey,
-  MOOD_EMOJI,
-  parseMeals,
-  parseNap,
-  severityClasses,
-} from "@/components/modules/portal/portal-types";
+import { attendanceStatusClasses, KNOWN_MOODS, severityClasses } from "@/components/modules/portal/portal-types";
+import { getChildDays, shiftDate } from "@/components/modules/portal/day-data";
+import { blocksNounKey, toLearningProfile } from "@/lib/child-day";
+import { learningProfile } from "@/components/modules/learning/domain";
 import {
   parseHealthList,
   type PortalAllergy,
@@ -82,38 +82,35 @@ import { getDuesByChild } from "@/components/modules/portal/dues";
 
 const TABS = ["journal", "attendance", "health", "activities", "permissions"] as const;
 type TabKey = (typeof TABS)[number];
+const TAB_ICONS: Record<TabKey, LucideIcon> = {
+  journal: BookOpen,
+  attendance: CalendarCheck,
+  health: Stethoscope,
+  activities: Sparkles,
+  permissions: ShieldCheck,
+};
 
 // Every status the register can hold. "excused" was left out of the counters,
 // so an absence the office had filed as authorised counted nowhere and the
 // four boxes summed to fewer days than the list beneath them.
 const ATTENDANCE_SUMMARY = ["present", "absent", "late", "excused", "sick"] as const;
-const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const FEE_PERIODS: FeePeriod[] = ["once", "monthly", "quarterly", "yearly", "per_session"];
 const SEVERITIES: AllergySeverity[] = ["mild", "moderate", "severe"];
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
-/** Tone of the attendance counters at the top of the attendance tab. */
-const SUMMARY_TONE: Record<(typeof ATTENDANCE_SUMMARY)[number], string> = {
-  present: "text-success",
+/**
+ * Tone of the attendance counters at the top of the attendance tab. Only a
+ * count that means trouble is coloured, and only when it is not zero: a red
+ * "0 absent" spends the screen's one red on good news, and a green "present"
+ * says what the absence of colour already says.
+ */
+const SUMMARY_TONE: Partial<Record<(typeof ATTENDANCE_SUMMARY)[number], string>> = {
   absent: "text-destructive",
-  late: "text-warning",
-  // Neutral: an excused day is filed, not alarming — the same reading the
-  // staff register gives it (attendance/status-config.ts).
-  excused: "text-muted-foreground",
+  late: "text-gold-ink",
   sick: "text-destructive",
 };
 
 // ---------------------------------------------------------------- row shapes
-
-type JournalRow = {
-  id: string;
-  date: string;
-  mood: string | null;
-  meals: unknown;
-  nap: unknown;
-  activities_text: string | null;
-  notes: string | null;
-};
 
 /** Name columns of kg_guardians, embedded twice on each attendance row. */
 type GuardianRef = {
@@ -170,6 +167,8 @@ type ActivityRow = {
   fee_amount: number;
   fee_period: FeePeriod;
   schedule: unknown;
+  /** The room the activity meets in (0155) — a family walks the child there. */
+  kg_rooms: { name: string; name_ar: string | null } | null;
 };
 
 type EnrollmentRow = {
@@ -187,27 +186,6 @@ type ConsentRow = {
 
 // ------------------------------------------------------------------- helpers
 
-/** Nap values may be "13:00" or an ISO timestamp — render both sensibly. */
-function napLabel(value: string | null, locale: string): string | null {
-  if (!value) return null;
-  if (/^\d{1,2}:\d{2}/.test(value)) return value.slice(0, 5);
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : formatTime(d, locale);
-}
-
-function parseSchedule(v: unknown): { day: string; time: string }[] {
-  if (!Array.isArray(v)) return [];
-  const out: { day: string; time: string }[] = [];
-  for (const entry of v) {
-    if (!entry || typeof entry !== "object") continue;
-    const rec = entry as Record<string, unknown>;
-    const day = typeof rec.day === "string" ? rec.day : "";
-    const time = typeof rec.time === "string" ? rec.time : "";
-    if (day || time) out.push({ day, time });
-  }
-  return out;
-}
-
 function activityName(activity: ActivityRow, locale: string): string {
   return locale === "ar" && activity.name_ar ? activity.name_ar : activity.name;
 }
@@ -220,7 +198,7 @@ function worstSeverity(rows: PortalAllergy[]): AllergySeverity {
   );
 }
 
-/** Small tinted square that fronts a journal line or a section heading. */
+/** Small tinted square that fronts a section heading. */
 function IconTile({ tone, children }: { tone: "primary" | "gold" | "danger"; children: React.ReactNode }) {
   return (
     <span
@@ -270,6 +248,7 @@ export default async function PortalChildDetailPage({
   const child: PortalChildRow | undefined = children.find((c) => c.id === id);
 
   const BackIcon = locale === "ar" ? ChevronRight : ChevronLeft;
+  const ForwardIcon = locale === "ar" ? ChevronLeft : ChevronRight;
 
   if (!child) {
     return (
@@ -310,10 +289,10 @@ export default async function PortalChildDetailPage({
       .eq("tenant_id", ctx.tenant.id)
       .order("created_at"),
     getStructures(supabase, ctx),
-    // The child's moves between structures — read on every tab because the
-    // "Parcours" block sits in the header, and a family whose child moved
-    // in September should see it whichever tab they land on.
-    getChildTransfers(supabase, child.id),
+    // The child's moves between structures sit at the foot of the attendance
+    // tab — history, next to the register it changed — so they are read only
+    // when that tab is open.
+    tab === "attendance" ? getChildTransfers(supabase, child.id) : Promise.resolve([]),
   ]);
   const allergies = (allergyRows ?? []) as PortalAllergy[];
 
@@ -345,7 +324,7 @@ export default async function PortalChildDetailPage({
   );
 
   const [
-    journalRes,
+    journalDays,
     attendanceRes,
     healthRes,
     enrollmentsRes,
@@ -353,16 +332,14 @@ export default async function PortalChildDetailPage({
     pickupsRes,
     consentsRes,
   ] = await Promise.all([
+    // The last 30 days on which the child has a record — attendance, a
+    // published journal, an incident, a published session — one lean row
+    // each, from the same composer the day page and the evening send read
+    // (kg_child_days, migration 0152). A day the class merely had a
+    // timetable is not a day of the child.
     tab === "journal"
-      ? supabase
-          .from("kg_daily_reports")
-          .select("id, date, mood, meals, nap, activities_text, notes")
-          .eq("child_id", child.id)
-          .eq("tenant_id", ctx.tenant.id)
-          .eq("published", true)
-          .order("date", { ascending: false })
-          .limit(30)
-      : Promise.resolve({ data: [] }),
+      ? getChildDays(supabase, child.id, shiftDate(algiersToday(), -30), algiersToday())
+      : Promise.resolve([]),
     tab === "attendance"
       ? supabase
           .from("kg_attendance")
@@ -396,7 +373,7 @@ export default async function PortalChildDetailPage({
       ? supabase
           .from("kg_activity_enrollments")
           .select(
-            "id, status, kg_activities(id, name, name_ar, description, fee_amount, fee_period, schedule)"
+            "id, status, kg_activities(id, name, name_ar, description, fee_amount, fee_period, schedule, kg_rooms(name, name_ar))"
           )
           .eq("child_id", child.id)
           .eq("tenant_id", ctx.tenant.id)
@@ -404,7 +381,7 @@ export default async function PortalChildDetailPage({
     tab === "activities"
       ? supabase
           .from("kg_activities")
-          .select("id, name, name_ar, description, fee_amount, fee_period, schedule")
+          .select("id, name, name_ar, description, fee_amount, fee_period, schedule, kg_rooms(name, name_ar)")
           .eq("tenant_id", ctx.tenant.id)
           .eq("active", true)
           .order("name")
@@ -427,6 +404,14 @@ export default async function PortalChildDetailPage({
   ]);
 
   const name = childDisplayName(child, locale);
+  // The other script's name, muted under the title — the same pairing the
+  // children list shows, so the family sees both forms of the name it gave.
+  const secondaryName =
+    locale === "ar"
+      ? `${child.first_name} ${child.last_name}`
+      : child.first_name_ar && child.last_name_ar
+        ? `${child.first_name_ar} ${child.last_name_ar}`
+        : null;
   const cls = classLabel(child, locale);
   // The family's children by name, for the prefilled "ask the office"
   // conversation on the health tab. Names only — serialisable across the
@@ -445,7 +430,15 @@ export default async function PortalChildDetailPage({
         ? monthLabel(due.months[0].slice(0, 7), locale)
         : null;
 
-  const journal = (journalRes.data ?? []) as JournalRow[];
+  // The noun for the class's timetable entries on the facts line — cours for
+  // an école, atelier for a therapy centre, activité otherwise — from the
+  // structure the child is on today (the tenant's type when the building has
+  // one side). The summary rows carry counts only.
+  const journalNoun = blocksNounKey(
+    toLearningProfile(
+      learningProfile(childStructure?.center_type ?? (ctx.tenant as { center_type?: string }).center_type ?? "")
+    )
+  );
 
   const attendance = (attendanceRes.data ?? []) as unknown as AttendanceRow[];
   const attendanceCounts = attendance.reduce<Record<string, number>>((acc, a) => {
@@ -542,11 +535,7 @@ export default async function PortalChildDetailPage({
               )}
         </span>
       )}
-      {method && (
-        <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-          {t(`child.attendance.methods.${method}`)}
-        </span>
-      )}
+      {method && <span>{t(`child.attendance.methods.${method}`)}</span>}
     </p>
   );
 
@@ -573,7 +562,9 @@ export default async function PortalChildDetailPage({
     (e) => e.status === "active" || e.status === "requested"
   );
   const enrolledActivityIds = new Set(enrollments.map((e) => e.kg_activities!.id));
-  const availableActivities = ((activitiesRes.data ?? []) as ActivityRow[]).filter(
+  // Without generated database types the room join is inferred as a list;
+  // a single-column FK returns one object, as the enrolments' join above.
+  const availableActivities = ((activitiesRes.data ?? []) as unknown as ActivityRow[]).filter(
     (a) => !enrolledActivityIds.has(a.id)
   );
 
@@ -594,207 +585,195 @@ export default async function PortalChildDetailPage({
     return period ? `${formatDZD(amount, locale)} · ${period}` : formatDZD(amount, locale);
   }
 
-  function scheduleLabel(activity: ActivityRow): string | null {
-    const slots = parseSchedule(activity.schedule);
-    if (slots.length === 0) return null;
-    return slots
-      .map((s) => {
-        const day = DAY_KEYS.includes(s.day) ? t(`child.activities.days.${s.day}`) : s.day;
-        return [day, s.time].filter(Boolean).join(" ");
-      })
-      .join(" · ");
+  // "Jeudi 09:00 – 10:00 · Salle 2": when the activity meets, then where. A
+  // parent bringing a child to Coran in a two-building school needs the room
+  // as much as for a parents' meeting, so it is printed here as the same
+  // tail the staff pages print (lesson rooms stay off the portal — a child
+  // never walks to a cours alone). The schedule is read through the one
+  // normaliser, so a row still stored as integer days prints its slots. On a
+  // phone the line wraps between units only: a slot keeps its day with its
+  // range and the room keeps its number, or "Salle 4" broke as "Salle / 4".
+  function scheduleLine(activity: ActivityRow): ReactNode | null {
+    const slots = normaliseSchedule(activity.schedule);
+    const room = activity.kg_rooms ? roomName(activity.kg_rooms, locale) : null;
+    if (slots.length === 0 && !room) return null;
+    return (
+      <>
+        {slots.map((s, i) => (
+          <Fragment key={`${s.day}-${s.start}-${i}`}>
+            {i > 0 && " "}
+            <span className="whitespace-nowrap">
+              {t(`child.activities.days.${s.day}`)}{" "}
+              <ValueRange from={s.start} to={s.end} separator="–" className="tabular-nums" />
+              {(i < slots.length - 1 || room) && <span aria-hidden> ·</span>}
+            </span>
+          </Fragment>
+        ))}
+        {room && (
+          <>
+            {slots.length > 0 && " "}
+            <bdi dir="auto" className="whitespace-nowrap">{room}</bdi>
+          </>
+        )}
+      </>
+    );
   }
 
   return (
     <div className="grid gap-4">
-      <ParentLearningLink />
-      {/* ===== Header ===== */}
-      <div>
-        <Button asChild variant="ghost" size="sm" className="-ms-2 mb-2 text-muted-foreground">
-          <Link href="/portal/children">
-            <BackIcon data-icon="inline-start" />
-            {t("child.back")}
-          </Link>
-        </Button>
-        <Card className="relative bg-gradient-to-br from-gold-muted/70 via-card to-card shadow-sm ring-gold/25">
-          {/* Corner opposite the face — inline-end, so it is top-left in Arabic
-              and top-right in fr/en without a physical-direction utility. The
-              row below reserves `pe-12` for it so a long Arabic name or the
-              allergy badge wraps rather than sliding underneath at 375px. */}
-          {/* Only for a child who attends: the kiosk refuses a withdrawn or
-              waitlisted child's arrival anyway (0069), and a badge that scans
-              to a refusal is worse than no badge. */}
-          {child.status === "enrolled" && (
-            <CheckinDialog
-              badge={badge}
-              child={checkinChildren.find((c) => c.id === child.id)}
-              trigger="corner"
-              className="absolute top-2 end-2 z-10"
-            />
-          )}
-          <CardContent className="flex items-center gap-3.5 pe-12">
-            {/* Tapping the face opens the camera: this photo is what staff
-                hold up against the child at the door, so the family keeps it
-                current rather than waiting on the office. */}
-            <ChildPhoto
-              tenantId={ctx.tenant.id}
-              childId={child.id}
-              name={name}
-              firstName={child.first_name}
-              lastName={child.last_name}
-              photoPath={child.photo_path}
-              photoUrl={photoUrl}
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-lg font-bold tracking-tight">{name}</span>
-                {allergies.length > 0 && (
-                  <Badge className={severityClasses(worstSeverity(allergies))}>
-                    <TriangleAlert data-icon="inline-start" className="size-3" />
-                    {t("child.health.allergiesTitle")}
-                  </Badge>
-                )}
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                <span>{ageFromDob(child.dob, locale)}</span>
-                {/* Said only when it is not "enrolled" — the same rule as the
-                    children list, and the reason the badge above is missing. */}
-                {child.status !== "enrolled" && (
-                  <Badge
-                    variant={child.status === "withdrawn" ? "destructive" : "secondary"}
-                    className="text-[0.6875rem]"
-                  >
-                    {t(`children.status.${child.status}`)}
-                  </Badge>
-                )}
-                {cls && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <span
-                      className="size-2 rounded-full"
-                      style={{ backgroundColor: child.kg_classes?.color ?? "var(--gold)" }}
-                      aria-hidden
-                    />
-                    {cls}
-                  </span>
-                )}
-                {/* Which side of the building, only when there are two. */}
-                {multiStructure && childStructure && (
-                  <StructureChip structure={childStructure} locale={locale} />
-                )}
-              </div>
-
-              {/* What is outstanding for THIS child, on every tab of their
-                  file — the same figure the children list and the home screen
-                  show, from the same helper. */}
-              {due && (
-                <div className="mt-1.5">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium",
-                      due.overdue
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-card text-gold-ink ring-1 ring-gold/30"
-                    )}
-                  >
-                    <Wallet className="size-3" aria-hidden />
-                    {dueWhat
-                      ? t("children.due.forWhat", {
-                          amount: formatDZD(due.balance, locale),
-                          what: dueWhat,
-                        })
-                      : t("children.due.amount", { amount: formatDZD(due.balance, locale) })}
-                  </span>
+      {/* ===== Back line, then the identity band: face, name, one facts line ===== */}
+      <div className="grid gap-3">
+        <Link
+          href="/portal/children"
+          className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <BackIcon className="size-4" aria-hidden />
+          {t("child.back")}
+        </Link>
+        <Card className="shadow-sm">
+          <CardContent className="grid gap-4">
+            <div className="flex items-center gap-3.5">
+              {/* Tapping the face opens the camera: this photo is what staff
+                  hold up against the child at the door, so the family keeps it
+                  current rather than waiting on the office. */}
+              <ChildPhoto
+                tenantId={ctx.tenant.id}
+                childId={child.id}
+                name={name}
+                firstName={child.first_name}
+                lastName={child.last_name}
+                photoPath={child.photo_path}
+                photoUrl={photoUrl}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-lg font-bold tracking-tight">{name}</span>
+                  {allergies.length > 0 && (
+                    <Badge className={severityClasses(worstSeverity(allergies))}>
+                      <TriangleAlert data-icon="inline-start" className="size-3" />
+                      {t("child.health.allergiesTitle")}
+                    </Badge>
+                  )}
                 </div>
-              )}
+                {secondaryName && (
+                  <p className="text-sm text-muted-foreground text-start" dir="auto">
+                    {secondaryName}
+                  </p>
+                )}
+                {/* One line of facts: age · class · structure. The class is
+                    plain text and the structure is the one coloured mark —
+                    where the child is, said once. */}
+                <FactsLine
+                  className="mt-1"
+                  facts={[
+                    <span key="age">{ageFromDob(child.dob, locale)}</span>,
+                    /* Said only when it is not "enrolled" — the same rule as the
+                       children list, and the reason the door badge is missing. */
+                    child.status !== "enrolled" && (
+                      <Badge
+                        key="status"
+                        variant={child.status === "withdrawn" ? "destructive" : "secondary"}
+                        className="text-[0.6875rem]"
+                      >
+                        {t(`children.status.${child.status}`)}
+                      </Badge>
+                    ),
+                    cls && <span key="class">{cls}</span>,
+                    multiStructure && childStructure && (
+                      <StructureMark
+                        key="structure"
+                        structure={{ name: structureName(childStructure, locale), color: childStructure.color }}
+                        className="text-xs"
+                      />
+                    ),
+                  ]}
+                />
 
-              {/* Said once, only while it is still missing: a face on file is
-                  what makes the door check more than a scanned QR code. */}
-              {!child.photo_path && (
-                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                  {t("child.photo.hint")}
-                </p>
-              )}
+                {/* The one thing that needs the family's action, never two:
+                    what is outstanding wins over a missing photo, because it
+                    is the conversation the office will start at the gate. The
+                    figure is the same helper the children list and the home
+                    screen use, so one child cannot read as settled on one
+                    screen and owing on another. */}
+                {due ? (
+                  <div className="mt-1.5">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium",
+                        due.overdue ? "bg-destructive/10 text-destructive" : "bg-gold-muted text-gold-ink"
+                      )}
+                    >
+                      <Wallet className="size-3" aria-hidden />
+                      {dueWhat
+                        ? t("children.due.forWhat", {
+                            amount: formatDZD(due.balance, locale),
+                            what: dueWhat,
+                          })
+                        : t("children.due.amount", { amount: formatDZD(due.balance, locale) })}
+                    </span>
+                  </div>
+                ) : (
+                  !child.photo_path && (
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      {t("child.photo.hint")}
+                    </p>
+                  )
+                )}
+              </div>
             </div>
+
+            {/* ===== Actions: the door badge, and asking to move =====
+                 Both outline, both 44px: a parent hits these while walking.
+                 The badge only for a child who attends — the kiosk refuses a
+                 withdrawn or waitlisted child's arrival anyway (0069), and a
+                 badge that scans to a refusal is worse than no badge. The move
+                 request is one control, or the state of the request already
+                 sent — never both, because the RPC would refuse a second and a
+                 family should not have to learn that from an error. */}
+            {(child.status === "enrolled" || canAskToMove) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {child.status === "enrolled" && (
+                  <CheckinDialog
+                    badge={badge}
+                    child={checkinChildren.find((c) => c.id === child.id)}
+                    trigger="inline"
+                  />
+                )}
+                {canAskToMove &&
+                  (pendingTransfer ? (
+                    <StatusPill tone="attention" className="min-h-11 px-3">
+                      <Hourglass className="size-3.5 shrink-0" aria-hidden />
+                      {pendingTarget
+                        ? t("transfer.pendingTo", { structure: structureName(pendingTarget, locale) })
+                        : t("transfer.pending")}
+                    </StatusPill>
+                  ) : (
+                    <RequestTransferDialog
+                      childId={child.id}
+                      childName={name}
+                      dob={child.dob}
+                      currentStructureId={child.structure_id}
+                      structures={structures}
+                      classes={classOptions}
+                    />
+                  ))}
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {/* ===== Asking to move to the other structure =====
-             One control, or the state of the request it already sent — never
-             both. The request goes to the director's queue; the button is not
-             offered while one is open, because the RPC would refuse a second
-             and a family should not have to learn that from an error. */}
-        {canAskToMove && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {pendingTransfer ? (
-              <span className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-warning/40 bg-warning/15 px-3 text-sm font-medium text-foreground">
-                <Hourglass className="size-4 shrink-0" aria-hidden />
-                {pendingTarget
-                  ? t("transfer.pendingTo", { structure: structureName(pendingTarget, locale) })
-                  : t("transfer.pending")}
-              </span>
-            ) : (
-              <RequestTransferDialog
-                childId={child.id}
-                childName={name}
-                dob={child.dob}
-                currentStructureId={child.structure_id}
-                structures={structures}
-                classes={classOptions}
-              />
-            )}
-          </div>
-        )}
-
-        {/* ===== Parcours — the moves the child has made, read-only =====
-             Written only by kg_move_child, so this is the record the register
-             prints, not a draft. A family sees their own history; a building
-             with one structure never has rows here and shows nothing. */}
-        {transfers.length > 0 && (
-          <Card className="mt-3 shadow-sm">
-            <CardHeader className="flex flex-row items-center gap-3">
-              <IconTile tone="primary">
-                <Route />
-              </IconTile>
-              <CardTitle className="text-base font-semibold">{t("transfer.historyTitle")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ol className="grid gap-2 text-sm">
-                {transfers.map((tr) => {
-                  const to = tr.to_structure_id ? structureById.get(tr.to_structure_id) ?? null : null;
-                  const from = tr.from_structure_id ? structureById.get(tr.from_structure_id) ?? null : null;
-                  return (
-                    <li key={tr.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {formatDate(tr.effective_date, locale)}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        {to ? (
-                          <StructureChip structure={to} locale={locale} className="font-medium" />
-                        ) : (
-                          <span className="font-medium">{t("transfer.historyUnknown")}</span>
-                        )}
-                        {from && (
-                          <span className="ms-2 text-xs text-muted-foreground">
-                            {t("transfer.historyFrom", { structure: structureName(from, locale) })}
-                          </span>
-                        )}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-            </CardContent>
-          </Card>
-        )}
       </div>
 
-      {/* ===== Tabs (URL-driven so each tab loads only its own data) ===== */}
+      {/* ===== Tabs (URL-driven so each tab loads only its own data) =====
+          The settings bar — a white card, icon + label, the active one a
+          primary tint — laid out as five equal columns with the icon above
+          the label, which is how five sections fit a phone. */}
       <nav
         aria-label={t("child.tabsLabel")}
-        className="flex gap-1 overflow-x-auto rounded-xl bg-muted p-1"
+        className="grid grid-cols-5 gap-1 rounded-xl border border-border bg-card p-1.5 shadow-sm"
       >
         {TABS.map((key) => {
           const active = key === tab;
+          const Icon = TAB_ICONS[key];
           return (
             <Link
               key={key}
@@ -811,136 +790,112 @@ export default async function PortalChildDetailPage({
               scroll={false}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-center text-sm font-medium transition-colors",
+                "flex min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-2 text-xs font-medium transition-colors",
                 active
-                  ? "bg-card text-primary shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              {t(`child.tabs.${key}`)}
+              <Icon className="size-4 shrink-0" aria-hidden />
+              <span className="w-full truncate text-center">{t(`child.tabs.${key}`)}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* ===== Journal — the keepsake surface, so every card is gold-tinted ===== */}
+      {/* ===== Journal — the child's dated days, one row each =====
+           One section card holding a divided list: the date, one muted line
+           of facts, and the one red the tab spends (an incident count) at the
+           end. The row is the link to the day page, where the same composer
+           lays the day out in full. A day the child was away shows the status
+           word alone — nothing was lived there to summarise. */}
       {tab === "journal" &&
-        (journal.length === 0 ? (
+        (journalDays.length === 0 ? (
           <EmptyState
             icon={<BookOpen />}
-            title={t("child.journal.empty")}
-            description={t("child.journal.emptyDescription")}
+            title={t("child.journal.emptyDays")}
+            description={t("child.journal.emptyDaysDescription")}
           />
         ) : (
-          <div className="grid gap-3">
-            {journal.map((report) => {
-              const meals = parseMeals(report.meals);
-              const nap = parseNap(report.nap);
-              const napStart = napLabel(nap?.start ?? null, locale);
-              const napEnd = napLabel(nap?.end ?? null, locale);
-              // Clock times first, then the {slept, minutes} shape the demo
-              // tenant and the mobile app write — see parseNap for why both.
-              const napText =
-                napStart && napEnd
-                  ? t("child.journal.napRange", { start: napStart, end: napEnd })
-                  : napStart
-                    ? t("child.journal.napFrom", { time: napStart })
-                    : napEnd
-                      ? t("child.journal.napUntil", { time: napEnd })
-                      : nap?.slept === false
-                        ? t("child.journal.napNone")
-                        : nap?.minutes && nap.minutes > 0
-                          ? t("child.journal.napMinutes", { minutes: nap.minutes })
-                          : nap?.slept
-                            ? t("child.journal.napSlept")
-                            : null;
-              return (
-                <Card key={report.id} className="bg-gold-muted/40 shadow-sm ring-gold/25">
-                  <CardHeader className="flex flex-row items-center gap-3">
-                    <span
-                      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-2xl ring-1 ring-gold/25"
-                      aria-hidden
+          <SectionCard
+            icon={BookOpen}
+            tone={0}
+            title={t("child.journal.title")}
+            hint={t("child.journal.hint")}
+            contentClassName="px-0"
+          >
+            <ul className="divide-y divide-border">
+              {journalDays.map((d) => {
+                const away =
+                  d.attendance !== null &&
+                  (d.attendance.status === "absent" || d.attendance.status === "sick" || d.attendance.status === "excused");
+                const statusKey = d.attendance?.status as
+                  | (typeof ATTENDANCE_SUMMARY)[number]
+                  | undefined;
+                const facts: React.ReactNode[] = away
+                  ? [
+                      statusKey && (ATTENDANCE_SUMMARY as readonly string[]).includes(statusKey) && (
+                        <span key="status">{t(`child.attendance.statuses.${statusKey}`)}</span>
+                      ),
+                    ]
+                  : [
+                      d.attendance?.checkIn && (
+                        <span key="range" className="inline-flex items-baseline gap-1">
+                          {t("home.today.arrival")}
+                          {d.attendance.checkOut ? (
+                            <ValueRange
+                              from={formatTime(d.attendance.checkIn, locale)}
+                              to={formatTime(d.attendance.checkOut, locale)}
+                              separator="–"
+                              className="tabular-nums"
+                            />
+                          ) : (
+                            <span dir="ltr" className="tabular-nums">{formatTime(d.attendance.checkIn, locale)}</span>
+                          )}
+                        </span>
+                      ),
+                      d.lessons > 0 && (
+                        <span key="lessons">
+                          {t(`child.journal.facts.lessons.${journalNoun}`, { count: d.lessons })}
+                        </span>
+                      ),
+                      d.mood && KNOWN_MOODS.includes(d.mood) && (
+                        <span key="mood">{t(`day.moods.${d.mood as "happy"}`)}</span>
+                      ),
+                      d.sessions > 0 && (
+                        <span key="sessions">{t("child.journal.facts.sessions", { count: d.sessions })}</span>
+                      ),
+                    ];
+                return (
+                  <li key={d.date}>
+                    <Link
+                      href={`/portal/children/${child.id}/day/${d.date}`}
+                      className="flex min-h-14 items-center gap-3 px-5 py-3 transition-colors hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
-                      {MOOD_EMOJI[report.mood ?? ""] ?? "🙂"}
-                    </span>
-                    <CardTitle className="text-base font-semibold">
-                      {formatDate(report.date, locale, { weekday: "long" })}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-3 text-sm">
-                    {meals.length > 0 && (
-                      <div className="flex gap-3 rounded-xl bg-card p-3">
-                        <IconTile tone="gold">
-                          <UtensilsCrossed />
-                        </IconTile>
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            {t("child.journal.meals")}
-                          </div>
-                          <ul className="mt-1 grid gap-0.5">
-                            {meals.map((m, i) => {
-                              // "tout" / "moitié" as the educator typed it,
-                              // in the reader's language; unknown words pass
-                              // through rather than vanish.
-                              const key = eatenKey(m.eaten);
-                              const eaten = key ? t(`child.journal.eaten.${key}`) : m.eaten;
-                              return (
-                                <li key={i}>
-                                  {m.meal}
-                                  {eaten && (
-                                    <span className="text-muted-foreground"> — {eaten}</span>
-                                  )}
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-
-                    {napText && (
-                      <div className="flex gap-3 rounded-xl bg-card p-3">
-                        <IconTile tone="primary">
-                          <Moon />
-                        </IconTile>
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            {t("child.journal.nap")}
-                          </div>
-                          <div className="mt-1 tabular-nums">{napText}</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {report.activities_text && (
-                      <div className="flex gap-3 rounded-xl bg-card p-3">
-                        <IconTile tone="gold">
-                          <Sparkles />
-                        </IconTile>
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            {t("child.journal.activities")}
-                          </div>
-                          <p className="mt-1 whitespace-pre-wrap leading-relaxed text-start" dir="auto">
-                            {report.activities_text}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {report.notes && (
-                      <div className="rounded-xl bg-card p-3">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {t("child.journal.notes")}
-                        </div>
-                        <p className="mt-1 whitespace-pre-wrap leading-relaxed text-start" dir="auto">{report.notes}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      {/* No year: the list is the last 30 days, and the
+                          year would push the facts onto a second line on
+                          a phone. */}
+                      <span className="min-w-24 shrink-0 text-sm font-medium tabular-nums">
+                        {formatDate(d.date, locale, { weekday: "short", day: "numeric", month: "short", year: undefined })}
+                      </span>
+                      {/* The facts keep their column even when there are
+                          none (an incident on a day without a register),
+                          so the pill and the chevron stay at the end. */}
+                      <span className="min-w-0 flex-1">
+                        <FactsLine className="text-sm" facts={facts} />
+                      </span>
+                      {d.incidents > 0 && (
+                        <StatusPill tone="danger">
+                          {t("child.journal.facts.incidents", { count: d.incidents })}
+                        </StatusPill>
+                      )}
+                      <ForwardIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </SectionCard>
         ))}
 
       {/* ===== Présences (one month, navigable) ===== */}
@@ -985,7 +940,12 @@ export default async function PortalChildDetailPage({
             <div className="grid grid-cols-5 gap-2 px-4">
               {ATTENDANCE_SUMMARY.map((k) => (
                 <div key={k} className="rounded-xl bg-muted/60 px-2 py-2.5 text-center">
-                  <div className={cn("text-xl font-bold tabular-nums", SUMMARY_TONE[k])}>
+                  <div
+                    className={cn(
+                      "text-xl font-bold tabular-nums",
+                      (attendanceCounts[k] ?? 0) > 0 && SUMMARY_TONE[k]
+                    )}
+                  >
                     {attendanceCounts[k] ?? 0}
                   </div>
                   <div className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">
@@ -1009,8 +969,14 @@ export default async function PortalChildDetailPage({
                   const outAttribution = a.check_out_at
                     ? attributionFor(guardianRefs.get(a.checked_out_guardian_id ?? "") ?? null, a.picked_up_by, a.checked_out_by)
                     : null;
-                  const inMethod = a.check_in_at ? a.check_in_method : null;
-                  const outMethod = a.check_out_at ? a.check_out_method : null;
+                  // One method line when in and out were recorded the same
+                  // way — "Code au kiosque" twice is one fact said twice.
+                  const sameMethod =
+                    a.check_in_at && a.check_out_at && a.check_in_method === a.check_out_method
+                      ? a.check_in_method
+                      : null;
+                  const inMethod = a.check_in_at && !sameMethod ? a.check_in_method : null;
+                  const outMethod = a.check_out_at && !sameMethod ? a.check_out_method : null;
                   const showIn = Boolean(inAttribution || inMethod);
                   const showOut = Boolean(outAttribution || outMethod);
                   return (
@@ -1026,16 +992,18 @@ export default async function PortalChildDetailPage({
                         <ValueRange
                           from={a.check_in_at ? formatTime(a.check_in_at, locale) : null}
                           to={a.check_out_at ? formatTime(a.check_out_at, locale) : null}
+                          separator="–"
                           className="shrink-0 text-xs text-muted-foreground tabular-nums"
                         />
                         <Badge className={attendanceStatusClasses(a.status)}>
                           {t(`child.attendance.statuses.${a.status}`)}
                         </Badge>
                       </div>
-                      {(showIn || showOut) && (
+                      {(showIn || showOut || sameMethod) && (
                         <div className="mt-1.5 grid gap-1 text-xs text-muted-foreground">
                           {showIn && attendanceLine(inAttribution, inMethod, "in")}
                           {showOut && attendanceLine(outAttribution, outMethod, "out")}
+                          {sameMethod && <p>{t(`child.attendance.methods.${sameMethod}`)}</p>}
                         </div>
                       )}
                     </li>
@@ -1045,6 +1013,43 @@ export default async function PortalChildDetailPage({
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* ===== Parcours — the moves the child has made, read-only =====
+           Written only by kg_move_child, so this is the record the register
+           prints, not a draft. A building with one structure never has rows
+           here and shows nothing. */}
+      {tab === "attendance" && transfers.length > 0 && (
+        <SectionCard icon={Route} tone={0} title={t("transfer.historyTitle")} contentClassName="gap-0">
+          <ol className="divide-y divide-border text-sm">
+            {transfers.map((tr) => {
+              const to = tr.to_structure_id ? structureById.get(tr.to_structure_id) ?? null : null;
+              const from = tr.from_structure_id ? structureById.get(tr.from_structure_id) ?? null : null;
+              return (
+                <li key={tr.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                  <span className="w-24 shrink-0 text-xs text-muted-foreground tabular-nums">
+                    {formatDate(tr.effective_date, locale)}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
+                    {to ? (
+                      <StructureMark
+                        structure={{ name: structureName(to, locale), color: to.color }}
+                        className="font-medium"
+                      />
+                    ) : (
+                      <span className="font-medium">{t("transfer.historyUnknown")}</span>
+                    )}
+                    {from && (
+                      <span className="text-xs text-muted-foreground">
+                        {t("transfer.historyFrom", { structure: structureName(from, locale) })}
+                      </span>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </SectionCard>
       )}
 
       {/* ===== Santé — the family maintains it; every edit reaches staff at once ===== */}
@@ -1113,7 +1118,7 @@ export default async function PortalChildDetailPage({
               ) : (
                 currentEnrollments.map((enrollment) => {
                   const activity = enrollment.kg_activities!;
-                  const schedule = scheduleLabel(activity);
+                  const schedule = scheduleLine(activity);
                   const pending = enrollment.status === "requested";
                   return (
                     <div key={enrollment.id} className="grid gap-1.5 rounded-xl bg-muted/50 p-3.5">
@@ -1164,7 +1169,7 @@ export default async function PortalChildDetailPage({
                 </p>
               ) : (
                 availableActivities.map((activity) => {
-                  const schedule = scheduleLabel(activity);
+                  const schedule = scheduleLine(activity);
                   return (
                     <div
                       key={activity.id}

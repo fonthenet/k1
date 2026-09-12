@@ -3,7 +3,7 @@
   "nav": {
     "dashboard": "Tableau de bord",
     "children": "Enfants",
-    "applications": "Inscriptions",
+    "applications": "Demandes d'inscription",
     "attendance": "Présences",
     "classes": "Classes",
     "activities": "Activités",
@@ -20,10 +20,12 @@
     "settings": "Paramètres",
     "kiosk": "Mode kiosque",
     "portal": "Espace parents",
-    "sessions": "Séances",
+    "sessions": "Suivi individuel",
     "tasks": "Tâches",
     "platform": "Panneau plateforme",
-    "menu": "Menu"
+    "menu": "Menu",
+    "learning": "Pédagogie",
+    "profile": "Profil"
   },
   "actions": {
     "save": "Enregistrer",
@@ -133,5 +135,37 @@
     "all": "Tout l'établissement",
     "allHint": "{count} structures",
     "viewing": "Structure affichée"
+  },
+  "nouns": {
+    "children": "Enfants",
+    "pupils": "Élèves"
+  },
+  "navGroups": {
+    "day": "Journée",
+    "families": "Familles",
+    "management": "Gestion"
+  },
+  "rooms": {
+    "room": "Salle",
+    "noRoom": "Sans salle",
+    "classRoom": "salle de la classe",
+    "sharedWith": "Aussi salle de {classes}.",
+    "places": "{count, plural, one {# place} other {# places}}",
+    "tooSmall": "Salle de {capacity, plural, one {# place} other {# places}} pour {count, plural, one {# enfant} other {# enfants}}.",
+    "occupancy": "Occupation des salles",
+    "occupancyHint": "Une colonne par salle, la journée entière ; deux blocs côte à côte sont un chevauchement.",
+    "sheetLabel": "Occupation des salles du {date}",
+    "bookings": "{count, plural, one {# réservation} other {# réservations}}",
+    "emptyDay": "Aucune réservation ce jour-là.",
+    "previousDay": "Jour précédent",
+    "nextDay": "Jour suivant",
+    "kind": {
+      "lesson": "Cours",
+      "event": "Événement",
+      "activity": "Activité"
+    }
+  },
+  "scheduler": {
+    "busy": "Déjà pris"
   }
 }

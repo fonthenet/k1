@@ -3,8 +3,8 @@ import { requireStaff, signedMediaUrl } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { algiersToday } from "@/lib/algiers";
 import { isOpenDay, toOpeningHours } from "@/lib/week";
-import type { AttendanceStatus, Relationship } from "@/lib/types";
-import { PageHeader } from "@/components/shared/page-header";
+import type { AllergySeverity, AttendanceStatus, Relationship } from "@/lib/types";
+import type { AllergyItem } from "@/components/modules/children/types";
 import {
   RegisterClient,
   type RegisterClassTab,
@@ -12,6 +12,7 @@ import {
   type RegisterRow,
 } from "@/components/modules/attendance/register-client";
 import { isPresentish } from "@/components/modules/attendance/status-config";
+import { keepsJournal } from "@/components/modules/attendance/attendance-tabs";
 import { structureClosure } from "@/components/modules/attendance/closure";
 import type { Structure } from "@/components/modules/classes/class-types";
 import { allergenLabel } from "@/lib/allergens";
@@ -152,8 +153,10 @@ export default async function AttendancePage({
       .eq("tenant_id", ctx.tenant.id)
       .eq("date", date),
     supabase
+      // The severity travels with the name: the register's badge is the
+      // roster's, and its tint is the worst allergy on file.
       .from("kg_child_allergies")
-      .select("child_id, allergen")
+      .select("child_id, allergen, severity")
       .eq("tenant_id", ctx.tenant.id),
     // The class tabs must show their counts no matter which class is filtered
     // into the table, so the roster is a separate, deliberately thin query:
@@ -235,10 +238,13 @@ export default async function AttendancePage({
   const attendance = (attendanceRes.data ?? []) as AttendanceRecord[];
 
   const attendanceByChild = new Map(attendance.map((a) => [a.child_id, a]));
-  const allergiesByChild = new Map<string, string[]>();
+  const allergiesByChild = new Map<string, AllergyItem[]>();
   for (const a of allergiesRes.data ?? []) {
     const list = allergiesByChild.get(a.child_id) ?? [];
-    list.push(allergenLabel(a.allergen, tc));
+    list.push({
+      allergen: allergenLabel(a.allergen, tc),
+      severity: a.severity as AllergySeverity,
+    });
     allergiesByChild.set(a.child_id, list);
   }
   const classById = new Map(classes.map((c) => [c.id, c]));
@@ -338,17 +344,23 @@ export default async function AttendancePage({
 
   const dateObj = parseDateStr(date);
   const openingHours = toOpeningHours(hoursRes.data);
-  const dateLabel = new Intl.DateTimeFormat(intlLocale(locale), {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(dateObj);
 
+  // The Journal tab exists only where a class keeps one — a crèche, a
+  // préscolaire, a camp. A scope made of école classes alone gets the
+  // register and the history, nothing in between.
+  const structureType = new Map(structures.map((s) => [s.id, s.center_type as string]));
+  const tenantType = (ctx.tenant as { center_type?: string | null }).center_type;
+  const showJournal = classes.some((c) =>
+    keepsJournal((c.structure_id && structureType.get(c.structure_id)) || tenantType)
+  );
+
+  // The header is the client's: its primary button is client state. The
+  // description does not repeat the day — the filter bar owns it.
   return (
     <div>
-      <PageHeader title={t("title")} description={`${t("description")} — ${dateLabel}`} />
       <RegisterClient
+        title={t("title")}
+        description={t("description")}
         date={date}
         isClosedDay={!isOpenDay(openingHours, dateObj) || closure.closed}
         closedHoliday={closure.holiday}
@@ -361,6 +373,7 @@ export default async function AttendancePage({
         activeClass={activeClass}
         structures={structures}
         activeStructure={activeStructure ?? "all"}
+        showJournal={showJournal}
         rows={rows}
       />
     </div>

@@ -1,21 +1,13 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Receipt,
-  Scale,
-  TrendingDown,
-  TrendingUp,
-  TriangleAlert,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Receipt, Scale, TrendingDown, TrendingUp, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import { formatDZD, formatDate } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StatCard } from "@/components/shared/stat-card";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MonthSelect } from "@/components/modules/dashboard/month-select";
 import { AccountingNav } from "@/components/modules/accounting/nav-tabs";
 import { CloseMonthButton, ReopenMonthButton } from "@/components/modules/accounting/close-month-button";
 import { TxnDetailDialog } from "@/components/modules/accounting/txn-detail-dialog";
@@ -36,8 +27,6 @@ import { TxnDialog } from "@/components/modules/accounting/txn-dialog";
 import { TxnFilters } from "@/components/modules/accounting/txn-filters";
 import { TxnRowActions } from "@/components/modules/accounting/txn-row-actions";
 import { structureName } from "@/components/modules/classes/class-types";
-import { EmptyIcon, MoneyStat } from "@/components/modules/billing/finance-ui";
-import { ENTITY_LINK_CLASS } from "@/components/shared/entity-link";
 import {
   addDays,
   algiersMonth,
@@ -109,7 +98,11 @@ export default async function TransactionsPage({
 }) {
   const ctx = await requireFinance();
   const supabase = await createClient();
-  const [t, locale] = await Promise.all([getTranslations("accounting"), getLocale()]);
+  const [t, tc, locale] = await Promise.all([
+    getTranslations("accounting"),
+    getTranslations("common"),
+    getLocale(),
+  ]);
   const tid = ctx.tenant.id;
 
   const sp = await searchParams;
@@ -314,11 +307,38 @@ export default async function TransactionsPage({
 
   const PrevIcon = locale === "ar" ? ChevronRight : ChevronLeft;
   const NextIcon = locale === "ar" ? ChevronLeft : ChevronRight;
+  const categoryLists = { income: incomeCategories, expense: expenseCategories };
+  const anyFilter = kind !== null || category !== null || method !== null;
+
+  /**
+   * The row's door. An entry typed by hand opens its detail dialog; a row
+   * derived from a payment or a payslip goes to that record; a derived row
+   * with nowhere to go (a payslip whose run is gone) stays plain text. The
+   * overlay on the door makes the whole row clickable — the one pencil is
+   * lifted above it.
+   */
+  const doorClass = "text-start font-medium after:absolute after:inset-0";
+  const focusRing =
+    "rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 
   return (
     <div className="space-y-6">
+      {/* One primary per page: the thing this page creates. The dialog opens
+          on the expense side, the entry finance types most often — a fee
+          receipt is written by billing, not here. */}
       <PageHeader title={t("txn.title")} description={t("txn.subtitle")}>
-        <MonthSelect options={monthOptions} value={month} ariaLabel={t("monthLabel")} />
+        <TxnDialog
+          kind="expense"
+          categories={categoryLists}
+          structures={ctx.structures}
+          defaultStructureId={ctx.structureId}
+          trigger={
+            <Button>
+              <Plus data-icon="inline-start" />
+              {t("txn.add")}
+            </Button>
+          }
+        />
       </PageHeader>
 
       <AccountingNav />
@@ -331,261 +351,217 @@ export default async function TransactionsPage({
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <MoneyStat
+        <StatCard
           label={t("txn.totals.income")}
           value={formatDZD(totalIncome, locale)}
           hint={monthTitle}
           icon={<TrendingUp />}
-          tone="income"
+          tone="success"
         />
-        <MoneyStat
+        <StatCard
           label={t("txn.totals.expense")}
           value={formatDZD(totalExpense, locale)}
           hint={monthTitle}
           icon={<TrendingDown />}
-          tone="expense"
+          tone="danger"
         />
-        <MoneyStat
+        <StatCard
           label={t("txn.totals.net")}
           value={formatDZD(netTotal, locale)}
           hint={monthTitle}
           icon={<Scale />}
-          tone={netTotal >= 0 ? "gold" : "destructive"}
-          highlight
+          tone="gold"
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <TxnFilters categories={categories} />
-        <div className="flex items-center gap-2">
-          <TxnDialog
-            kind="income"
-            categories={incomeCategories}
-            structures={ctx.structures}
-            defaultStructureId={ctx.structureId}
-            trigger={
-              <Button variant="outline">
-                <Plus data-icon="inline-start" />
-                {t("txn.addIncome")}
-              </Button>
-            }
-          />
-          <TxnDialog
-            kind="expense"
-            categories={expenseCategories}
-            structures={ctx.structures}
-            defaultStructureId={ctx.structureId}
-            trigger={
-              <Button>
-                <Plus data-icon="inline-start" />
-                {t("txn.addExpense")}
-              </Button>
-            }
-          />
-        </div>
-      </div>
+      <TxnFilters
+        categories={categories}
+        monthOptions={monthOptions}
+        month={month}
+        count={totalCount}
+      />
 
-      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-        <CardContent className="p-0">
-          {rows.length === 0 ? (
-            <div className="p-6">
-              <EmptyState
-                icon={
-                  <EmptyIcon>
-                    <Receipt />
-                  </EmptyIcon>
-                }
-                title={t("txn.empty")}
-                description={t("txn.emptyHint")}
-              />
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
-                    <TableRow>
-                      <TableHead className="ps-4">{t("txn.date")}</TableHead>
-                      <TableHead>{t("txn.description")}</TableHead>
-                      <TableHead>{t("txn.category")}</TableHead>
-                      <TableHead>{t("txn.method")}</TableHead>
-                      <TableHead className={cn("text-end", !ctx.isAdmin && "pe-4")}>
-                        {t("txn.amount")}
+      {rows.length === 0 && !anyFilter ? (
+        <EmptyState icon={<Receipt />} title={t("txn.empty")} description={t("txn.emptyHint")} />
+      ) : (
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            {rows.length === 0 ? (
+              <p className="px-5 py-4 text-sm text-muted-foreground">{t("txn.empty")}</p>
+            ) : (
+              <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+                <TableHeader>
+                  <TableRow className="[&>th]:font-semibold">
+                    <TableHead>{t("txn.date")}</TableHead>
+                    <TableHead>{t("txn.description")}</TableHead>
+                    <TableHead>{t("txn.category")}</TableHead>
+                    {ctx.isMultiStructure && <TableHead>{t("txn.structure")}</TableHead>}
+                    <TableHead>{t("txn.method")}</TableHead>
+                    <TableHead className="text-end">{t("txn.amount")}</TableHead>
+                    {canManage && (
+                      <TableHead className="w-16">
+                        <span className="sr-only">{tc("actions.edit")}</span>
                       </TableHead>
-                      {ctx.isAdmin && <TableHead className="w-20 pe-4" />}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((tx) => {
-                      // Every derived row is read-only here, not just payments.
-                      // A salary or advance line is written and kept in step by
-                      // a trigger on its source record (0030); editing the ledger
-                      // copy would only put the two out of sync, and deleting it
-                      // would hide cash that really left the till.
-                      const linked = destinationOf(tx);
-                      const editable = canManage && !linked && !isClosed(tx.date);
-                      const isIncome = tx.kind === "income";
-                      return (
-                        <TableRow key={tx.id} className="h-14">
-                          <TableCell className="ps-4 whitespace-nowrap tabular-nums text-muted-foreground">
-                            {formatDate(tx.date, locale)}
-                          </TableCell>
-                          <TableCell className="max-w-72">
-                            <span className="block truncate font-medium">
-                              {linked?.href ? (
-                                <Link href={linked.href} className={ENTITY_LINK_CLASS}>
-                                  {tx.description || "—"}
-                                </Link>
-                              ) : linked ? (
-                                tx.description || "—"
-                              ) : (
-                                <TxnDetailDialog
-                                  txn={tx}
-                                  trigger={
-                                    <button type="button" className={ENTITY_LINK_CLASS}>
-                                      {tx.description || "—"}
-                                    </button>
-                                  }
-                                />
-                              )}
-                            </span>
-                            {(linked || tx.reference) && (
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                {/* What this row is, in place of the lock icon that
-                                    used to sit here: "not editable" is the least
-                                    useful thing about a salary payout. */}
-                                {linked && <span className="shrink-0">{linked.label}</span>}
-                                {tx.reference && (
-                                  <span className="truncate" dir="ltr">
-                                    {tx.reference}
-                                  </span>
-                                )}
-                              </div>
+                    )}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((tx) => {
+                    // Every derived row is read-only here, not just payments.
+                    // A salary or advance line is written and kept in step by
+                    // a trigger on its source record (0030); editing the ledger
+                    // copy would only put the two out of sync, and deleting it
+                    // would hide cash that really left the till.
+                    const linked = destinationOf(tx);
+                    const editable = canManage && !linked && !isClosed(tx.date);
+                    const label = tx.description || "—";
+                    const structure =
+                      ctx.isMultiStructure && tx.structure_id
+                        ? structureById.get(tx.structure_id)
+                        : undefined;
+                    return (
+                      <TableRow key={tx.id} className="relative h-14 transition-colors hover:bg-primary/5">
+                        <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
+                          {formatDate(tx.date, locale)}
+                        </TableCell>
+                        <TableCell className="max-w-72">
+                          <span className="block truncate">
+                            {linked?.href ? (
+                              <Link href={linked.href} className={`${doorClass} ${focusRing}`}>
+                                <bdi dir="auto">{label}</bdi>
+                              </Link>
+                            ) : linked ? (
+                              <span className="font-medium">
+                                <bdi dir="auto">{label}</bdi>
+                              </span>
+                            ) : (
+                              <TxnDetailDialog
+                                txn={tx}
+                                trigger={
+                                  <button type="button" className={`${doorClass} ${focusRing}`}>
+                                    <bdi dir="auto">{label}</bdi>
+                                  </button>
+                                }
+                              />
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {tx.category ? (
-                                <Badge
-                                  variant="outline"
-                                  className="gap-1.5 bg-card text-muted-foreground"
-                                >
-                                  <span
-                                    className="size-2 rounded-full"
-                                    style={{ backgroundColor: tx.category.color }}
-                                  />
-                                  {tx.category.name}
-                                </Badge>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">—</span>
-                              )}
-                              {/* Whose money, when the building has sides. A
-                                  row with no structure is the building's and
-                                  says nothing — the absence is the label. */}
-                              {ctx.isMultiStructure && tx.structure_id && structureById.get(tx.structure_id) && (
-                                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                                  <span
-                                    className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-                                    style={{ backgroundColor: structureById.get(tx.structure_id)!.color }}
-                                    aria-hidden
-                                  />
-                                  {structureName(structureById.get(tx.structure_id)!, locale)}
+                          </span>
+                          {(linked || tx.reference) && (
+                            <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {/* What this row is, in place of the lock icon that
+                                  used to sit here: "not editable" is the least
+                                  useful thing about a salary payout. */}
+                              {linked && <span className="shrink-0">{linked.label}</span>}
+                              {linked && tx.reference && <span aria-hidden>·</span>}
+                              {tx.reference && (
+                                <span className="truncate" dir="ltr">
+                                  {tx.reference}
                                 </span>
                               )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {t(`methods.${tx.method}`)}
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              "text-end font-semibold tabular-nums",
-                              isIncome ? "text-income" : "text-expense",
-                              !ctx.isAdmin && "pe-4"
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {/* The one category mark: an outline chip with the
+                              category's dot. */}
+                          {tx.category ? (
+                            <Badge variant="outline" className="gap-1.5 bg-muted/50 text-muted-foreground">
+                              <span
+                                className="size-2 rounded-full"
+                                style={{ backgroundColor: tx.category.color }}
+                              />
+                              <bdi dir="auto">{tx.category.name}</bdi>
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        {ctx.isMultiStructure && (
+                          <TableCell>
+                            {/* Whose money, when the building has sides. A row
+                                with no structure is the building's and says
+                                nothing — the absence is the label. */}
+                            {structure && (
+                              <StructureMark
+                                structure={{
+                                  name: structureName(structure, locale),
+                                  color: structure.color ?? "var(--primary)",
+                                }}
+                              />
                             )}
-                          >
-                            {isIncome ? "+" : "−"}
-                            {formatDZD(tx.amount, locale)}
                           </TableCell>
-                          {ctx.isAdmin && (
-                            <TableCell className="pe-4">
-                              {editable && (
+                        )}
+                        <TableCell className="text-muted-foreground">
+                          {t(`methods.${tx.method}`)}
+                        </TableCell>
+                        {/* The sign carries the kind; a colour per row would
+                            paint the whole column red and green. */}
+                        <TableCell className="whitespace-nowrap text-end tabular-nums">
+                          {tx.kind === "expense" && <span aria-hidden>− </span>}
+                          {formatDZD(tx.amount, locale)}
+                        </TableCell>
+                        {canManage && (
+                          <TableCell className="w-16">
+                            {editable && (
+                              <span className="relative z-10 flex items-center justify-end gap-0.5">
                                 <TxnRowActions
                                   txn={tx}
-                                  categories={
-                                    tx.kind === "income" ? incomeCategories : expenseCategories
-                                  }
+                                  categories={categoryLists}
                                   structures={ctx.structures}
                                 />
-                              )}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                              </span>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-3 text-sm">
-                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
-                  <span>
-                    {totalCount > PAGE_SIZE
-                      ? t("txn.showing", {
-                          from: from + 1,
-                          to: from + rows.length,
-                          total: totalCount,
-                        })
-                      : t("txn.count", { count: totalCount })}
+            {/* Only once the month spills over a page: the chip above already
+                says how many rows there are. */}
+            {pageCount > 1 && (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border px-5 py-3 text-sm text-muted-foreground">
+                <span>
+                  {t("txn.showing", {
+                    from: from + 1,
+                    to: from + rows.length,
+                    total: totalCount,
+                  })}
+                </span>
+                <span className="flex items-center gap-0.5">
+                  {page > 1 ? (
+                    <Button variant="ghost" size="icon-sm" asChild aria-label={t("txn.prevPage")}>
+                      <Link href={pageHref(page - 1)}>
+                        <PrevIcon />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="icon-sm" disabled aria-label={t("txn.prevPage")}>
+                      <PrevIcon />
+                    </Button>
+                  )}
+                  <span className="tabular-nums" dir="ltr">
+                    {page} / {pageCount}
                   </span>
-                  {pageCount > 1 && (
-                    <span className="flex items-center gap-0.5">
-                      {page > 1 ? (
-                        <Button variant="ghost" size="icon-sm" asChild aria-label={t("txn.prevPage")}>
-                          <Link href={pageHref(page - 1)}>
-                            <PrevIcon />
-                          </Link>
-                        </Button>
-                      ) : (
-                        <Button variant="ghost" size="icon-sm" disabled aria-label={t("txn.prevPage")}>
-                          <PrevIcon />
-                        </Button>
-                      )}
-                      <span className="tabular-nums">
-                        {page} / {pageCount}
-                      </span>
-                      {page < pageCount ? (
-                        <Button variant="ghost" size="icon-sm" asChild aria-label={t("txn.nextPage")}>
-                          <Link href={pageHref(page + 1)}>
-                            <NextIcon />
-                          </Link>
-                        </Button>
-                      ) : (
-                        <Button variant="ghost" size="icon-sm" disabled aria-label={t("txn.nextPage")}>
-                          <NextIcon />
-                        </Button>
-                      )}
-                    </span>
+                  {page < pageCount ? (
+                    <Button variant="ghost" size="icon-sm" asChild aria-label={t("txn.nextPage")}>
+                      <Link href={pageHref(page + 1)}>
+                        <NextIcon />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="icon-sm" disabled aria-label={t("txn.nextPage")}>
+                      <NextIcon />
+                    </Button>
                   )}
                 </span>
-                <span className="flex items-center gap-2 tabular-nums">
-                  <span className="text-muted-foreground">{t("txn.totals.net")} :</span>
-                  <span
-                    className={cn(
-                      "rounded-4xl px-2.5 py-0.5 font-bold",
-                      netTotal >= 0
-                        ? "bg-gold-muted text-gold-ink"
-                        : "bg-destructive/10 text-destructive"
-                    )}
-                  >
-                    {formatDZD(netTotal, locale)}
-                  </span>
-                </span>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* The close state of the books, in one line under the journal: where
           the closed ledger ends, and the one action that moves it. Not a

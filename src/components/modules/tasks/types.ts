@@ -1,4 +1,4 @@
-// Row shapes + token-only tones for the internal task board (kg_tasks).
+// Row shapes and sort orders for the internal task board (kg_tasks).
 // Staff-only surface: RLS keeps parents out, and nothing here is ever rendered
 // in the parent portal.
 
@@ -27,7 +27,7 @@ export interface TaskRow {
   created_at: string;
 }
 
-/** A task flattened server-side with everything the card needs to render. */
+/** A task flattened server-side with everything the row needs to render. */
 export interface TaskCardData extends TaskRow {
   assigneeName: string | null;
   childName: string | null;
@@ -45,43 +45,12 @@ export interface ChildOption {
   label: string;
 }
 
-/* ---------------------------------------------------------------------------
-   Tones — tokens only (see THEME.md). Priority escalates by weight as well as
-   hue (muted wash → teal tint → solid gold → solid red) so the board stays
-   readable at a glance and for colour-blind users.
---------------------------------------------------------------------------- */
-
-const PILL = "border-transparent font-medium";
-
-export const PRIORITY_BADGE: Record<TaskPriority, string> = {
-  urgent: "border-transparent bg-destructive-solid text-destructive-foreground font-semibold",
-  high: `${PILL} bg-gold text-gold-foreground`,
-  normal: `${PILL} bg-primary/10 text-primary`,
-  low: `${PILL} bg-muted text-muted-foreground`,
-};
-
-/** Left rule on the card — a second, quieter read of the same priority. */
-export const PRIORITY_RULE: Record<TaskPriority, string> = {
-  urgent: "bg-destructive",
-  high: "bg-gold",
-  normal: "bg-primary/40",
-  low: "bg-border",
-};
-
-export const LANE_DOT: Record<BoardStatus, string> = {
-  todo: "bg-muted-foreground/50",
-  in_progress: "bg-primary",
-  done: "bg-success",
-};
-
+/**
+ * How a due date reads against today. The row paints it once: overdue is the
+ * page's one red, today its one gold word, soon and later are plain muted
+ * dates. `dates.ts` computes it; the table cell switches on it.
+ */
 export type DueTone = "overdue" | "today" | "soon" | "later";
-
-export const DUE_BADGE: Record<DueTone, string> = {
-  overdue: `${PILL} bg-destructive/12 text-destructive`,
-  today: `${PILL} bg-gold/20 text-gold-ink`,
-  soon: `${PILL} bg-secondary text-secondary-foreground`,
-  later: `${PILL} bg-muted text-muted-foreground`,
-};
 
 /** Board order inside a lane: urgent first, then soonest due, then oldest. */
 const PRIORITY_RANK: Record<TaskPriority, number> = {

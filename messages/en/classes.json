@@ -1,7 +1,7 @@
 {
   "list": {
     "title": "Classes",
-    "description": "Class groups, capacity and teacher assignments",
+    "description": "Rooms, capacity and team of each class",
     "addClass": "New class",
     "empty": "No classes yet",
     "emptyDescription": "Create a first class to group children by age range.",
@@ -9,11 +9,18 @@
     "full": "Full",
     "room": "Room {room}",
     "mainTeacher": "Main teacher:",
-    "noTeacher": "No teacher assigned",
+    "noTeacher": "No educator assigned",
     "tabClasses": "Classes",
     "tabRooms": "Rooms",
     "tabSections": "Structures",
-    "staffCount": "{count, plural, one {# member, no lead} other {# members, no lead}}"
+    "staffCount": "{count, plural, one {# member, no lead} other {# members, no lead}}",
+    "columns": {
+      "class": "Class",
+      "room": "Room",
+      "ages": "Ages",
+      "team": "Team",
+      "actions": "Actions"
+    }
   },
   "ageRange": {
     "between": "{min} to {max} years",
@@ -66,7 +73,8 @@
       "steps": "First steps"
     },
     "structure": "Structure",
-    "noStructure": "No structure"
+    "noStructure": "No structure",
+    "roomClashes": "{count, plural, one {# lesson of this class overlaps another booking within 12 weeks.} other {# lessons of this class overlap other bookings within 12 weeks.}}"
   },
   "delete": {
     "title": "Delete this class?",
@@ -82,17 +90,26 @@
     "submit": "Assign ({count})"
   },
   "detail": {
-    "back": "Back to classes",
+    "back": "Classes",
     "notFound": "Class not found",
     "notFoundDescription": "This class does not exist or does not belong to your kindergarten.",
     "children": {
-      "title": "Children ({count})",
-      "empty": "No children in this class",
+      "title": "Children",
+      "empty": "No children in this class.",
       "emptyDescription": "Assign children to this class and they will appear here.",
       "assign": "Assign children",
       "unassign": "Remove from class",
       "unassignTitle": "Remove from class?",
-      "unassignDescription": "{name} will be removed from this class. You can reassign them later."
+      "unassignDescription": "{name} will be removed from this class. You can reassign them later.",
+      "hint": "{count, plural, =0 {No child enrolled} one {# child enrolled} other {# children enrolled}}",
+      "outOfBand": "Outside the class's age band",
+      "columns": {
+        "child": "Child",
+        "age": "Age",
+        "allergies": "Allergies",
+        "today": "Today",
+        "status": "Status"
+      }
     },
     "occupancy": {
       "title": "Occupancy"
@@ -108,14 +125,38 @@
       "noChildren": "No children in this class."
     },
     "staff": {
-      "title": "Teaching team",
+      "title": "Team",
       "empty": "No staff assigned to this class.",
-      "main": "Main",
+      "main": "Lead",
       "makeMain": "Set as main",
       "remove": "Remove",
       "add": "Add",
       "selectPlaceholder": "Pick a staff member",
-      "noneAvailable": "No staff available"
+      "noneAvailable": "No staff available",
+      "hint": "Who leads the class"
+    },
+    "more": "More actions",
+    "stats": {
+      "team": "Team",
+      "noMain": "No lead educator",
+      "fill": "Occupancy",
+      "spotsLeft": "{count, plural, =0 {No free place} one {# free place} other {# free places}}",
+      "today": "Today",
+      "program": "This week",
+      "todayHint": "{count, plural, =0 {present · roll call done} one {present · # not marked} other {present · # not marked}}",
+      "weekHint": "{count, plural, =0 {no lesson scheduled} one {lesson scheduled} other {lessons scheduled}}",
+      "hasMain": "Lead set"
+    },
+    "learning": {
+      "title": "Learning",
+      "hint": "{profile, select, academic {Current program and next lessons} therapy {Current program and next workshops} other {Current program and next activities}}",
+      "program": "Program",
+      "noProgram": "No program running",
+      "upcoming": "{profile, select, academic {Next lessons} therapy {Next workshops} other {Next activities}}",
+      "noLessons": "{profile, select, academic {No lesson scheduled} therapy {No workshop scheduled} other {No activity scheduled}}",
+      "openPrograms": "Programs",
+      "openTimetable": "Timetable",
+      "empty": "{profile, select, academic {No program running and no lesson scheduled} therapy {No program running and no workshop scheduled} other {No program running and no activity scheduled}}"
     }
   },
   "childStatus": {
@@ -146,7 +187,7 @@
     "mainSet": "Main teacher set",
     "roomDuplicate": "A room already has that name.",
     "roomDeleted": "Room deleted",
-    "roomInUse": "Cannot delete: classes are still in this room.",
+    "roomInUse": "Cannot delete: this room is still in use.",
     "structureDuplicate": "A structure already has that name.",
     "structureDeleted": "Structure deleted",
     "structureInUse": "Cannot delete: this structure still holds classes or children.",
@@ -164,7 +205,7 @@
     "edit": "Edit room",
     "dialogDescription": "Rooms are set up once, then picked on each class.",
     "name": "Name",
-    "namePlaceholder": "Room A",
+    "namePlaceholder": "Room 1",
     "nameAr": "Arabic name",
     "capacity": "Capacity",
     "capacityHint": "How many children the room holds. Optional.",
@@ -189,7 +230,20 @@
       "second": "2nd floor",
       "third": "3rd floor"
     },
-    "noFloor": "Not specified"
+    "noFloor": "Not specified",
+    "columns": {
+      "name": "Room",
+      "capacity": "Capacity",
+      "floor": "Floor",
+      "usedBy": "Used by"
+    },
+    "inUseClasses": "{count, plural, one {# class} other {# classes}}",
+    "inUseActivities": "{count, plural, one {# activity} other {# activities}}",
+    "inUseBookings": "{count, plural, one {# upcoming booking} other {# upcoming bookings}}",
+    "inUseHistory": "{count, plural, one {# past booking} other {# past bookings}}",
+    "inUseSentence": "This room is still in use ({parts}). Move what is upcoming, or take it out of service: history keeps its room.",
+    "retireBookings": "{count, plural, one {# upcoming booking is still scheduled in this room.} other {# upcoming bookings are still scheduled in this room.}}",
+    "retireActivities": "{count, plural, one {# activity still meets in this room.} other {# activities still meet in this room.}}"
   },
   "structures": {
     "new": "New structure",
@@ -213,11 +267,11 @@
     "deleteTitle": "Delete “{name}”?",
     "deleteDescription": "No class or child belongs to this structure.",
     "deleteBlocked": "This structure still holds {classes} class(es) and {children} child(ren). Move them first: with no structure, a child appears in no register at all.",
-    "add": "Add an activity",
+    "add": "Add a structure",
     "billingNotice": "Each activity is a separately billed structure — your subscription moves to the next rate on the following invoice.",
     "moveAll": {
-      "to": "Move everyone to",
-      "action": "Move everyone to {structure}",
+      "to": "To",
+      "action": "Move",
       "classLabel": "Class for the children without one",
       "noClass": "No class",
       "hint": "Classes move with their children, their team and their room. Children without a class join the chosen structure; their family is told.",
@@ -225,13 +279,18 @@
       "done": "{classes, plural, =0 {No classes} one {# class} other {# classes}} and {children, plural, =0 {no children} one {# child} other {# children}} moved to {structure}.",
       "emptied": "Everyone is now in {structure}. The structure can be deleted.",
       "partial": "{failed, plural, one {# child could not be moved} other {# children could not be moved}}. The structure cannot be deleted yet.",
-      "error": "The move failed."
-    }
+      "error": "The move failed.",
+      "consequence": "{classes, plural, =0 {No classes} one {# class} other {# classes}} and {children, plural, =0 {no children} one {# child} other {# children}} will join <b>{structure}</b> with their team and their room; the families will be told."
+    },
+    "remove": "Remove",
+    "more": "More actions",
+    "dasIn": "DAS registers",
+    "dasOut": "Outside DAS"
   },
   "assignStaff": {
     "open": "Assign staff",
     "title": "Team of {name}",
-    "description": "Tick the members who run this class and star the main educator. Each row says where that person is already assigned.",
+    "description": "Tick the members and star the lead educator.",
     "empty": "No active staff yet. Add people from the Team page first.",
     "search": "Search a name or a job title",
     "noMatch": "No member matches.",

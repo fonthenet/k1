@@ -31,7 +31,11 @@
     "start": "Commencer l'inscription",
     "resume": "Reprendre mon inscription",
     "resumeNotice": "Votre progression a été enregistrée sur ce téléphone.",
-    "introStructure": "Cette inscription concerne {structure}. Inscrivez votre enfant en quelques minutes, directement depuis votre téléphone. Votre progression est enregistrée : vous pouvez reprendre plus tard."
+    "introStructure": "Cette inscription concerne {structure}. Inscrivez votre enfant en quelques minutes, directement depuis votre téléphone. Votre progression est enregistrée : vous pouvez reprendre plus tard.",
+    "greeting": "Bienvenue chez",
+    "lead": "Quelques minutes, depuis votre téléphone. Vous pouvez reprendre plus tard.",
+    "needAccount": "Un numéro de téléphone ou un e-mail pour créer votre compte",
+    "classes": "Classes :"
   },
   "account": {
     "title": "Votre compte parent",
@@ -175,18 +179,18 @@
     "edit": "Modifier",
     "submit": "Envoyer la demande d'inscription",
     "submitting": "Envoi en cours…",
-    "note": "En envoyant ce dossier, vous acceptez d'être contacté(e) par le jardin d'enfants.",
+    "note": "En envoyant ce dossier, vous acceptez d'être contacté par l'établissement.",
     "schedule": "Formule",
-    "scheduleUndecided": "À décider avec la crèche",
+    "scheduleUndecided": "À décider avec l'établissement",
     "firstMonth": {
       "title": "Estimation du premier mois",
       "total": "Total",
-      "hint": "Montant indicatif : la facture exacte est établie par la crèche à l'admission. Les activités par séance sont facturées à l'usage."
+      "hint": "Montant indicatif : la facture exacte est établie par l'établissement à l'admission. Les activités par séance sont facturées à l'usage."
     },
     "placement": "Structure et classe",
     "structure": "Structure",
     "class": "Classe souhaitée",
-    "classUndecided": "À décider avec la crèche"
+    "classUndecided": "À décider avec l'établissement"
   },
   "success": {
     "title": "Demande envoyée !",
@@ -241,7 +245,46 @@
     "transferNotEnrolled": "Cet enfant n'est plus inscrit ({status}) : un transfert ne s'applique qu'à un enfant inscrit.",
     "transferChildMissing": "L'enfant concerné par ce transfert est introuvable.",
     "duplicateTitle": "Un enfant portant ce nom et cette date de naissance existe déjà",
-    "duplicateHint": "Si la famille de {name} souhaite changer de structure, faites un transfert depuis sa fiche plutôt qu'un second dossier : approuver celui-ci créerait un deuxième enfant, avec un deuxième badge et de nouveaux frais d'admission."
+    "duplicateHint": "Si la famille de {name} souhaite changer de structure, faites un transfert depuis sa fiche plutôt qu'un second dossier : approuver celui-ci créerait un deuxième enfant, avec un deuxième badge et de nouveaux frais d'admission.",
+    "rowActions": "Actions",
+    "sourceLink": "Lien d'inscription",
+    "sourceSibling": "Fratrie",
+    "sourceTransfer": "Transfert",
+    "interviewToSchedule": "Créneau à fixer",
+    "waitlistRank": "Rang {rank}",
+    "approvedCount": "{count, plural, one {# demande approuvée} other {# demandes approuvées}}",
+    "seeChildren": "Voir les enfants",
+    "columns": {
+      "child": "Enfant",
+      "age": "Âge",
+      "structure": "Structure",
+      "requestedClass": "Classe demandée",
+      "source": "Origine",
+      "received": "Reçue le",
+      "followUp": "Suivi"
+    },
+    "stages": {
+      "submitted": "Reçues",
+      "under_review": "En examen",
+      "interview": "Entretien",
+      "offered": "Offre",
+      "waitlist": "Liste d'attente",
+      "rejected": "Refusées"
+    },
+    "transferHint": "Approuver déplace l'enfant au lieu d'en créer un nouveau.",
+    "duplicateSentence": "<child></child> existe déjà ({where}) : pour un changement de structure, faites un transfert depuis sa fiche plutôt qu'un second dossier.",
+    "childHint": "Ce que la famille a déclaré sur le formulaire",
+    "guardiansHint": "Le premier contact est le demandeur",
+    "noGuardians": "Aucun parent ou tuteur renseigné",
+    "marks": {
+      "applicant": "Demandeur",
+      "financial": "Paie les frais",
+      "noPickup": "Ne récupère pas l'enfant"
+    },
+    "healthHint": "Allergies, traitements et médecin",
+    "billingSection": "Tarif et activités",
+    "billingHint": "Ce que la famille a demandé sur le formulaire",
+    "monthlyPlan": "par mois"
   },
   "detail": {
     "back": "Toutes les demandes",
@@ -271,7 +314,7 @@
     "badges": {
       "applicant": "Demandeur",
       "primary": "Contact principal",
-      "financial": "Responsable financier",
+      "financial": "Responsable des paiements",
       "pickup": "Récupération autorisée",
       "noPickup": "Récupération non autorisée"
     },
@@ -381,16 +424,16 @@
   },
   "schedule": {
     "title": "Quelle formule vous convient ?",
-    "subtitle": "C'est ce qui détermine votre mensualité — modifiable ensuite avec la crèche.",
+    "subtitle": "C'est ce qui détermine votre mensualité — modifiable ensuite avec l'établissement.",
     "perMonth": "/ mois",
-    "undecided": "Je déciderai avec la crèche",
+    "undecided": "Je déciderai avec l'établissement",
     "undecidedHint": "Le bureau vous conseillera lors de la validation du dossier."
   },
   "classChoice": {
     "title": "Classe souhaitée",
-    "subtitle": "Nous proposons celle qui correspond à l'âge de votre enfant. La crèche confirme.",
+    "subtitle": "L'établissement confirme la classe à l'admission.",
     "forAge": "Son âge",
-    "undecided": "Laisser la crèche décider",
+    "undecided": "Laisser l'établissement décider",
     "undecidedHint": "Vous en discuterez ensemble."
   },
   "existingFamily": {
@@ -410,11 +453,31 @@
     "transferTariffStops": "Le tarif propre à l'ancienne structure s'arrête à l'approbation ; les tarifs valables pour tout l'établissement continuent. Choisissez ici le tarif de la nouvelle structure.",
     "confirmTransfer": "Confirmer le transfert",
     "transferred": "Transfert approuvé — l'enfant a changé de structure",
-    "keepRequestedClass": "Garder la classe demandée par la famille"
+    "keepRequestedClass": "Garder la classe demandée par la famille",
+    "title": "Inscrire {name}",
+    "titleTransfer": "Transférer {name}",
+    "familyAsked": "La famille a demandé {place}.",
+    "familyAskedNothing": "La famille n'a pas précisé de classe.",
+    "transferLine": "Aujourd'hui en {from} ; la famille demande {to}.",
+    "ageFits": "{age} · <band></band> : {class} convient à son âge.",
+    "ageSuggests": "{age} · l'âge indique {class} (<band></band>).",
+    "ageSuggestsIn": "{age} · l'âge indique {class} (<band></band>), dans {structure}.",
+    "ageOutside": "{age} · aucune tranche d'âge ne correspond.",
+    "discount": "Remise (%)",
+    "transferVerb": "Transférer",
+    "summary": {
+      "place": "Inscription dans <b>{place}</b>",
+      "rehomed": "la famille avait demandé {from}",
+      "transfer": "Quitte <b>{from}</b>, rejoint <b>{to}</b> ; l'ancien tarif s'arrête la veille",
+      "plan": "<b>{amount}</b> par mois",
+      "discount": "remise {pct} %",
+      "admission": "frais d'admission {amount}",
+      "tariffStops": "le tarif propre à l'ancienne structure s'arrête, ceux de tout l'établissement continuent"
+    }
   },
   "structure": {
     "title": "Pour quelle structure ?",
-    "subtitle": "L'établissement en compte plusieurs. Choisissez celle qui accueillera votre enfant.",
+    "subtitle": "{count, plural, one {Une structure} other {# structures}} dans le même bâtiment — chaque inscription va dans un registre différent.",
     "required": "Choisissez une structure pour continuer.",
     "ageMonths": "{n} mois",
     "ageYears": "{n} ans",
@@ -423,6 +486,9 @@
     "ageUpTo": "Jusqu'à {max}",
     "fitsHere": "À cet âge, votre enfant rejoindrait : {className}.",
     "fitsElsewhere": "Cet âge correspond à {structure}.",
-    "switch": "Changer de structure"
+    "switch": "Changer de structure",
+    "fromDob": "D'après sa date de naissance :",
+    "unitMonths": "mois",
+    "unitYears": "{n, plural, one {an} other {ans}}"
   }
 }

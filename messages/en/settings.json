@@ -1,7 +1,7 @@
 {
   "nav": {
     "label": "Settings sections",
-    "school": "Kindergarten",
+    "school": "Establishment",
     "enrollment": "Enrolment links",
     "holidays": "Holidays",
     "documents": "Documents",
@@ -22,10 +22,10 @@
     "parent": "Parent"
   },
   "school": {
-    "title": "Kindergarten profile",
+    "title": "Establishment profile",
     "description": "Name, logo and contact details that parents see",
     "infoTitle": "General information",
-    "name": "Kindergarten name",
+    "name": "Establishment name",
     "centerType": "Type of centre",
     "wilaya": "Wilaya",
     "wilayaPlaceholder": "Select a wilaya",
@@ -34,7 +34,7 @@
     "uploadLogo": "Change logo",
     "logoUpdated": "Logo updated",
     "logoHint": "PNG, JPG or WebP, 10 MB maximum.",
-    "loadError": "The kindergarten profile could not be loaded.",
+    "loadError": "The establishment profile could not be loaded.",
     "map": {
       "label": "Location on the map",
       "hint": "Paste your establishment's Google Maps share link, or its coordinates. Families use it to find their way.",
@@ -61,9 +61,18 @@
     "locationHint": "Where to find you, and the pin on the map."
   },
   "centerTypes": {
-    "private_primary": {"name":"Private primary school","desc":"Private primary education. Select other cycles too if your school offers them."},
-    "private_middle": {"name":"Private middle school","desc":"Private middle-cycle education, separate from tutoring."},
-    "private_secondary": {"name":"Private secondary school","desc":"Private secondary-cycle education, separate from tutoring."},
+    "private_primary": {
+      "name": "Private primary school",
+      "desc": "Private primary education. Select other cycles too if your school offers them."
+    },
+    "private_middle": {
+      "name": "Private middle school",
+      "desc": "Private middle-cycle education, separate from tutoring."
+    },
+    "private_secondary": {
+      "name": "Private secondary school",
+      "desc": "Private secondary-cycle education, separate from tutoring."
+    },
     "nursery": {
       "name": "Nursery",
       "desc": "Full-day care for babies and toddlers."
@@ -133,7 +142,8 @@
     "expired": "Expired",
     "full": "Limit reached",
     "wholeBuildingHint": "The family will choose the structure at the start of the form.",
-    "shareTextStructure": "Hello! You can enrol your child at {structure} ({name}) using this link:"
+    "shareTextStructure": "Hello! You can enrol your child at {structure} ({name}) using this link:",
+    "more": "More actions"
   },
   "poster": {
     "title": "Enrolment poster",
@@ -160,18 +170,18 @@
   },
   "holidays": {
     "title": "Holidays and closures",
-    "description": "The days the kindergarten closes, grouped by month",
+    "description": "The days the establishment closes, grouped by month",
     "add": "Add a holiday",
     "addTitle": "Add a holiday",
-    "addDescription": "Add a public holiday, a religious feast or a closure specific to your kindergarten.",
-    "nameFr": "Name (French)",
+    "addDescription": "Add a public holiday, a religious feast or a closure specific to your establishment.",
+    "nameFr": "Name",
     "nameAr": "Name in Arabic",
     "startDate": "Start date",
     "endDate": "End date",
     "structure": "Structure",
     "structureHint": "A public holiday closes the whole establishment; school holidays close one structure only.",
     "wholeBuilding": "The whole establishment",
-    "closureLabel": "Kindergarten closed",
+    "closureLabel": "Establishment closed",
     "tentativeLabel": "Date not yet confirmed",
     "tentativeBadge": "Approximate date",
     "openBadge": "Kindergarten open",
@@ -181,7 +191,7 @@
     "deleteTitle": "Delete this holiday?",
     "deleteDescription": "“{name}” will be removed from the calendar.",
     "empty": "No holidays recorded",
-    "emptyHint": "Add the public holidays so they appear in the kindergarten calendar.",
+    "emptyHint": "Add the public holidays so they appear in the calendar.",
     "loadError": "Holidays could not be loaded.",
     "dateRange": "{start} to {end}",
     "columns": {
@@ -191,7 +201,8 @@
       "actions": "Actions"
     },
     "tentativeNotice": "Religious dates stay approximate until the official announcement: confirm them when it comes.",
-    "past": "Past"
+    "past": "Past",
+    "more": "More actions"
   },
   "documents": {
     "title": "Compliance documents",
@@ -228,7 +239,15 @@
       "noExpiry": "No expiry"
     },
     "alertTitle": "Documents need renewing",
-    "alertDescription": "{count} document(s) have expired or expire within 60 days."
+    "alertDescription": "{count} document(s) have expired or expire within 60 days.",
+    "more": "More actions",
+    "columns": {
+      "document": "Document",
+      "actions": "Actions",
+      "type": "Type",
+      "issued": "Issued on",
+      "expires": "Expires on"
+    }
   },
   "profile": {
     "title": "My profile",
@@ -284,12 +303,13 @@
         "title": "Task assigned to you",
         "description": "A task on the board is assigned to you. Goes to that person alone."
       }
-    }
+    },
+    "descriptionAdmin": "What families receive every open day, and what alerts you, on your phone and at the office."
   },
   "hours": {
     "title": "Opening days and hours",
-    "description": "The days the kindergarten takes children. One-off closures are handled under Holidays.",
-    "establishment": "Establishment",
+    "description": "The days the establishment takes children. One-off closures are handled under Holidays.",
+    "establishment": "The whole establishment",
     "sameAsEstablishment": "Same hours as the establishment",
     "sameAsEstablishmentHint": "This structure follows the establishment's week: change that week and this one changes with it.",
     "days": {
@@ -307,7 +327,10 @@
     "badRange": "Closing time must be after opening.",
     "summary": "{count, plural, one {# open day per week} other {# open days per week}}",
     "noneOpen": "Pick at least one open day.",
-    "saved": "Opening hours saved"
+    "saved": "Opening hours saved",
+    "follows": "Follows the establishment",
+    "customize": "Customise",
+    "followAgain": "Follow the establishment"
   },
   "subscription": {
     "title": "Subscription",
@@ -367,5 +390,37 @@
     },
     "changesFrom": "You went from {was} to {now} structures. The change applies from the invoice of {date}: {total} per month.",
     "lineDescription": "Description"
+  },
+  "journal": {
+    "title": "Daily journal",
+    "hint": "Every open day, each family with an account receives their child's day when the child was present: activities, meals, nap, incidents.",
+    "enable": "Send to families automatically",
+    "sendAt": "Not before",
+    "sendAtHint": "Sent at the chosen time, or at closing when that is later; on the phone within the following quarter hour.",
+    "saved": "Daily journal saved",
+    "preview": "Send a preview",
+    "previewTitle": "Journal preview",
+    "previewDescription": "What <name>{child}</name>'s family would receive tonight.",
+    "previewChild": "Child",
+    "previewEmpty": "Nothing to send today: no activity, no menu, no journal.",
+    "sendToMe": "Send to my phone",
+    "previewSent": "Preview sent to your devices",
+    "noDevice": "Turn on notifications in this browser or in the app to receive the preview.",
+    "status": {
+      "sentToday": "Sent today at <ltr>{time}</ltr> · {count}",
+      "lastRun": "Last sent: {date} at <ltr>{time}</ltr> · {count}",
+      "nextToday": "Next: today around <ltr>{time}</ltr>",
+      "closedToday": "Closed today",
+      "never": "Nothing sent yet.",
+      "nothingToday": {
+        "skipped_unmarked": "Nothing sent today: the register was not taken.",
+        "skipped_absent": "Nothing sent today: every child was absent.",
+        "skipped_empty": "Nothing sent today: no activity, no menu, no journal.",
+        "skipped_no_account": "Nothing sent today: {count, plural, one {# family without an account} other {# families without an account}}.",
+        "failed": "Nothing sent today: {count, plural, one {# send failed} other {# sends failed}} — retried on the next quarter hour."
+      },
+      "children": "{count, plural, one {# child} other {# children}}",
+      "pupils": "{count, plural, one {# pupil} other {# pupils}}"
+    }
   }
 }

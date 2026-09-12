@@ -9,24 +9,19 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDashed,
-  History,
   Loader2,
   LogOut,
   Pencil,
-  TriangleAlert,
   UserCheck,
   UserX,
   Users,
-  type LucideIcon,
 } from "lucide-react";
 import type { AttendanceStatus } from "@/lib/types";
 import { childDisplayName, formatDate, formatTime, initials } from "@/lib/format";
 import { algiersClock } from "@/lib/algiers";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -53,8 +48,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/shared/empty-state";
+import { PageHeader } from "@/components/shared/page-header";
+import { StatCard } from "@/components/shared/stat-card";
 import {
   SortableHeader,
   compareValues,
@@ -63,8 +59,11 @@ import {
 } from "@/components/shared/sortable-header";
 import { DatePicker } from "@/components/shared/date-picker";
 import { TimePicker } from "@/components/shared/time-picker";
+import { AllergyBadge } from "@/components/modules/children/allergy-badge";
+import type { AllergyItem } from "@/components/modules/children/types";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
-import { ATTENDANCE_STATUSES, STATUS_STYLES, isPresentish } from "./status-config";
+import { ATTENDANCE_STATUSES, STATUS_STYLES, isPresentish, stillHere } from "./status-config";
+import { AttendanceTabs } from "./attendance-tabs";
 import { addDaysStr, toDateStr } from "./dates";
 import {
   checkOutNow,
@@ -110,7 +109,8 @@ export interface RegisterRow {
     className: string | null;
     classNameAr: string | null;
   };
-  allergies: string[];
+  /** Translated allergen label plus severity — what the shared AllergyBadge draws. */
+  allergies: AllergyItem[];
   collectors: RegisterCollector[];
   attendance: {
     status: AttendanceStatus;
@@ -188,6 +188,8 @@ function InlineText({
 }
 
 export function RegisterClient({
+  title,
+  description,
   date,
   isClosedDay,
   closedHoliday,
@@ -198,8 +200,14 @@ export function RegisterClient({
   activeClass,
   structures,
   activeStructure,
+  showJournal,
   rows,
 }: {
+  /** The PageHeader is drawn here, not in page.tsx, because its one primary
+   *  button (mark everyone present) is client state — pending, disabled on a
+   *  future day — and a header cannot hold a button it cannot drive. */
+  title: string;
+  description: string;
   date: string;
   isClosedDay: boolean;
   /** The confirmed holiday closing this date, when the closure is not the weekly pattern. */
@@ -216,11 +224,15 @@ export function RegisterClient({
   structures: Structure[];
   /** A structure id, or "all" — the whole building. */
   activeStructure: string;
+  /** Whether a scoped class keeps a journal, so the tab bar offers the Journal tab. */
+  showJournal: boolean;
   rows: RegisterRow[];
 }) {
   const isToday = date === toDateStr(new Date());
   const t = useTranslations("attendance");
   const tc = useTranslations("common");
+  // The class filter's label is the roster's: one word for one control.
+  const tch = useTranslations("children");
   const locale = useLocale();
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -266,14 +278,20 @@ export function RegisterClient({
     let absent = 0;
     let notMarked = 0;
     let checkedOut = 0;
+    let reportedByParents = 0;
+    let stillIn = 0;
     for (const row of rows) {
       const s = displayStatus(row);
       if (s === null) notMarked++;
       else if (isPresentish(s)) present++;
-      else absent++;
+      else {
+        absent++;
+        if (row.attendance?.reported_by_parent) reportedByParents++;
+      }
       if (row.attendance?.check_out_at) checkedOut++;
+      if (row.attendance && stillHere(row.attendance)) stillIn++;
     }
-    return { present, absent, notMarked, checkedOut };
+    return { present, absent, notMarked, checkedOut, reportedByParents, stillIn };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, optimStatus]);
 
@@ -441,65 +459,52 @@ export function RegisterClient({
     });
   };
 
-  // Headline counters — the gold tile keeps the strip from reading all-green.
-  const counterCards: {
-    key: "present" | "absent" | "notMarked" | "checkedOut";
-    label: string;
-    value: number;
-    icon: LucideIcon;
-    tile: string;
-  }[] = [
-    {
-      key: "present",
-      label: t("status.present"),
-      value: counters.present,
-      icon: UserCheck,
-      tile: "bg-success/10 text-success",
-    },
-    {
-      key: "absent",
-      label: t("status.absent"),
-      value: counters.absent,
-      icon: UserX,
-      tile: "bg-destructive/10 text-destructive",
-    },
-    {
-      key: "notMarked",
-      label: t("status.notMarked"),
-      value: counters.notMarked,
-      icon: CircleDashed,
-      tile: "bg-muted text-muted-foreground",
-    },
-    {
-      key: "checkedOut",
-      label: t("table.checkOut"),
-      value: counters.checkedOut,
-      icon: LogOut,
-      tile: "bg-gold text-gold-foreground",
-    },
-  ];
+  const dateLabel = isToday ? t("nav.todayLabel") : formatDate(date, locale);
+  const classLabel = (c: RegisterClassTab) => (locale === "ar" && c.name_ar ? c.name_ar : c.name);
 
   return (
-    <div className="space-y-6">
-      {/* Toolbar: date navigation + actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* One segmented control: ‹ date › [Today].
-            The picker is ghost — it used to be an outlined button inside this
-            outlined group, a box drawn twice, with its calendar icon sitting
-            right next to the Today button's calendar icon. The date is now
-            "aujourd'hui" when it is today, because the person opening the
-            register mostly wants to know they are on the right day, not to
-            parse a date; and Today only appears once it would do something. */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-0.5 rounded-xl border border-border bg-card p-1 shadow-sm">
+    <div>
+      {/* One primary per page: the stamp that fills the register. The
+          journal and the history are sibling routes, so they are tabs under
+          the header rather than buttons beside it. */}
+      <PageHeader title={title} description={description}>
+        <Button
+          size="sm"
+          onClick={handleBulk}
+          disabled={bulkPending || rows.length === 0 || isFuture}
+        >
+          {bulkPending ? (
+            <Loader2 data-icon="inline-start" className="animate-spin" />
+          ) : (
+            <UserCheck data-icon="inline-start" />
+          )}
+          {t("actions.markAllPresent")}
+        </Button>
+      </PageHeader>
+
+      <AttendanceTabs
+        active="register"
+        date={date}
+        structure={activeStructure === "all" ? null : activeStructure}
+        showJournal={showJournal}
+      />
+
+      <div className="space-y-4">
+        {/* The roster's filter card: the day, the structure, the class, and
+            the live count last. The date is "aujourd'hui" when it is today,
+            because the person opening the register mostly wants to know they
+            are on the right day, not to parse a date; Today only appears once
+            it would do something. */}
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
+          <div className="flex items-center gap-0.5">
             <Button
               variant="ghost"
-              size="icon"
+              size="icon-sm"
               aria-label={t("nav.prevDay")}
               title={t("nav.prevDay")}
               onClick={() => navigate(addDaysStr(date, -1), activeClass)}
             >
-              <ChevronLeft className="rtl:-scale-x-100" />
+              <ChevronLeft className="rtl:rotate-180" />
             </Button>
             <Label htmlFor="register-date" className="sr-only">
               {tc("labels.date")}
@@ -522,25 +527,22 @@ export function RegisterClient({
             />
             <Button
               variant="ghost"
-              size="icon"
+              size="icon-sm"
               aria-label={t("nav.nextDay")}
               title={t("nav.nextDay")}
               onClick={() => navigate(addDaysStr(date, 1), activeClass)}
             >
-              <ChevronRight className="rtl:-scale-x-100" />
+              <ChevronRight className="rtl:rotate-180" />
             </Button>
             {!isToday && (
-              <>
-                <Separator orientation="vertical" className="mx-0.5 !h-5" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary hover:text-primary"
-                  onClick={() => navigate(toDateStr(new Date()), activeClass)}
-                >
-                  {t("nav.today")}
-                </Button>
-              </>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary hover:text-primary"
+                onClick={() => navigate(toDateStr(new Date()), activeClass)}
+              >
+                {t("nav.today")}
+              </Button>
             )}
           </div>
 
@@ -548,14 +550,11 @@ export function RegisterClient({
               questions that decide whose register this is. Only once there is
               more than one: a crèche running a single structure must never be
               asked to choose between one thing. Changing it drops back to all
-              classes, because the tabs below belong to the structure and a
+              classes, because the classes below belong to the structure and a
               class from the other one is not among them. */}
           {structures.length > 1 && (
-            <Select
-              value={activeStructure}
-              onValueChange={(v) => navigate(date, "all", v)}
-            >
-              <SelectTrigger size="sm" className="w-44" aria-label={t("structures.filter")}>
+            <Select value={activeStructure} onValueChange={(v) => navigate(date, "all", v)}>
+              <SelectTrigger className="w-52" aria-label={t("structures.filter")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -568,395 +567,359 @@ export function RegisterClient({
               </SelectContent>
             </Select>
           )}
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link
-              href={
-                activeStructure === "all"
-                  ? "/attendance/history"
-                  : `/attendance/history?structure=${encodeURIComponent(activeStructure)}`
-              }
-            >
-              <History data-icon="inline-start" />
-              {t("nav.history")}
-            </Link>
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleBulk}
-            disabled={bulkPending || rows.length === 0 || isFuture}
-          >
-            {bulkPending ? (
-              <Loader2 data-icon="inline-start" className="animate-spin" />
-            ) : (
-              <UserCheck data-icon="inline-start" />
-            )}
-            {t("actions.markAllPresent")}
-          </Button>
-        </div>
-      </div>
-
-      {/* One notice, whichever rule closed the day: the weekly pattern or a
-          confirmed holiday. The holiday variant names it (in Arabic when the
-          office typed an Arabic name), because "closed on Sunday" is not the
-          answer when the question is "why is 1 November empty". A future day
-          gets the same band with a different sentence — nothing can be
-          written there yet. */}
-      {(isClosedDay || isFuture) && (
-        <div className="flex items-center gap-3 rounded-xl border border-gold/25 bg-gold-muted px-4 py-3 text-sm font-medium text-foreground">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gold text-gold-foreground">
-            <TriangleAlert className="size-4" />
-          </span>
-          {isFuture
-            ? t("nav.futureNotice")
-            : closedHoliday
-              ? t("nav.holidayNotice", {
-                  name:
-                    locale === "ar" && closedHoliday.name_ar
-                      ? closedHoliday.name_ar
-                      : closedHoliday.name,
-                })
-              : t("nav.closedNotice", { day: dayLabel })}
-        </div>
-      )}
-
-      {/* Counters */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {counterCards.map((c) => (
-          <div
-            key={c.key}
-            className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm"
-          >
-            <span
-              className={cn(
-                "flex size-10 shrink-0 items-center justify-center rounded-lg",
-                c.tile
-              )}
-            >
-              <c.icon className="size-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-2xl leading-none font-bold tabular-nums">{c.value}</div>
-              <div className="mt-1 truncate text-xs text-muted-foreground">{c.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Class filter. Every tab carries its class's presence count ("3/5")
-          in the same label-plus-count vocabulary the billing chips taught the
-          office, so an educator sees whether her room is complete before she
-          taps anything. The counts stay neutral on purpose — five coloured
-          badges would turn one row of tabs into an alarm panel, and the number
-          itself is the signal. The open tab shows the live client-side counter
-          so it can never disagree with the tiles above it while a tap is still
-          saving; the other tabs show the server's numbers, which every
-          mutation refreshes. Taller triggers than the default because this is
-          a tablet screen worked with a thumb, not a pointer. */}
-      <Tabs value={activeClass} onValueChange={(v) => navigate(date, v)}>
-        <TabsList className="flex-wrap gap-1 group-data-horizontal/tabs:h-auto">
-          {[
-            { value: "all", label: t("tabs.all"), ...totals },
-            ...classes.map((c) => ({
-              value: c.id,
-              label: locale === "ar" && c.name_ar ? c.name_ar : c.name,
-              present: c.present,
-              total: c.total,
-            })),
-          ].map((tab) => {
-            const active = activeClass === tab.value;
-            const present = active ? counters.present : tab.present;
-            return (
-              <TabsTrigger key={tab.value} value={tab.value} className="h-10 px-3">
-                {tab.label}
-                {/* A class with no children has no presence question to answer. */}
-                {tab.total > 0 && (
-                  <>
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "rounded-4xl px-1.5 py-0.5 text-xs font-medium tabular-nums",
-                        active ? "bg-muted text-muted-foreground" : "bg-background/60"
-                      )}
-                    >
-                      {present}/{tab.total}
-                    </span>
-                    <span className="sr-only">
-                      {t("tabs.presence", { present, total: tab.total })}
-                    </span>
-                  </>
-                )}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-      </Tabs>
-
-      {/* Register table */}
-      {rows.length === 0 ? (
-        <EmptyState
-          icon={
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Users className="size-7" />
-            </span>
-          }
-          title={t("empty.title")}
-          description={t("empty.description")}
-        />
-      ) : (
-        // A closed day does not repaint the table. The notice above already
-        // says the crèche is shut, and greying the card said it a second time
-        // at the cost of the header band: TableHeader tints with `bg-muted/40`,
-        // which over a `bg-muted` card is the same hue on itself and disappears.
-        // White card, tinted header — the same as every other table.
-        <Card className="py-0 shadow-sm">
-          <CardContent className="overflow-x-auto p-0">
-            <Table>
-              <TableHeader>
-                {/* Child, status and check-in sort; check-out and details do
-                    not — a column of buttons and free-text inputs has no order
-                    worth offering. The [&>button] override keeps the sortable
-                    headers at the same weight as the plain ones beside them. */}
-                <TableRow>
-                  <SortableHeader
-                    columnKey="child"
-                    sort={sort}
-                    onSort={onSort}
-                    className="min-w-52 text-xs tracking-wide uppercase [&>button]:font-semibold"
-                  >
-                    {t("table.child")}
-                  </SortableHeader>
-                  <SortableHeader
-                    columnKey="status"
-                    sort={sort}
-                    onSort={onSort}
-                    className="text-xs tracking-wide uppercase [&>button]:font-semibold"
-                  >
-                    {t("table.status")}
-                  </SortableHeader>
-                  <SortableHeader
-                    columnKey="checkIn"
-                    sort={sort}
-                    onSort={onSort}
-                    className="text-xs tracking-wide uppercase [&>button]:font-semibold"
-                  >
-                    {t("table.checkIn")}
-                  </SortableHeader>
-                  <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    {t("table.checkOut")}
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    {t("table.details")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedRows.map((row) => {
-                  const status = displayStatus(row);
-                  const att = row.attendance;
-                  const name = childDisplayName(row.child, locale);
-                  const saving = savingIds[row.child.id];
-                  const canCheckOut = !!att?.check_in_at && !att?.check_out_at;
-                  const absentish = status !== null && !isPresentish(status);
-                  const checkedOut = !!att?.check_out_at;
-                  return (
-                    <TableRow key={row.child.id}>
-                      <TableCell className="py-3">
-                        <div className="flex items-center gap-3">
-                          {/* Status rail — lets staff scan the whole register at a glance. */}
+          {/* Every class carries its presence count ("3/5") so an educator
+              sees whether her room is complete before she opens it. The open
+              class shows the live client-side counter so it can never
+              disagree with the tiles while a tap is still saving; the others
+              show the server's numbers, which every mutation refreshes. */}
+          <Select value={activeClass} onValueChange={(v) => navigate(date, v)}>
+            <SelectTrigger className="w-56" aria-label={tch("roster.filterClass")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[
+                { value: "all", label: t("tabs.all"), ...totals },
+                ...classes.map((c) => ({
+                  value: c.id,
+                  label: classLabel(c),
+                  present: c.present,
+                  total: c.total,
+                })),
+              ].map((item) => {
+                const present = activeClass === item.value ? counters.present : item.present;
+                return (
+                  <SelectItem key={item.value} value={item.value}>
+                    <span className="flex items-center gap-1.5">
+                      {item.label}
+                      {/* A class with no children has no presence question to answer. */}
+                      {item.total > 0 && (
+                        <>
+                          <span aria-hidden className="text-muted-foreground">
+                            ·
+                          </span>
                           <span
+                            dir="ltr"
                             aria-hidden
-                            className={cn(
-                              "h-10 w-1 shrink-0 rounded-full",
-                              status ? STATUS_STYLES[status].cellClass : "bg-border"
-                            )}
-                          />
-                          <Avatar className="size-10 ring-2 ring-border">
-                            {row.child.photoUrl && (
-                              <AvatarImage src={row.child.photoUrl} alt={name} />
-                            )}
-                            <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                              {initials(row.child.first_name, row.child.last_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <Link
-                                href={`/children/${row.child.id}`}
-                                className="truncate font-semibold hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                              >
-                                {name}
-                              </Link>
-                              {row.allergies.length > 0 && (
-                                <Badge
-                                  variant="destructive"
-                                  title={t("allergy.list", {
-                                    list: row.allergies.join(", "),
-                                  })}
+                            className="text-xs tabular-nums text-muted-foreground"
+                          >
+                            {present}/{item.total}
+                          </span>
+                          <span className="sr-only">
+                            {t("tabs.presence", { present, total: item.total })}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+            {t("tabs.presence", { present: counters.present, total: rows.length })}
+          </span>
+        </div>
+
+        {/* One sentence, whichever rule closed the day: the weekly pattern or
+            a confirmed holiday. The holiday variant names it (in Arabic when
+            the office typed an Arabic name), because "closed on Sunday" is not
+            the answer when the question is "why is 1 November empty". A
+            future day gets the same line with a different sentence. Muted
+            text, not a band: the register is what says whether the day
+            happened, and the line only explains why it is empty. */}
+        {(isClosedDay || isFuture) && (
+          <p className="px-1 text-sm text-muted-foreground">
+            {isFuture
+              ? t("nav.futureNotice")
+              : closedHoliday
+                ? t("nav.holidayNotice", {
+                    name:
+                      locale === "ar" && closedHoliday.name_ar
+                        ? closedHoliday.name_ar
+                        : closedHoliday.name,
+                  })
+                : t("nav.closedNotice", { day: dayLabel })}
+          </p>
+        )}
+
+        {/* Headline counters. Each hint says something the label did not:
+            the denominator, who reported the absence, how many are still in
+            the building. The one gold on the page is the sorties tile. */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label={t("status.present")}
+            value={counters.present}
+            hint={t("counters.ofTotal", { count: rows.length })}
+            icon={<UserCheck className="size-5" />}
+            tone="success"
+          />
+          <StatCard
+            label={t("status.absent")}
+            value={counters.absent}
+            hint={t("counters.reportedByParents", { count: counters.reportedByParents })}
+            icon={<UserX className="size-5" />}
+            tone="danger"
+          />
+          <StatCard
+            label={t("status.notMarked")}
+            value={counters.notMarked}
+            hint={dateLabel}
+            icon={<CircleDashed className="size-5" />}
+          />
+          <StatCard
+            label={t("table.checkOut")}
+            value={counters.checkedOut}
+            hint={t("counters.stillHere", { count: counters.stillIn })}
+            icon={<LogOut className="size-5 rtl:-scale-x-100" />}
+            tone="gold"
+          />
+        </div>
+
+        {/* Register table */}
+        {rows.length === 0 ? (
+          <EmptyState
+            icon={<Users />}
+            title={t("empty.title")}
+            description={t("empty.description")}
+          />
+        ) : (
+          // A closed day does not repaint the table: the line above already
+          // says the door is shut, and greying the card would say it twice.
+          <Card className="border border-border py-0 shadow-sm ring-0">
+            <CardContent className="px-0">
+              <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+                <TableHeader>
+                  {/* Child, status and check-in sort; check-out and details do
+                      not — a column of buttons and free-text inputs has no
+                      order worth offering. The sortable heads drop their own
+                      inner padding so they line up with the plain ones, and
+                      the plain ones take the sortable heads' muted ink so the
+                      row is one weight and one colour. */}
+                  <TableRow className="[&>th]:font-semibold [&>th]:text-muted-foreground">
+                    <SortableHeader
+                      columnKey="child"
+                      sort={sort}
+                      onSort={onSort}
+                      className="min-w-52 [&>button]:px-0 [&>button]:font-semibold"
+                    >
+                      {t("table.child")}
+                    </SortableHeader>
+                    <SortableHeader
+                      columnKey="status"
+                      sort={sort}
+                      onSort={onSort}
+                      className="[&>button]:px-0 [&>button]:font-semibold"
+                    >
+                      {t("table.status")}
+                    </SortableHeader>
+                    <SortableHeader
+                      columnKey="checkIn"
+                      sort={sort}
+                      onSort={onSort}
+                      className="[&>button]:px-0 [&>button]:font-semibold"
+                    >
+                      {t("table.checkIn")}
+                    </SortableHeader>
+                    <TableHead>{t("table.checkOut")}</TableHead>
+                    <TableHead>{t("table.details")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedRows.map((row) => {
+                    const status = displayStatus(row);
+                    const att = row.attendance;
+                    const name = childDisplayName(row.child, locale);
+                    const saving = savingIds[row.child.id];
+                    const canCheckOut = !!att?.check_in_at && !att?.check_out_at;
+                    const absentish = status !== null && !isPresentish(status);
+                    const checkedOut = !!att?.check_out_at;
+                    return (
+                      <TableRow key={row.child.id} className="transition-colors hover:bg-primary/5">
+                        <TableCell className="py-3">
+                          {/* The pressed segmented button is the status mark;
+                              the row carries no rail or ring to repeat it.
+                              The allergy badge is the one red in the cell. */}
+                          <div className="flex items-center gap-3">
+                            <Avatar className="size-8">
+                              {row.child.photoUrl && (
+                                <AvatarImage src={row.child.photoUrl} alt={name} />
+                              )}
+                              <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+                                {initials(row.child.first_name, row.child.last_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href={`/children/${row.child.id}`}
+                                  className="truncate font-semibold hover:underline focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none rounded"
                                 >
-                                  <TriangleAlert />
-                                  {t("allergy.badge")}
-                                </Badge>
+                                  <bdi dir="auto">{name}</bdi>
+                                </Link>
+                                <AllergyBadge
+                                  allergens={row.allergies}
+                                  href={`/children/${row.child.id}?tab=health`}
+                                />
+                              </div>
+                              {row.child.className && (
+                                <p className="truncate text-xs text-muted-foreground">
+                                  <bdi dir="auto">
+                                    {locale === "ar" && row.child.classNameAr
+                                      ? row.child.classNameAr
+                                      : row.child.className}
+                                  </bdi>
+                                </p>
                               )}
                             </div>
-                            {row.child.className && (
-                              <p className="truncate text-xs text-muted-foreground">
-                                {locale === "ar" && row.child.classNameAr
-                                  ? row.child.classNameAr
-                                  : row.child.className}
-                              </p>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="inline-flex items-center gap-0.5 rounded-xl border border-border bg-muted/60 p-1">
+                            {ATTENDANCE_STATUSES.map((s) => {
+                              const style = STATUS_STYLES[s];
+                              const Icon = style.icon;
+                              const active = status === s;
+                              return (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  aria-pressed={active}
+                                  aria-label={t(`status.${s}`)}
+                                  title={t(`status.${s}`)}
+                                  disabled={saving || isFuture}
+                                  onClick={() => handleStatus(row, s)}
+                                  className={cn(
+                                    "inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-medium transition-colors disabled:opacity-60",
+                                    active ? style.activeClass : style.idleClass
+                                  )}
+                                >
+                                  <Icon className="size-3.5" />
+                                  <span className="hidden xl:inline">{t(`status.${s}`)}</span>
+                                </button>
+                              );
+                            })}
+                            {saving && (
+                              <Loader2 className="ms-1 size-3.5 animate-spin text-muted-foreground" />
                             )}
                           </div>
-                        </div>
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell>
-                        <div className="inline-flex items-center gap-0.5 rounded-xl border border-border bg-muted/60 p-1">
-                          {ATTENDANCE_STATUSES.map((s) => {
-                            const style = STATUS_STYLES[s];
-                            const Icon = style.icon;
-                            const active = status === s;
-                            return (
-                              <button
-                                key={s}
-                                type="button"
-                                aria-pressed={active}
-                                aria-label={t(`status.${s}`)}
-                                title={t(`status.${s}`)}
-                                disabled={saving || isFuture}
-                                onClick={() => handleStatus(row, s)}
-                                className={cn(
-                                  "inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-medium transition-colors disabled:opacity-60",
-                                  active ? style.activeClass : style.idleClass
-                                )}
-                              >
-                                <Icon className="size-3.5" />
-                                <span className="hidden xl:inline">{t(`status.${s}`)}</span>
-                              </button>
-                            );
-                          })}
-                          {saving && (
-                            <Loader2 className="ms-1 size-3.5 animate-spin text-muted-foreground" />
-                          )}
-                        </div>
-                      </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            {att?.check_in_at ? (
+                              <span className="tabular-nums">
+                                {formatTime(att.check_in_at, locale)}
+                              </span>
+                            ) : status !== null && isPresentish(status) && !isToday ? (
+                              // A past day marked present from memory carries no
+                              // arrival time on purpose (see setAttendanceStatus);
+                              // say so, and leave the pencil to enter a real one.
+                              <span className="text-xs text-muted-foreground">
+                                {t("table.timeNotRecorded")}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t("actions.editTimes")}
+                              title={t("actions.editTimes")}
+                              onClick={() =>
+                                setTimeDialog({
+                                  childId: row.child.id,
+                                  name,
+                                  checkIn: isoToTimeInput(att?.check_in_at ?? null),
+                                  checkOut: isoToTimeInput(att?.check_out_at ?? null),
+                                })
+                              }
+                            >
+                              <Pencil />
+                            </Button>
+                          </div>
+                        </TableCell>
 
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex items-center gap-1">
-                          {att?.check_in_at ? (
-                            <span className="font-semibold tabular-nums">
-                              {formatTime(att.check_in_at, locale)}
+                        <TableCell className="whitespace-nowrap">
+                          {att?.check_out_at ? (
+                            <span className="inline-flex max-w-60 items-center gap-1.5">
+                              {/* The clock sits beside a name that may be
+                                  Arabic or Latin. Two neutral runs either side
+                                  of a separator get reordered by an RTL
+                                  paragraph, so the time keeps its own isolate. */}
+                              <span dir="ltr" className="tabular-nums">
+                                {formatTime(att.check_out_at, locale)}
+                              </span>
+                              {att.picked_up_by && (
+                                <>
+                                  <span aria-hidden className="text-muted-foreground">
+                                    ·
+                                  </span>
+                                  <bdi
+                                    dir="auto"
+                                    className="min-w-0 truncate text-muted-foreground"
+                                    title={att.picked_up_by}
+                                  >
+                                    {att.picked_up_by}
+                                  </bdi>
+                                </>
+                              )}
                             </span>
-                          ) : status !== null && isPresentish(status) && !isToday ? (
-                            // A past day marked present from memory carries no
-                            // arrival time on purpose (see setAttendanceStatus);
-                            // say so, and leave the pencil to enter a real one.
-                            <span className="text-xs text-muted-foreground">
-                              {t("table.timeNotRecorded")}
-                            </span>
+                          ) : canCheckOut ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={saving}
+                              onClick={() => openCheckOut(row, name)}
+                            >
+                              <LogOut data-icon="inline-start" className="rtl:-scale-x-100" />
+                              {t("actions.checkOutNow")}
+                            </Button>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("actions.editTimes")}
-                            title={t("actions.editTimes")}
-                            onClick={() =>
-                              setTimeDialog({
-                                childId: row.child.id,
-                                name,
-                                checkIn: isoToTimeInput(att?.check_in_at ?? null),
-                                checkOut: isoToTimeInput(att?.check_out_at ?? null),
-                              })
-                            }
-                          >
-                            <Pencil />
-                          </Button>
-                        </div>
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell className="whitespace-nowrap">
-                        {att?.check_out_at ? (
-                          <span className="inline-flex max-w-60 items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold text-foreground">
-                            <LogOut className="size-3.5 shrink-0 text-gold rtl:-scale-x-100" />
-                            {/* The clock sits beside a name that may be Arabic
-                                or Latin. Two neutral runs either side of a
-                                separator get reordered by an RTL paragraph, so
-                                the time keeps its own isolate. */}
-                            <span dir="ltr" className="tabular-nums">
-                              {formatTime(att.check_out_at, locale)}
-                            </span>
-                            {att.picked_up_by && (
-                              <>
-                                <span aria-hidden className="opacity-40">
-                                  ·
-                                </span>
-                                <span
-                                  className="min-w-0 truncate font-medium"
-                                  title={att.picked_up_by}
-                                >
-                                  {att.picked_up_by}
-                                </span>
-                              </>
-                            )}
-                          </span>
-                        ) : canCheckOut ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-gold/40 hover:bg-gold/10"
-                            disabled={saving}
-                            onClick={() => openCheckOut(row, name)}
-                          >
-                            <LogOut data-icon="inline-start" className="rtl:-scale-x-100" />
-                            {t("actions.checkOutNow")}
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-
-                      <TableCell>
-                        {absentish ? (
-                          <div>
+                        <TableCell>
+                          {absentish ? (
+                            <div>
+                              <InlineText
+                                defaultValue={att?.absence_reason ?? ""}
+                                placeholder={t("fields.absenceReasonPlaceholder")}
+                                ariaLabel={t("fields.absenceReason")}
+                                onSave={(v) => handleText(row, "absence_reason", v)}
+                              />
+                              {/* Provenance, in words and nothing else: the
+                                  family said so from the portal, the office did
+                                  not type it. One muted line — no tint, no icon. */}
+                              {att?.reported_by_parent && (
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {t("fields.reportedByParent")}
+                                </p>
+                              )}
+                            </div>
+                          ) : checkedOut ? (
                             <InlineText
-                              defaultValue={att?.absence_reason ?? ""}
-                              placeholder={t("fields.absenceReasonPlaceholder")}
-                              ariaLabel={t("fields.absenceReason")}
-                              onSave={(v) => handleText(row, "absence_reason", v)}
+                              defaultValue={att?.picked_up_by ?? ""}
+                              placeholder={t("fields.pickedUpByPlaceholder")}
+                              ariaLabel={t("fields.pickedUpBy")}
+                              onSave={(v) => handleText(row, "picked_up_by", v)}
                             />
-                            {/* Provenance, in words and nothing else: the
-                                family said so from the portal, the office did
-                                not type it. One muted line — no tint, no icon. */}
-                            {att?.reported_by_parent && (
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {t("fields.reportedByParent")}
-                              </p>
-                            )}
-                          </div>
-                        ) : checkedOut ? (
-                          <InlineText
-                            defaultValue={att?.picked_up_by ?? ""}
-                            placeholder={t("fields.pickedUpByPlaceholder")}
-                            ariaLabel={t("fields.pickedUpBy")}
-                            onSave={(v) => handleText(row, "picked_up_by", v)}
-                          />
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </div>
       {/* Manual time dialog */}
       <Dialog open={timeDialog !== null} onOpenChange={(open) => !open && setTimeDialog(null)}>
         <DialogContent className="sm:max-w-sm">

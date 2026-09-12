@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ListFilter, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,13 +11,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MonthSelect, type MonthOption } from "@/components/modules/dashboard/month-select";
 import { PAYMENT_METHODS, type CategoryOption } from "./types";
 
 const ALL = "all";
 
-/** Ledger filters mirrored in the URL (?kind=&category=&method=) so the server
- *  re-renders the filtered list. The month filter lives in the page header. */
-export function TxnFilters({ categories }: { categories: CategoryOption[] }) {
+/**
+ * The journal's filter card, the roster's one: month, type, category and
+ * method selects, a reset when something is narrowed, and the count chip
+ * last. Every choice is mirrored in the URL (?month=&kind=&category=&method=)
+ * so the server re-renders the filtered list and a shared link lands on the
+ * same view.
+ */
+export function TxnFilters({
+  categories,
+  monthOptions,
+  month,
+  count,
+}: {
+  categories: CategoryOption[];
+  monthOptions: MonthOption[];
+  month: string;
+  /** Rows matching the filters, over every page — from Postgres, not the screen. */
+  count: number;
+}) {
   const t = useTranslations("accounting");
   const router = useRouter();
   const pathname = usePathname();
@@ -37,6 +54,9 @@ export function TxnFilters({ categories }: { categories: CategoryOption[] }) {
       const cat = categories.find((c) => c.id === params.get("category"));
       if (cat && value !== ALL && cat.kind !== value) params.delete("category");
     }
+    // A narrower list starts again at page one; page 3 of the old list may
+    // not exist in the new one.
+    params.delete("page");
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
@@ -45,6 +65,7 @@ export function TxnFilters({ categories }: { categories: CategoryOption[] }) {
     params.delete("kind");
     params.delete("category");
     params.delete("method");
+    params.delete("page");
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
@@ -52,10 +73,11 @@ export function TxnFilters({ categories }: { categories: CategoryOption[] }) {
     kind === ALL ? categories : categories.filter((c) => c.kind === kind);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <ListFilter className="size-4 text-muted-foreground" aria-hidden />
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
+      <MonthSelect options={monthOptions} value={month} ariaLabel={t("monthLabel")} />
+
       <Select value={kind} onValueChange={(v) => setParam("kind", v)}>
-        <SelectTrigger size="sm" className="w-36" aria-label={t("txn.filters.kind")}>
+        <SelectTrigger className="w-44" aria-label={t("txn.filters.kind")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -66,7 +88,7 @@ export function TxnFilters({ categories }: { categories: CategoryOption[] }) {
       </Select>
 
       <Select value={category} onValueChange={(v) => setParam("category", v)}>
-        <SelectTrigger size="sm" className="w-44" aria-label={t("txn.filters.category")}>
+        <SelectTrigger className="w-48" aria-label={t("txn.filters.category")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -83,7 +105,7 @@ export function TxnFilters({ categories }: { categories: CategoryOption[] }) {
       </Select>
 
       <Select value={method} onValueChange={(v) => setParam("method", v)}>
-        <SelectTrigger size="sm" className="w-40" aria-label={t("txn.filters.method")}>
+        <SelectTrigger className="w-44" aria-label={t("txn.filters.method")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -102,6 +124,10 @@ export function TxnFilters({ categories }: { categories: CategoryOption[] }) {
           {t("txn.filters.reset")}
         </Button>
       )}
+
+      <span className="ms-auto rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+        {t("txn.count", { count })}
+      </span>
     </div>
   );
 }

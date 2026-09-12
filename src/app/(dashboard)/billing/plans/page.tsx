@@ -1,19 +1,20 @@
-import Link from "next/link";
+import { Fragment } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ArrowLeft, ArrowRight, ClipboardList, Star, Users, Wallet } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ClipboardList, Users } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { SectionCard } from "@/components/shared/section-card";
+import { StatusPill } from "@/components/shared/status-pill";
+import { StructureGroupRow } from "@/components/shared/structure-group-row";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import { childDisplayName, formatDZD } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import type { FeePlan } from "@/lib/types";
+import { BillingTabs } from "@/components/modules/billing/billing-tabs";
 import { PlanDialog } from "@/components/modules/billing/plan-dialog";
-import { DeletePlanButton } from "@/components/modules/billing/delete-plan-button";
-import { EmptyIcon, IconTile, TONE_PILL } from "@/components/modules/billing/finance-ui";
+import { PlanRowMenu } from "@/components/modules/billing/delete-plan-button";
 import { StructureFilter } from "@/components/modules/billing/structure-filter";
 import { algiersToday } from "@/components/modules/billing/dates";
 import type { PlanOption } from "@/components/modules/billing/billing-types";
@@ -119,10 +120,6 @@ export default async function PlansPage({
     assignedCount.set(f.fee_plan_id, (assignedCount.get(f.fee_plan_id) ?? 0) + 1);
   }
 
-  // The plan carrying the most children gets the gold treatment.
-  const topPlanId =
-    [...assignedCount.entries()].sort((a, b) => b[1] - a[1]).find(([, n]) => n > 0)?.[0] ?? null;
-
   const planOptions: PlanOption[] = plans
     .filter((p) => p.active)
     .map((p) => ({
@@ -162,160 +159,180 @@ export default async function PlansPage({
     };
   });
 
-  const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
+  // The plans under their structure, in the building's own order, with a
+  // trailing group for the prices everyone pays. A one-structure crèche gets a
+  // single group and no heading. Inside a group the query's order holds —
+  // active plans first, then by name — the order the page has always used,
+  // so a retired tariff never sits above the ones still sold.
+  const manyStructures = structures.length > 1;
+  const groups: { structure: Structure | null; plans: PlanRow[] }[] = manyStructures
+    ? [
+        ...structures.map((str) => ({
+          structure: str,
+          plans: visiblePlans.filter((p) => p.structure_id === str.id),
+        })),
+        { structure: null, plans: visiblePlans.filter((p) => p.structure_id === null) },
+      ].filter((g) => g.plans.length > 0)
+    : [{ structure: null, plans: visiblePlans }];
+  const single = groups.length < 2;
+
+  // One row per plan, the way the roster draws children: the name is the
+  // editor, the facts are columns. Cards were a 3-column grid that changed
+  // shape with every count and spent gold on whichever plan happened to carry
+  // the most children — a fact the Enfants column already states.
+  const planRow = (p: PlanRow) => {
+    const count = assignedCount.get(p.id) ?? 0;
+    const displayName = locale === "ar" && p.name_ar ? p.name_ar : p.name;
+    // The roster's second line: the Arabic name for a French or English
+    // reader, so the tariff a family knows by its Arabic name is findable.
+    const secondName = locale !== "ar" && p.name_ar ? p.name_ar : null;
+    return (
+      <TableRow key={p.id} className="relative transition-colors hover:bg-primary/5">
+        <TableCell>
+          {/* The whole row opens the plan's dialog: the name's overlay
+              reaches every cell, and the one menu at the end is lifted above
+              it. The rare inactive plan carries its one pill here, beside
+              the name, rather than a Statut column that is blank on every
+              other row and reads as a feature nobody filled in. */}
+          <span className="flex items-center gap-2">
+            <PlanDialog
+              plan={{
+                id: p.id,
+                name: p.name,
+                name_ar: p.name_ar,
+                amount: Number(p.amount),
+                period: p.period,
+                active: p.active,
+              }}
+              description={p.description}
+              structureId={p.structure_id}
+              structures={structures}
+              trigger={
+                <button
+                  type="button"
+                  className="min-w-0 truncate rounded text-start font-semibold after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                  <bdi dir="auto">{displayName}</bdi>
+                </button>
+              }
+            />
+            {!p.active && (
+              <StatusPill tone="muted">
+                {t("plans.inactive")}
+              </StatusPill>
+            )}
+          </span>
+          {(secondName || p.description) && (
+            <span className="block max-w-md truncate text-xs text-muted-foreground">
+              {secondName && <bdi dir="auto">{secondName}</bdi>}
+              {secondName && p.description && " · "}
+              {p.description && <bdi dir="auto">{p.description}</bdi>}
+            </span>
+          )}
+        </TableCell>
+        <TableCell className="whitespace-nowrap text-end tabular-nums">
+          <span className="font-semibold">{formatDZD(p.amount, locale)}</span>
+          <span className="text-muted-foreground"> / {t(`periods.${p.period}`)}</span>
+        </TableCell>
+        <TableCell className="text-end tabular-nums">
+          {count > 0 ? <span dir="ltr">{count}</span> : <span className="text-muted-foreground">—</span>}
+        </TableCell>
+        <TableCell className="w-16">
+          <span className="relative z-10 flex items-center justify-end gap-0.5">
+            <PlanRowMenu planId={p.id} />
+          </span>
+        </TableCell>
+      </TableRow>
+    );
+  };
 
   return (
     <div>
+      {/* One primary per page: the thing this tab creates. */}
       <PageHeader title={t("plans.title")} description={t("plans.description")}>
-        <Button variant="ghost" asChild>
-          <Link href="/billing">
-            <BackIcon data-icon="inline-start" />
-            {t("invoice.back")}
-          </Link>
-        </Button>
         <PlanDialog structures={structures} />
       </PageHeader>
 
+      <BillingTabs />
+
       {plans.length === 0 ? (
         <EmptyState
-          icon={
-            <EmptyIcon>
-              <ClipboardList />
-            </EmptyIcon>
-          }
+          icon={<ClipboardList />}
           title={t("plans.empty")}
           description={t("plans.emptyHint")}
-          action={<PlanDialog structures={structures} />}
         />
       ) : (
-        <>
-          {structures.length > 1 && (
-            <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="mb-6 space-y-4">
+          {/* Only once there is a choice to make: a crèche running one
+              activity is not asked which of its one structure to show. */}
+          {manyStructures && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
               <StructureFilter structures={structures} value={structureFilter} />
               <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
                 {t("plans.count", { count: visiblePlans.length })}
               </span>
             </div>
           )}
-          {/* Every shared tariff already shows under each structure, so an empty
-              list means this one has no price of its own yet. */}
-          {visiblePlans.length === 0 && (
-            <p className="mb-8 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              {t("plans.noneForStructure")}
-            </p>
-          )}
-          <div
-            className={cn(
-              "grid gap-4 sm:grid-cols-2 lg:grid-cols-3",
-              visiblePlans.length > 0 && "mb-8"
-            )}
-          >
-            {visiblePlans.map((p) => {
-              const featured = p.active && p.id === topPlanId;
-              const count = assignedCount.get(p.id) ?? 0;
-              const structure = p.structure_id ? structureById.get(p.structure_id) : undefined;
-              return (
-                <Card
-                  key={p.id}
-                  className={cn(
-                    "gap-0 py-0 shadow-sm transition-shadow hover:shadow-md",
-                    featured && "bg-gold-muted ring-2 ring-gold/40",
-                    !p.active && "bg-muted/30"
-                  )}
-                >
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <IconTile tone={featured ? "gold" : p.active ? "primary" : "muted"} size="sm">
-                          {featured ? <Star /> : <Wallet />}
-                        </IconTile>
-                        <div className="min-w-0">
-                          <div className="truncate font-semibold">
-                            {locale === "ar" && p.name_ar ? p.name_ar : p.name}
-                          </div>
-                          {p.name_ar && locale !== "ar" && (
-                            <div className="truncate text-sm text-muted-foreground" dir="rtl">
-                              {p.name_ar}
-                            </div>
-                          )}
-                          {/* Which activity charges this price. A building with
-                              one structure is told nothing it does not know. */}
-                          {structures.length > 1 && (
-                            <div className="truncate text-xs text-muted-foreground">
-                              {structure ? structureName(structure, locale) : t("structures.whole")}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <Badge className={p.active ? TONE_PILL.success : TONE_PILL.muted}>
-                        {p.active ? t("plans.active") : t("plans.inactive")}
-                      </Badge>
-                    </div>
-
-                    <div className="mt-4 text-3xl font-bold tabular-nums">
-                      {formatDZD(p.amount, locale)}
-                      <span className="ms-1.5 text-sm font-normal text-muted-foreground">
-                        / {t(`periods.${p.period}`)}
-                      </span>
-                    </div>
-                    {p.description && (
-                      <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                        {p.description}
-                      </p>
-                    )}
-
-                    <div className="mt-5 flex items-center justify-between border-t border-border pt-3">
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Users className="size-3.5" aria-hidden />
-                        {t("plans.assignedCount", { count })}
-                      </span>
-                      <div className="flex items-center">
-                        <PlanDialog
-                          plan={{
-                            id: p.id,
-                            name: p.name,
-                            name_ar: p.name_ar,
-                            amount: Number(p.amount),
-                            period: p.period,
-                            active: p.active,
-                          }}
-                          description={p.description}
-                          structureId={p.structure_id}
-                          structures={structures}
-                        />
-                        <DeletePlanButton planId={p.id} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </>
+          <Card className="border border-border py-0 shadow-sm ring-0">
+            <CardContent className="px-0">
+              {visiblePlans.length === 0 ? (
+                /* Every shared tariff already shows under each structure, so an
+                   empty list means this one has no price of its own yet. */
+                <p className="px-5 py-4 text-sm text-muted-foreground">{t("plans.noneForStructure")}</p>
+              ) : (
+                <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+                  <TableHeader>
+                    <TableRow className="[&>th]:font-semibold">
+                      <TableHead>{t("plans.assignments.columns.plan")}</TableHead>
+                      <TableHead className="text-end">{t("plans.assignments.columns.base")}</TableHead>
+                      <TableHead className="text-end">{t("plans.columns.children")}</TableHead>
+                      <TableHead className="w-16">
+                        <span className="sr-only">{t("plans.assignments.columns.actions")}</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groups.map((g) => (
+                      <Fragment key={g.structure?.id ?? "building"}>
+                        {/* Group rows inside the one table, never a card per
+                            structure: the structure is said once, as its
+                            mark, and the count beside it. */}
+                        {!single && (
+                          <StructureGroupRow
+                            structure={
+                              g.structure
+                                ? { name: structureName(g.structure, locale), color: g.structure.color ?? "#19819a" }
+                                : null
+                            }
+                            label={t("structures.whole")}
+                            count={t("plans.count", { count: g.plans.length })}
+                            colSpan={4}
+                          />
+                        )}
+                        {g.plans.map(planRow)}
+                      </Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-        <CardHeader className="border-b border-border pt-5 pb-4">
-          <CardTitle className="text-base font-semibold">{t("plans.assignments.title")}</CardTitle>
-          <p className="text-sm text-muted-foreground">{t("plans.assignments.description")}</p>
-        </CardHeader>
-        <CardContent className="p-0">
-          {children.length === 0 ? (
-            <div className="p-6">
-              <EmptyState
-                icon={
-                  <EmptyIcon tone="muted">
-                    <Users />
-                  </EmptyIcon>
-                }
-                title={t("plans.assignments.empty")}
-              />
-            </div>
-          ) : (
-            <AssignmentsTable rows={assignmentRows} planOptions={planOptions} />
-          )}
-        </CardContent>
-      </Card>
+      <SectionCard
+        icon={Users}
+        tone={1}
+        title={t("plans.assignments.title")}
+        hint={t("plans.assignments.description")}
+        contentClassName="px-0"
+      >
+        {children.length === 0 ? (
+          <p className="px-5 py-4 text-sm text-muted-foreground">{t("plans.assignments.empty")}</p>
+        ) : (
+          <AssignmentsTable rows={assignmentRows} planOptions={planOptions} />
+        )}
+      </SectionCard>
     </div>
   );
 }

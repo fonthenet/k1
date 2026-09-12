@@ -4,7 +4,9 @@ import { getLocale, getTranslations } from "next-intl/server";
 import {
   BookMarked,
   CalendarCheck,
+  CalendarRange,
   DoorOpen,
+  HandCoins,
   Printer,
   Receipt,
   TriangleAlert,
@@ -12,7 +14,16 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { childDisplayName, formatDZD, formatDate, formatPhone, formatTime, intlLocale, telHref } from "@/lib/format";
+import {
+  childDisplayName,
+  formatDZD,
+  formatDate,
+  formatPhone,
+  formatTime,
+  initialsFromName,
+  intlLocale,
+  telHref,
+} from "@/lib/format";
 import {
   DAY_KEYS,
   dayKeyOfStr,
@@ -26,19 +37,11 @@ import { algiersToday } from "@/components/modules/staff/dates";
 import { dateRange } from "@/components/modules/comms/dates";
 import type { AttendanceStatus, Gender } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
-import { EmptyState } from "@/components/shared/empty-state";
-import { ChildLink, ClassLink, InvoiceLink, StaffLink } from "@/components/shared/entity-link";
+import { SectionCard } from "@/components/shared/section-card";
+import { InvoiceLink } from "@/components/shared/entity-link";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -47,8 +50,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UrlTabs } from "@/components/modules/dashboard/url-tabs";
+import { cn } from "@/lib/utils";
+import { ReportsTabs } from "@/components/modules/dashboard/reports-tabs";
 import { MonthSelect } from "@/components/modules/dashboard/month-select";
 import { ExportCsvButton } from "@/components/modules/dashboard/export-csv-button";
 import { isPresentish } from "@/components/modules/attendance/status-config";
@@ -84,6 +87,7 @@ interface ClassLite {
   id: string;
   name: string;
   name_ar: string | null;
+  color: string;
 }
 
 interface ClosureRow {
@@ -207,7 +211,11 @@ export default async function ReportsPage({
         )
         .eq("tenant_id", tid)
         .eq("status", "enrolled"),
-      supabase.from("kg_classes").select("id, name, name_ar").eq("tenant_id", tid).order("name"),
+      supabase
+        .from("kg_classes")
+        .select("id, name, name_ar, color")
+        .eq("tenant_id", tid)
+        .order("name"),
       supabase
         .from("kg_invoice_items")
         .select("kind, amount, kg_invoices!inner(issue_date, status)")
@@ -350,8 +358,13 @@ export default async function ReportsPage({
   }
 
   const classRows = [
-    ...classes.map((c) => ({ key: c.id, label: locale === "ar" && c.name_ar ? c.name_ar : c.name, classId: c.id as string | null })),
-    { key: "none", label: t("attendance.unassigned"), classId: null as string | null },
+    ...classes.map((c) => ({
+      key: c.id,
+      label: locale === "ar" && c.name_ar ? c.name_ar : c.name,
+      color: c.color as string | null,
+      classId: c.id as string | null,
+    })),
+    { key: "none", label: t("attendance.unassigned"), color: null, classId: null as string | null },
   ]
     .map((cls) => {
       const kids = children.filter((c) => c.class_id === cls.classId);
@@ -494,15 +507,12 @@ export default async function ReportsPage({
     const rows = arrearRows.filter((r) => r.bucket === b);
     return { bucket: b, count: rows.length, sum: rows.reduce((s, r) => s + r.balance, 0) };
   });
-  // Ageing scale: gold → destructive, escalating by tint strength so the text
-  // stays `foreground` (legible in both themes) and the colour does the ranking.
-  const bucketStyles: Record<Bucket, string> = {
-    current: "border-border bg-muted text-foreground",
-    d30: "border-gold/35 bg-gold/15 text-foreground",
-    d60: "border-gold/60 bg-gold/30 text-foreground",
-    d90: "border-destructive/35 bg-destructive/12 text-foreground",
-    d90plus: "border-destructive/60 bg-destructive/25 text-foreground",
-  };
+
+  const revenueCsv = revenueRows.map((r) => [
+    kindLabel(r.kind),
+    r.amount,
+    revenueTotal > 0 ? Math.round((r.amount / revenueTotal) * 100) : "",
+  ]);
 
   const billingCsv = arrearRows.map((r) => [
     r.number,
@@ -604,549 +614,616 @@ export default async function ReportsPage({
       a.picked_up_by ?? "",
     ]);
 
+
   // ================= render =================
+  // One section per visit, chosen on the server from ?tab=: the four reports
+  // read their own data, and drawing all four behind tabs cost the page four
+  // tables' worth of markup for the one that was being read.
+  const TABS = ["attendance", "billing", "team", "registers"] as const;
+  type Tab = (typeof TABS)[number];
+  const tab: Tab = (TABS as readonly string[]).includes(sp.tab ?? "")
+    ? (sp.tab as Tab)
+    : "attendance";
+  const REGISTER_TABLE =
+    "[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5";
+  const emptyLine = (text: string) => (
+    <p className="px-5 py-4 text-sm text-muted-foreground">{text}</p>
+  );
+
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader title={t("title")} description={t("subtitle")}>
         <MonthSelect options={monthOptions} value={month} ariaLabel={t("monthLabel")} />
       </PageHeader>
 
       {hasError && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mb-6">
           <TriangleAlert />
           <AlertTitle>{t("loadError")}</AlertTitle>
         </Alert>
       )}
 
-      <UrlTabs defaultValue="attendance" className="w-full gap-5">
-        <TabsList className="w-full justify-start overflow-x-auto rounded-xl bg-muted p-1 group-data-horizontal/tabs:h-10 sm:w-fit">
-          <TabsTrigger
-            value="attendance"
-            className="rounded-lg px-3 data-active:text-primary data-active:shadow-sm"
-          >
-            <CalendarCheck data-icon="inline-start" />
-            {t("tabs.attendance")}
-          </TabsTrigger>
-          <TabsTrigger
-            value="billing"
-            className="rounded-lg px-3 data-active:text-primary data-active:shadow-sm"
-          >
-            <Receipt data-icon="inline-start" />
-            {t("tabs.billing")}
-          </TabsTrigger>
-          <TabsTrigger
-            value="team"
-            className="rounded-lg px-3 data-active:text-primary data-active:shadow-sm"
-          >
-            <Users data-icon="inline-start" />
-            {t("tabs.team")}
-          </TabsTrigger>
-          <TabsTrigger
-            value="registers"
-            className="rounded-lg px-3 data-active:text-primary data-active:shadow-sm"
-          >
-            <BookMarked data-icon="inline-start" />
-            {t("tabs.registers")}
-          </TabsTrigger>
-        </TabsList>
+      <ReportsTabs />
 
-        {/* ---------- (a) Présences ---------- */}
-        <TabsContent value="attendance" className="space-y-6">
-          <Card className="border border-border shadow-sm ring-0">
-            <CardHeader className="border-b pb-4">
-              <CardTitle className="text-lg font-semibold">{t("attendance.byClass")}</CardTitle>
-              <CardDescription>
-                {monthTitle} — {t("attendance.byClassHint")}
-              </CardDescription>
-              <CardAction>
-                <ExportCsvButton
-                  filename={`presences-${month}.csv`}
-                  headers={[
-                    t("attendance.class"),
-                    t("attendance.enrolled"),
-                    t("attendance.expected"),
-                    t("attendance.records"),
-                    t("attendance.present"),
-                    t("attendance.absences"),
-                    t("attendance.unmarked"),
-                    `${t("attendance.rate")} %`,
-                  ]}
-                  rows={attendanceCsv}
-                  label={t("csv")}
-                />
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              {att.length === 0 ? (
-                <EmptyState icon={<CalendarCheck />} title={t("attendance.empty")} />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("attendance.class")}</TableHead>
-                      <TableHead className="text-end">{t("attendance.enrolled")}</TableHead>
-                      <TableHead className="text-end">{t("attendance.expected")}</TableHead>
-                      <TableHead className="text-end">{t("attendance.records")}</TableHead>
-                      <TableHead className="text-end">{t("attendance.present")}</TableHead>
-                      <TableHead className="text-end">{t("attendance.absences")}</TableHead>
-                      <TableHead className="text-end">{t("attendance.unmarked")}</TableHead>
-                      <TableHead className="w-40">{t("attendance.rate")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {classRows.map((r) => (
-                      <TableRow key={r.key}>
-                        <TableCell className="font-medium">
-                          {r.classId ? <ClassLink id={r.classId}>{r.label}</ClassLink> : r.label}
-                        </TableCell>
-                        <TableCell className="text-end tabular-nums">{r.enrolled}</TableCell>
-                        <TableCell className="text-end tabular-nums">{r.expected}</TableCell>
-                        <TableCell className="text-end tabular-nums">{r.records}</TableCell>
-                        <TableCell className="text-end font-medium tabular-nums text-success">
-                          {r.present}
-                        </TableCell>
-                        <TableCell className="text-end font-medium tabular-nums text-destructive">
-                          {r.absences}
-                        </TableCell>
-                        <TableCell className="text-end tabular-nums text-muted-foreground">
-                          {r.unmarked}
-                        </TableCell>
-                        <TableCell>
-                          {r.rate === null ? (
-                            <span className="text-muted-foreground">—</span>
-                          ) : (
-                            <span className="flex items-center gap-2">
-                              <span className="h-2 w-20 overflow-hidden rounded-full bg-muted">
-                                <span
-                                  className="block h-full rounded-full bg-success"
-                                  style={{ width: `${Math.round(r.rate * 100)}%` }}
-                                />
-                              </span>
-                              <span className="text-sm tabular-nums">{pctFmt.format(r.rate)}</span>
-                            </span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="bg-muted/40 font-semibold hover:bg-muted/40">
-                      <TableCell>{t("attendance.total")}</TableCell>
-                      <TableCell className="text-end tabular-nums">{attTotals.enrolled}</TableCell>
-                      <TableCell className="text-end tabular-nums">{attTotals.expected}</TableCell>
-                      <TableCell className="text-end tabular-nums">{attTotals.records}</TableCell>
-                      <TableCell className="text-end tabular-nums">{attTotals.present}</TableCell>
-                      <TableCell className="text-end tabular-nums">{attTotals.absences}</TableCell>
-                      <TableCell className="text-end tabular-nums">{attTotals.unmarked}</TableCell>
-                      <TableCell className="tabular-nums">
-                        {totalRate !== null ? pctFmt.format(totalRate) : "—"}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border border-border shadow-sm ring-0">
-            <CardHeader className="border-b pb-4">
-              <CardTitle className="text-lg font-semibold">{t("attendance.heat")}</CardTitle>
-              <CardDescription>
-                {monthTitle} — {t("attendance.heatHint")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {att.length === 0 ? (
-                <EmptyState icon={<CalendarCheck />} title={t("attendance.empty")} />
-              ) : (
-                <div className="mx-auto max-w-lg">
-                  <div
-                    className="grid gap-2"
-                    // One column per open day, so the grid is as wide as the
-                    // crèche's week rather than a fixed five.
-                    style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}
-                  >
-                    {dayHeaders.map((d) => (
-                      <div
-                        key={d.key}
-                        className="pb-1 text-center text-xs font-semibold text-muted-foreground"
-                      >
-                        {d.label}
-                      </div>
-                    ))}
-                    {weeks.flat().map((cell) => {
-                      if (!cell.inMonth) return <div key={cell.key} />;
-                      // Intensity ramp built from `primary` opacity steps (10% → 68%).
-                      // Capped at 68% so `foreground` ink stays legible on the
-                      // darkest cell in both light and dark themes.
-                      //
-                      // A declared closure with no rows is shaded flat rather
-                      // than dashed: dashed says "nobody filled this in",
-                      // shaded says "nobody was meant to".
-                      const closedEmpty = cell.closure !== null && !cell.hasData;
-                      const tip = [
-                        formatDate(cell.key, locale),
-                        cell.closure,
-                        cell.hasData ? `${cell.present}/${enrolledCount}` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" — ");
-                      return (
-                        <div
-                          key={cell.key}
-                          title={tip}
-                          aria-label={tip}
-                          className={`flex h-14 flex-col items-center justify-center rounded-lg border text-center ${
-                            cell.hasData
-                              ? "border-primary/20"
-                              : closedEmpty
-                                ? "border-border bg-muted/60"
-                                : "border-dashed border-border"
-                          }`}
-                          style={
-                            cell.hasData
-                              ? {
-                                  backgroundColor: `color-mix(in oklab, var(--primary) ${Math.round(
-                                    10 + cell.rate * 58
-                                  )}%, transparent)`,
-                                }
-                              : undefined
-                          }
-                        >
-                          <span
-                            className={`text-[10px] leading-tight ${
-                              cell.hasData ? "text-foreground/60" : "text-muted-foreground"
-                            }`}
+      {tab === "attendance" && (
+        <div className="space-y-6">
+          {/* ---------- (a) Présences ---------- */}
+          <SectionCard
+            icon={CalendarCheck}
+            tone={0}
+            title={t("attendance.byClass")}
+            hint={`${monthTitle} — ${t("attendance.byClassHint")}`}
+            action={
+              <ExportCsvButton
+                filename={`presences-${month}.csv`}
+                headers={[
+                  t("attendance.class"),
+                  t("attendance.enrolled"),
+                  t("attendance.expected"),
+                  t("attendance.records"),
+                  t("attendance.present"),
+                  t("attendance.absences"),
+                  t("attendance.unmarked"),
+                  `${t("attendance.rate")} %`,
+                ]}
+                rows={attendanceCsv}
+                label={t("csv")}
+              />
+            }
+            contentClassName="px-0"
+          >
+            {att.length === 0 ? (
+              emptyLine(t("attendance.empty"))
+            ) : (
+              <Table className={REGISTER_TABLE}>
+                <TableHeader>
+                  <TableRow className="[&>th]:font-semibold">
+                    <TableHead>{t("attendance.class")}</TableHead>
+                    <TableHead className="text-end">{t("attendance.enrolled")}</TableHead>
+                    <TableHead className="text-end">{t("attendance.expected")}</TableHead>
+                    <TableHead className="text-end">{t("attendance.records")}</TableHead>
+                    <TableHead className="text-end">{t("attendance.present")}</TableHead>
+                    <TableHead className="text-end">{t("attendance.absences")}</TableHead>
+                    <TableHead className="text-end">{t("attendance.unmarked")}</TableHead>
+                    <TableHead className="w-40">{t("attendance.rate")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {classRows.map((r) => (
+                    <TableRow key={r.key} className="relative transition-colors hover:bg-primary/5">
+                      <TableCell>
+                        {/* The class is the door to its page: its dot and
+                            name, the overlay reaching the whole row. The
+                            children with no class have no page to open. */}
+                        {r.classId ? (
+                          <Link
+                            href={`/classes/${r.classId}`}
+                            className="flex items-center gap-2.5 font-semibold after:absolute after:inset-0"
                           >
-                            {cell.day}
-                          </span>
-                          <span className="text-sm font-bold leading-tight tabular-nums text-foreground">
-                            {cell.hasData ? cell.present : "—"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ---------- (b) Facturation ---------- */}
-        <TabsContent value="billing" className="space-y-6">
-          <Card className="border border-border shadow-sm ring-0">
-            <CardHeader className="border-b pb-4">
-              <CardTitle className="text-lg font-semibold">{t("billing.revenue")}</CardTitle>
-              <CardDescription>
-                {monthTitle} — {t("billing.revenueHint")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {revenueRows.length === 0 ? (
-                <EmptyState icon={<Receipt />} title={t("billing.emptyRevenue")} />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("billing.kind")}</TableHead>
-                      <TableHead className="text-end">{t("billing.amount")}</TableHead>
-                      <TableHead className="w-44">{t("billing.share")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {revenueRows.map((r, i) => (
-                      <TableRow key={r.kind}>
-                        <TableCell>
-                          <span className="font-medium">{kindLabel(r.kind)}</span>
-                          <span className="ms-2 text-xs text-muted-foreground">
-                            {t("billing.lines", { count: r.count })}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-end font-medium tabular-nums">
-                          {formatDZD(r.amount, locale)}
-                        </TableCell>
-                        <TableCell>
+                            <span
+                              className="size-2.5 shrink-0 rounded-full ring-1 ring-inset ring-foreground/10"
+                              style={{ backgroundColor: r.color ?? "var(--primary)" }}
+                              aria-hidden
+                            />
+                            <bdi dir="auto" className="truncate">{r.label}</bdi>
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-muted-foreground">{r.label}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-end tabular-nums">{r.enrolled}</TableCell>
+                      <TableCell className="text-end tabular-nums">{r.expected}</TableCell>
+                      <TableCell className="text-end tabular-nums">{r.records}</TableCell>
+                      <TableCell className="text-end tabular-nums">{r.present}</TableCell>
+                      {/* The row's one red, and only when there is something to see. */}
+                      <TableCell
+                        className={cn(
+                          "text-end tabular-nums",
+                          r.absences > 0 && "font-medium text-destructive"
+                        )}
+                      >
+                        {r.absences}
+                      </TableCell>
+                      <TableCell className="text-end tabular-nums">{r.unmarked}</TableCell>
+                      <TableCell>
+                        {r.rate === null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          /* Not the FillBar: its gold and red mean "nearly
+                             full" and "full", which a presence rate is not. */
                           <span className="flex items-center gap-2">
-                            <span className="h-2 w-24 overflow-hidden rounded-full bg-muted">
+                            <span className="h-0.5 w-20 overflow-hidden rounded-full bg-muted" aria-hidden>
                               <span
-                                /* Top earner gets the gold highlight. */
-                                className={`block h-full rounded-full ${i === 0 ? "bg-gold" : "bg-primary"}`}
-                                style={{
-                                  width: `${revenueTotal > 0 ? Math.round((r.amount / revenueTotal) * 100) : 0}%`,
-                                }}
+                                className="block h-full rounded-full bg-primary"
+                                style={{ width: `${Math.round(r.rate * 100)}%` }}
                               />
                             </span>
-                            <span className="text-sm tabular-nums text-muted-foreground">
-                              {revenueTotal > 0 ? pctFmt.format(r.amount / revenueTotal) : "—"}
+                            <span dir="ltr" className="text-sm tabular-nums">
+                              {pctFmt.format(r.rate)}
                             </span>
                           </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="bg-muted/40 font-semibold hover:bg-muted/40">
-                      <TableCell>{t("attendance.total")}</TableCell>
-                      <TableCell className="text-end text-base tabular-nums">
-                        {formatDZD(revenueTotal, locale)}
+                        )}
                       </TableCell>
-                      <TableCell />
                     </TableRow>
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                  ))}
+                  <TableRow className="bg-muted/40 font-semibold hover:bg-muted/40">
+                    <TableCell>{t("attendance.total")}</TableCell>
+                    <TableCell className="text-end tabular-nums">{attTotals.enrolled}</TableCell>
+                    <TableCell className="text-end tabular-nums">{attTotals.expected}</TableCell>
+                    <TableCell className="text-end tabular-nums">{attTotals.records}</TableCell>
+                    <TableCell className="text-end tabular-nums">{attTotals.present}</TableCell>
+                    <TableCell className="text-end tabular-nums">{attTotals.absences}</TableCell>
+                    <TableCell className="text-end tabular-nums">{attTotals.unmarked}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {totalRate !== null ? <span dir="ltr">{pctFmt.format(totalRate)}</span> : "—"}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            )}
+          </SectionCard>
 
-          <Card className="border border-border shadow-sm ring-0">
-            <CardHeader className="border-b pb-4">
-              <CardTitle className="text-lg font-semibold">{t("billing.arrears")}</CardTitle>
-              <CardDescription>{t("billing.arrearsHint")}</CardDescription>
-              <CardAction>
-                <ExportCsvButton
-                  filename={`creances-${isoDate(now)}.csv`}
-                  headers={[
-                    t("billing.invoice"),
-                    t("billing.child"),
-                    t("billing.guardian"),
-                    t("billing.phone"),
-                    t("billing.dueDate"),
-                    t("billing.daysLate"),
-                    t("billing.balance"),
-                  ]}
-                  rows={billingCsv}
-                  label={t("csv")}
-                />
-              </CardAction>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                {bucketSums.map((b) => (
-                  <div
-                    key={b.bucket}
-                    className={`rounded-xl border p-3.5 ${bucketStyles[b.bucket]}`}
-                  >
-                    <div className="truncate text-xs font-medium text-muted-foreground">
-                      {t(`billing.buckets.${b.bucket}`)}
+          <SectionCard
+            icon={CalendarRange}
+            tone={1}
+            title={t("attendance.heat")}
+            hint={`${monthTitle} — ${t("attendance.heatHint")}`}
+            contentClassName={att.length === 0 ? "px-0" : undefined}
+          >
+            {att.length === 0 ? (
+              emptyLine(t("attendance.empty"))
+            ) : (
+              // `w-full` as well as `mx-auto max-w-sm`: this sits in the
+              // SectionCard's grid, and a grid item with auto inline margins
+              // shrinks to its content — the month once rendered as a
+              // 120px column of capsules inside a 1300px card.
+              <div className="mx-auto w-full max-w-sm">
+                <div
+                  className="grid gap-2"
+                  // One column per open day, so the grid is as wide as the
+                  // crèche's week rather than a fixed five.
+                  style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}
+                >
+                  {dayHeaders.map((d) => (
+                    <div
+                      key={d.key}
+                      className="pb-1 text-center text-xs font-semibold text-muted-foreground"
+                    >
+                      {d.label}
                     </div>
-                    <div className="mt-1 truncate text-sm font-bold tabular-nums">
-                      {formatDZD(b.sum, locale)}
-                    </div>
-                    <div className="text-xs tabular-nums text-muted-foreground">{b.count}</div>
-                  </div>
-                ))}
+                  ))}
+                  {weeks.flat().map((cell) => {
+                    if (!cell.inMonth) return <div key={cell.key} />;
+                    // Intensity ramp built from `primary` opacity steps (10% → 68%).
+                    // Capped at 68% so `foreground` ink stays legible on the
+                    // darkest cell in both light and dark themes.
+                    //
+                    // Two kinds of empty, kept distinct: a declared closure is
+                    // shaded flat ("nobody was meant to"), an open day nobody
+                    // filled in is a plain outline with its day number and
+                    // nothing else ("nobody filled this in").
+                    const closedEmpty = cell.closure !== null && !cell.hasData;
+                    const tip = [
+                      formatDate(cell.key, locale),
+                      cell.closure,
+                      cell.hasData ? `${cell.present}/${enrolledCount}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" — ");
+                    return (
+                      <div
+                        key={cell.key}
+                        title={tip}
+                        aria-label={tip}
+                        className={cn(
+                          "flex aspect-square flex-col items-center justify-center rounded-lg border text-center",
+                          cell.hasData
+                            ? "border-primary/20"
+                            : closedEmpty
+                              ? "border-border bg-muted/60"
+                              : "border-border"
+                        )}
+                        style={
+                          cell.hasData
+                            ? {
+                                backgroundColor: `color-mix(in oklab, var(--primary) ${Math.round(
+                                  10 + cell.rate * 58
+                                )}%, transparent)`,
+                              }
+                            : undefined
+                        }
+                      >
+                        <span
+                          className={cn(
+                            "text-[10px] leading-tight",
+                            cell.hasData ? "text-foreground/60" : "text-muted-foreground"
+                          )}
+                        >
+                          {cell.day}
+                        </span>
+                        {cell.hasData && (
+                          <span className="text-sm leading-tight font-bold tabular-nums text-foreground">
+                            {cell.present}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              {arrearRows.length === 0 ? (
-                <EmptyState icon={<Receipt />} title={t("billing.emptyArrears")} />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("billing.invoice")}</TableHead>
-                      <TableHead>{t("billing.child")}</TableHead>
-                      <TableHead>{t("billing.guardian")}</TableHead>
-                      <TableHead>{t("billing.phone")}</TableHead>
-                      <TableHead>{t("billing.dueDate")}</TableHead>
-                      <TableHead className="text-end">{t("billing.daysLate")}</TableHead>
-                      <TableHead className="text-end">{t("billing.balance")}</TableHead>
+            )}
+          </SectionCard>
+        </div>
+      )}
+
+      {tab === "billing" && (
+        <div className="space-y-6">
+          {/* ---------- (b) Facturation ---------- */}
+          <SectionCard
+            icon={Receipt}
+            tone={1}
+            title={t("billing.revenue")}
+            hint={`${monthTitle} — ${t("billing.revenueHint")}`}
+            action={
+              <ExportCsvButton
+                filename={`recettes-${month}.csv`}
+                headers={[t("billing.kind"), t("billing.amount"), `${t("billing.share")} %`]}
+                rows={revenueCsv}
+                label={t("csv")}
+              />
+            }
+            contentClassName="px-0"
+          >
+            {revenueRows.length === 0 ? (
+              emptyLine(t("billing.emptyRevenue"))
+            ) : (
+              <Table className={REGISTER_TABLE}>
+                <TableHeader>
+                  <TableRow className="[&>th]:font-semibold">
+                    <TableHead>{t("billing.kind")}</TableHead>
+                    <TableHead className="text-end">{t("billing.amount")}</TableHead>
+                    <TableHead className="w-44">{t("billing.share")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {revenueRows.map((r) => (
+                    <TableRow key={r.kind} className="transition-colors hover:bg-primary/5">
+                      <TableCell>
+                        <span className="font-medium">{kindLabel(r.kind)}</span>
+                        <span className="ms-2 text-xs text-muted-foreground tabular-nums">
+                          {t("billing.lines", { count: r.count })}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-end font-medium tabular-nums">
+                        {formatDZD(r.amount, locale)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="flex items-center gap-2">
+                          <span className="h-0.5 w-24 overflow-hidden rounded-full bg-muted" aria-hidden>
+                            <span
+                              className="block h-full rounded-full bg-primary"
+                              style={{
+                                width: `${revenueTotal > 0 ? Math.round((r.amount / revenueTotal) * 100) : 0}%`,
+                              }}
+                            />
+                          </span>
+                          <span dir="ltr" className="text-sm tabular-nums text-muted-foreground">
+                            {revenueTotal > 0 ? pctFmt.format(r.amount / revenueTotal) : "—"}
+                          </span>
+                        </span>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {arrearRows.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="tabular-nums">
-                          <InvoiceLink id={r.id}>#{r.number}</InvoiceLink>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {r.childId ? <ChildLink id={r.childId}>{r.childName}</ChildLink> : r.childName}
-                        </TableCell>
-                        <TableCell>{r.guardianName}</TableCell>
-                        <TableCell>
-                          {r.phone ? (
-                            <a
-                              href={telHref(r.phone)}
-                              dir="ltr"
-                              className="font-medium tabular-nums text-primary hover:underline"
+                  ))}
+                  <TableRow className="bg-muted/40 font-semibold hover:bg-muted/40">
+                    <TableCell>{t("attendance.total")}</TableCell>
+                    <TableCell className="text-end tabular-nums">
+                      {formatDZD(revenueTotal, locale)}
+                    </TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableBody>
+              </Table>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            icon={HandCoins}
+            tone={2}
+            title={t("billing.arrears")}
+            hint={t("billing.arrearsHint")}
+            action={
+              <ExportCsvButton
+                filename={`creances-${isoDate(now)}.csv`}
+                headers={[
+                  t("billing.invoice"),
+                  t("billing.child"),
+                  t("billing.guardian"),
+                  t("billing.phone"),
+                  t("billing.dueDate"),
+                  t("billing.daysLate"),
+                  t("billing.balance"),
+                ]}
+                rows={billingCsv}
+                label={t("csv")}
+              />
+            }
+            contentClassName="gap-0 px-0"
+          >
+            {/* The ageing, as one strip of five plain cells above the table:
+                the figures rank themselves, so no cell is tinted. */}
+            <div className="flex divide-x divide-border overflow-x-auto border-b border-border">
+              {bucketSums.map((b) => (
+                <div key={b.bucket} className="min-w-0 flex-1 px-4 py-2 first:ps-5 last:pe-5">
+                  <div className="truncate text-xs text-muted-foreground">
+                    {t(`billing.buckets.${b.bucket}`)}
+                  </div>
+                  <div className="truncate text-sm font-semibold tabular-nums">
+                    {formatDZD(b.sum, locale)}
+                  </div>
+                  <div className="text-xs text-muted-foreground tabular-nums">{b.count}</div>
+                </div>
+              ))}
+            </div>
+            {arrearRows.length === 0 ? (
+              emptyLine(t("billing.emptyArrears"))
+            ) : (
+              <Table className={REGISTER_TABLE}>
+                <TableHeader>
+                  <TableRow className="[&>th]:font-semibold">
+                    <TableHead>{t("billing.child")}</TableHead>
+                    <TableHead>{t("billing.invoice")}</TableHead>
+                    <TableHead>{t("billing.guardian")}</TableHead>
+                    <TableHead>{t("billing.phone")}</TableHead>
+                    <TableHead>{t("billing.dueDate")}</TableHead>
+                    <TableHead className="text-end">{t("billing.daysLate")}</TableHead>
+                    <TableHead className="text-end">{t("billing.balance")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {arrearRows.map((r) => (
+                    <TableRow key={r.id} className="relative transition-colors hover:bg-primary/5">
+                      <TableCell>
+                        {/* The child is the row's door; the invoice and the
+                            phone are lifted above the overlay as the second
+                            and third doors inside it. */}
+                        <span className="flex items-center gap-3">
+                          <Avatar className="size-8">
+                            <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+                              {initialsFromName(r.childName) || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          {r.childId ? (
+                            <Link
+                              href={`/children/${r.childId}`}
+                              className="min-w-0 font-semibold after:absolute after:inset-0"
                             >
-                              {formatPhone(r.phone)}
-                            </a>
+                              <bdi dir="auto" className="truncate">{r.childName}</bdi>
+                            </Link>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <bdi dir="auto" className="truncate font-semibold">{r.childName}</bdi>
                           )}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {r.dueDate ? formatDate(r.dueDate, locale) : "—"}
-                        </TableCell>
-                        <TableCell className="text-end">
-                          <Badge className={bucketStyles[r.bucket]}>
-                            {r.daysLate > 0
-                              ? t("billing.days", { count: r.daysLate })
-                              : t("billing.buckets.current")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-end font-semibold tabular-nums">
-                          {formatDZD(r.balance, locale)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ---------- (c) Équipe ---------- */}
-        <TabsContent value="team">
-          <Card className="border border-border shadow-sm ring-0">
-            <CardHeader className="border-b pb-4">
-              <CardTitle className="text-lg font-semibold">{t("team.title")}</CardTitle>
-              <CardDescription>
-                {monthTitle} — {t("team.hint")}
-              </CardDescription>
-              <CardAction>
-                <ExportCsvButton
-                  filename={`equipe-${month}.csv`}
-                  headers={[
-                    t("team.member"),
-                    t("team.role"),
-                    t("team.days"),
-                    t("team.hours"),
-                    t("team.expected"),
-                    t("team.delta"),
-                  ]}
-                  rows={teamCsv}
-                  label={t("csv")}
-                />
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              {tsRows.length === 0 ? (
-                <EmptyState icon={<Users />} title={t("team.empty")} />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("team.member")}</TableHead>
-                      <TableHead>{t("team.role")}</TableHead>
-                      <TableHead className="text-end">{t("team.days")}</TableHead>
-                      <TableHead className="text-end">{t("team.hours")}</TableHead>
-                      <TableHead className="text-end">{t("team.expected")}</TableHead>
-                      <TableHead className="text-end">{t("team.delta")}</TableHead>
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <InvoiceLink id={r.id} className="relative z-10 font-mono text-xs tabular-nums">
+                          <span dir="ltr">#{r.number}</span>
+                        </InvoiceLink>
+                      </TableCell>
+                      <TableCell>
+                        <bdi dir="auto">{r.guardianName}</bdi>
+                      </TableCell>
+                      <TableCell>
+                        {r.phone ? (
+                          <a
+                            href={telHref(r.phone)}
+                            dir="ltr"
+                            className="relative z-10 tabular-nums hover:underline"
+                          >
+                            {formatPhone(r.phone)}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground tabular-nums">
+                        {r.dueDate ? formatDate(r.dueDate, locale) : "—"}
+                      </TableCell>
+                      {/* The one red: more than ninety days late. */}
+                      <TableCell
+                        className={cn(
+                          "text-end tabular-nums",
+                          r.bucket === "d90plus" && "font-medium text-destructive"
+                        )}
+                      >
+                        {r.daysLate > 0 ? (
+                          t("billing.days", { count: r.daysLate })
+                        ) : (
+                          <span className="text-muted-foreground">{t("billing.buckets.current")}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-end font-medium tabular-nums">
+                        {formatDZD(r.balance, locale)}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {teamRows.map((r) => (
-                      <TableRow key={r.id} className={r.delta > 0.05 ? "bg-gold/6" : undefined}>
-                        <TableCell className="font-medium">
-                          <StaffLink id={r.id}>{r.name}</StaffLink>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{r.role}</TableCell>
-                        <TableCell className="text-end tabular-nums">{r.days}</TableCell>
-                        <TableCell className="text-end font-medium tabular-nums">
-                          {fmtHours(r.hours)}
-                        </TableCell>
-                        <TableCell className="text-end tabular-nums text-muted-foreground">
-                          {fmtHours(expectedHours)}
-                        </TableCell>
-                        <TableCell className="text-end">
-                          {r.delta > 0.05 ? (
-                            <Badge className="bg-gold text-gold-foreground">
-                              {t("team.overtime")} +{fmtHours(r.delta)}
-                            </Badge>
-                          ) : r.delta < -0.05 ? (
-                            <span className="text-sm tabular-nums text-muted-foreground">
-                              −{fmtHours(r.delta)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </SectionCard>
+        </div>
+      )}
 
-        {/* ---------- (d) Registres ---------- */}
-        <TabsContent value="registers" className="space-y-6">
-          <div>
-            <h3 className="font-heading text-base font-semibold text-foreground">
-              {t("registers.title")}
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">{t("registers.hint")}</p>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="border border-border shadow-sm ring-0 transition-shadow hover:shadow-md">
-              <CardHeader>
-                <div className="mb-2 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <BookMarked className="size-6" />
-                </div>
-                <CardTitle className="text-base font-semibold">
-                  {t("registers.matricule.title")}
-                </CardTitle>
-                <CardDescription>{t("registers.matricule.description")}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-center gap-2">
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/reports/print/matricule">
-                    <Printer data-icon="inline-start" />
-                    {t("registers.open")}
+      {tab === "team" && (
+        /* ---------- (c) Équipe ---------- */
+        <SectionCard
+          icon={Users}
+          tone={2}
+          title={t("team.title")}
+          hint={`${monthTitle} — ${t("team.hint")}`}
+          action={
+            <ExportCsvButton
+              filename={`equipe-${month}.csv`}
+              headers={[
+                t("team.member"),
+                t("team.role"),
+                t("team.days"),
+                t("team.hours"),
+                t("team.expected"),
+                t("team.delta"),
+              ]}
+              rows={teamCsv}
+              label={t("csv")}
+            />
+          }
+          contentClassName="px-0"
+        >
+          {tsRows.length === 0 ? (
+            emptyLine(t("team.empty"))
+          ) : (
+            <Table className={REGISTER_TABLE}>
+              <TableHeader>
+                <TableRow className="[&>th]:font-semibold">
+                  <TableHead>{t("team.member")}</TableHead>
+                  <TableHead>{t("team.role")}</TableHead>
+                  <TableHead className="text-end">{t("team.days")}</TableHead>
+                  <TableHead className="text-end">{t("team.hours")}</TableHead>
+                  <TableHead className="text-end">{t("team.expected")}</TableHead>
+                  <TableHead className="text-end">{t("team.delta")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {teamRows.map((r) => (
+                  <TableRow key={r.id} className="relative transition-colors hover:bg-primary/5">
+                    <TableCell>
+                      <span className="flex items-center gap-3">
+                        <Avatar className="size-8">
+                          <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+                            {initialsFromName(r.name) || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <Link
+                          href={`/staff/${r.id}`}
+                          className="min-w-0 font-semibold after:absolute after:inset-0"
+                        >
+                          <bdi dir="auto" className="truncate">{r.name}</bdi>
+                        </Link>
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <bdi dir="auto">{r.role}</bdi>
+                    </TableCell>
+                    <TableCell className="text-end tabular-nums">{r.days}</TableCell>
+                    <TableCell className="text-end tabular-nums">{fmtHours(r.hours)}</TableCell>
+                    <TableCell className="text-end text-muted-foreground tabular-nums">
+                      {fmtHours(expectedHours)}
+                    </TableCell>
+                    {/* Hours over the month's expectation are the one gold on
+                        the page; hours under it are muted, not red — a short
+                        month is a fact, not a fault. */}
+                    <TableCell className="text-end tabular-nums">
+                      {r.delta > 0.05 ? (
+                        <span className="font-medium text-gold-ink">+{fmtHours(r.delta)}</span>
+                      ) : r.delta < -0.05 ? (
+                        <span className="text-muted-foreground">−{fmtHours(r.delta)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </SectionCard>
+      )}
+
+      {tab === "registers" && (
+        /* ---------- (d) Registres ---------- */
+        <SectionCard
+          icon={BookMarked}
+          tone={3}
+          title={t("registers.title")}
+          hint={t("registers.hint")}
+          contentClassName="px-0"
+        >
+          <ul className="divide-y divide-border">
+            {[
+              {
+                key: "matricule",
+                icon: BookMarked,
+                tile: "bg-tile-1 text-primary",
+                href: "/reports/print/matricule",
+                csv: (
+                  <ExportCsvButton
+                    variant="ghost"
+                    filename="registre-matricule.csv"
+                    headers={[
+                      t("print.matricule.num"),
+                      t("print.matricule.child"),
+                      `${t("print.matricule.child")} (ar)`,
+                      t("print.matricule.dob"),
+                      t("print.matricule.gender"),
+                      t("print.matricule.enrolled"),
+                      t("print.matricule.withdrawn"),
+                      t("print.matricule.guardian"),
+                      t("print.matricule.phone"),
+                      t("print.matricule.address"),
+                    ]}
+                    rows={matriculeCsv}
+                    label={t("csv")}
+                  />
+                ),
+              },
+              {
+                key: "exits",
+                icon: DoorOpen,
+                tile: "bg-tile-3 text-gold-ink",
+                href: `/reports/print/sorties?month=${month}`,
+                csv: (
+                  <ExportCsvButton
+                    variant="ghost"
+                    filename={`registre-sorties-${month}.csv`}
+                    headers={[
+                      t("print.exits.date"),
+                      t("print.exits.child"),
+                      t("print.exits.in"),
+                      t("print.exits.out"),
+                      t("print.exits.pickedUpBy"),
+                    ]}
+                    rows={exitsCsv}
+                    label={t("csv")}
+                  />
+                ),
+              },
+            ].map(({ key, icon: Icon, tile, href, csv }) => (
+              <li key={key} className="relative flex min-h-14 items-center gap-3 px-5 py-3">
+                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", tile)}>
+                  <Icon className="size-4" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  {/* The title opens the printable page — the whole row is
+                      its door — and the two controls are lifted above it. */}
+                  <Link href={href} className="block text-sm font-medium after:absolute after:inset-0">
+                    {t(`registers.${key}.title`)}
                   </Link>
-                </Button>
-                <ExportCsvButton
-                  filename="registre-matricule.csv"
-                  headers={[
-                    t("print.matricule.num"),
-                    t("print.matricule.child"),
-                    `${t("print.matricule.child")} (ar)`,
-                    t("print.matricule.dob"),
-                    t("print.matricule.gender"),
-                    t("print.matricule.enrolled"),
-                    t("print.matricule.withdrawn"),
-                    t("print.matricule.guardian"),
-                    t("print.matricule.phone"),
-                    t("print.matricule.address"),
-                  ]}
-                  rows={matriculeCsv}
-                  label={t("csv")}
-                />
-              </CardContent>
-            </Card>
-            <Card className="border border-border shadow-sm ring-0 transition-shadow hover:shadow-md">
-              <CardHeader>
-                <div className="mb-2 flex size-12 items-center justify-center rounded-xl bg-gold text-gold-foreground">
-                  <DoorOpen className="size-6" />
-                </div>
-                <CardTitle className="text-base font-semibold">
-                  {t("registers.exits.title")}
-                </CardTitle>
-                <CardDescription>{t("registers.exits.description")}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-center gap-2">
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/reports/print/sorties?month=${month}`}>
-                    <Printer data-icon="inline-start" />
-                    {t("registers.open")}
-                  </Link>
-                </Button>
-                <ExportCsvButton
-                  filename={`registre-sorties-${month}.csv`}
-                  headers={[
-                    t("print.exits.date"),
-                    t("print.exits.child"),
-                    t("print.exits.in"),
-                    t("print.exits.out"),
-                    t("print.exits.pickedUpBy"),
-                  ]}
-                  rows={exitsCsv}
-                  label={t("csv")}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </UrlTabs>
+                  <span className="block text-xs text-muted-foreground">
+                    {t(`registers.${key}.description`)}
+                  </span>
+                </span>
+                <span className="relative z-10 flex shrink-0 items-center gap-1">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={href}>
+                      <Printer data-icon="inline-start" />
+                      {t("registers.open")}
+                    </Link>
+                  </Button>
+                  {csv}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+      )}
     </div>
   );
 }

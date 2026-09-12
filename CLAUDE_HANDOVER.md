@@ -77,12 +77,12 @@ customer types. Do not claim official Algerian curriculum or legal compliance.
 
 These migrations were previously reported applied to the connected project:
 
-- `20260910195848_kg_private_school_types.sql`
-- `20260910201251_kg_learning_workflows.sql`
-- `20260910202832_kg_learning_history.sql`
-- `20260910203708_kg_learning_class_index.sql`
+- `0146_kg_private_school_types.sql`
+- `0147_kg_learning_workflows.sql`
+- `0148_kg_learning_history.sql`
+- `0149_kg_learning_class_index.sql`
 
-`20260911010645_kg_scheduler_hardening.sql` is committed but NOT applied remotely.
+`0150_kg_scheduler_hardening.sql` was applied on 2026-09-11 (ledger 20260911193640) after staggering the 24 demo overlaps; the paragraph below is history.
 Read-only preflight found 24 overlapping existing appointment pairs: 18 scheduled
 and 6 completed. These are pairs, not necessarily 48 distinct appointments.
 No remote records were changed to resolve them.

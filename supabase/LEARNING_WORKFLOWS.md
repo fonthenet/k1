@@ -50,15 +50,16 @@ without recursive RLS; it checks the current authenticated identity and membersh
   A synthetic program-switch label check was inconclusive; labels now render
   directly from the selected option. The revised cross-type/save flow still needs
   a browser regression in an isolated project.
-- `20260911010645_kg_scheduler_hardening.sql` is NOT applied remotely. Read-only
-  preflight found 24 existing overlapping appointment pairs (18 scheduled and 6
-  completed); no remote records were changed. Review `scheduler_preflight.sql`
-  before explicitly resolving conflicts and applying this migration.
-- The pending migration fixes schedule-validation bypasses and uses one private
-  exclusion ledger for lesson/therapy staff bookings. Local PostgreSQL 14 tests
-  passed lifecycle, atomicity, preservation and eight two-connection races.
-  Connected PostgreSQL 17 verification remains pending. Concurrency harness SQL
-  is for a disposable local database only.
+- `0150_kg_scheduler_hardening.sql` was applied to the connected project on
+  2026-09-11 (ledger version 20260911193640) after the 24 overlapping pairs —
+  all demo-tenant therapy sessions, 8 days × 3 children in one slot — were
+  staggered explicitly (+45 / +90 min, no session cancelled or deleted). It was
+  first rehearsed in a rolled-back transaction on PostgreSQL 17.6: 79 ledger
+  rows, cross-module and same-slot overlaps refused (`exclusion_violation`),
+  cancellation releases the slot. Cross-module double-booking protection is live.
+- Local PostgreSQL 14 tests had passed lifecycle, atomicity, preservation and
+  eight two-connection races; the concurrency harness SQL is for a disposable
+  local database only.
 - Series-wide editing/rescheduling is not implemented; occurrences remain
   independent records. Do not treat this revision as a complete scheduler release.
 

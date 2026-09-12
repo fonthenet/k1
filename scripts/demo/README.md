@@ -64,6 +64,22 @@ on `auth.users`. The other 6 staff and 63 guardians have no login at all.
   cross-tenant surface in the product.
 - Never submit the landing-page quiz from the demo browser; it writes a lead.
 
+## Daily journal of 2026-09-10
+
+`daily_journal_seed.sql` shows a day the automatic *Journal du jour* went out.
+Run it once in the SQL editor after migration 0152 is applied (it refuses to
+run before): for the children of the four crèche classes it writes the
+attendance of Thursday 2026-09-10 (present 08:06–16:30, two absent), a
+published journal each (lunch, 13:00–14:00 nap, mood, one note), the photos
+consent for Adam Amrani, one `kg_daily_journal_ledger` row per child decided
+at 17:03 (`sent` for the four families with a login, `skipped_no_account` and
+`skipped_absent` for the others) and one digest notification per guardian
+account, composed by the same functions as the sender and stamped `pushed_at`
+so nothing can be delivered. It is idempotent and scoped to the demo tenant in
+every statement; the commented block at its bottom removes exactly what it
+wrote. `supabase/tests/daily_journal_rehearsal.sql` runs it and its teardown
+inside a rolled-back transaction.
+
 ## Teardown
 
 `teardown.sql` removes every row. It is scoped by tenant id in every statement

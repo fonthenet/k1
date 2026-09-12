@@ -1,17 +1,24 @@
 "use client";
 
-import { useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowRight, Camera, HeartPulse, IdCard, Loader2, MapPin, School } from "lucide-react";
+import { ArrowRight, Camera, HeartPulse, MapPin, School, Smartphone } from "lucide-react";
 import { directionsUrl, mapSearchUrl } from "@/lib/geo";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { setLocale } from "@/app/actions/locale";
-import { cn } from "@/lib/utils";
-import { structureName } from "@/components/modules/classes/class-types";
 import type { EnrollLinkData, EnrollStructure } from "./types";
-import { StructureChip } from "./step-structure";
+import { StructureRow, classesOf, structureAgeRange } from "./step-structure";
+import { OwnName } from "./wizard-ui";
 
+/**
+ * The first screen a family sees: the establishment's own name and logo,
+ * where it is, what it runs — then what to have ready, then the one button.
+ *
+ * Everything sits in the card the wizard draws around every step, so this
+ * page and the sign-in page read as one product. The name is the thing the
+ * eye must land on, so nothing competes with it: no badge, no filled locale
+ * pill, no paragraph. The structures of a whole-building link are listed
+ * here as information, because "does this building take a child of six?"
+ * is the question a parent has before they will type anything.
+ */
 export function StepWelcome({
   link,
   logoUrl,
@@ -24,19 +31,35 @@ export function StepWelcome({
   onStart: () => void;
 }) {
   const t = useTranslations("enroll");
-  const tc = useTranslations("common");
   const locale = useLocale();
-  const [pending, startTransition] = useTransition();
 
-  const location = [link.address, link.commune, link.wilaya].filter(Boolean).join(", ");
+  // Deduped: in Algeria the commune and the wilaya share a name far more
+  // often than not, and the address often already ends with the commune —
+  // a part that an earlier part already contains is not said again. Each
+  // part is isolated on its own so two Arabic runs on a French page cannot
+  // merge across the separator and swap places.
+  const place = ([link.address, link.commune, link.wilaya].filter(Boolean) as string[]).filter(
+    (part, i, all) => !all.slice(0, i).some((earlier) => earlier.includes(part)),
+  );
+  // A pin opens the exact spot; without one, hand the map the establishment's
+  // name and town, which is what a parent would type anyway.
+  const mapHref =
+    link.latitude !== null && link.longitude !== null
+      ? directionsUrl({ lat: link.latitude, lng: link.longitude })
+      : place.length > 0
+        ? mapSearchUrl(`${link.tenant_name}, ${place.join(", ")}`)
+        : null;
+
   // A link issued for one structure of the building says so on the first
   // screen — "the crèche" or "the école" — so a family sent the wrong link
   // finds out before, not after, ten minutes of form. Whole-building links
-  // ask on the next step instead. The list only carries ACTIVE structures;
+  // list every structure instead. The list only carries ACTIVE structures;
   // a link whose structure has since been switched off still names it, in
   // grey, from the two name fields the payload keeps beside the id.
-  const structure: EnrollStructure | null = link.structure_id
-    ? ((link.structures ?? []).find((s) => s.id === link.structure_id) ?? {
+  const structures = link.structures ?? [];
+  const classes = link.classes ?? [];
+  const linked: EnrollStructure | null = link.structure_id
+    ? (structures.find((s) => s.id === link.structure_id) ?? {
         id: link.structure_id,
         name: link.structure_name ?? "",
         name_ar: link.structure_name_ar,
@@ -44,116 +67,113 @@ export function StepWelcome({
         color: "",
       })
     : null;
-  // A pin opens the exact spot; without one, hand the map the crèche's name
-  // and town, which is what a parent would type anyway.
-  const mapHref =
-    link.latitude !== null && link.longitude !== null
-      ? directionsUrl({ lat: link.latitude, lng: link.longitude })
-      : location
-        ? mapSearchUrl(`${link.tenant_name}, ${location}`)
-        : null;
+  const shown = linked ? [linked] : structures.length > 1 ? structures : [];
+  const linkedClasses = linked ? classesOf(classes, linked.id) : [];
 
-  const switchLocale = (l: "ar" | "en" | "fr") => {
-    if (l === locale) return;
-    startTransition(() => setLocale(l));
-  };
+  const placeLine = (
+    <>
+      <MapPin className="size-3.5 shrink-0" aria-hidden />
+      <span className="min-w-0">
+        {place.map((part, i) => (
+          <span key={part}>
+            {i > 0 && <span aria-hidden> · </span>}
+            <OwnName>{part}</OwnName>
+          </span>
+        ))}
+      </span>
+    </>
+  );
+
+  const needs = [
+    { Icon: Camera, text: t("welcome.needPhoto") },
+    { Icon: HeartPulse, text: t("welcome.needHealth") },
+    { Icon: Smartphone, text: t("welcome.needAccount") },
+  ];
 
   return (
-    <div className="flex flex-col items-center pt-4 text-center">
-      {/* Language toggle */}
-      <div className="mb-6 inline-flex items-center gap-1 rounded-full border bg-card p-1">
-        {(["ar", "en", "fr"] as const).map((l) => (
-          <button
-            key={l}
-            type="button"
-            onClick={() => switchLocale(l)}
-            disabled={pending}
-            className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              locale === l
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {l === "ar" ? tc("arabic") : l === "en" ? tc("english") : tc("french")}
-          </button>
-        ))}
-        {pending && <Loader2 className="me-2 size-4 animate-spin text-muted-foreground" />}
+    <div className="flex flex-col">
+      {/* ── Identity: logo, name, place. ─────────────────────────────── */}
+      <div className="flex flex-col items-center text-center">
+        <div className="flex size-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-background">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- signed URL, expires hourly; next/image would cache a dead link
+            <img
+              src={logoUrl}
+              alt=""
+              className="size-full object-contain"
+              width={64}
+              height={64}
+            />
+          ) : (
+            <School className="size-7 text-primary" aria-hidden />
+          )}
+        </div>
+        <p className="mt-4 text-sm text-muted-foreground">{t("welcome.greeting")}</p>
+        <h1 className="mt-0.5 text-2xl leading-tight font-bold tracking-tight text-balance">
+          <OwnName className="text-center">{link.tenant_name}</OwnName>
+        </h1>
+        {place.length > 0 &&
+          (mapHref ? (
+            <a
+              href={mapHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
+              {placeLine}
+            </a>
+          ) : (
+            <p className="mt-2 inline-flex max-w-full items-center gap-1.5 text-sm text-muted-foreground">
+              {placeLine}
+            </p>
+          ))}
       </div>
 
-      {/* The crèche's own logo. A parent opening this link should recognise
-          the place before reading its name; a generic 🏫 told them only that
-          somebody built a form. */}
-      <div className="mb-4 flex size-20 items-center justify-center overflow-hidden rounded-3xl bg-primary/10 shadow-sm">
-        {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- signed URL, expires hourly; next/image would cache a dead link
-          <img
-            src={logoUrl}
-            alt={link.tenant_name}
-            className="size-full object-cover"
-            width={80}
-            height={80}
-          />
-        ) : (
-          <School className="size-9 text-primary" aria-hidden />
-        )}
-      </div>
-      <Badge variant="secondary" className="mb-3">
-        {t("welcome.badge")}
-      </Badge>
-      <h1 className="text-2xl font-bold tracking-tight">
-        {t("welcome.title", { name: link.tenant_name })}
-      </h1>
-      {structure && <StructureChip structure={structure} className="mt-2" />}
-      {location &&
-        (mapHref ? (
-          <a
-            href={mapHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center gap-1.5 rounded-lg px-1.5 py-0.5 text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-          >
-            <MapPin className="size-3.5 shrink-0" aria-hidden />
-            {location}
-          </a>
-        ) : (
-          <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-            <MapPin className="size-3.5 shrink-0" aria-hidden />
-            {location}
-          </p>
-        ))}
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-        {structure
-          ? t("welcome.introStructure", { structure: structureName(structure, locale) })
-          : t("welcome.intro")}
-      </p>
+      {/* ── What the building runs: one row per structure, not tappable —
+             the decision is the next step. On a structure link, the one
+             structure this link opens, with its classes under it. ─────── */}
+      {shown.length > 0 && (
+        <div className="mt-6 divide-y divide-border border-y border-border">
+          {shown.map((s) => (
+            <div key={s.id} className="py-3">
+              <StructureRow structure={s} trailing={structureAgeRange(classesOf(classes, s.id), t)} />
+              {linked && linkedClasses.length > 0 && (
+                <p className="mt-1.5 ps-10 text-sm text-muted-foreground">
+                  {t("welcome.classes")}{" "}
+                  {linkedClasses.map((c, i) => (
+                    <span key={c.id}>
+                      {/* The Arabic comma on an Arabic page, as the address line above. */}
+                      {i > 0 && <span aria-hidden>{locale === "ar" ? "، " : ", "}</span>}
+                      <OwnName>{locale === "ar" && c.name_ar ? c.name_ar : c.name}</OwnName>
+                    </span>
+                  ))}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
-      <div className="mt-6 w-full rounded-2xl border bg-card p-4 text-start">
-        <p className="mb-3 text-sm font-semibold">{t("welcome.needTitle")}</p>
-        <ul className="space-y-2.5 text-sm text-muted-foreground">
-          <li className="flex items-center gap-2.5">
-            <Camera className="size-4 shrink-0 text-primary" />
-            {t("welcome.needPhoto")}
-          </li>
-          <li className="flex items-center gap-2.5">
-            <HeartPulse className="size-4 shrink-0 text-primary" />
-            {t("welcome.needHealth")}
-          </li>
-          <li className="flex items-center gap-2.5">
-            <IdCard className="size-4 shrink-0 text-primary" />
-            {t("welcome.needIds")}
-          </li>
+      {/* ── What to have ready. ──────────────────────────────────────── */}
+      <div className={shown.length > 0 ? "mt-5" : "mt-6 border-t border-border pt-5"}>
+        <p className="text-sm font-semibold">{t("welcome.needTitle")}</p>
+        <ul className="mt-2.5 space-y-2 text-sm text-muted-foreground">
+          {needs.map(({ Icon, text }) => (
+            <li key={text} className="flex items-start gap-2.5">
+              <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span>{text}</span>
+            </li>
+          ))}
         </ul>
       </div>
-
-      {resumed && (
-        <p className="mt-4 text-xs text-muted-foreground">💾 {t("welcome.resumeNotice")}</p>
-      )}
 
       <Button onClick={onStart} className="mt-6 h-12 w-full text-base" size="lg">
         {resumed ? t("welcome.resume") : t("welcome.start")}
         <ArrowRight className="size-4 rtl:rotate-180" data-icon="inline-end" />
       </Button>
+      <p className="mt-3 text-center text-xs text-muted-foreground">
+        {resumed ? t("welcome.resumeNotice") : t("welcome.lead")}
+      </p>
     </div>
   );
 }

@@ -1,19 +1,21 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import { CalendarClock, Megaphone, Pin } from "lucide-react";
+import { Megaphone, Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, scoped } from "@/lib/tenant";
 import { formatDate, formatTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ClassChip } from "@/components/shared/class-chip";
+import { StatusPill } from "@/components/shared/status-pill";
+import { StructureMark } from "@/components/shared/structure-mark";
 import {
   AnnouncementDialog,
-  DeleteAnnouncementButton,
+  AnnouncementRowMenu,
 } from "@/components/modules/comms/announcement-actions";
-import { audienceClasses, type AnnouncementRow, type ClassOption } from "@/components/modules/comms/types";
+import { type AnnouncementRow, type ClassOption } from "@/components/modules/comms/types";
 import { WhatsAppIcon } from "@/components/modules/comms/whatsapp-icon";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 
@@ -27,6 +29,8 @@ export default async function AnnouncementsPage() {
     await Promise.all([
       // Scoped to the structure PLUS the building: a water cut is addressed to
       // the address, and must not vanish because someone is reading the école.
+      // Pinned first, then newest — the order the register is read in, so no
+      // group rows are needed to say it.
       scoped(
         supabase
           .from("kg_announcements")
@@ -41,10 +45,11 @@ export default async function AnnouncementsPage() {
       ),
       // Not narrowed: this list only feeds the announcement dialog, and a
       // notice for a crèche class must still be writable while reading the
-      // école. Scope what you read, never what you do.
+      // école. Scope what you read, never what you do. The colour is for the
+      // class chip in the register — the one mark a class carries.
       supabase
         .from("kg_classes")
-        .select("id, name, name_ar")
+        .select("id, name, name_ar, color")
         .eq("tenant_id", ctx.tenant.id)
         .order("name"),
       // The structures of the establishment (0125), so a notice can be
@@ -89,100 +94,128 @@ export default async function AnnouncementsPage() {
           icon={<Megaphone />}
           title={t("announcements.empty")}
           description={t("announcements.emptyDescription")}
-          action={
-            <AnnouncementDialog announcement={null} classes={classes} structures={structures} />
-          }
         />
       ) : (
-        <div className="grid gap-4">
-          {announcements.map((a) => {
-            const cls = a.class_id ? classById.get(a.class_id) : undefined;
-            const str = a.structure_id ? structureById.get(a.structure_id) : undefined;
-            // The badge says who was addressed, so a class and a structure name
-            // themselves rather than repeating the word for their kind.
-            const audienceLabel =
-              a.audience === "class" && cls
-                ? locale === "ar" && cls.name_ar
-                  ? cls.name_ar
-                  : cls.name
-                : a.audience === "structure" && str
-                  ? structureName(str, locale)
-                  : t(`audience.${a.audience}`);
-            const author = a.created_by ? authorById.get(a.created_by) : null;
-            const scheduled = Date.parse(a.publish_at) > now;
-            const shareUrl = `https://wa.me/?text=${encodeURIComponent(`${a.title}\n\n${a.body}`)}`;
+        /* One row per announcement, the way the classes page draws classes:
+           the title is the door, the facts are columns, the two controls are
+           lifted at the end. A card per notice made ten notices ten boxes of
+           different heights with a tinted frame on the pinned ones — a pin
+           glyph before the title says "pinned" once and costs nothing. */
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+              <TableHeader>
+                <TableRow className="[&>th]:font-semibold">
+                  <TableHead>{t("announcements.columns.announcement")}</TableHead>
+                  <TableHead>{t("announcements.form.audience")}</TableHead>
+                  <TableHead>{t("announcements.form.publishAt")}</TableHead>
+                  <TableHead>{t("announcements.columns.author")}</TableHead>
+                  <TableHead className="w-20">
+                    <span className="sr-only">{t("announcements.columns.actions")}</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {announcements.map((a) => {
+                  const cls = a.class_id ? classById.get(a.class_id) : undefined;
+                  const str = a.structure_id ? structureById.get(a.structure_id) : undefined;
+                  const author = a.created_by ? authorById.get(a.created_by) : null;
+                  const scheduled = Date.parse(a.publish_at) > now;
+                  const shareUrl = `https://wa.me/?text=${encodeURIComponent(`${a.title}\n\n${a.body}`)}`;
 
-            return (
-              <Card
-                key={a.id}
-                className={cn(
-                  "border border-border py-0 shadow-sm ring-0 transition-shadow hover:shadow-md",
-                  // Pinned items are the one place gold outranks green.
-                  a.pinned && "border-gold/45 bg-gold/5"
-                )}
-              >
-                <CardContent className="p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {a.pinned && (
-                          <span
-                            aria-hidden
-                            className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-gold text-gold-foreground"
+                  return (
+                    <TableRow key={a.id} className="relative transition-colors hover:bg-primary/5 [&>td]:align-top">
+                      <TableCell className="min-w-64 max-w-xl whitespace-normal">
+                        {/* The title opens the editor and its overlay reaches
+                            every cell, so the whole row is the door. */}
+                        <AnnouncementDialog
+                          announcement={a}
+                          classes={classes}
+                          structures={structures}
+                          trigger={
+                            <button
+                              type="button"
+                              className="flex items-center gap-1.5 rounded text-start font-semibold after:absolute after:inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                            >
+                              {/* The glyph is decoration; the word is what a
+                                  screen reader gets, since an inline svg with
+                                  a label and no role is skipped by most. */}
+                              {a.pinned && (
+                                <>
+                                  <Pin className="size-3.5 shrink-0 text-gold-ink" aria-hidden />
+                                  <span className="sr-only">{t("announcements.pinned")}</span>
+                                </>
+                              )}
+                              <bdi dir="auto">{a.title}</bdi>
+                            </button>
+                          }
+                        />
+                        {a.body && (
+                          <bdi
+                            dir="auto"
+                            className="mt-0.5 line-clamp-2 text-start text-xs leading-relaxed text-muted-foreground"
                           >
-                            <Pin className="size-3.5" />
+                            {a.body}
+                          </bdi>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {/* One mark for who was addressed: a structure or a
+                            class names itself with its own colour; the rest
+                            is a word. */}
+                        {a.audience === "structure" && str ? (
+                          <StructureMark
+                            structure={{
+                              name: structureName(str, locale),
+                              color: str.color ?? "var(--primary)",
+                            }}
+                          />
+                        ) : a.audience === "class" && cls ? (
+                          <ClassChip
+                            name={locale === "ar" && cls.name_ar ? cls.name_ar : cls.name}
+                            color={cls.color}
+                          />
+                        ) : (
+                          <span className="text-muted-foreground">{t(`audience.${a.audience}`)}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground tabular-nums">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span>
+                            {formatDate(a.publish_at, locale)} · {formatTime(a.publish_at, locale)}
                           </span>
-                        )}
-                        <h3 className="text-base font-semibold text-foreground">{a.title}</h3>
-                        <Badge className={audienceClasses(a.audience)}>
-                          {/* The structure's own colour, the same dot the staff
-                              list gives it — the badge itself stays neutral so
-                              the two readings do not compete. */}
-                          {str && a.audience === "structure" && (
-                            <span
-                              className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-                              style={{ backgroundColor: str.color }}
-                              aria-hidden
-                            />
+                          {scheduled && (
+                            <StatusPill tone="attention">{t("announcements.scheduled")}</StatusPill>
                           )}
-                          {audienceLabel}
-                        </Badge>
-                        {scheduled && (
-                          <Badge className="border-transparent bg-muted font-medium text-muted-foreground">
-                            <CalendarClock data-icon="inline-start" />
-                            {t("announcements.scheduled")}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        {formatDate(a.publish_at, locale)} · {formatTime(a.publish_at, locale)}
-                        {author ? ` · ${t("announcements.by", { name: author })}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button asChild variant="ghost" size="icon" aria-label={t("announcements.share")}>
-                        <a href={shareUrl} target="_blank" rel="noopener noreferrer">
-                          <WhatsAppIcon className="size-4 text-success" />
-                        </a>
-                      </Button>
-                      <AnnouncementDialog
-                        announcement={a}
-                        classes={classes}
-                        structures={structures}
-                      />
-                      <DeleteAnnouncementButton announcementId={a.id} />
-                    </div>
-                  </div>
-                  {a.body && (
-                    <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
-                      {a.body}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {author ? <bdi dir="auto">{author}</bdi> : "—"}
+                      </TableCell>
+                      <TableCell className="w-20">
+                        <span className="relative z-10 flex items-center justify-end gap-0.5">
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-muted-foreground"
+                            aria-label={t("announcements.share")}
+                            title={t("announcements.share")}
+                          >
+                            <a href={shareUrl} target="_blank" rel="noopener noreferrer">
+                              <WhatsAppIcon className="size-4" />
+                            </a>
+                          </Button>
+                          <AnnouncementRowMenu announcementId={a.id} />
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

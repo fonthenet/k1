@@ -21,7 +21,8 @@
       "allergies": "Allergies",
       "enrolled": "Inscrit le",
       "tag": "Code badge",
-      "status": "Statut"
+      "status": "Statut",
+      "badge": "Badge"
     },
     "former": "Anciens enfants",
     "formerHint": "Retirés ou archivés. Leurs dossiers sont conservés.",
@@ -36,7 +37,15 @@
     "bulkMove": "Déplacer vers…",
     "bulkClear": "Annuler la sélection",
     "bulkSelectAll": "Sélectionner tous les enfants affichés",
-    "bulkSelectOne": "Sélectionner {name}"
+    "bulkSelectOne": "Sélectionner {name}",
+    "pupils": {
+      "title": "Élèves",
+      "description": "Dossiers des élèves, familles et santé",
+      "count": "{count, plural, =0 {Aucun élève} one {# élève} other {# élèves}}",
+      "searchPlaceholder": "Rechercher un élève (français ou arabe)…",
+      "addChild": "Ajouter un élève",
+      "column": "Élève"
+    }
   },
   "status": {
     "pending": "En attente",
@@ -78,7 +87,8 @@
     "structureFollowsClass": "Suit la classe.",
     "structureNone": "Aucune structure",
     "structureMoveHint": "Pour changer de structure, utilisez « {button} » sur la fiche : le tarif et l'historique suivent.",
-    "structureUnfiledHint": "Cet enfant n'est rattaché à aucune structure. Choisissez-en une ici — ce n'est pas un déplacement, rien n'est clôturé ni annoncé."
+    "structureUnfiledHint": "Cet enfant n'est rattaché à aucune structure. Choisissez-en une ici — ce n'est pas un déplacement, rien n'est clôturé ni annoncé.",
+    "noClassIn": "Sans classe — {structure}"
   },
   "addDialog": {
     "title": "Ajouter un enfant",
@@ -126,10 +136,11 @@
       "tagCode": "Code badge",
       "notes": "Notes",
       "none": "—"
-    }
+    },
+    "more": "Plus d'actions"
   },
   "guardians": {
-    "title": "Tuteurs / parents",
+    "title": "Parents et tuteurs",
     "empty": "Aucun tuteur lié à ce dossier",
     "add": "Ajouter un tuteur",
     "addTitle": "Ajouter un tuteur",
@@ -155,11 +166,11 @@
     "address": "Adresse",
     "workplace": "Lieu de travail",
     "canPickup": "Autorisé à récupérer l'enfant",
-    "isFinancial": "Responsable financier",
+    "isFinancial": "Responsable des paiements",
     "isPrimary": "Contact principal",
     "primaryBadge": "Principal",
     "canPickupBadge": "Récupération",
-    "financialBadge": "Financier",
+    "financialBadge": "Paie les frais",
     "unlink": "Retirer",
     "unlinkTitle": "Retirer ce tuteur ?",
     "unlinkDescription": "Le lien avec cet enfant sera supprimé. La fiche du tuteur reste conservée.",
@@ -246,7 +257,7 @@
     "notLinkedDescription": "Vérifiez la fiche de l'enfant : ce tuteur ne figure pas parmi ses tuteurs."
   },
   "pickups": {
-    "title": "Personnes autorisées (récupération)",
+    "title": "Personnes autorisées",
     "description": "Autres personnes autorisées à venir chercher l'enfant, avec pièce d'identité.",
     "empty": "Aucune personne autorisée supplémentaire",
     "add": "Ajouter une personne",
@@ -447,7 +458,8 @@
       "continues": "Continue",
       "newPlan": "Nouvelle formule",
       "noNewPlan": "Aucune nouvelle formule",
-      "newPlanHint": "Facultatif. La formule choisie démarre à la date d'effet ; les formules de tout l'établissement continuent d'elles-mêmes."
+      "newPlanHint": "Facultatif. La formule choisie démarre à la date d'effet ; les formules de tout l'établissement continuent d'elles-mêmes.",
+      "continuesBuilding": "Continue (formule de tout l'établissement)"
     },
     "reason": "Motif",
     "reasonHint": "Facultatif — visible dans le parcours de l'enfant",
@@ -469,7 +481,12 @@
       "noChange": "L'enfant est déjà à cet endroit.",
       "feePlanNotInStructure": "Cette formule n'est pas proposée dans la structure choisie.",
       "error": "Le déplacement n'a pas pu être enregistré. Réessayez."
-    }
+    },
+    "effectiveFrom": "À partir du",
+    "alreadyHere": "{count, plural, one {# déjà ici} other {# déjà ici}}",
+    "moreNames": "{count, plural, one {et # autre} other {et # autres}}",
+    "toStructure": "Déplacer vers {structure}",
+    "toStructureBulk": "Déplacer {count, plural, one {# enfant} other {# enfants}} vers {structure}"
   },
   "transfers": {
     "title": "Parcours",
@@ -477,6 +494,7 @@
     "nowhere": "Sans structure",
     "parentRequest": "Demande des parents",
     "by": "Par {name}",
-    "byUnknown": "Par un compte supprimé"
+    "byUnknown": "Par un compte supprimé",
+    "byLabel": "Par"
   }
 }

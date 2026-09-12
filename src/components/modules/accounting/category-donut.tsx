@@ -1,7 +1,7 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { formatDZD, intlLocale } from "@/lib/format";
+import { formatDZD, groupWithSpace, intlLocale } from "@/lib/format";
 
 export interface DonutSlice {
   name: string;
@@ -10,75 +10,98 @@ export interface DonutSlice {
 }
 
 /** Expense breakdown by category — colors come from kg_txn_categories.color. */
-export function CategoryDonut({ data, locale }: { data: DonutSlice[]; locale: string }) {
+export function CategoryDonut({
+  data,
+  locale,
+}: {
+  data: DonutSlice[];
+  locale: string;
+}) {
   const total = data.reduce((s, d) => s + d.value, 0);
   const dateLocale = intlLocale(locale);
   const pctFmt = new Intl.NumberFormat(dateLocale, {
     style: "percent",
     maximumFractionDigits: 0,
   });
-  const compactFmt = new Intl.NumberFormat(dateLocale, {
-    notation: "compact",
-    maximumFractionDigits: 1,
-  });
+  // The centre says the month's total the way the cards above say theirs:
+  // the full figure, grouped. Compact notation gave "198,1 ألف" here, a
+  // form nobody writes on a ledger and one that reads backwards next to a
+  // French legend; the legend already carries the currency for every row.
 
   return (
-    <div className="flex flex-col items-center gap-5 sm:flex-row">
-      <div dir="ltr" className="relative h-52 w-52 shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Tooltip
-              formatter={(value) => formatDZD(Number(value), locale)}
-              contentStyle={{
-                background: "var(--popover)",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                color: "var(--popover-foreground)",
-                fontSize: 12,
-              }}
-            />
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              innerRadius={58}
-              outerRadius={85}
-              paddingAngle={2}
-              stroke="var(--card)"
-              strokeWidth={2}
-            >
-              {data.map((slice, i) => (
-                <Cell key={i} fill={slice.color} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-bold tabular-nums text-foreground">
-            {compactFmt.format(total)}
-          </span>
-        </div>
-      </div>
-      <ul className="w-full min-w-0 flex-1 space-y-0.5">
-        {data.map((slice, i) => (
-          <li
-            key={i}
-            className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-muted/60"
-          >
+    // Side by side only when the CARD is wide enough for a legend row to
+    // keep its names: in the two-column overview at 1360 the card is 480px,
+    // and a 220px legend beside the ring cut "Alimentation" to "Alime…".
+    // The container query asks the card, not the viewport.
+    <div className="@container">
+      <div className="flex flex-col items-center gap-5 @lg:flex-row">
+        <div dir="ltr" className="relative h-52 w-52 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Tooltip
+                formatter={(value) => formatDZD(Number(value), locale)}
+                contentStyle={{
+                  background: "var(--popover)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 10,
+                  color: "var(--popover-foreground)",
+                  fontSize: 12,
+                }}
+              />
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={58}
+                outerRadius={85}
+                paddingAngle={2}
+                stroke="var(--card)"
+                strokeWidth={2}
+              >
+                {data.map((slice, i) => (
+                  <Cell key={i} fill={slice.color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <span
-              className="size-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: slice.color }}
-            />
-            <span className="min-w-0 flex-1 truncate">{slice.name}</span>
-            <span className="tabular-nums text-muted-foreground">
-              {total > 0 ? pctFmt.format(slice.value / total) : "—"}
+              className="text-lg font-bold tabular-nums text-foreground"
+              dir="ltr"
+            >
+              {groupWithSpace(total)}
             </span>
-            <span className="w-24 text-end font-semibold tabular-nums">
-              {formatDZD(slice.value, locale)}
-            </span>
-          </li>
-        ))}
-      </ul>
+          </div>
+        </div>
+        <ul className="w-full min-w-0 flex-1 space-y-0.5">
+          {data.map((slice, i) => (
+            <li
+              key={i}
+              className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-muted/60"
+            >
+              <span
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: slice.color }}
+              />
+              {/* Category names are the director's own words, French or Arabic
+                in either interface: bdi keeps a French name reading forwards
+                on an Arabic row and ellipsises it at its own end. */}
+              <bdi
+                dir="auto"
+                className="block min-w-0 flex-1 truncate text-start"
+              >
+                {slice.name}
+              </bdi>
+              <span className="tabular-nums text-muted-foreground">
+                {total > 0 ? pctFmt.format(slice.value / total) : "—"}
+              </span>
+              <span className="w-24 text-end font-semibold tabular-nums">
+                {formatDZD(slice.value, locale)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

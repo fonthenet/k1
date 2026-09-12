@@ -1,7 +1,7 @@
 {
   "team": {
     "title": "Team",
-    "description": "Staff members, roles and today's check-ins",
+    "description": "Team members, roles and today’s check-ins",
     "leavesLink": "Leave",
     "invitesLink": "Invitations",
     "empty": "No team members yet",
@@ -20,7 +20,11 @@
       "hireDate": "Hired",
       "status": "Status",
       "today": "Today"
-    }
+    },
+    "searchPlaceholder": "Search the team",
+    "filterRole": "Filter by role",
+    "allRoles": "All roles",
+    "count": "{count, plural, =0 {No members} one {# member} other {# members}}"
   },
   "roles": {
     "owner": "Owner",
@@ -104,7 +108,8 @@
       "open": "Open my workspace"
     },
     "structures": "Structures",
-    "structuresHint": "Where this person will work. Tick several if needed — leave empty for the whole building."
+    "structuresHint": "Where this person will work. Tick several if needed — leave empty for the whole building.",
+    "attachToggle": "Already on the team?"
   },
   "edit": {
     "title": "Edit member",
@@ -185,7 +190,8 @@
       "period": "Period",
       "reason": "Reason",
       "status": "Status",
-      "requestedOn": "Requested on"
+      "requestedOn": "Requested on",
+      "actions": "Actions"
     },
     "status": {
       "pending": "Pending",
@@ -201,7 +207,13 @@
     "cancelledToast": "Request cancelled",
     "empty": "No leave requests.",
     "days": "{count, plural, one {# day} other {# days}}",
-    "dateError": "The end date must be after the start date."
+    "dateError": "The end date must be after the start date.",
+    "hint": "This person’s leave requests",
+    "pastTitle": "Past",
+    "approveTitle": "Approve this leave?",
+    "approveDesc": "The request is marked approved and the person finds it under their leave.",
+    "rejectTitle": "Reject this request?",
+    "rejectDesc": "The request is marked rejected. The person can file another one."
   },
   "salary": {
     "baseSalary": "Base salary",
@@ -227,7 +239,9 @@
     },
     "unpaid": "Unpaid",
     "perHour": "{amount} / hour",
-    "hours": "{hours, plural, one {# h} other {# h}}"
+    "hours": "{hours, plural, one {# h} other {# h}}",
+    "advancesHint": "Advances paid out and whether they were repaid",
+    "payrollHint": "One payslip per payroll month"
   },
   "invites": {
     "title": "Invitations",
@@ -238,7 +252,8 @@
       "email": "Email",
       "role": "Role",
       "jobTitle": "Job title",
-      "expires": "Expires on"
+      "expires": "Expires on",
+      "actions": "Actions"
     },
     "expired": "Expired",
     "copyLink": "Copy link",
@@ -246,7 +261,8 @@
     "revoke": "Revoke",
     "revokeTitle": "Revoke this invitation?",
     "revokeDescription": "The link sent to {email} will stop working.",
-    "revoked": "Invitation revoked"
+    "revoked": "Invitation revoked",
+    "more": "More actions"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -303,6 +319,14 @@
     "submit": "Save ({count})",
     "saved": "Classes saved",
     "wholeBuilding": "Whole establishment",
-    "main": "Main"
+    "main": "Main",
+    "hint": "The classes this person runs",
+    "lead": "Lead",
+    "dialogHint": "Tick the classes this person runs.",
+    "leadsIt": "Leads this class",
+    "leadIs": "Lead: {name}"
+  },
+  "cards": {
+    "hint": "Badges that open the door for this person"
   }
 }

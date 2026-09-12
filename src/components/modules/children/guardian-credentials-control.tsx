@@ -117,7 +117,7 @@ export function GuardianCredentialsControl({
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm" disabled={pending}>
-                  <ShieldOff data-icon="inline-start" className="text-destructive" />
+                  <ShieldOff data-icon="inline-start" />
                   {t("guardians.credentials.revoke")}
                 </Button>
               </AlertDialogTrigger>

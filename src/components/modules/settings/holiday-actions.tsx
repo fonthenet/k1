@@ -2,14 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarCheck, Trash2 } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -19,7 +22,7 @@ import { DatePicker } from "@/components/shared/date-picker";
 import { confirmHoliday, deleteHoliday, setHolidayClosure } from "./actions";
 import type { HolidayRow } from "./settings-types";
 
-/** Toggle whether the kindergarten actually closes on that holiday. */
+/** Toggle whether the establishment actually closes on that holiday. */
 export function ClosureSwitch({ id, closure }: { id: string; closure: boolean }) {
   const t = useTranslations("settings");
   const router = useRouter();
@@ -78,7 +81,6 @@ export function ConfirmHolidayDialog({ holiday }: { holiday: HolidayRow }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <CalendarCheck data-icon="inline-start" />
           {tc("actions.confirm")}
         </Button>
       </DialogTrigger>
@@ -120,10 +122,15 @@ export function ConfirmHolidayDialog({ holiday }: { holiday: HolidayRow }) {
   );
 }
 
-export function DeleteHolidayButton({ id, name }: { id: string; name: string }) {
+/**
+ * The row's overflow: deleting is its only item, and the only destructive
+ * thing on the page — inside a menu, never a red bin on every row.
+ */
+export function HolidayRowMenu({ id, name }: { id: string; name: string }) {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
   const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function remove() {
@@ -139,35 +146,39 @@ export function DeleteHolidayButton({ id, name }: { id: string; name: string }) 
   }
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-destructive hover:text-destructive"
-          aria-label={tc("actions.delete")}
-        >
-          <Trash2 />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t("holidays.deleteTitle")}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {t("holidays.deleteDescription", { name })}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
-          <AlertDialogAction
-            disabled={pending}
-            onClick={remove}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-sm" aria-label={t("holidays.more")}>
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
             {tc("actions.delete")}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialog open={deleting} onOpenChange={setDeleting}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("holidays.deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("holidays.deleteDescription", { name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending}
+              onClick={remove}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {tc("actions.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

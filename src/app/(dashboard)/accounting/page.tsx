@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
-  ArrowRight,
+  ChevronRight,
   Vault,
   Scale,
   TrendingDown,
@@ -12,14 +12,15 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import { formatDZD, formatDate, intlLocale } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import type { TxnKind } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StatCard } from "@/components/shared/stat-card";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -30,7 +31,7 @@ import { AccountingNav } from "@/components/modules/accounting/nav-tabs";
 import { MonthlyBars, type MonthPoint } from "@/components/modules/accounting/monthly-bars";
 import { CategoryDonut } from "@/components/modules/accounting/category-donut";
 import { algiersMonth, monthLabel, recentMonths } from "@/components/modules/billing/dates";
-import { EmptyIcon, IconTile, MoneyStat } from "@/components/modules/billing/finance-ui";
+import { EmptyIcon } from "@/components/modules/billing/finance-ui";
 
 /** Shape of kg_ledger_overview (0106). Numerics arrive as strings over PostgREST. */
 interface Overview {
@@ -136,40 +137,41 @@ export default async function AccountingOverviewPage({
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MoneyStat
+      {/* Two by two, not four across: the tile puts the label and the figure
+          on one line, and four six-digit amounts beside their icons leave
+          the labels a single letter at 1360. */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <StatCard
           label={t("overview.monthIncome")}
           value={formatDZD(monthIncome, locale)}
           hint={monthTitle}
           icon={<TrendingUp />}
-          tone="income"
+          tone="success"
         />
-        <MoneyStat
+        <StatCard
           label={t("overview.monthExpense")}
           value={formatDZD(monthExpense, locale)}
           hint={monthTitle}
           icon={<TrendingDown />}
-          tone="expense"
+          tone="danger"
         />
-        <MoneyStat
+        <StatCard
           label={t("overview.net")}
           value={formatDZD(net, locale)}
           hint={monthTitle}
           icon={<Scale />}
-          tone={net >= 0 ? "gold" : "destructive"}
-          highlight
+          tone="gold"
         />
-        <MoneyStat
+        <StatCard
           label={t("overview.cash")}
           value={formatDZD(cashBalance, locale)}
           hint={t("overview.cashHint")}
           // A strongbox, not a piggy bank: "solde de caisse" is the cash the
-          // crèche is holding, and a pig is the wrong image entirely for an
-          // Algerian product — haram, and jarring on a screen a director looks
-          // at daily. Vault also stays distinct from the arrows and the scale
-          // on the three stats beside it.
+          // establishment is holding, and a pig is the wrong image entirely
+          // for an Algerian product — haram, and jarring on a screen a
+          // director looks at daily. Vault also stays distinct from the
+          // arrows and the scale on the three stats beside it.
           icon={<Vault />}
-          tone="primary"
         />
       </div>
 
@@ -214,14 +216,17 @@ export default async function AccountingOverviewPage({
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-semibold">{t("overview.recentTitle")}</CardTitle>
-          <CardDescription>
-            <Button asChild variant="link" className="h-auto p-0 text-sm">
+          <CardDescription>{t("overview.recentHint")}</CardDescription>
+          {/* The card's one door, at the end of the title row as the
+              dashboard draws it — not a link under the title. */}
+          <CardAction>
+            <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary">
               <Link href="/accounting/transactions">
                 {t("overview.viewLedger")}
-                <ArrowRight data-icon="inline-end" className="rtl:-scale-x-100" />
+                <ChevronRight data-icon="inline-end" className="rtl:-scale-x-100" />
               </Link>
             </Button>
-          </CardDescription>
+          </CardAction>
         </CardHeader>
         <CardContent>
           {recent.length === 0 ? (
@@ -234,41 +239,40 @@ export default async function AccountingOverviewPage({
               title={t("overview.recentEmpty")}
             />
           ) : (
-            <ul className="divide-y">
-              {recent.map((tx) => {
-                const isIncome = tx.kind === "income";
-                return (
-                  <li key={tx.id} className="flex items-center gap-3 py-3">
-                    <IconTile tone={isIncome ? "income" : "expense"} size="sm">
-                      {isIncome ? <TrendingUp /> : <TrendingDown />}
-                    </IconTile>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{tx.description || "—"}</div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{formatDate(tx.date, locale)}</span>
-                        {tx.kg_txn_categories && (
-                          <span className="flex items-center gap-1">
-                            <span
-                              className="size-2 rounded-full"
-                              style={{ backgroundColor: tx.kg_txn_categories.color }}
-                            />
-                            {tx.kg_txn_categories.name}
-                          </span>
-                        )}
+            /* A plain list, the subscription bill's: date, what it was, its
+               category, the amount at the end. The journal already settled
+               that the sign carries the kind — a tinted tile and a green or
+               red figure on every row would say the same fact three times
+               and paint the whole card. */
+            <ul className="divide-y divide-border">
+              {recent.map((tx) => (
+                <li key={tx.id} className="flex items-center gap-4 py-3">
+                  <span className="w-24 shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {formatDate(tx.date, locale)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">
+                      <bdi dir="auto">{tx.description || "—"}</bdi>
+                    </div>
+                    {tx.kg_txn_categories && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span
+                          className="size-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: tx.kg_txn_categories.color }}
+                          aria-hidden
+                        />
+                        <bdi dir="auto" className="truncate">
+                          {tx.kg_txn_categories.name}
+                        </bdi>
                       </div>
-                    </div>
-                    <div
-                      className={cn(
-                        "shrink-0 text-sm font-semibold tabular-nums",
-                        isIncome ? "text-income" : "text-expense"
-                      )}
-                    >
-                      {isIncome ? "+" : "−"}
-                      {formatDZD(Number(tx.amount), locale)}
-                    </div>
-                  </li>
-                );
-              })}
+                    )}
+                  </div>
+                  <span className="shrink-0 whitespace-nowrap text-sm font-medium tabular-nums">
+                    {tx.kind === "expense" && <span aria-hidden>− </span>}
+                    {formatDZD(Number(tx.amount), locale)}
+                  </span>
+                </li>
+              ))}
             </ul>
           )}
         </CardContent>

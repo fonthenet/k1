@@ -20,10 +20,12 @@
     "settings": "الإعدادات",
     "kiosk": "وضع الاستقبال",
     "portal": "فضاء الأولياء",
-    "sessions": "الجلسات",
+    "sessions": "المتابعة الفردية",
     "tasks": "المهام",
     "platform": "لوحة المنصّة",
-    "menu": "القائمة"
+    "menu": "القائمة",
+    "learning": "التعلّم",
+    "profile": "الملف الشخصي"
   },
   "actions": {
     "save": "حفظ",
@@ -133,5 +135,37 @@
     "all": "المؤسسة كاملة",
     "allHint": "{count} هياكل",
     "viewing": "الهيكل المعروض"
+  },
+  "nouns": {
+    "children": "الأطفال",
+    "pupils": "التلاميذ"
+  },
+  "navGroups": {
+    "day": "اليوم",
+    "families": "العائلات",
+    "management": "الإدارة"
+  },
+  "rooms": {
+    "room": "القاعة",
+    "noRoom": "بلا قاعة",
+    "classRoom": "قاعة القسم",
+    "sharedWith": "قاعة {classes} أيضًا.",
+    "places": "{count, plural, zero {# مكان} one {مكان واحد} two {مكانان} few {# أماكن} many {# مكانا} other {# مكان}}",
+    "tooSmall": "قاعة من {capacity, plural, zero {# مكان} one {مكان واحد} two {مكانين} few {# أماكن} many {# مكانا} other {# مكان}} لـ{count, plural, zero {# طفل} one {طفل واحد} two {طفلين} few {# أطفال} many {# طفلا} other {# طفل}}.",
+    "occupancy": "إشغال القاعات",
+    "occupancyHint": "عمود لكل قاعة طوال اليوم؛ وكتلتان متجاورتان تعنيان تداخلًا.",
+    "sheetLabel": "إشغال القاعات يوم {date}",
+    "bookings": "{count, plural, zero {# حجز} one {حجز واحد} two {حجزان} few {# حجوزات} many {# حجزا} other {# حجز}}",
+    "emptyDay": "لا توجد حجوزات في هذا اليوم.",
+    "previousDay": "اليوم السابق",
+    "nextDay": "اليوم التالي",
+    "kind": {
+      "lesson": "حصة",
+      "event": "فعالية",
+      "activity": "نشاط"
+    }
+  },
+  "scheduler": {
+    "busy": "محجوز مسبقًا"
   }
 }

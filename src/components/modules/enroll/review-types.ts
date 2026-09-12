@@ -7,7 +7,8 @@
 // form; these fields only matter once a director is looking at the queue.
 // `ApplicationRecord & ApplicationReviewFields` is the row a review page reads.
 
-import type { ApplicationRecord } from "./types";
+import type { StatusTone } from "@/components/shared/status-pill";
+import type { ApplicationRecord, PipelineStatus } from "./types";
 
 /** kg_structures, as embedded on an application row (`kg_structures(...)`). */
 export interface StructureRef {
@@ -24,6 +25,8 @@ export interface ClassRef {
   name: string;
   name_ar: string | null;
   structure_id: string | null;
+  /** The class's own colour, for the chip. Absent when the page did not select it. */
+  color?: string | null;
 }
 
 /**
@@ -97,3 +100,20 @@ export interface TransferSummary {
   fromStructureName: string | null;
   fromClassName: string | null;
 }
+
+/**
+ * The one tone a stage gets, by MEANING. Every file still in the pipeline is
+ * waiting on a human, so it reads gold; an approved file is done, a refused
+ * one is the page's red, and the waitlist is parked. The board itself never
+ * paints these — the group row says the stage — so the pill only appears on
+ * a record page, once, in the identity band.
+ */
+export const STATUS_TONE: Record<PipelineStatus, StatusTone> = {
+  submitted: "attention",
+  under_review: "attention",
+  interview: "attention",
+  offered: "attention",
+  approved: "success",
+  rejected: "danger",
+  waitlist: "muted",
+};

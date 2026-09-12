@@ -25,8 +25,10 @@ export function ClockButton({ direction }: { direction: "in" | "out" }) {
     });
   }
 
+  // Outline in both directions: clocking in is the reader's own action, not
+  // the page's, and the page's one solid button is "Ajouter un membre".
   return (
-    <Button onClick={onClick} disabled={pending} variant={direction === "in" ? "default" : "outline"}>
+    <Button onClick={onClick} disabled={pending} variant="outline">
       {direction === "in" ? <LogIn data-icon="inline-start" /> : <LogOut data-icon="inline-start" />}
       {direction === "in" ? t("clock.in") : t("clock.out")}
     </Button>

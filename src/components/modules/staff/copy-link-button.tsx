@@ -6,7 +6,12 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
-export function CopyLinkButton({ text }: { text: string }) {
+/**
+ * Copies an invitation link. In a register row it is a ghost glyph
+ * (`iconOnly`) that still announces itself as "copy link"; anywhere with room
+ * for words it keeps its label.
+ */
+export function CopyLinkButton({ text, iconOnly = false }: { text: string; iconOnly?: boolean }) {
   const t = useTranslations("staff");
   const [copied, setCopied] = useState(false);
 
@@ -19,6 +24,20 @@ export function CopyLinkButton({ text }: { text: string }) {
     } catch {
       toast.error(t("errors.generic"));
     }
+  }
+
+  if (iconOnly) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={copy}
+        aria-label={t("invites.copyLink")}
+        title={t("invites.copyLink")}
+      >
+        {copied ? <Check /> : <Copy />}
+      </Button>
+    );
   }
 
   return (

@@ -138,8 +138,10 @@ export function NotificationBell({ userId }: { userId?: string }) {
           aria-label={`${t("title")} — ${t("unreadCount", { count: unread })}`}
         >
           <Bell className="size-4" />
+          {/* Pinned to the corner of a 36px button, not over the bell: at
+              -top-0.5 the count sat on the icon and hid its top. */}
           {unread > 0 && (
-            <span className="absolute -top-0.5 -end-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive-solid px-1 text-[11px] leading-none font-bold text-destructive-foreground tabular-nums ring-2 ring-background">
+            <span className="absolute -top-1 -end-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive-solid px-1 text-[10px] leading-none font-bold text-destructive-foreground tabular-nums ring-2 ring-background">
               {badge}
             </span>
           )}

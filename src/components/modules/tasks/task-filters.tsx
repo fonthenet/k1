@@ -1,12 +1,12 @@
 "use client";
 
-// Board filters mirrored in the URL (?scope=mine|all&status=…) so the server
-// re-renders the filtered board and the view survives a refresh or a share.
+// The filter card of the task register, mirrored in the URL
+// (?scope=mine|all&status=…) so the server re-renders the filtered table and
+// the view survives a refresh or a share. The same rounded card the roster
+// has: a segmented track for the two scopes, one select, the count last.
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ListFilter } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TASK_STATUSES } from "./types";
 
 const ALL = "all";
@@ -22,73 +23,58 @@ export function TaskFilters({
   scope,
   status,
   mineCount,
+  count,
 }: {
   scope: "mine" | "all";
   status: string;
   mineCount: number;
+  /** Rows the table shows after both filters — what the chip counts. */
+  count: number;
 }) {
   const t = useTranslations("tasks");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  function setParam(name: string, value: string) {
+  function setParam(name: "scope" | "status", value: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value === ALL && name === "status") params.delete(name);
-    else if (value === "all" && name === "scope") params.delete(name);
+    if (value === ALL) params.delete(name);
     else params.set(name, value);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
-  const scopes: { value: "all" | "mine"; label: string }[] = [
-    { value: "all", label: t("filters.all") },
-    { value: "mine", label: t("filters.mine") },
-  ];
-
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div
-        role="group"
-        aria-label={t("filters.scope")}
-        className="inline-flex rounded-lg border border-border bg-card p-0.5"
-      >
-        {scopes.map((s) => (
-          <button
-            key={s.value}
-            type="button"
-            aria-pressed={scope === s.value}
-            onClick={() => setParam("scope", s.value)}
-            className={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-[min(var(--radius-md),10px)] px-3 text-xs font-medium transition-colors",
-              scope === s.value
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {s.label}
-            {s.value === "mine" && (
-              <span className="tabular-nums opacity-70">{mineCount}</span>
-            )}
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
+      <Tabs value={scope} onValueChange={(v) => setParam("scope", v)}>
+        <TabsList aria-label={t("filters.scope")}>
+          <TabsTrigger value="all" className="px-3">
+            {t("filters.all")}
+          </TabsTrigger>
+          <TabsTrigger value="mine" className="px-3">
+            {t("filters.mine")}
+            <span className="text-muted-foreground tabular-nums">{mineCount}</span>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-      <div className="flex items-center gap-1.5">
-        <ListFilter className="size-4 text-muted-foreground" aria-hidden />
-        <Select value={status} onValueChange={(v) => setParam("status", v)}>
-          <SelectTrigger size="sm" className="w-40" aria-label={t("filters.status")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t("filters.board")}</SelectItem>
-            {TASK_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {t(`status.${s}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Select value={status} onValueChange={(v) => setParam("status", v)}>
+        <SelectTrigger className="w-44" aria-label={t("filters.status")}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>{t("filters.board")}</SelectItem>
+          {TASK_STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              {t(`status.${s}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+        {t("filters.count", { count })}
+      </span>
     </div>
   );
 }

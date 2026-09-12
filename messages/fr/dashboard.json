@@ -1,8 +1,17 @@
 {
   "workspace": {
-    "private_primary": {"title":"École primaire privée · vie des classes","description":"Organisez les classes, les dossiers des élèves, les présences et le calendrier scolaire."},
-    "private_middle": {"title":"École privée · cycle moyen","description":"Retrouvez le calendrier, les classes et les présences, puis les dossiers individuels des élèves."},
-    "private_secondary": {"title":"École privée · cycle secondaire","description":"Organisez le calendrier scolaire, les classes et le suivi des élèves, avec un accès direct aux présences."},
+    "private_primary": {
+      "title": "École primaire privée · vie des classes",
+      "description": "Organisez les classes, les dossiers des élèves, les présences et le calendrier scolaire."
+    },
+    "private_middle": {
+      "title": "École privée · cycle moyen",
+      "description": "Retrouvez le calendrier, les classes et les présences, puis les dossiers individuels des élèves."
+    },
+    "private_secondary": {
+      "title": "École privée · cycle secondaire",
+      "description": "Organisez le calendrier scolaire, les classes et le suivi des élèves, avec un accès direct aux présences."
+    },
     "schoolUnavailable": "L’inscription des écoles privées n’est pas encore disponible.",
     "pupils": "Élèves",
     "schoolScope": "Les classes, les présences et le calendrier sont disponibles. Les matières, les notes et les bulletins ne sont pas encore inclus.",
@@ -15,24 +24,24 @@
       "description": "Commencez par les arrivées, les dossiers des enfants, les repas et les échanges avec les familles."
     },
     "kindergarten": {
-      "title": "Jardin d’enfants · vie des groupes",
-      "description": "Organisez les groupes, préparez les activités et suivez les présences au fil de la journée."
+      "title": "Jardin d’enfants · vie des classes",
+      "description": "Organisez les classes, préparez les activités et suivez les présences au fil de la journée."
     },
     "montessori": {
       "title": "Montessori · parcours d’apprentissage",
-      "description": "Retrouvez les activités, les dossiers individuels et les groupes. Consignez le suivi dans les séances."
+      "description": "Retrouvez les activités, les dossiers individuels et les classes. Consignez le suivi individuel de chaque enfant."
     },
     "edu_center": {
       "title": "Centre éducatif · cours",
-      "description": "Organisez les cours, les groupes et les présences. Ce profil concerne le soutien scolaire et les centres de formation, pas la gestion d’une école primaire, d’un CEM ou d’un lycée."
+      "description": "Organisez les cours, les classes et les présences. Ce profil concerne le soutien scolaire et les centres de formation, pas la gestion d’une école primaire, d’un CEM ou d’un lycée."
     },
     "therapy_center": {
       "title": "Centre spécialisé · suivi",
-      "description": "Accédez aux séances, aux dossiers individuels et au calendrier pour organiser le suivi de chaque enfant."
+      "description": "Accédez au suivi individuel, aux dossiers et au calendrier pour organiser l’accompagnement de chaque enfant."
     },
     "activity_center": {
       "title": "Club d’activités · ateliers",
-      "description": "Planifiez les ateliers, organisez les groupes et suivez les présences des participants."
+      "description": "Planifiez les ateliers, organisez les classes et suivez les présences des participants."
     },
     "camp": {
       "title": "Camp de vacances · programme du jour",
@@ -67,7 +76,12 @@
     "inBuildingNow": "Dans l'établissement",
     "goneHome": "Repartis",
     "goneHomeHint": "sortis aujourd'hui",
-    "staffPresent2": "Personnel en poste"
+    "staffPresent2": "Personnel en poste",
+    "lessonsToday": "{profile, select, academic {Cours aujourd'hui} therapy {Ateliers aujourd'hui} other {Activités aujourd'hui}}",
+    "nextLesson": "{profile, select, academic {Prochain :} therapy {Prochain :} other {Prochaine :}}",
+    "noLessonToday": "{profile, select, academic {aucun cours prévu} therapy {aucun atelier prévu} other {aucune activité prévue}}",
+    "inEstablishmentNow": "Dans l'établissement",
+    "teamOnDuty": "Équipe en poste"
   },
   "today": {
     "title": "Aujourd'hui",
@@ -88,7 +102,18 @@
     "arrived": "Arrivés ({count})",
     "nobodyYet": "{count, plural, one {Personne n'est encore arrivé — # enfant attendu aujourd'hui} other {Personne n'est encore arrivé — # enfants attendus aujourd'hui}}",
     "absentWithReason": "Absences signalées ({count})",
-    "notArrivedYet": "{count, plural, one {# enfant pas encore arrivé} other {# enfants pas encore arrivés}}"
+    "notArrivedYet": "{count, plural, one {# enfant pas encore arrivé} other {# enfants pas encore arrivés}}",
+    "journalSent": {
+      "children": "Journal du jour envoyé à <ltr>{time}</ltr> · {count, plural, one {# enfant} other {# enfants}}",
+      "pupils": "Journal du jour envoyé à <ltr>{time}</ltr> · {count, plural, one {# élève} other {# élèves}}"
+    },
+    "journalNothing": {
+      "skipped_unmarked": "Rien envoyé aujourd'hui : le registre n'a pas été pointé.",
+      "skipped_absent": "Rien envoyé aujourd'hui : tous les enfants étaient absents.",
+      "skipped_empty": "Rien envoyé aujourd'hui : aucune activité, aucun menu, aucun journal.",
+      "skipped_no_account": "Rien envoyé aujourd'hui : {count, plural, one {# famille sans compte} other {# familles sans compte}}.",
+      "failed": "Rien envoyé aujourd'hui : {count, plural, one {# envoi en échec} other {# envois en échec}} — nouvel essai au prochain quart d'heure."
+    }
   },
   "finance": {
     "title": "Finances",
@@ -108,7 +133,8 @@
     "invoices": "{count, plural, one {# facture impayée} other {# factures impayées}}",
     "nextHoliday": "Prochain : {name} ({date})",
     "empty": "Tout est à jour !",
-    "emptyHint": "Aucune tâche en attente pour le moment."
+    "emptyHint": "Aucune tâche en attente pour le moment.",
+    "assessments": "{count, plural, one {# évaluation en brouillon à publier} other {# évaluations en brouillon à publier}}"
   },
   "announcements": {
     "title": "Annonces",
@@ -123,5 +149,6 @@
   },
   "viewIcons": "Icônes",
   "viewLabel": "Affichage",
-  "viewList": "Liste"
+  "viewList": "Liste",
+  "dateLine": "{date} — l'activité du jour en un coup d'œil."
 }

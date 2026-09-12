@@ -3,12 +3,16 @@
 // Moving a family along the admissions pipeline. Every stage but "enrolled" is
 // a plain status write; enrolment stays on the detail page because it runs the
 // kg_approve_application RPC (child + guardians + health + activities).
+//
+// Two faces, one menu: a labelled outline button ("Déplacer") in a record
+// page's identity band, and the row-end "…" of the board — the same overflow
+// the roster uses, so a per-row action never looks like an accordion toggle.
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { CalendarClock, ChevronDown, GraduationCap, Loader2 } from "lucide-react";
+import { CalendarClock, ChevronDown, GraduationCap, Loader2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,16 +48,22 @@ export function StageMenu({
   appId,
   status,
   interviewAt,
-  size = "sm",
-  variant = "outline",
-  showLabel = true,
+  trigger = "button",
+  onReject,
+  className,
 }: {
   appId: string;
   status: PipelineStatus;
   interviewAt: string | null;
-  size?: "xs" | "sm" | "default";
-  variant?: "outline" | "ghost" | "secondary";
-  showLabel?: boolean;
+  /** `button` = labelled outline "Déplacer"; `overflow` = a ghost "…" for a table row. */
+  trigger?: "button" | "overflow";
+  /**
+   * When set, choosing "Refusée" hands over to the caller instead of writing
+   * the status: the record page asks for a note first. The board has no note
+   * to collect and moves the file directly.
+   */
+  onReject?: () => void;
+  className?: string;
 }) {
   const t = useTranslations("enroll");
   const tc = useTranslations("common");
@@ -87,21 +97,33 @@ export function StageMenu({
   }
 
   const targets = MOVABLE_STATUSES.filter((s) => s !== status);
+  const overflow = trigger === "overflow";
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant={variant}
-            size={showLabel ? size : "icon-sm"}
-            disabled={pending}
-            aria-label={t("pipeline.moveTo")}
-            title={t("pipeline.moveTo")}
-          >
-            {pending ? <Loader2 className="animate-spin" /> : <ChevronDown />}
-            {showLabel && t("pipeline.move")}
-          </Button>
+          {overflow ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              disabled={pending}
+              aria-label={t("admin.rowActions")}
+              title={t("admin.rowActions")}
+              className={className}
+            >
+              {pending ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
+            </Button>
+          ) : (
+            <Button variant="outline" disabled={pending} className={className}>
+              {pending ? (
+                <Loader2 className="animate-spin" data-icon="inline-start" />
+              ) : (
+                <ChevronDown data-icon="inline-start" />
+              )}
+              {t("pipeline.move")}
+            </Button>
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
           <DropdownMenuLabel>{t("pipeline.moveTo")}</DropdownMenuLabel>
@@ -116,6 +138,10 @@ export function StageMenu({
                   setInterviewOpen(true);
                   return;
                 }
+                if (s === "rejected" && onReject) {
+                  onReject();
+                  return;
+                }
                 move(s);
               }}
             >
@@ -123,7 +149,9 @@ export function StageMenu({
               {t(`status.${s}`)}
             </DropdownMenuItem>
           ))}
-          {status !== "approved" && (
+          {/* The board's row menu is also the door to enrolment; the record
+              page IS that door, so it does not link to itself. */}
+          {overflow && status !== "approved" && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

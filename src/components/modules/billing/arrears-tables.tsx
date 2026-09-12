@@ -6,35 +6,29 @@
 // data is already fully resolved by the time it gets here (Arabic names picked,
 // guardian chosen by the RPC), so these components only order and render it.
 //
-// The child's name is a link. The office reads this table with the phone in
-// hand: "why does this family owe three months?" is answered on the child's
-// page, and until now the only way there was to memorise the name and search
-// for it in another tab. Only the NAME is a link, not the whole row — every
-// row also carries a call button and a WhatsApp button, and a full-row overlay
-// in a table whose purpose is those two buttons would swallow them.
+// The row is the door. The office reads this table with the phone in hand:
+// "why does this family owe three months?" is answered on the child's billing
+// tab, so the name carries the row overlay that takes the whole row there. The
+// amount is a second door, lifted above the overlay: the debt goes to the
+// debt, and when one invoice is all that is owed — the common case — it
+// opens that invoice outright rather than a tab to pick it from. The call and
+// WhatsApp buttons at the end are lifted the same way.
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { MessageCircle, Phone } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import Link from "next/link";
-import { ChildLink, ClassLink, ENTITY_LINK_INHERIT_CLASS } from "@/components/shared/entity-link";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   SortableHeader,
   compareValues,
   nextSort,
   type SortState,
 } from "@/components/shared/sortable-header";
-import { formatDZD, formatDate, formatPhone, telHref } from "@/lib/format";
+import { ENTITY_LINK_INHERIT_CLASS } from "@/components/shared/entity-link";
+import { formatDZD, formatDate, formatPhone, initialsFromName, telHref } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { waPhone } from "./maps";
 import { owedHref } from "./owed-link";
@@ -44,12 +38,10 @@ export interface ArrearsFamilyRow {
   childId: string;
   name: string;
   className: string | null;
-  classId: string | null;
-  /** This child's unsettled invoices, oldest due first. The amount links to
-   *  the invoice itself when there is exactly one. */
-  invoiceIds: string[];
   invoiceCount: number;
   outstanding: number;
+  /** That child's unsettled invoices, oldest due first — the amount's door. */
+  invoiceIds: string[];
   oldestDue: string | null;
   daysOverdue: number;
   guardianName: string | null;
@@ -60,24 +52,53 @@ export interface ArrearsAgingRow {
   childId: string;
   name: string;
   className: string | null;
-  classId: string | null;
-  invoiceIds: string[];
   buckets: number[];
   total: number;
   phone: string | null;
 }
 
-/** Lateness badge: a week is a reminder, a month is a problem. */
-function daysBadge(days: number): { variant: "destructive" | "outline"; className?: string } {
-  if (days > 30) return { variant: "destructive" };
-  if (days > 7)
-    return { variant: "outline", className: "border-warning/40 bg-warning/15 text-foreground" };
-  return { variant: "outline", className: "text-muted-foreground" };
+const TABLE_CLASS =
+  "[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5";
+/** The sortable head's own button carries padding; the cell already does. */
+const SORT_HEAD = "[&>button]:px-0";
+
+/** The first cell of both tables: the child, with the class as a second line. */
+function ChildCell({
+  childId,
+  name,
+  className,
+}: {
+  childId: string;
+  name: string;
+  className: string | null;
+}) {
+  return (
+    <Link
+      href={`/children/${childId}?tab=billing`}
+      className="flex items-center gap-2.5 after:absolute after:inset-0"
+    >
+      <Avatar className="size-8 shrink-0">
+        <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+          {initialsFromName(name) || "?"}
+        </AvatarFallback>
+      </Avatar>
+      <span className="min-w-0">
+        <span className="block truncate font-semibold">
+          <bdi dir="auto">{name}</bdi>
+        </span>
+        {className && (
+          <span className="block truncate text-xs text-muted-foreground">
+            <bdi dir="auto">{className}</bdi>
+          </span>
+        )}
+      </span>
+    </Link>
+  );
 }
 
 // ------------------------------------------------------------------ families
 
-type FamilyKey = "name" | "class" | "months" | "total" | "days" | "guardian";
+type FamilyKey = "name" | "months" | "total" | "days" | "guardian";
 
 export function ArrearsFamiliesTable({
   rows,
@@ -99,8 +120,6 @@ export function ArrearsFamiliesTable({
     switch (key) {
       case "name":
         return f.name;
-      case "class":
-        return f.className;
       case "months":
         return f.invoiceCount;
       case "total":
@@ -128,134 +147,123 @@ export function ArrearsFamiliesTable({
     )}`;
 
   return (
-    <Table>
-      <TableHeader className="[&_th]:text-xs [&_th]:font-semibold">
-        <TableRow>
-          <SortableHeader columnKey="name" sort={sort} onSort={onSort} className="ps-2">
+    <Table className={TABLE_CLASS}>
+      <TableHeader>
+        <TableRow className="[&>th]:font-semibold">
+          <SortableHeader columnKey="name" sort={sort} onSort={onSort} className={SORT_HEAD}>
             {t("arrears.columns.child")}
           </SortableHeader>
-          <SortableHeader columnKey="class" sort={sort} onSort={onSort}>
-            {t("arrears.columns.class")}
-          </SortableHeader>
-          <SortableHeader columnKey="months" sort={sort} onSort={onSort} align="end">
+          <SortableHeader columnKey="months" sort={sort} onSort={onSort} className={SORT_HEAD}>
             {t("arrears.columns.months")}
           </SortableHeader>
-          <SortableHeader columnKey="total" sort={sort} onSort={onSort} align="end">
+          <SortableHeader columnKey="total" sort={sort} onSort={onSort} align="end" className={SORT_HEAD}>
             {t("arrears.columns.total")}
           </SortableHeader>
-          <SortableHeader columnKey="days" sort={sort} onSort={onSort}>
+          <SortableHeader columnKey="days" sort={sort} onSort={onSort} className={SORT_HEAD}>
             {t("arrears.columns.days")}
           </SortableHeader>
-          <SortableHeader columnKey="guardian" sort={sort} onSort={onSort}>
+          <SortableHeader columnKey="guardian" sort={sort} onSort={onSort} className={SORT_HEAD}>
             {t("arrears.columns.guardian")}
           </SortableHeader>
-          <TableHead className="pe-4 text-end text-muted-foreground">
-            {t("arrears.columns.actions")}
+          <TableHead className="w-20">
+            <span className="sr-only">{t("arrears.columns.actions")}</span>
           </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {sorted.map((f) => {
-          const badge = daysBadge(f.daysOverdue);
           const phone = f.guardianPhone;
           return (
-            <TableRow key={f.childId} className="h-14">
-              <TableCell className="ps-4 font-medium">
-                <ChildLink id={f.childId}>{f.name}</ChildLink>
+            <TableRow key={f.childId} className="relative h-14 transition-colors hover:bg-primary/5">
+              <TableCell>
+                <ChildCell childId={f.childId} name={f.name} className={f.className} />
               </TableCell>
-              <TableCell className="text-muted-foreground">
-                {f.className && f.classId ? (
-                  <ClassLink id={f.classId}>{f.className}</ClassLink>
-                ) : (
-                  (f.className ?? "—")
-                )}
-              </TableCell>
-              <TableCell className="text-end tabular-nums">
+              <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
                 {t("arrears.monthsOwed", { count: f.invoiceCount })}
               </TableCell>
-              {/* The debt goes to the debt. Reading this table with the phone
-                  in hand, the question after "they owe 10 000" is "on what?" —
-                  and the answer was three navigations away. */}
+              {/* The row's one red: a debt more than a month old. A week late
+                  is a reminder; the colour is saved for the problem. */}
               <TableCell
                 className={cn(
-                  "text-end font-bold tabular-nums",
+                  "text-end font-semibold tabular-nums",
                   f.daysOverdue > 30 && "text-destructive"
                 )}
               >
-                <Link href={owedHref(f.childId, f.invoiceIds)} className={ENTITY_LINK_INHERIT_CLASS}>
+                <Link
+                  href={owedHref(f.childId, f.invoiceIds)}
+                  className={cn("relative z-10", ENTITY_LINK_INHERIT_CLASS)}
+                >
                   {formatDZD(f.outstanding, locale)}
                 </Link>
               </TableCell>
-              <TableCell>
-                <Badge variant={badge.variant} className={badge.className}>
-                  {t("arrears.daysBadge", { count: f.daysOverdue })}
-                </Badge>
+              <TableCell className="whitespace-nowrap">
+                <span className="block tabular-nums">{t("arrears.daysBadge", { count: f.daysOverdue })}</span>
                 {f.oldestDue && (
-                  <div className="mt-0.5 text-xs text-muted-foreground">
+                  <span className="block text-xs tabular-nums text-muted-foreground">
                     {t("arrears.dueSince", { date: formatDate(f.oldestDue, locale) })}
-                  </div>
+                  </span>
                 )}
               </TableCell>
               <TableCell>
                 {phone ? (
                   <>
-                    {f.guardianName && <div className="truncate font-medium">{f.guardianName}</div>}
-                    <a
-                      href={telHref(phone)}
-                      className="text-xs tabular-nums text-muted-foreground hover:text-primary hover:underline"
-                      dir="ltr"
-                    >
+                    {f.guardianName && (
+                      <span className="block truncate">
+                        <bdi dir="auto">{f.guardianName}</bdi>
+                      </span>
+                    )}
+                    <span dir="ltr" className="block text-xs tabular-nums text-muted-foreground">
                       {formatPhone(phone)}
-                    </a>
+                    </span>
                   </>
                 ) : (
                   <span className="text-xs text-muted-foreground">
-                    {f.guardianName ?? t("arrears.noGuardian")}
+                    {f.guardianName ? <bdi dir="auto">{f.guardianName}</bdi> : t("arrears.noGuardian")}
                   </span>
                 )}
               </TableCell>
-              <TableCell className="pe-4">
-                <div className="flex items-center justify-end gap-1">
-                  {phone && (
-                    <>
-                      <Button variant="ghost" size="icon" asChild aria-label={t("arrears.call")}>
-                        <a href={telHref(phone)}>
-                          <Phone />
-                        </a>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        asChild
-                        aria-label={t("arrears.whatsapp")}
-                        className="text-success hover:bg-success/10 hover:text-success"
-                      >
-                        <a
-                          href={reminderLink(f, phone)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <MessageCircle />
-                        </a>
-                      </Button>
-                    </>
-                  )}
-                </div>
+              <TableCell className="w-20">
+                {phone && (
+                  <span className="relative z-10 flex items-center justify-end gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      asChild
+                      aria-label={t("arrears.call")}
+                      title={t("arrears.call")}
+                      className="text-muted-foreground"
+                    >
+                      <a href={telHref(phone)}>
+                        <Phone />
+                      </a>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      asChild
+                      aria-label={t("arrears.whatsapp")}
+                      title={t("arrears.whatsapp")}
+                      className="text-muted-foreground"
+                    >
+                      <a href={reminderLink(f, phone)} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle />
+                      </a>
+                    </Button>
+                  </span>
+                )}
               </TableCell>
             </TableRow>
           );
         })}
-        <TableRow className="bg-muted/50 hover:bg-muted/50">
-          <TableCell colSpan={3} className="ps-4 font-semibold">
-            {t("arrears.totalRow")}
-          </TableCell>
-          <TableCell className="text-end text-base font-bold tabular-nums">
+        <TableRow className="bg-muted/50 font-semibold hover:bg-muted/50">
+          <TableCell colSpan={2}>{t("arrears.totalRow")}</TableCell>
+          <TableCell className="text-end tabular-nums">
             {formatDZD(
               rows.reduce((s, f) => s + f.outstanding, 0),
               locale
             )}
           </TableCell>
-          <TableCell colSpan={3} className="pe-4" />
+          <TableCell colSpan={3} />
         </TableRow>
       </TableBody>
     </Table>
@@ -264,15 +272,12 @@ export function ArrearsFamiliesTable({
 
 // -------------------------------------------------------------------- aging
 
-/** Aging escalates: current is quiet, 60 days turns gold, 90+ turns red. */
-const BUCKET_TEXT = [
-  "text-muted-foreground",
-  "text-foreground",
-  "font-medium text-warning",
-  "font-semibold text-destructive",
-] as const;
-
-const BUCKET_CELL = ["", "", "bg-warning/5", "bg-destructive/5"] as const;
+/** The buckets read in foreground and muted only: the column head already
+ *  says how old each figure is, so colouring the figure would say it twice.
+ *  The current bucket is muted because nothing in it is late yet; the one
+ *  red per row sits on the total, once a debt has passed 90 days. */
+const bucketText = (bucket: number, amount: number) =>
+  amount === 0 || bucket === 0 ? "text-muted-foreground" : "text-foreground";
 
 type AgingKey = "name" | "phone" | "b0" | "b1" | "b2" | "b3" | "total";
 
@@ -306,13 +311,13 @@ export function ArrearsAgingTable({
   const grandTotal = rows.reduce((s, a) => s + a.total, 0);
 
   return (
-    <Table>
-      <TableHeader className="[&_th]:text-xs [&_th]:font-semibold">
-        <TableRow>
-          <SortableHeader columnKey="name" sort={sort} onSort={onSort} className="ps-2">
+    <Table className={TABLE_CLASS}>
+      <TableHeader>
+        <TableRow className="[&>th]:font-semibold">
+          <SortableHeader columnKey="name" sort={sort} onSort={onSort} className={SORT_HEAD}>
             {t("arrears.columns.child")}
           </SortableHeader>
-          <SortableHeader columnKey="phone" sort={sort} onSort={onSort}>
+          <SortableHeader columnKey="phone" sort={sort} onSort={onSort} className={SORT_HEAD}>
             {t("arrears.columns.phone")}
           </SortableHeader>
           {bucketLabels.map((label, i) => (
@@ -322,44 +327,27 @@ export function ArrearsAgingTable({
               sort={sort}
               onSort={onSort}
               align="end"
-              className={BUCKET_TEXT[i]}
+              className={SORT_HEAD}
             >
               {label}
             </SortableHeader>
           ))}
-          <SortableHeader
-            columnKey="total"
-            sort={sort}
-            onSort={onSort}
-            align="end"
-            className="pe-2 text-foreground"
-          >
+          <SortableHeader columnKey="total" sort={sort} onSort={onSort} align="end" className={SORT_HEAD}>
             {t("arrears.columns.total")}
           </SortableHeader>
         </TableRow>
       </TableHeader>
       <TableBody>
         {sorted.map((a) => (
-          <TableRow key={a.childId} className="h-14">
-            <TableCell className="ps-4">
-              <div className="font-medium">
-                <ChildLink id={a.childId}>{a.name}</ChildLink>
-              </div>
-              {a.className && (
-                <div className="text-xs text-muted-foreground">
-                  {a.classId ? (
-                    <ClassLink id={a.classId}>{a.className}</ClassLink>
-                  ) : (
-                    a.className
-                  )}
-                </div>
-              )}
+          <TableRow key={a.childId} className="relative h-14 transition-colors hover:bg-primary/5">
+            <TableCell>
+              <ChildCell childId={a.childId} name={a.name} className={a.className} />
             </TableCell>
             <TableCell>
               {a.phone ? (
                 <a
                   href={telHref(a.phone)}
-                  className="tabular-nums hover:text-primary hover:underline"
+                  className="relative z-10 tabular-nums hover:underline hover:underline-offset-4"
                   dir="ltr"
                 >
                   {formatPhone(a.phone)}
@@ -371,38 +359,34 @@ export function ArrearsAgingTable({
             {a.buckets.map((amount, i) => (
               <TableCell
                 key={i}
-                className={cn(
-                  "text-end tabular-nums",
-                  amount === 0 ? "text-muted-foreground" : BUCKET_TEXT[i],
-                  amount > 0 && BUCKET_CELL[i]
-                )}
+                className={cn("text-end tabular-nums", bucketText(i, amount))}
               >
                 {amount > 0 ? formatDZD(amount, locale) : "—"}
               </TableCell>
             ))}
-            <TableCell className="pe-4 text-end font-bold tabular-nums">
-              <Link href={owedHref(a.childId, a.invoiceIds)} className={ENTITY_LINK_INHERIT_CLASS}>
-                {formatDZD(a.total, locale)}
-              </Link>
+            <TableCell
+              className={cn(
+                "text-end font-semibold tabular-nums",
+                (a.buckets[3] ?? 0) > 0 && "text-destructive"
+              )}
+            >
+              {formatDZD(a.total, locale)}
             </TableCell>
           </TableRow>
         ))}
-        <TableRow className="bg-muted/50 hover:bg-muted/50">
-          <TableCell colSpan={2} className="ps-4 font-semibold">
-            {t("arrears.totalRow")}
-          </TableCell>
+        <TableRow className="bg-muted/50 font-semibold hover:bg-muted/50">
+          <TableCell colSpan={2}>{t("arrears.totalRow")}</TableCell>
           {bucketTotals.map((amount, i) => (
             <TableCell
               key={i}
-              className={cn(
-                "text-end font-medium tabular-nums",
-                amount === 0 ? "text-muted-foreground" : BUCKET_TEXT[i]
-              )}
+              className={cn("text-end tabular-nums", bucketText(i, amount))}
             >
               {amount > 0 ? formatDZD(amount, locale) : "—"}
             </TableCell>
           ))}
-          <TableCell className="pe-4 text-end text-base font-bold tabular-nums">
+          <TableCell
+            className={cn("text-end tabular-nums", bucketTotals[3] > 0 && "text-destructive")}
+          >
             {formatDZD(grandTotal, locale)}
           </TableCell>
         </TableRow>

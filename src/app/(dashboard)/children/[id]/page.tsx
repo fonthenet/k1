@@ -1,41 +1,41 @@
 import Link from "next/link";
 import {
   ArrowLeft,
-  ArrowRight,
-  BanknoteX,
   CalendarDays,
-  CheckCircle2,
+  ChevronRight,
   IdCard,
   Receipt,
-  TriangleAlert,
   UserX,
   Wallet,
 } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ClassChip } from "@/components/shared/class-chip";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ClassLink, InvoiceLink } from "@/components/shared/entity-link";
+import { InvoiceLink } from "@/components/shared/entity-link";
+import { IdentityBand } from "@/components/shared/identity-band";
 import { PageHeader } from "@/components/shared/page-header";
+import { SectionCard } from "@/components/shared/section-card";
+import { StatusPill, type StatusTone } from "@/components/shared/status-pill";
+import { StructureTile } from "@/components/shared/structure-mark";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, signedMediaUrl } from "@/lib/tenant";
 import { ageFromDob, childDisplayName, formatDZD, formatDate, formatTime, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type {
-  Attendance, AttendanceStatus, Child, FeePeriod, Gender, InvoiceStatus,
+  Attendance, AttendanceStatus, Child, ChildStatus, FeePeriod, Gender, InvoiceStatus,
 } from "@/lib/types";
 import { ChildPhotoControl } from "@/components/modules/children/photo-controls";
+import { ChildTabs } from "@/components/modules/children/child-tabs";
 import { ConsentsSection } from "@/components/modules/children/consents-section";
 import { DocumentsSection } from "@/components/modules/children/documents-section";
 import { EditChildDialog } from "@/components/modules/children/edit-child-dialog";
 import { MoveChildButton } from "@/components/modules/children/move-child-dialog";
 import { TransferHistory } from "@/components/modules/children/transfer-history";
-import { centerTypeOption } from "@/components/modules/settings/center-types";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import type { GuardianCredentialState } from "@/components/modules/children/guardian-credentials-control";
 import { GuardiansSection } from "@/components/modules/children/guardians-section";
@@ -57,11 +57,10 @@ import { isOpenInvoice, owedHref } from "@/components/modules/billing/owed-link"
 import type { PlanOption } from "@/components/modules/billing/billing-types";
 import { AllergyBadge } from "@/components/modules/children/allergy-badge";
 import {
-  attendanceStatusClasses,
-  childStatusClasses,
+  CHILD_TABS,
   CONSENT_TYPES,
-  invoiceStatusClasses,
   type AllergyRow,
+  type ChildTabKey,
   type ChildDocumentRow,
   type ChildHealthRow,
   type ChildTransferRow,
@@ -74,35 +73,33 @@ import {
   type GuardianOption,
 } from "@/components/modules/children/types";
 
-const TABS = ["profile", "health", "attendance", "billing", "documents", "consents"] as const;
-type TabKey = (typeof TABS)[number];
 
-/** Tinted tiles for the monthly attendance summary — token colours only. */
-const SUMMARY_TONE: Record<
-  "present" | "absent" | "late" | "sick",
-  { tile: string; value: string; label: string }
-> = {
-  present: {
-    tile: "border-success/30 bg-success/10",
-    value: "text-success",
-    label: "text-muted-foreground",
-  },
-  absent: {
-    tile: "border-destructive/30 bg-destructive/10",
-    value: "text-destructive",
-    label: "text-muted-foreground",
-  },
-  // Solid gold reads in both themes; gold text on a gold tint does not.
-  late: {
-    tile: "border-gold bg-gold",
-    value: "text-gold-foreground",
-    label: "text-gold-foreground/75",
-  },
-  sick: {
-    tile: "border-chart-4/30 bg-chart-4/10",
-    value: "text-chart-4",
-    label: "text-muted-foreground",
-  },
+/**
+ * Pills by MEANING, not by module. A child's expected state — enrolled —
+ * has no pill at all; the absence is the signal. Present is done, absent
+ * and late are the red of the day, sick waits on a note, excused is over.
+ */
+const CHILD_STATUS_TONE: Partial<Record<ChildStatus, StatusTone>> = {
+  pending: "attention",
+  waitlist: "attention",
+  withdrawn: "muted",
+  alumni: "muted",
+};
+const ATTENDANCE_TONE: Record<AttendanceStatus, StatusTone> = {
+  present: "success",
+  absent: "danger",
+  late: "danger",
+  sick: "attention",
+  excused: "muted",
+};
+const INVOICE_TONE: Record<InvoiceStatus, StatusTone> = {
+  draft: "muted",
+  sent: "attention",
+  unpaid: "attention",
+  partial: "attention",
+  paid: "success",
+  overdue: "danger",
+  void: "muted",
 };
 
 // ----- Sunday–Thursday Algeria calendar helpers (Africa/Algiers month math) -----
@@ -204,8 +201,8 @@ export default async function ChildProfilePage({
   const locale = await getLocale();
   const supabase = await createClient();
 
-  const tab: TabKey = (TABS as readonly string[]).includes(sp.tab ?? "")
-    ? (sp.tab as TabKey)
+  const tab: ChildTabKey = (CHILD_TABS as readonly string[]).includes(sp.tab ?? "")
+    ? (sp.tab as ChildTabKey)
     : "profile";
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? "") ? (sp.month as string) : algiersMonth();
   const { start, end } = monthRange(month);
@@ -575,7 +572,11 @@ export default async function ChildProfilePage({
       amount: Number(f.custom_amount ?? f.kg_fee_plans!.amount),
       structureId: f.kg_fee_plans!.structure_id ?? null,
     }));
-  const invoices = (invoicesRes.data ?? []) as InvoiceRow[];
+  // Newest due first: the invoice the office is chasing is the one at the
+  // top, and a list ordered by issue number reads as a jumble of months.
+  const invoices = ((invoicesRes.data ?? []) as InvoiceRow[])
+    .slice()
+    .sort((a, b) => (b.due_date ?? b.issue_date).localeCompare(a.due_date ?? a.issue_date));
 
   // What this child owes, right now. Computed from kg_child_balance rather than
   // the 36 invoices loaded above: a long-overdue invoice that has fallen off
@@ -629,7 +630,6 @@ export default async function ChildProfilePage({
       ? child.kg_classes.name_ar
       : (child.kg_classes?.name ?? null);
 
-  const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
   const monthFmt = new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long", year: "numeric",
   });
@@ -681,7 +681,6 @@ export default async function ChildProfilePage({
   const structures = (structureRows ?? []) as Structure[];
   const multiStructure = structures.length > 1;
   const structure = structures.find((s) => s.id === child.structure_id) ?? null;
-  const StructureIcon = structure ? centerTypeOption(structure.center_type).Icon : null;
 
   // Who moved the child, by name. kg_profiles is readable across the tenant
   // (pr_sel), so one query resolves every row; an account since deleted
@@ -705,59 +704,24 @@ export default async function ChildProfilePage({
     created_at: r.created_at,
   }));
 
+  const statusTone = CHILD_STATUS_TONE[child.status];
+
   return (
     <div>
-      <PageHeader title={name} description={ageFromDob(child.dob, tc)}>
-        <Button asChild variant="ghost">
-          <Link href="/children">
-            <BackIcon data-icon="inline-start" />
-            {t("profile.back")}
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href={`/children/${child.id}/card`}>
-            <IdCard data-icon="inline-start" />
-            {t("profile.badgeCard")}
-          </Link>
-        </Button>
-        <EditChildDialog
-          child={{
-            id: child.id,
-            first_name: child.first_name,
-            last_name: child.last_name,
-            first_name_ar: child.first_name_ar,
-            last_name_ar: child.last_name_ar,
-            dob: child.dob,
-            gender: child.gender as Gender,
-            class_id: child.class_id,
-            structure_id: child.structure_id,
-            tag_code: child.tag_code,
-            blood_type: child.blood_type,
-            notes: child.notes,
-            enrollment_date: child.enrollment_date,
-          }}
-          classes={classOptions}
-          structures={structures}
-        />
-        {/* The verb for the crèche→école move (0140). Admins only, and only
-            where there is somewhere to move TO — a one-structure crèche
-            changes class from the edit dialog as it always did. */}
-        {ctx.isAdmin && multiStructure && (
-          <MoveChildButton
-            childIds={[child.id]}
-            structures={structures}
-            classes={classOptions}
-            currentStructureId={child.structure_id}
-            dob={child.dob}
-            currentFees={currentFees}
-            feePlans={movePlans}
-          />
-        )}
-        <StatusActions childId={child.id} status={child.status} />
-      </PageHeader>
+      <Link
+        href="/children"
+        className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden />
+        {t("profile.back")}
+      </Link>
 
-      <Card className="mb-6 bg-gradient-to-br from-primary/5 via-card to-gold/5 shadow-sm">
-        <CardContent className="flex flex-wrap items-center gap-5">
+      {/* One identity block. Every fact here appears once on the page: the
+          age, the class, the structure, the code, and the two or three
+          things that need a human — money owed, an allergy, a status that is
+          not "enrolled". Everything else is a section below. */}
+      <IdentityBand
+        leading={
           <ChildPhotoControl
             tenantId={ctx.tenant.id}
             childId={child.id}
@@ -766,189 +730,153 @@ export default async function ChildProfilePage({
             lastName={child.last_name}
             photoPath={child.photo_path}
             photoUrl={photoUrl}
-            avatarClassName="size-20 text-2xl ring-2 ring-primary/20"
+            avatarClassName="size-14 text-xl"
           />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xl font-bold tracking-tight">{name}</span>
-              {secondaryName && (
-                <span className="text-base text-muted-foreground text-start" dir="auto">
-                  {secondaryName}
-                </span>
-              )}
-              <Badge className={childStatusClasses(child.status)}>
-                {t(`status.${child.status}`)}
-              </Badge>
-              {/* The answer to "where does it say unpaid". This record showed
-                  nothing about money at all, so an approved child with an
-                  outstanding invoice looked identical to one paid up. */}
-              {balance > 0 && (
-                <Badge asChild variant="destructive">
-                  <Link href={balanceHref}>
-                    <BanknoteX className="size-3.5" aria-hidden />
-                    {t("billing.owes", { amount: formatDZD(balance, locale) })}
-                  </Link>
-                </Badge>
-              )}
-              {/* Says it where the child is actually looked at, not only on
-                  the billing screen. Gold, not red: nobody is late — the
-                  crèche simply is not charging them yet, and somebody has to
-                  decide. */}
-              {ctx.isFinance && child.status === "enrolled" && !hasMonthlyPlan && (
-                // The badge IS the fix. It used to link to the billing tab and
-                // leave somebody to find the button there; the moment a person
-                // notices the problem is the moment to let them solve it.
-                <AssignFeeDialog
-                  childId={child.id}
-                  childName={name}
-                  plans={planOptions}
-                  trigger={
-                    <Badge
-                      asChild
-                      className="cursor-pointer border-gold/40 bg-gold-muted text-gold-ink hover:bg-gold-muted/70"
-                    >
-                      <button type="button" title={t("billing.noPlanHint")}>
-                        <TriangleAlert className="size-3.5" aria-hidden />
-                        {t("billing.noPlan")}
-                      </button>
-                    </Badge>
-                  }
-                />
-              )}
-              {ctx.isFinance && balance === 0 && invoices.length > 0 && (
-                <Badge variant="secondary" className="gap-1.5">
-                  <CheckCircle2 className="size-3.5 text-success" aria-hidden />
-                  {t("billing.settled")}
-                </Badge>
-              )}
-              {/* The badge names a count; "which three?" used to be a tab away,
-                  and reading it was the reason anybody looked. It now answers
-                  on hover, and still links for the tablet at the door. */}
-              <AllergyBadge
-                allergens={allergies}
-                href={`/children/${child.id}?tab=health`}
+        }
+        title={name}
+        subtitle={
+          // The band's subtitle line resolves its direction from the
+          // name's own script, which would push an Arabic name to the far
+          // end under a French title. The block keeps the page's direction
+          // and its start edge; only the name itself is isolated.
+          secondaryName ? (
+            <span className="block text-start" dir={locale === "ar" ? "rtl" : "ltr"}>
+              <bdi dir="auto">{secondaryName}</bdi>
+            </span>
+          ) : undefined
+        }
+        facts={[
+          <span key="age">{ageFromDob(child.dob, tc)}</span>,
+          className ? (
+            child.kg_classes ? (
+              <Link key="class" href={`/classes/${child.kg_classes.id}`}>
+                <ClassChip name={className} color={child.kg_classes.color} />
+              </Link>
+            ) : (
+              <ClassChip key="class" name={className} />
+            )
+          ) : null,
+          // Which side of the building, drawn as the switcher and /settings
+          // draw it — the standalone tile. Only said when the building has
+          // sides.
+          multiStructure && structure ? (
+            <StructureTile
+              key="structure"
+              structure={{
+                name: structureName(structure, locale),
+                color: structure.color,
+                center_type: structure.center_type,
+              }}
+              className="text-foreground"
+            />
+          ) : null,
+          // The code IS the badge card — the thing you go looking for when a
+          // tag stops scanning at the door, or needs reprinting.
+          child.tag_code ? (
+            <Link
+              key="code"
+              href={`/children/${child.id}/card`}
+              className="font-mono text-xs tracking-widest transition-colors hover:text-foreground"
+              dir="ltr"
+            >
+              {child.tag_code}
+            </Link>
+          ) : null,
+          statusTone ? (
+            <StatusPill key="status" tone={statusTone}>
+              {t(`status.${child.status}`)}
+            </StatusPill>
+          ) : null,
+          // The answer to "where does it say unpaid" — the one money signal,
+          // red, and a link to the invoice the office chases. Silence means
+          // paid, as on the dashboard.
+          balance > 0 ? (
+            <Link key="owes" href={balanceHref}>
+              <StatusPill tone="danger">
+                {t("billing.owes", { amount: formatDZD(balance, locale) })}
+              </StatusPill>
+            </Link>
+          ) : null,
+          // Gold, not red: nobody is late — the establishment simply is not
+          // charging them yet, and somebody has to decide. The pill IS the
+          // fix: it opens the dialog that sets the plan.
+          ctx.isFinance && child.status === "enrolled" && !hasMonthlyPlan ? (
+            <AssignFeeDialog
+              key="noPlan"
+              childId={child.id}
+              childName={name}
+              plans={planOptions}
+              trigger={
+                <button type="button" title={t("billing.noPlanHint")} className="cursor-pointer">
+                  <StatusPill tone="attention">{t("billing.noPlan")}</StatusPill>
+                </button>
+              }
+            />
+          ) : null,
+          // Names a count, and answers "which ones?" on hover; still a link
+          // for the tablet at the door.
+          allergies.length > 0 ? (
+            <AllergyBadge
+              key="allergies"
+              allergens={allergies}
+              href={`/children/${child.id}?tab=health`}
+            />
+          ) : null,
+        ]}
+        actions={
+          <>
+            <EditChildDialog
+              child={{
+                id: child.id,
+                first_name: child.first_name,
+                last_name: child.last_name,
+                first_name_ar: child.first_name_ar,
+                last_name_ar: child.last_name_ar,
+                dob: child.dob,
+                gender: child.gender as Gender,
+                class_id: child.class_id,
+                structure_id: child.structure_id,
+                tag_code: child.tag_code,
+                blood_type: child.blood_type,
+                notes: child.notes,
+                enrollment_date: child.enrollment_date,
+              }}
+              classes={classOptions}
+              structures={structures}
+            />
+            {/* The verb for the crèche→école move (0140), the page's one
+                primary. Admins only, and only where there is somewhere to
+                move TO — a one-structure crèche changes class from the edit
+                dialog as it always did. */}
+            {ctx.isAdmin && multiStructure && (
+              <MoveChildButton
+                subjects={[{ id: child.id, name, structureId: child.structure_id ?? null }]}
+                structures={structures}
+                classes={classOptions}
+                dob={child.dob}
+                currentFees={currentFees}
+                feePlans={movePlans}
               />
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
-              <span>{t(`gender.${child.gender}`)}</span>
-              <span className="tabular-nums">{formatDate(child.dob, locale)}</span>
-              {/* Which side of the building. Only said when the building
-                  has sides: the structure's own colour and vertical icon,
-                  the same chip the sidebar switcher draws. */}
-              {multiStructure && structure && StructureIcon && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-card/70 px-2.5 py-0.5 ring-1 ring-inset ring-border">
-                  <span
-                    className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-                    style={{ backgroundColor: structure.color }}
-                    aria-hidden
-                  />
-                  <StructureIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                  {structureName(structure, locale)}
-                </span>
-              )}
-              {className && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-card/70 px-2.5 py-0.5 ring-1 ring-inset ring-border">
-                  {/* per-class colour comes from kg_classes.color (user data) */}
-                  <span
-                    className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-                    style={{ backgroundColor: child.kg_classes?.color ?? "var(--primary)" }}
-                    aria-hidden
-                  />
-                  {child.kg_classes ? (
-                    <ClassLink id={child.kg_classes.id}>{className}</ClassLink>
-                  ) : (
-                    className
-                  )}
-                </span>
-              )}
-              {/* The code IS the badge card — the thing you go looking for when
-                  a tag stops scanning at the door, or needs reprinting. */}
-              {child.tag_code && (
-                <Link
-                  href={`/children/${child.id}/card`}
-                  className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs tracking-widest transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                  dir="ltr"
-                >
-                  {child.tag_code}
-                </Link>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            )}
+            <StatusActions childId={child.id} status={child.status} />
+          </>
+        }
+      />
 
-      <Tabs defaultValue={tab}>
-        <TabsList className="max-w-full flex-wrap sm:flex-nowrap sm:overflow-x-auto no-scrollbar">
-          {TABS.map((key) => (
-            <TabsTrigger key={key} value={key}>
-              {t(`profile.tabs.${key}`)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* The sections of the record, as the settings tabs are drawn: a
+          white card of icon + label links on ?tab=, so the back button and
+          a shared URL land on the right section. Only the current section
+          renders below. */}
+      <ChildTabs ariaLabel={name} />
 
+      <div>
         {/* ===== Profil ===== */}
-        <TabsContent value="profile" className="mt-4 grid gap-4">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2.5 text-base">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <IdCard className="size-4" />
-                </span>
-                {t("profile.info.title")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
-                {(
-                  [
-                    ["dob", formatDate(child.dob, locale)],
-                    ["age", ageFromDob(child.dob, tc)],
-                    ["gender", t(`gender.${child.gender}`)],
-                    ["bloodType", child.blood_type],
-                    [
-                      "enrolledOn",
-                      child.enrollment_date ? formatDate(child.enrollment_date, locale) : null,
-                    ],
-                    [
-                      "withdrawnOn",
-                      child.withdrawal_date ? formatDate(child.withdrawal_date, locale) : null,
-                    ],
-                    ["tagCode", child.tag_code],
-                  ] as const
-                ).map(([key, value]) =>
-                  key === "withdrawnOn" && !value ? null : (
-                    <div key={key} className="rounded-lg bg-muted/40 px-3 py-2">
-                      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {t(`profile.info.${key}`)}
-                      </dt>
-                      <dd
-                        className={
-                          key === "tagCode"
-                            ? "mt-0.5 font-mono text-sm font-semibold tracking-wider"
-                            : "mt-0.5 text-sm font-medium"
-                        }
-                      >
-                        {value ?? t("profile.info.none")}
-                      </dd>
-                    </div>
-                  )
-                )}
-                {child.notes && (
-                  <div className="rounded-lg bg-muted/40 px-3 py-2 sm:col-span-2 lg:col-span-3">
-                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {t("profile.info.notes")}
-                    </dt>
-                    <dd className="mt-0.5 whitespace-pre-wrap text-sm">{child.notes}</dd>
-                  </div>
-                )}
-              </dl>
-            </CardContent>
-          </Card>
-
-          {/* The parcours: every move between structures, as the register
-              will read it. Shown wherever a move is possible or has happened. */}
-          {(multiStructure || transfers.length > 0) && <TransferHistory rows={transfers} />}
-
+        {tab === "profile" && (
+        <div className="grid gap-4">
+          {/* The family first: the phone number is the most-used fact on
+              the page. Then who else may collect, what the child is signed
+              up for, the record itself, and the parcours last — read at
+              inspection, not daily. */}
           <GuardiansSection
             tenantId={ctx.tenant.id}
             childId={child.id}
@@ -971,45 +899,110 @@ export default async function ChildProfilePage({
             chargeLocked={chargeLocked}
           />
 
-          {/* A card issued to the CHILD (a wristband, a tag in the bag) opens
-              the door with no adult attached to it, which is why the kiosk
-              records those scans with nobody named. Admins only. */}
-          {ctx.isAdmin && (
-            <Card className="mt-4 border border-border shadow-sm ring-0">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold">{tCred("title")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CredentialCards
-                  subjectType="child"
-                  subjectId={child.id}
-                  cards={childCards}
-                  path={`/children/${child.id}`}
-                />
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+          {/* Only what the identity band does not say, as a bill reads:
+              label at the start, value at the end. */}
+          <SectionCard icon={IdCard} tone={0} title={t("profile.info.title")} contentClassName="gap-0">
+            <dl className="divide-y divide-border text-sm">
+              {(
+                [
+                  ["dob", formatDate(child.dob, locale), false],
+                  ["gender", t(`gender.${child.gender}`), false],
+                  ["bloodType", child.blood_type, true],
+                  [
+                    "enrolledOn",
+                    child.enrollment_date ? formatDate(child.enrollment_date, locale) : null,
+                    false,
+                  ],
+                  [
+                    "withdrawnOn",
+                    child.withdrawal_date ? formatDate(child.withdrawal_date, locale) : null,
+                    false,
+                  ],
+                ] as const
+              ).map(([key, value, ltr]) =>
+                key === "withdrawnOn" && !value ? null : (
+                  <div key={key} className="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+                    <dt className="text-muted-foreground">{t(`profile.info.${key}`)}</dt>
+                    {/* "O+" must not read "+O" in Arabic: the sign stays after the letter. */}
+                    <dd className="tabular-nums" dir={ltr ? "ltr" : undefined}>
+                      {value ?? t("profile.info.none")}
+                    </dd>
+                  </div>
+                )
+              )}
+              {child.notes && (
+                <div className="grid gap-1 py-2.5 last:pb-0">
+                  <dt className="text-muted-foreground">{t("profile.info.notes")}</dt>
+                  <dd className="whitespace-pre-wrap text-start" dir="auto">
+                    {child.notes}
+                  </dd>
+                </div>
+              )}
+              {/* A card issued to the CHILD (a wristband, a tag in the bag)
+                  opens the door with no adult attached to it, which is why
+                  the kiosk records those scans with nobody named. One line
+                  of the record rather than a card of its own: until a card
+                  exists the shared list's "nothing here" sentence is hidden
+                  and only its add button shows, at the end of the row.
+                  Admins only. */}
+              {ctx.isAdmin && (
+                <div
+                  className={cn(
+                    "py-2.5 last:pb-0",
+                    childCards.length === 0
+                      ? "flex items-center justify-between gap-4"
+                      : "grid gap-2"
+                  )}
+                >
+                  <dt className="text-muted-foreground">{tCred("title")}</dt>
+                  <dd className={cn(childCards.length === 0 && "[&>div]:contents [&_p]:hidden")}>
+                    <CredentialCards
+                      subjectType="child"
+                      subjectId={child.id}
+                      cards={childCards}
+                      path={`/children/${child.id}`}
+                    />
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </SectionCard>
+
+          {/* The parcours: every move between structures, as the register
+              will read it. Shown wherever a move is possible or has happened. */}
+          {(multiStructure || transfers.length > 0) && <TransferHistory rows={transfers} />}
+        </div>
+        )}
 
         {/* ===== Santé ===== */}
-        <TabsContent value="health" className="mt-4">
+        {tab === "health" && (
           <HealthSection childId={child.id} health={health} allergies={allergies} />
-        </TabsContent>
+        )}
 
         {/* ===== Présences ===== */}
-        <TabsContent value="attendance" className="mt-4">
-          <Card className="shadow-sm">
-            <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle className="flex items-center gap-2.5 text-base">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <CalendarDays className="size-4" />
-                </span>
-                {t("attendance.title")}
-              </CardTitle>
+        {tab === "attendance" && (
+          <SectionCard
+            icon={CalendarDays}
+            tone={2}
+            title={t("attendance.title")}
+            hint={
+              // The month's count, in one line the eye can scan.
+              <span className="flex flex-wrap gap-x-3 gap-y-0.5">
+                {(["present", "absent", "late", "sick"] as const).map((k) => (
+                  <span key={k}>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {attendanceCounts[k] ?? 0}
+                    </span>{" "}
+                    {t(`attendance.summary.${k}`)}
+                  </span>
+                ))}
+              </span>
+            }
+            action={
               <div className="flex items-center gap-1">
                 <Button asChild variant="outline" size="icon" aria-label={t("attendance.prevMonth")}>
                   <Link href={`/children/${child.id}?tab=attendance&month=${prevMonth}`}>
-                    <BackIcon />
+                    <ArrowLeft className="rtl:rotate-180" />
                   </Link>
                 </Button>
                 <span className="min-w-32 text-center text-sm font-medium">
@@ -1017,96 +1010,86 @@ export default async function ChildProfilePage({
                 </span>
                 <Button asChild variant="outline" size="icon" aria-label={t("attendance.nextMonth")}>
                   <Link href={`/children/${child.id}?tab=attendance&month=${nextMonth}`}>
-                    <BackIcon className="rotate-180" />
+                    <ArrowLeft className="rotate-180 rtl:rotate-0" />
                   </Link>
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="grid grid-cols-2 gap-2 px-6 pb-4 sm:grid-cols-4">
-                {(["present", "absent", "late", "sick"] as const).map((k) => (
-                  <div key={k} className={cn("rounded-xl border px-3 py-2", SUMMARY_TONE[k].tile)}>
-                    <div
-                      className={cn("text-2xl font-bold tabular-nums", SUMMARY_TONE[k].value)}
-                    >
-                      {attendanceCounts[k] ?? 0}
-                    </div>
-                    <div className={cn("truncate text-xs font-medium", SUMMARY_TONE[k].label)}>
-                      {t(`attendance.summary.${k}`)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {attendance.length === 0 ? (
-                <p className="px-6 pb-6 text-center text-sm text-muted-foreground">
-                  {t("attendance.empty")}
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="[&>th]:font-semibold">
-                        <TableHead>{t("attendance.columns.date")}</TableHead>
-                        <TableHead>{t("attendance.columns.status")}</TableHead>
-                        <TableHead>{t("attendance.columns.in")}</TableHead>
-                        <TableHead>{t("attendance.columns.out")}</TableHead>
-                        <TableHead>{t("attendance.columns.pickedUpBy")}</TableHead>
+            }
+            contentClassName="p-0"
+          >
+            {attendance.length === 0 ? (
+              <p className="px-4 pb-4 text-sm text-muted-foreground">{t("attendance.empty")}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="[&>th]:text-muted-foreground">
+                      <TableHead className="ps-4">{t("attendance.columns.date")}</TableHead>
+                      <TableHead>{t("attendance.columns.status")}</TableHead>
+                      <TableHead>{t("attendance.columns.in")}</TableHead>
+                      <TableHead>{t("attendance.columns.out")}</TableHead>
+                      <TableHead className="pe-4">{t("attendance.columns.pickedUpBy")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attendance.map((a) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="ps-4 whitespace-nowrap">
+                          {formatDate(a.date, locale, { weekday: "short" })}
+                        </TableCell>
+                        <TableCell>
+                          <StatusPill tone={ATTENDANCE_TONE[a.status as AttendanceStatus]}>
+                            {t(`attendance.statuses.${a.status}`)}
+                          </StatusPill>
+                        </TableCell>
+                        <TableCell className="tabular-nums" dir="ltr">
+                          {a.check_in_at ? formatTime(a.check_in_at, locale) : "—"}
+                        </TableCell>
+                        <TableCell className="tabular-nums" dir="ltr">
+                          {a.check_out_at ? formatTime(a.check_out_at, locale) : "—"}
+                        </TableCell>
+                        <TableCell className="max-w-48 truncate pe-4 text-muted-foreground">
+                          {a.picked_up_by ?? "—"}
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {attendance.map((a) => (
-                        <TableRow key={a.id}>
-                          <TableCell className="whitespace-nowrap">
-                            {formatDate(a.date, locale, { weekday: "short" })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={attendanceStatusClasses(a.status as AttendanceStatus)}>
-                              {t(`attendance.statuses.${a.status}`)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="tabular-nums">
-                            {a.check_in_at ? formatTime(a.check_in_at, locale) : "—"}
-                          </TableCell>
-                          <TableCell className="tabular-nums">
-                            {a.check_out_at ? formatTime(a.check_out_at, locale) : "—"}
-                          </TableCell>
-                          <TableCell className="max-w-48 truncate text-muted-foreground">
-                            {a.picked_up_by ?? "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </SectionCard>
+        )}
 
         {/* ===== Facturation ===== */}
-        <TabsContent value="billing" className="mt-4 grid gap-4">
+        {tab === "billing" && (
+        <div className="grid gap-4">
           {!ctx.isFinance ? (
-            <Card className="shadow-sm">
-              <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-                  <Wallet className="size-6" />
-                </span>
+            <Card className="border border-border shadow-sm ring-0">
+              <CardContent className="flex items-center gap-3">
+                <Wallet className="size-5 text-muted-foreground" aria-hidden />
                 <p className="text-sm text-muted-foreground">{t("billing.restricted")}</p>
               </CardContent>
             </Card>
           ) : (
             <>
-              <Card className="shadow-sm">
-                <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle className="flex items-center gap-2.5 text-base">
-                    <span className="flex size-8 items-center justify-center rounded-lg bg-gold text-gold-foreground">
-                      <Wallet className="size-4" />
-                    </span>
-                    {t("billing.feesTitle")}
-                  </CardTitle>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Set it here, where the badge sends you. */}
-                    {planOptions.length > 0 && (
+              <SectionCard
+                icon={Wallet}
+                tone={1}
+                title={t("billing.feesTitle")}
+                hint={
+                  // The card's one navigation link: text-primary with a
+                  // chevron, beside the title, not a second button.
+                  <Link
+                    href="/billing"
+                    className="inline-flex items-center gap-0.5 text-sm text-primary hover:text-primary/80"
+                  >
+                    {t("billing.goToBilling")}
+                    <ChevronRight className="size-3.5 rtl:rotate-180" aria-hidden />
+                  </Link>
+                }
+                action={
+                  // Set it here, where the pill sends you.
+                  planOptions.length > 0 ? (
                       <AssignFeeDialog
                         childId={child.id}
                         childName={name}
@@ -1125,148 +1108,119 @@ export default async function ChildProfilePage({
                             : undefined
                         }
                       />
-                    )}
-                    <Button asChild variant="outline" size="sm">
-                      <Link href="/billing">{t("billing.goToBilling")}</Link>
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {fees.length === 0 ? (
-                    <p className="px-6 pb-6 text-center text-sm text-muted-foreground">
-                      {t("billing.feesEmpty")}
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="[&>th]:font-semibold">
-                            <TableHead>{t("billing.columns.plan")}</TableHead>
-                            <TableHead className="text-end">{t("billing.columns.amount")}</TableHead>
-                            <TableHead>{t("billing.columns.period")}</TableHead>
-                            <TableHead className="text-end">
-                              {t("billing.columns.discount")}
-                            </TableHead>
-                            <TableHead>{t("billing.columns.start")}</TableHead>
-                            <TableHead>{t("billing.columns.end")}</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {fees.map((f) => {
-                            const plan = f.kg_fee_plans!;
-                            const planName =
-                              locale === "ar" && plan.name_ar ? plan.name_ar : plan.name;
-                            return (
-                              <TableRow key={f.id}>
-                                <TableCell className="font-medium">{planName}</TableCell>
-                                <TableCell className="text-end font-semibold tabular-nums">
-                                  {formatDZD(f.custom_amount ?? plan.amount, locale)}
-                                </TableCell>
-                                <TableCell>{tb(`periods.${plan.period}`)}</TableCell>
-                                <TableCell className="text-end tabular-nums">
-                                  {f.discount_pct > 0 ? (
-                                    <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
-                                      −{f.discount_pct}%
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>{formatDate(f.start_date, locale)}</TableCell>
-                                <TableCell>
-                                  {f.end_date ? formatDate(f.end_date, locale) : "—"}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2.5 text-base">
-                    <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Receipt className="size-4" />
-                    </span>
-                    {t("billing.invoicesTitle")}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {invoices.length === 0 ? (
-                    <p className="px-6 pb-6 text-center text-sm text-muted-foreground">
-                      {t("billing.invoicesEmpty")}
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="[&>th]:font-semibold">
-                            <TableHead>{t("billing.columns.number")}</TableHead>
-                            <TableHead>{t("billing.columns.month")}</TableHead>
-                            <TableHead>{t("billing.columns.issued")}</TableHead>
-                            <TableHead>{t("billing.columns.due")}</TableHead>
-                            <TableHead>{t("billing.columns.status")}</TableHead>
-                            <TableHead className="text-end">{t("billing.columns.total")}</TableHead>
-                            <TableHead className="text-end">{t("billing.columns.paid")}</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {invoices.map((inv) => (
-                            <TableRow key={inv.id}>
-                              <TableCell className="font-mono" dir="ltr">
-                                <InvoiceLink id={inv.id}>#{inv.number}</InvoiceLink>
+                  ) : undefined
+                }
+                contentClassName="p-0"
+              >
+                {fees.length === 0 ? (
+                  <p className="px-4 pb-4 text-sm text-muted-foreground">{t("billing.feesEmpty")}</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="[&>th]:text-muted-foreground">
+                          <TableHead className="ps-4">{t("billing.columns.plan")}</TableHead>
+                          <TableHead className="text-end">{t("billing.columns.amount")}</TableHead>
+                          <TableHead>{t("billing.columns.period")}</TableHead>
+                          <TableHead className="text-end">{t("billing.columns.discount")}</TableHead>
+                          <TableHead>{t("billing.columns.start")}</TableHead>
+                          <TableHead className="pe-4">{t("billing.columns.end")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {fees.map((f) => {
+                          const plan = f.kg_fee_plans!;
+                          const planName =
+                            locale === "ar" && plan.name_ar ? plan.name_ar : plan.name;
+                          return (
+                            <TableRow key={f.id}>
+                              <TableCell className="ps-4 font-medium">{planName}</TableCell>
+                              <TableCell className="text-end tabular-nums">
+                                {formatDZD(f.custom_amount ?? plan.amount, locale)}
                               </TableCell>
-                              <TableCell>
-                                {inv.period_month
-                                  ? monthFmt.format(new Date(`${inv.period_month.slice(0, 7)}-01T12:00:00`))
-                                  : "—"}
+                              <TableCell className="text-muted-foreground">{tb(`periods.${plan.period}`)}</TableCell>
+                              <TableCell className="text-end tabular-nums text-muted-foreground">
+                                {f.discount_pct > 0 ? `−${f.discount_pct}%` : "—"}
                               </TableCell>
-                              <TableCell>{formatDate(inv.issue_date, locale)}</TableCell>
-                              <TableCell>
-                                {inv.due_date ? formatDate(inv.due_date, locale) : "—"}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className={invoiceStatusClasses(inv.status)}>
-                                  {tb(`status.${inv.status}`)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-end font-semibold tabular-nums">
-                                {formatDZD(inv.total, locale)}
-                              </TableCell>
-                              <TableCell
-                                className={cn(
-                                  "text-end tabular-nums",
-                                  inv.paid_amount > 0 ? "font-medium text-income" : "text-muted-foreground"
-                                )}
-                              >
-                                {formatDZD(inv.paid_amount, locale)}
+                              <TableCell className="text-muted-foreground">{formatDate(f.start_date, locale)}</TableCell>
+                              <TableCell className="pe-4 text-muted-foreground">
+                                {f.end_date ? formatDate(f.end_date, locale) : "—"}
                               </TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </SectionCard>
+
+              <SectionCard icon={Receipt} tone={0} title={t("billing.invoicesTitle")} contentClassName="p-0">
+                {invoices.length === 0 ? (
+                  <p className="px-4 pb-4 text-sm text-muted-foreground">{t("billing.invoicesEmpty")}</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="[&>th]:text-muted-foreground">
+                          <TableHead className="ps-4">{t("billing.columns.number")}</TableHead>
+                          <TableHead>{t("billing.columns.month")}</TableHead>
+                          <TableHead>{t("billing.columns.issued")}</TableHead>
+                          <TableHead>{t("billing.columns.due")}</TableHead>
+                          <TableHead>{t("billing.columns.status")}</TableHead>
+                          <TableHead className="text-end">{t("billing.columns.total")}</TableHead>
+                          <TableHead className="pe-4 text-end">{t("billing.columns.paid")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invoices.map((inv) => (
+                          <TableRow key={inv.id}>
+                            <TableCell className="ps-4 font-mono" dir="ltr">
+                              <InvoiceLink id={inv.id}>#{inv.number}</InvoiceLink>
+                            </TableCell>
+                            <TableCell>
+                              {inv.period_month
+                                ? monthFmt.format(new Date(`${inv.period_month.slice(0, 7)}-01T12:00:00`))
+                                : "—"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">{formatDate(inv.issue_date, locale)}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {inv.due_date ? formatDate(inv.due_date, locale) : "—"}
+                            </TableCell>
+                            <TableCell>
+                              <StatusPill tone={INVOICE_TONE[inv.status]}>
+                                {tb(`status.${inv.status}`)}
+                              </StatusPill>
+                            </TableCell>
+                            <TableCell className="text-end font-medium tabular-nums">
+                              {formatDZD(inv.total, locale)}
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                "pe-4 text-end tabular-nums",
+                                inv.paid_amount > 0 ? "text-foreground" : "text-muted-foreground"
+                              )}
+                            >
+                              {formatDZD(inv.paid_amount, locale)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </SectionCard>
             </>
           )}
-        </TabsContent>
+        </div>
+        )}
 
         {/* ===== Documents ===== */}
-        <TabsContent value="documents" className="mt-4">
-          <DocumentsSection childId={child.id} documents={documents} />
-        </TabsContent>
+        {tab === "documents" && <DocumentsSection childId={child.id} documents={documents} />}
 
         {/* ===== Consentements ===== */}
-        <TabsContent value="consents" className="mt-4">
-          <ConsentsSection childId={child.id} consents={consents} />
-        </TabsContent>
-      </Tabs>
+        {tab === "consents" && <ConsentsSection childId={child.id} consents={consents} />}
+      </div>
     </div>
   );
 }

@@ -9,11 +9,15 @@ export function ExportCsvButton({
   headers,
   rows,
   label,
+  variant = "outline",
 }: {
   filename: string;
   headers: string[];
   rows: (string | number | null)[][];
   label: string;
+  /** Outline in a section header, where it is the section's one action; ghost
+   *  beside an outline button in a row, so the row has one rank of button. */
+  variant?: "outline" | "ghost";
 }) {
   const handleExport = () => {
     const esc = (v: string | number | null) => `"${String(v ?? "").replaceAll('"', '""')}"`;
@@ -29,7 +33,7 @@ export function ExportCsvButton({
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleExport} disabled={rows.length === 0}>
+    <Button variant={variant} size="sm" onClick={handleExport} disabled={rows.length === 0}>
       <Download data-icon="inline-start" />
       {label}
     </Button>

@@ -53,8 +53,8 @@
       "pending": "Invoice awaiting payment"
     },
     "inactive": {
-      "withdrawn": "Has left the kindergarten",
-      "alumni": "Has left the kindergarten — alumni",
+      "withdrawn": "Left the establishment",
+      "alumni": "Left the establishment — alumni",
       "waitlist": "On the waiting list — no attendance yet",
       "pending": "Application under review — no attendance yet"
     },
@@ -111,8 +111,9 @@
     "description": "Requests still with the office — they stay here until the kindergarten answers.",
     "sentOn": "Sent on {date}",
     "processing": "File received — being processed. The crèche will contact you.",
-    "closed": "File handled — contact the crèche about the next step.",
-    "processingTransfer": "Structure change request received — the office will confirm."
+    "closed": "File handled — contact the establishment about the next step.",
+    "processingTransfer": "Structure change request received — the office will confirm.",
+    "group": "Requests in progress"
   },
   "addChild": {
     "trigger": "Enrol another child",
@@ -153,19 +154,19 @@
     "classChoice": {
       "title": "Preferred class",
       "reviewLabel": "Preferred class",
-      "undecided": "The crèche decides"
+      "undecided": "The office decides"
     }
   },
   "messages": {
     "title": "Messages",
-    "description": "Your conversations with the kindergarten about your children.",
+    "description": "Your conversations with the establishment about your children.",
     "empty": "No conversations yet",
-    "emptyDescription": "Start a conversation with the kindergarten — a question, a request, anything about your child. Replies land right here.",
+    "emptyDescription": "Start a conversation with the establishment — a question, a request, anything about your child. Replies land right here.",
     "start": "New conversation",
     "noSubject": "No subject",
     "you": "You",
     "yesterday": "Yesterday",
-    "awaitingYou": "New message from the kindergarten",
+    "awaitingYou": "New message from the establishment",
     "back": "Back to messages",
     "notFound": "Conversation unavailable",
     "notFoundDescription": "This conversation is not linked to your account, or it no longer exists.",
@@ -247,19 +248,19 @@
       "attendance": "Attendance",
       "health": "Health",
       "activities": "Activities",
-      "permissions": "Permissions"
+      "permissions": "Access"
     },
     "journal": {
       "title": "Daily journal",
       "empty": "No published journal yet",
-      "emptyDescription": "Your child's daily journal appears here once the teacher publishes it.",
+      "emptyDescription": "Your child's journal will appear here as soon as the educator publishes it.",
       "meals": "Meals",
       "nap": "Nap",
       "napRange": "{start} to {end}",
       "napFrom": "From {time}",
       "napUntil": "Until {time}",
       "activities": "Activities",
-      "notes": "Teacher's notes",
+      "notes": "A word from the team",
       "napNone": "Did not nap",
       "napSlept": "Napped",
       "napMinutes": "Slept {minutes} min",
@@ -268,6 +269,19 @@
         "half": "Ate half",
         "little": "Ate a little",
         "none": "Did not eat"
+      },
+      "hint": "The last 30 days",
+      "emptyDays": "No day recorded yet",
+      "emptyDaysDescription": "Your child's days will appear here from the first day of attendance.",
+      "facts": {
+        "lessons": {
+          "academic": "{count, plural, one {# lesson} other {# lessons}}",
+          "therapy": "{count, plural, one {# workshop} other {# workshops}}",
+          "other": "{count, plural, one {# activity} other {# activities}}"
+        },
+        "nap": "nap {minutes} min",
+        "incidents": "{count, plural, one {# incident} other {# incidents}}",
+        "sessions": "{count, plural, one {# session} other {# sessions}}"
       }
     },
     "attendance": {
@@ -488,7 +502,7 @@
     "paid": "Paid",
     "balance": "Balance",
     "empty": "No invoices yet",
-    "emptyDescription": "Kindergarten invoices appear here once they are issued.",
+    "emptyDescription": "The establishment's invoices appear here once they are issued.",
     "statuses": {
       "draft": "Draft",
       "sent": "Sent",
@@ -514,11 +528,11 @@
     },
     "cash": {
       "title": "Pay in cash at the office",
-      "body": "Payments are made in cash at the kindergarten office, and you receive a numbered receipt on the spot. No online payment is needed."
+      "body": "Payments are made in cash at the establishment's office, and you receive a numbered receipt on the spot. No online payment is needed."
     },
     "fees": {
       "title": "Your monthly fee",
-      "description": "What the crèche charges every month, before activities and extras.",
+      "description": "What the establishment charges every month, before activities and extras.",
       "none": "No fee on record. Ask the office.",
       "perMonth": "a month",
       "discount": "{pct}% discount",
@@ -535,9 +549,9 @@
   },
   "announcements": {
     "title": "News",
-    "description": "Kindergarten announcements for parents and for your children's classes.",
+    "description": "The establishment's announcements for parents and for your children's classes.",
     "empty": "No announcements",
-    "emptyDescription": "Kindergarten announcements addressed to you appear here.",
+    "emptyDescription": "The establishment's announcements addressed to you appear here.",
     "pinned": "Pinned",
     "audience": {
       "all": "Everyone",
@@ -545,7 +559,8 @@
       "staff": "Team",
       "class": "Class",
       "structure": "Structure"
-    }
+    },
+    "recent": "Recent"
   },
   "profile": {
     "title": "My profile",
@@ -643,13 +658,13 @@
   },
   "classChoice": {
     "forAge": "Their age",
-    "undecided": "Let the crèche decide",
+    "undecided": "Let the office decide",
     "undecidedHint": "You will agree on it together."
   },
   "transfer": {
     "trigger": "Change structure",
     "title": "Change structure",
-    "description": "Ask for {name} to move to another structure of the establishment. The office will confirm.",
+    "description": "Ask for a move to another structure of the establishment.",
     "structureLabel": "To which structure?",
     "classLabel": "Preferred class",
     "noteLabel": "A note for the office",
@@ -669,6 +684,65 @@
       "sameStructure": "Your child is already in that structure.",
       "notEnrolled": "Only an enrolled child can change structure. Please contact the office.",
       "unknownStructure": "That structure is no longer offered. Reload the page."
-    }
+    },
+    "consequence": "The office will confirm the move to <b>{structure}</b> and its date."
+  },
+  "learning": {
+    "title": "Programs",
+    "weekOf": "Week of {from} to {to}",
+    "today": "This week",
+    "noChildren": "No child linked yet",
+    "noChildrenDescription": "Your children's programs and results will appear here once the establishment links them to your account.",
+    "thisWeek": "This week",
+    "noLessons": "Nothing planned this week.",
+    "programs": "Current programs",
+    "noPrograms": "No program in progress.",
+    "results": "Published results",
+    "noResults": "No published result yet.",
+    "progressHint": "{profile, select, academic {Lessons given out of lessons planned} therapy {Workshops given out of workshops planned} other {Activities given out of activities planned}}",
+    "nothingThisWeek": "Nothing published this week.",
+    "week": "The class's week"
+  },
+  "day": {
+    "prev": "Previous day",
+    "next": "Next day",
+    "navLabel": "Change day",
+    "closed": "Closed that day",
+    "empty": "Nothing recorded for this day",
+    "emptyDescription": "Attendance, meals and activities appear as the day goes on.",
+    "presence": "Attendance",
+    "pickedUpBy": "Collected by <name>{who}</name>",
+    "away": {
+      "absent": "Absent that day",
+      "sick": "Off sick that day",
+      "excused": "Excused absence"
+    },
+    "blocks": {
+      "academic": "Class lessons",
+      "therapy": "Workshops",
+      "other": "Class activities"
+    },
+    "blocksAway": "Absent that day",
+    "meals": {
+      "title": "Meals",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "snack": "Snack"
+    },
+    "napMood": "Nap and mood",
+    "moods": {
+      "happy": "Happy",
+      "calm": "Calm",
+      "energetic": "Energetic",
+      "tired": "Tired",
+      "sad": "Sad",
+      "upset": "Upset",
+      "sick": "Unwell"
+    },
+    "photos": "Photos",
+    "incidents": "Incidents",
+    "ackedAt": "Acknowledged on {date} · <ltr>{time}</ltr>",
+    "sessions": "Sessions",
+    "photoOpen": "Photo {n} — open full size"
   }
 }

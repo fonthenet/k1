@@ -131,8 +131,10 @@ function Calendar({
           "relative isolate z-0 rounded-e-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:start-0 after:w-4 after:bg-muted",
           defaultClassNames.range_end,
         ),
+        // Today is the primary tint, as it is in the week grid's day head and
+        // the settings tabs — the one "current" mark the product uses.
         today: cn(
-          "rounded-(--cell-radius) bg-muted text-foreground data-[selected=true]:rounded-none",
+          "rounded-(--cell-radius) bg-primary/10 font-medium text-primary data-[selected=true]:rounded-none",
           defaultClassNames.today,
         ),
         outside: cn(

@@ -4,16 +4,43 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
+import { clashFromDetails, isRoomClash, type ClashRange } from "@/lib/db-clash";
 import { flushPush } from "@/app/actions/push";
 import { addDaysStr, dateRange } from "./dates";
 import { onStructure } from "./structures";
 import { isOpenDayStr, toOpeningHours, type OpeningHours } from "@/lib/week";
 
-export type ActionResult =
-  | { ok: true; id?: string; count?: number }
-  | { ok: false; error: "invalid" | "duplicate" | "forbidden" | "error" };
+export type CommsActionResult =
+  | { ok: true; id?: string; count?: number; repeated?: MenuRepeatResult }
+  | {
+      ok: false;
+      error: "invalid" | "duplicate" | "forbidden" | "conflictRoom" | "error";
+      at?: ClashRange;
+    };
+export type ActionResult = CommsActionResult;
 
-function mapDbError(error: { code?: string } | null): ActionResult {
+/** What kg_repeat_menu did: days written, days it left alone, the last one written. */
+export interface MenuRepeatResult {
+  written: number;
+  kept: number;
+  last: string | null;
+}
+
+/**
+ * The one refusal this module can say something about is the room's: an
+ * event that names a room is a booking in the ledger of 0155, and the
+ * exclusion (23P01, message `room_booking…`) carries the existing booking's
+ * range in its DETAIL. A roomed event without an end is the CHECK
+ * `kg_events_room_needs_range` (23514) — the dialog never lets it through,
+ * so here it is simply invalid.
+ */
+function mapDbError(
+  error: { code?: string; message?: string; details?: string } | null,
+): CommsActionResult {
+  if (error?.code === "23P01" && isRoomClash(error.message)) {
+    return { ok: false, error: "conflictRoom", at: clashFromDetails(error.details) };
+  }
+  if (error?.code === "23514") return { ok: false, error: "invalid" };
   if (error?.code === "23505") return { ok: false, error: "duplicate" };
   if (error?.code === "42501") return { ok: false, error: "forbidden" };
   return { ok: false, error: "error" };
@@ -223,6 +250,7 @@ const eventSchema = z
     audience: z.enum(["all", "parents", "staff", "class", "structure"]),
     classId: z.uuid().nullable(),
     structureId: z.uuid().nullable(),
+    roomId: z.uuid().nullable(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   })
   .refine((d) => d.audience !== "class" || d.classId !== null, { message: "class required" })
@@ -231,6 +259,11 @@ const eventSchema = z
   })
   .refine((d) => !d.endAt || Date.parse(d.endAt) >= Date.parse(d.startAt), {
     message: "end before start",
+  })
+  // A room is booked for a span, not an instant: the ledger cannot hold an
+  // event with no end, and the database says so (kg_events_room_needs_range).
+  .refine((d) => !d.roomId || (!!d.endAt && Date.parse(d.endAt) > Date.parse(d.startAt)), {
+    message: "room needs an end",
   });
 
 export async function saveEvent(
@@ -250,6 +283,7 @@ export async function saveEvent(
     audience: d.audience,
     class_id: d.audience === "class" ? d.classId : null,
     structure_id: d.audience === "structure" ? d.structureId : null,
+    room_id: d.roomId,
     color: d.color,
   };
 
@@ -302,6 +336,15 @@ const menuDaySchema = z.object({
   snack: optionalText,
   allergens: z.array(z.string().trim().min(1).max(100)).max(20),
   published: z.boolean(),
+  /**
+   * "Every Sunday until…": after the day is saved, kg_repeat_menu (0151)
+   * copies it onto the same weekday up to `until`, skipping closed days and
+   * — unless `replace` — days already filled in. Absent = this day only.
+   */
+  repeat: z
+    .object({ until: dateStr, replace: z.boolean() })
+    .nullable()
+    .optional(),
 });
 
 export async function saveMenuDay(input: z.infer<typeof menuDaySchema>): Promise<ActionResult> {
@@ -345,8 +388,26 @@ export async function saveMenuDay(input: z.infer<typeof menuDaySchema>): Promise
         structure_id: d.structureId,
       });
   if (error) return mapDbError(error);
+
+  // The repeat runs in the database, one call for the whole horizon, so a
+  // year of Sundays is one round trip and one transaction — and the rule
+  // about closed days lives next to the tables that define them.
+  let repeated: MenuRepeatResult | undefined;
+  if (d.repeat) {
+    const { data, error: repeatErr } = await supabase.rpc("kg_repeat_menu", {
+      p_date: d.date,
+      p_structure: d.structureId,
+      p_until: d.repeat.until,
+      p_replace: d.repeat.replace,
+    });
+    if (repeatErr) return mapDbError(repeatErr);
+    const r = (data ?? {}) as Partial<MenuRepeatResult>;
+    repeated = { written: r.written ?? 0, kept: r.kept ?? 0, last: r.last ?? null };
+  }
   revalidatePath("/menus");
-  return { ok: true };
+  revalidatePath("/portal");
+  revalidatePath("/dashboard");
+  return { ok: true, repeated };
 }
 
 /** The crèche's own week, not a hardcoded one. See src/lib/week.ts. */

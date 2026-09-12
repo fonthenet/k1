@@ -1,26 +1,27 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
-import { CalendarDays, ChevronLeft, ChevronRight, Star, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { requireStaff } from "@/lib/tenant";
 import { toOpeningHours } from "@/lib/week";
 import { createClient } from "@/lib/supabase/server";
 import { childDisplayName, intlLocale } from "@/lib/format";
 import type { AttendanceStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ChildLink, ClassLink } from "@/components/shared/entity-link";
+import { ClassLink } from "@/components/shared/entity-link";
+import { StructureMark } from "@/components/shared/structure-mark";
 import {
   ATTENDANCE_STATUSES,
   STATUS_STYLES,
   isPresentish,
 } from "@/components/modules/attendance/status-config";
+import { HistoryFilterBar } from "@/components/modules/attendance/history-filter-bar";
+import { AttendanceTabs, keepsJournal } from "@/components/modules/attendance/attendance-tabs";
 import { algiersToday } from "@/lib/algiers";
 import {
-  addMonthsStr,
   expandClosures,
   isValidMonthStr,
   monthBounds,
@@ -47,6 +48,7 @@ interface ClassRecord {
   id: string;
   name: string;
   name_ar: string | null;
+  color: string;
   structure_id: string | null;
 }
 
@@ -64,6 +66,8 @@ export default async function AttendanceHistoryPage({
 }) {
   const ctx = await requireStaff();
   const t = await getTranslations("attendance");
+  // The class group rows count children the way the roster does.
+  const tch = await getTranslations("children");
   const locale = await getLocale();
   const sp = await searchParams;
 
@@ -140,8 +144,9 @@ export default async function AttendanceHistoryPage({
   const days = workingDaysOfMonth(month, openingHours, closedDates);
   const firstDay = days[0] ?? bounds.first;
   const lastDay = days[days.length - 1] ?? bounds.last;
-  // Days of this month that have already happened — a child with a mark on every one of
-  // them gets the gold star, so the accent shows up mid-month too.
+  // Days of this month that have already happened — a child with a mark on
+  // every one of them has a perfect month, and the total says so in gold ink
+  // mid-month too.
   const elapsedCount = days.filter((d) => d <= today).length;
 
   let childrenQuery = supabase
@@ -156,7 +161,7 @@ export default async function AttendanceHistoryPage({
   const [classesRes, childrenRes, attendanceRes] = await Promise.all([
     supabase
       .from("kg_classes")
-      .select("id, name, name_ar, structure_id")
+      .select("id, name, name_ar, color, structure_id")
       .eq("tenant_id", ctx.tenant.id)
       .order("name"),
     childrenQuery,
@@ -185,30 +190,51 @@ export default async function AttendanceHistoryPage({
     statusByKey.set(`${a.child_id}|${a.date}`, a.status as AttendanceStatus);
   }
 
-  const className = (id: string | null): string => {
-    const c = classes.find((k) => k.id === id);
-    if (!c) return "—";
-    return locale === "ar" && c.name_ar ? c.name_ar : c.name;
-  };
+  const classById = new Map(classes.map((c) => [c.id, c] as const));
+  const structureById = new Map(structures.map((s) => [s.id, s] as const));
+  const classLabel = (c: ClassRecord) => (locale === "ar" && c.name_ar ? c.name_ar : c.name);
+  // A class never appears without its structure once the building has more
+  // than one — but when the filter already narrows to one structure, saying
+  // it again on every group row would be the same fact twice.
+  const showStructure = structures.length > 1 && activeStructure === null;
 
-  // Group children by class for the "all" view; single group otherwise.
-  const groups: { label: string | null; classId: string | null; children: ChildRecord[] }[] = [];
+  // Children under their class for the "all" view — group rows inside the
+  // one table, the class said once as its dot and name. A single class gets
+  // no group row at all; the children with no class come last.
+  const groups: {
+    classId: string | null;
+    label: string | null;
+    color: string | null;
+    structure: Structure | null;
+    children: ChildRecord[];
+  }[] = [];
   if (activeClass === "all") {
     const byClass = new Map<string, ChildRecord[]>();
     for (const c of children) {
-      const key = c.class_id ?? "none";
+      const key = c.class_id && classById.has(c.class_id) ? c.class_id : "none";
       const list = byClass.get(key) ?? [];
       list.push(c);
       byClass.set(key, list);
     }
     for (const [key, list] of byClass) {
-      const classId = key === "none" ? null : key;
-      groups.push({ label: className(classId), classId, children: list });
+      const klass = key === "none" ? null : classById.get(key)!;
+      groups.push({
+        classId: klass?.id ?? null,
+        label: klass ? classLabel(klass) : tch("roster.noClass"),
+        color: klass?.color ?? null,
+        structure: (klass?.structure_id && structureById.get(klass.structure_id)) || null,
+        children: list,
+      });
     }
-    groups.sort((a, b) => (a.label ?? "").localeCompare(b.label ?? ""));
+    groups.sort(
+      (a, b) =>
+        Number(a.color === null) - Number(b.color === null) ||
+        (a.label ?? "").localeCompare(b.label ?? "", locale)
+    );
   } else {
-    groups.push({ label: null, classId: null, children });
+    groups.push({ classId: null, label: null, color: null, structure: null, children });
   }
+  const single = groups.length === 1;
 
   const monthLabel = new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
@@ -224,277 +250,238 @@ export default async function AttendanceHistoryPage({
     month: "long",
   });
 
-  // The structure travels with every link, so paging through months never
-  // widens the grid back to the whole building behind the reader's back.
-  const href = (m: string, c: string, s: string = activeStructure ?? "all") =>
-    `/attendance/history?month=${m}&class=${encodeURIComponent(c)}` +
-    (s === "all" ? "" : `&structure=${encodeURIComponent(s)}`);
-
-  const classTabs: { id: string; label: string }[] = [
-    { id: "all", label: t("tabs.all") },
-    ...classes.map((c) => ({
-      id: c.id,
-      label: locale === "ar" && c.name_ar ? c.name_ar : c.name,
-    })),
-  ];
-
-  const structureTabs: { id: string; label: string }[] = [
-    { id: "all", label: t("structures.all") },
-    ...structures.map((s) => ({ id: s.id, label: structureName(s, locale) })),
-  ];
-
   const hasData = statusByKey.size > 0;
+  const colSpan = days.length + 2;
+
+  // The tab bar's Journal tab exists only where a scoped class keeps one; the
+  // register and the journal tabs open on today when the grid shows this
+  // month, else on the first of the month being read.
+  const tenantType = (ctx.tenant as { center_type?: string | null }).center_type;
+  const showJournal = classes.some((c) =>
+    keepsJournal(
+      (c.structure_id && structureById.get(c.structure_id)?.center_type) || tenantType
+    )
+  );
+  const tabsDate = month === monthOf(today) ? today : `${month}-01`;
 
   return (
     <div>
-      <PageHeader title={t("history.title")} description={t("history.description")}>
-        <Button variant="outline" size="sm" asChild>
-          <Link
-            href={
-              activeStructure
-                ? `/attendance?structure=${encodeURIComponent(activeStructure)}`
-                : "/attendance"
-            }
-          >
-            <CalendarDays data-icon="inline-start" />
-            {t("nav.register")}
-          </Link>
-        </Button>
-      </PageHeader>
+      {/* No primary here: the register is where the day gets written. */}
+      <PageHeader title={t("history.title")} description={t("history.description")} />
 
-      {/* Month navigation + class filter */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm">
-          <Button variant="ghost" size="icon" asChild>
-            <Link
-              href={href(addMonthsStr(month, -1), activeClass)}
-              aria-label={t("history.prevMonth")}
-              title={t("history.prevMonth")}
-            >
-              <ChevronLeft className="rtl:-scale-x-100" />
-            </Link>
-          </Button>
-          <span className="min-w-40 text-center text-sm font-semibold capitalize">
-            {monthLabel}
-          </span>
-          <Button variant="ghost" size="icon" asChild>
-            <Link
-              href={href(addMonthsStr(month, 1), activeClass)}
-              aria-label={t("history.nextMonth")}
-              title={t("history.nextMonth")}
-            >
-              <ChevronRight className="rtl:-scale-x-100" />
-            </Link>
-          </Button>
-        </div>
+      <AttendanceTabs
+        active="history"
+        date={tabsDate}
+        structure={activeStructure}
+        showJournal={showJournal}
+      />
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          {/* The structure first, the classes it holds after — the pills to
-              the right of the divider are the ones this structure owns. The
-              muted fill leaves the filled accent to the class actually being
-              read, so one row carries two questions without two alarms. A
-              crèche with one structure sees none of this. Choosing a structure
-              drops back to all classes: the class beside it belongs to the
-              other one. */}
-          {structures.length > 1 && (
-            <>
-              {structureTabs.map((tab) => (
-                <Button
-                  key={tab.id}
-                  variant={tab.id === (activeStructure ?? "all") ? "secondary" : "ghost"}
-                  size="sm"
-                  asChild
-                >
-                  <Link href={href(month, "all", tab.id)}>{tab.label}</Link>
-                </Button>
-              ))}
-              <Separator orientation="vertical" className="mx-1 !h-5" />
-            </>
-          )}
-          {classTabs.map((tab) => (
-            <Button
-              key={tab.id}
-              variant={tab.id === activeClass ? "default" : "outline"}
-              size="sm"
-              asChild
-            >
-              <Link href={href(month, tab.id)}>{tab.label}</Link>
-            </Button>
-          ))}
-        </div>
-      </div>
+      <HistoryFilterBar
+        month={month}
+        monthLabel={monthLabel}
+        activeClass={activeClass}
+        activeStructure={activeStructure ?? "all"}
+        structures={structures}
+        classes={classes}
+        childCount={children.length}
+      />
 
       {children.length === 0 ? (
         <EmptyState
-          icon={
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Users className="size-7" />
-            </span>
-          }
+          icon={<Users />}
           title={t("empty.title")}
           description={t("empty.description")}
         />
       ) : (
-        <Card className="py-0 shadow-sm">
-          <CardContent className="overflow-x-auto p-0">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted">
-                  <th className="sticky start-0 z-10 bg-muted px-3 py-2.5 text-start text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    {t("table.child")}
-                  </th>
-                  {days.map((d) => {
-                    const dt = parseDateStr(d);
-                    const isWeekStart = dt.getDay() === 0;
-                    const isToday = d === today;
-                    return (
-                      <th
-                        key={d}
-                        title={fullDayFmt.format(dt)}
-                        className={cn(
-                          "px-1 py-2.5 text-center font-normal text-muted-foreground",
-                          isWeekStart && "border-s-2 border-border",
-                          isToday && "bg-gold/15 font-bold text-foreground"
-                        )}
-                      >
-                        <div className="text-[10px] uppercase">{dayFmt.format(dt)}</div>
-                        <div className="tabular-nums">{dt.getDate()}</div>
-                      </th>
-                    );
-                  })}
-                  <th
-                    className="px-3 py-2.5 text-end text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                    title={t("history.totalTitle")}
-                  >
-                    {t("history.total")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {groups.map((group, gi) => (
-                  <ContentGroup
-                    key={group.label ?? gi}
-                    label={group.label}
-                    classId={group.classId}
-                    colSpan={days.length + 2}
-                  >
-                    {group.children.map((child) => {
-                      let total = 0;
-                      for (const d of days) {
-                        const s = statusByKey.get(`${child.id}|${d}`);
-                        if (isPresentish(s)) total++;
-                      }
-                      const perfect = elapsedCount > 0 && total === elapsedCount;
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            {/* A plain table rather than the ui Table: the first column is
+                sticky so the name stays put while a month of days scrolls
+                under it, and the day heads are two lines. Same band, same
+                paddings as every other register. */}
+            <div className="relative w-full overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-muted/40">
+                  <tr className="border-b border-border">
+                    {/* Opaque, but the band's own shade: the sticky cell
+                        covers what scrolls under it without reading darker
+                        than the heads beside it. */}
+                    <th className="sticky start-0 z-10 bg-[color-mix(in_oklab,var(--muted)_40%,var(--card))] px-3 py-2.5 ps-5 text-start text-sm font-semibold text-muted-foreground">
+                      {t("table.child")}
+                    </th>
+                    {days.map((d) => {
+                      const dt = parseDateStr(d);
+                      const isWeekStart = dt.getDay() === 0;
+                      const isToday = d === today;
                       return (
-                        <tr
-                          key={child.id}
-                          className="group/row border-b border-border transition-colors last:border-b-0 hover:bg-muted"
+                        <th
+                          key={d}
+                          title={fullDayFmt.format(dt)}
+                          className={cn(
+                            "px-1 py-2 text-center text-xs font-normal text-muted-foreground",
+                            isWeekStart && "border-s-2 border-border"
+                          )}
                         >
-                          <td className="sticky start-0 z-10 max-w-44 truncate bg-card px-3 py-2 font-medium group-hover/row:bg-muted">
-                            <ChildLink id={child.id}>{childDisplayName(child, locale)}</ChildLink>
-                          </td>
-                          {days.map((d) => {
-                            const status = statusByKey.get(`${child.id}|${d}`);
-                            const dt = parseDateStr(d);
-                            const isWeekStart = dt.getDay() === 0;
-                            const isToday = d === today;
-                            return (
-                              <td
-                                key={d}
-                                className={cn(
-                                  "px-1 py-2 text-center",
-                                  isWeekStart && "border-s-2 border-border",
-                                  isToday && "bg-gold/10"
-                                )}
-                                title={`${fullDayFmt.format(dt)} — ${
-                                  status ? t(`status.${status}`) : t("history.noStatus")
-                                }`}
-                              >
+                          <div>{dayFmt.format(dt)}</div>
+                          {/* Today is the number in a primary circle, and
+                              nothing else — the calendar's own mark. */}
+                          <div
+                            className={cn(
+                              "mx-auto mt-0.5 flex size-6 items-center justify-center rounded-full text-sm tabular-nums",
+                              isToday && "bg-primary font-medium text-primary-foreground"
+                            )}
+                          >
+                            {dt.getDate()}
+                          </div>
+                        </th>
+                      );
+                    })}
+                    <th
+                      className="px-3 py-2.5 pe-5 text-end text-sm font-semibold text-muted-foreground"
+                      title={t("history.totalTitle")}
+                    >
+                      {t("history.total")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groups.map((group, gi) => (
+                    <Fragment key={group.label ?? gi}>
+                      {/* Group rows inside the one table, never a card per
+                          class: the class is its dot and its name, the count
+                          beside it. The cell is sticky with the name column so
+                          the label stays readable while the days scroll. */}
+                      {!single && group.label && (
+                        <tr className="border-b border-border bg-muted/30">
+                          <td colSpan={colSpan} className="py-1.5 ps-5 pe-5 text-xs">
+                            <span className="sticky start-5 flex w-fit items-center gap-2">
+                              {group.color && (
                                 <span
-                                  className={cn(
-                                    "mx-auto block size-4 rounded",
-                                    status ? STATUS_STYLES[status].cellClass : "bg-border"
-                                  )}
+                                  className="size-2.5 shrink-0 rounded-full ring-1 ring-inset ring-foreground/10"
+                                  style={{ backgroundColor: group.color }}
+                                  aria-hidden
                                 />
-                              </td>
-                            );
-                          })}
-                          <td className="px-3 py-2 text-end">
-                            <span
-                              title={t("history.totalTitle")}
-                              className={cn(
-                                "inline-flex min-w-9 items-center justify-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
-                                perfect
-                                  ? "bg-gold text-gold-foreground"
-                                  : "bg-secondary text-secondary-foreground"
                               )}
-                            >
-                              {perfect && <Star className="size-3 fill-current" />}
-                              {total}
+                              {/* The class name is the door to its page —
+                                  the second door of entity-link, since the
+                                  group row itself opens nothing. */}
+                              {group.classId ? (
+                                <ClassLink id={group.classId} className="font-semibold">
+                                  <bdi dir="auto">{group.label}</bdi>
+                                </ClassLink>
+                              ) : (
+                                <span className="font-semibold">
+                                  <bdi dir="auto">{group.label}</bdi>
+                                </span>
+                              )}
+                              <span className="text-muted-foreground tabular-nums">
+                                {tch("roster.count", { count: group.children.length })}
+                              </span>
+                              {showStructure && group.structure && (
+                                <StructureMark
+                                  structure={{
+                                    name: structureName(group.structure, locale),
+                                    color: group.structure.color,
+                                  }}
+                                  className="text-xs text-muted-foreground"
+                                />
+                              )}
                             </span>
                           </td>
                         </tr>
-                      );
-                    })}
-                  </ContentGroup>
-                ))}
-              </tbody>
-            </table>
+                      )}
+                      {group.children.map((child) => {
+                        let total = 0;
+                        for (const d of days) {
+                          const s = statusByKey.get(`${child.id}|${d}`);
+                          if (isPresentish(s)) total++;
+                        }
+                        const perfect = elapsedCount > 0 && total === elapsedCount;
+                        return (
+                          <tr
+                            key={child.id}
+                            className="group/row border-b border-border transition-colors last:border-b-0 hover:bg-muted"
+                          >
+                            {/* The name is foreground text, as in the day
+                                register — forty-seven teal names were a
+                                column of colour saying one thing. It stays
+                                the link itself rather than a row-wide
+                                overlay: every day cell carries the date and
+                                status in its title, and an overlay would
+                                swallow those tooltips. */}
+                            <td className="sticky start-0 z-10 max-w-44 truncate bg-card px-3 py-2 ps-5 font-medium group-hover/row:bg-muted">
+                              <Link
+                                href={`/children/${child.id}`}
+                                className="rounded hover:underline hover:underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                              >
+                                <bdi dir="auto">{childDisplayName(child, locale)}</bdi>
+                              </Link>
+                            </td>
+                            {days.map((d) => {
+                              const status = statusByKey.get(`${child.id}|${d}`);
+                              const dt = parseDateStr(d);
+                              const isWeekStart = dt.getDay() === 0;
+                              return (
+                                <td
+                                  key={d}
+                                  className={cn(
+                                    "px-1 py-2 text-center",
+                                    isWeekStart && "border-s-2 border-border"
+                                  )}
+                                  title={`${fullDayFmt.format(dt)} — ${
+                                    status ? t(`status.${status}`) : t("history.noStatus")
+                                  }`}
+                                >
+                                  <span
+                                    className={cn(
+                                      "mx-auto block size-4 rounded",
+                                      status ? STATUS_STYLES[status].cellClass : "bg-border"
+                                    )}
+                                  />
+                                </td>
+                              );
+                            })}
+                            {/* A perfect month is the number in gold ink — the
+                                grid's one gold — and nothing more. */}
+                            <td
+                              className={cn(
+                                "px-3 py-2 pe-5 text-end tabular-nums",
+                                perfect && "font-semibold text-gold-ink"
+                              )}
+                              title={t("history.totalTitle")}
+                            >
+                              {total}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Legend */}
-      <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span className="me-1 font-semibold">{t("history.legend")}</span>
+      {/* Legend: one muted line of swatches, no pills. */}
+      <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+        <span className="font-semibold">{t("history.legend")}</span>
         {ATTENDANCE_STATUSES.map((s) => (
-          <span
-            key={s}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1"
-          >
-            <span className={cn("size-3 rounded", STATUS_STYLES[s].cellClass)} />
+          <span key={s} className="inline-flex items-center gap-1.5">
+            <span className={cn("size-3 rounded", STATUS_STYLES[s].cellClass)} aria-hidden />
             {t(`status.${s}`)}
           </span>
         ))}
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1">
-          <span className="size-3 rounded bg-border" />
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-3 rounded bg-border" aria-hidden />
           {t("history.noStatus")}
         </span>
-      </div>
+      </p>
 
-      {!hasData && (
-        <p className="mt-4 rounded-xl border border-dashed border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          {t("history.empty")}
-        </p>
+      {children.length > 0 && !hasData && (
+        <p className="mt-3 text-sm text-muted-foreground">{t("history.empty")}</p>
       )}
     </div>
-  );
-}
-
-function ContentGroup({
-  label,
-  classId,
-  colSpan,
-  children,
-}: {
-  label: string | null;
-  classId: string | null;
-  colSpan: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      {label && (
-        <tr className="border-b border-border bg-secondary/60">
-          <td
-            colSpan={colSpan}
-            className="sticky start-0 px-3 py-2 text-xs font-semibold tracking-wide text-secondary-foreground uppercase"
-          >
-            {classId ? <ClassLink id={classId}>{label}</ClassLink> : label}
-          </td>
-        </tr>
-      )}
-      {children}
-    </>
   );
 }

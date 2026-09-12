@@ -20,10 +20,12 @@
     "settings": "Settings",
     "kiosk": "Kiosk mode",
     "portal": "Parent portal",
-    "sessions": "Sessions",
+    "sessions": "Individual follow-up",
     "tasks": "Tasks",
     "platform": "Platform panel",
-    "menu": "Menu"
+    "menu": "Menu",
+    "learning": "Learning",
+    "profile": "Profile"
   },
   "actions": {
     "save": "Save",
@@ -133,5 +135,37 @@
     "all": "The whole establishment",
     "allHint": "{count} structures",
     "viewing": "Showing this structure"
+  },
+  "nouns": {
+    "children": "Children",
+    "pupils": "Pupils"
+  },
+  "navGroups": {
+    "day": "Day",
+    "families": "Families",
+    "management": "Management"
+  },
+  "rooms": {
+    "room": "Room",
+    "noRoom": "No room",
+    "classRoom": "the class's room",
+    "sharedWith": "Also the room of {classes}.",
+    "places": "{count, plural, one {# place} other {# places}}",
+    "tooSmall": "A room of {capacity, plural, one {# place} other {# places}} for {count, plural, one {# child} other {# children}}.",
+    "occupancy": "Room occupancy",
+    "occupancyHint": "One column per room, the whole day; two blocks side by side are an overlap.",
+    "sheetLabel": "Room occupancy on {date}",
+    "bookings": "{count, plural, one {# booking} other {# bookings}}",
+    "emptyDay": "No booking that day.",
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "kind": {
+      "lesson": "Lesson",
+      "event": "Event",
+      "activity": "Activity"
+    }
+  },
+  "scheduler": {
+    "busy": "Already booked"
   }
 }

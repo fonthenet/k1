@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,8 +15,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -57,12 +62,17 @@ export function AnnouncementDialog({
   announcement,
   classes,
   structures,
+  trigger,
 }: {
   announcement: AnnouncementRow | null;
   classes: ClassOption[];
   /** The structures of the building (0125). Fewer than two and the audience
    *  picker never mentions them. */
   structures: Structure[];
+  /** What opens the dialog. The register passes the announcement's own title
+   *  so the row is the door and no pencil has to sit beside it; without it
+   *  the dialog draws its own button — the header primary, or the pencil. */
+  trigger?: ReactNode;
 }) {
   const t = useTranslations("comms");
   const tc = useTranslations("common");
@@ -126,7 +136,9 @@ export function AnnouncementDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {isEdit ? (
+        {trigger ? (
+          trigger
+        ) : isEdit ? (
           <Button variant="ghost" size="icon" aria-label={tc("actions.edit")}>
             <Pencil />
           </Button>
@@ -235,10 +247,17 @@ export function AnnouncementDialog({
   );
 }
 
-export function DeleteAnnouncementButton({ announcementId }: { announcementId: string }) {
+/**
+ * The row's overflow: deleting is its only item, and the only destructive
+ * thing on the page — inside a menu, never a red bin on every row. The
+ * confirm lives outside the menu, opened from the item, because a dialog
+ * mounted inside a closing menu is unmounted with it.
+ */
+export function AnnouncementRowMenu({ announcementId }: { announcementId: string }) {
   const t = useTranslations("comms");
   const tc = useTranslations("common");
   const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function confirmDelete() {
@@ -254,28 +273,37 @@ export function DeleteAnnouncementButton({ announcementId }: { announcementId: s
   }
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-destructive"
-          aria-label={tc("actions.delete")}
-          disabled={pending}
-        >
-          <Trash2 />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t("announcements.delete.title")}</AlertDialogTitle>
-          <AlertDialogDescription>{t("announcements.delete.description")}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmDelete}>{tc("actions.delete")}</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-sm" aria-label={t("announcements.more")} title={t("announcements.more")}>
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
+            {tc("actions.delete")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialog open={deleting} onOpenChange={setDeleting}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("announcements.delete.title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("announcements.delete.description")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending}
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {tc("actions.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

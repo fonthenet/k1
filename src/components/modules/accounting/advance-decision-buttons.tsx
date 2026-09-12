@@ -77,16 +77,14 @@ export function AdvanceDecisionButtons({
     });
   }
 
+  // Neither button is solid: the page's one primary is in its header, and a
+  // decision in a row is a second-rank action — the outline says "yes", the
+  // ghost says "no", and the confirm dialogs say the rest.
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" disabled={pending} onClick={openReject}>
-        <X data-icon="inline-start" />
-        {t("advances.reject")}
-      </Button>
-
+    <div className="flex items-center justify-end gap-1">
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button size="sm" disabled={pending}>
+          <Button variant="outline" size="sm" disabled={pending}>
             <Check data-icon="inline-start" />
             {t("advances.approve")}
           </Button>
@@ -106,6 +104,11 @@ export function AdvanceDecisionButtons({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Button variant="ghost" size="sm" disabled={pending} onClick={openReject}>
+        <X data-icon="inline-start" />
+        {t("advances.reject")}
+      </Button>
 
       {/* A plain Dialog, not an AlertDialog: the note is a field, and an alert
           dialog traps focus around its two buttons. */}

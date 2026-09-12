@@ -3,11 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Phone, Star, Trash2, TriangleAlert, UserPlus, Users } from "lucide-react";
+import { Ellipsis, Phone, Star, TriangleAlert, UserPlus, UserMinus, Users } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/shared/section-card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -27,8 +26,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -39,7 +43,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { childDisplayName, formatPhone, telHref } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import type { Relationship } from "@/lib/types";
 import { addGuardian, linkGuardian, unlinkGuardian } from "./actions";
 import { GuardianPhotoControl } from "./photo-controls";
@@ -50,7 +53,7 @@ import {
 import { CredentialCards } from "@/components/modules/credentials/credential-cards";
 import { GuardianPortalAccess } from "./guardian-portal-access";
 import type { CredentialRow } from "@/components/modules/credentials/types";
-import { badgeTone, RELATIONSHIPS, type GuardianLink, type GuardianOption } from "./types";
+import { RELATIONSHIPS, type GuardianLink, type GuardianOption } from "./types";
 
 const EMPTY_FORM = {
   firstName: "",
@@ -426,6 +429,9 @@ export function GuardiansSection({
   const locale = useLocale();
   const router = useRouter();
   const [, startTransition] = useTransition();
+  // The guardian whose removal is being confirmed — one dialog for the list,
+  // opened from each row's overflow.
+  const [unlinking, setUnlinking] = useState<string | null>(null);
 
   function unlink(guardianId: string) {
     startTransition(async () => {
@@ -440,169 +446,177 @@ export function GuardiansSection({
   }
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle className="flex items-center gap-2.5 text-base">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Users className="size-4" />
-          </span>
-          {t("guardians.title")}
-        </CardTitle>
-        <AddGuardianDialog childId={childId} available={available} />
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        {links.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-6 text-center">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Users className="size-6" />
-            </span>
-            <p className="text-sm text-muted-foreground">{t("guardians.empty")}</p>
-          </div>
-        ) : (
-          links.map((g) => (
-            <div
-              key={g.guardian_id}
-              className={cn(
-                "flex flex-wrap items-start justify-between gap-3 rounded-xl border border-border p-3.5 transition-colors",
-                g.is_primary ? "border-gold/40 bg-gold/5" : "hover:bg-muted/40"
-              )}
-            >
-              {/* The face staff compare with the adult at the door — tap to set it. */}
-              <GuardianPhotoControl
-                tenantId={tenantId}
-                guardianId={g.guardian_id}
-                childId={childId}
-                name={childDisplayName(g, locale)}
-                firstName={g.first_name}
-                lastName={g.last_name}
-                photoPath={g.photo_path}
-                photoUrl={g.photoUrl}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold">{childDisplayName(g, locale)}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {t(`guardians.relationships.${g.relationship}`)}
-                  </span>
-                  {g.is_primary && (
-                    <Badge className={badgeTone.gold}>
-                      <Star aria-hidden />
-                      {t("guardians.primaryBadge")}
-                    </Badge>
-                  )}
-                  {g.can_pickup && (
-                    <Badge className={badgeTone.success}>{t("guardians.canPickupBadge")}</Badge>
-                  )}
-                  {g.is_financial && (
-                    <Badge className={badgeTone.info}>{t("guardians.financialBadge")}</Badge>
-                  )}
+    <SectionCard
+      icon={Users}
+      tone={0}
+      title={t("guardians.title")}
+      action={<AddGuardianDialog childId={childId} available={available} />}
+      contentClassName="gap-0"
+    >
+      {links.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("guardians.empty")}</p>
+      ) : (
+        <div className="divide-y divide-border">
+          {links.map((g) => {
+            const cards = guardianCards?.[g.guardian_id] ?? [];
+            return (
+              <div key={g.guardian_id} className="py-4 first:pt-0 last:pb-0">
+                <div className="flex items-start gap-3">
+                  {/* The face staff compare with the adult at the door — tap
+                      to set it. The camera affordance shows on hover and
+                      focus only, so the gold star stays the one mark on the
+                      principal's row. */}
+                  <div className="shrink-0 [&_button>span.absolute]:opacity-0 [&_button>span.absolute]:transition-opacity [&_button:focus-visible>span.absolute]:opacity-100 [&_button:hover>span.absolute]:opacity-100">
+                    <GuardianPhotoControl
+                      tenantId={tenantId}
+                      guardianId={g.guardian_id}
+                      childId={childId}
+                      name={childDisplayName(g, locale)}
+                      firstName={g.first_name}
+                      lastName={g.last_name}
+                      photoPath={g.photo_path}
+                      photoUrl={g.photoUrl}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* "Principal" is one mark: the gold star before the name.
+                          No badge, no tinted frame — the roles that follow are
+                          plain words after the relation. */}
+                      {g.is_primary && (
+                        <Star
+                          className="size-4 fill-gold text-gold"
+                          aria-label={t("guardians.primaryBadge")}
+                        />
+                      )}
+                      <bdi dir="auto" className="font-semibold text-start">
+                        {childDisplayName(g, locale)}
+                      </bdi>
+                      <span className="text-xs text-muted-foreground">
+                        {[
+                          t(`guardians.relationships.${g.relationship}`),
+                          g.can_pickup ? t("guardians.canPickupBadge") : null,
+                          g.is_financial ? t("guardians.financialBadge") : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      <a
+                        href={telHref(g.phone)}
+                        className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                        dir="ltr"
+                      >
+                        <Phone className="size-3.5" />
+                        {formatPhone(g.phone)}
+                      </a>
+                      {g.phone_alt && (
+                        <a
+                          href={telHref(g.phone_alt)}
+                          className="inline-flex items-center gap-1 hover:text-foreground"
+                          dir="ltr"
+                        >
+                          <Phone className="size-3.5" />
+                          {formatPhone(g.phone_alt)}
+                        </a>
+                      )}
+                      {g.email && <span dir="ltr">{g.email}</span>}
+                      {g.national_id && (
+                        <span>
+                          {t("guardians.nationalId")}: {g.national_id}
+                        </span>
+                      )}
+                    </div>
+                    {(g.address || g.workplace) && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {[g.address, g.workplace].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                  </div>
+                  {/* The row's only control: an overflow holding the one
+                      destructive verb, never a red trash icon on the row. */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon-sm" aria-label={t("profile.more")}>
+                        <Ellipsis className="text-muted-foreground" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => setUnlinking(g.guardian_id)}
+                      >
+                        <UserMinus />
+                        {t("guardians.unlink")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                  <a
-                    href={telHref(g.phone)}
-                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-                    dir="ltr"
-                  >
-                    <Phone className="size-3.5" />
-                    {formatPhone(g.phone)}
-                  </a>
-                  {g.phone_alt && (
-                    <a
-                      href={telHref(g.phone_alt)}
-                      className="inline-flex items-center gap-1 hover:text-foreground"
-                      dir="ltr"
+
+                {/* How this adult proves who they are, on one line under the
+                    contact details: the portal account, then the door badge
+                    and PIN, then any proximity card. Admin-only. Until a
+                    card exists the shared list's "nothing here" sentence is
+                    hidden and only its add button shows in the line. */}
+                {canManageCredentials && (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-2 ps-15 text-sm">
+                    <GuardianPortalAccess
+                      guardianId={g.guardian_id}
+                      guardianName={childDisplayName(g, locale)}
+                      phone={g.phone || null}
+                      hasAccount={g.hasAccount}
+                      email={g.email || null}
+                      claim={g.claim}
+                      now={now}
+                    />
+                    <GuardianCredentialsControl
+                      childId={childId}
+                      guardianId={g.guardian_id}
+                      credential={
+                        credentials?.[g.guardian_id] ?? { tagCode: null, hasPin: false }
+                      }
+                    />
+                    <div
+                      className={
+                        cards.length === 0 ? "[&>div]:contents [&_p]:hidden" : "basis-full"
+                      }
                     >
-                      <Phone className="size-3.5" />
-                      {formatPhone(g.phone_alt)}
-                    </a>
-                  )}
-                  {g.email && <span dir="ltr">{g.email}</span>}
-                  {g.national_id && (
-                    <span>
-                      {t("guardians.nationalId")}: {g.national_id}
-                    </span>
-                  )}
-                </div>
-                {(g.address || g.workplace) && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {[g.address, g.workplace].filter(Boolean).join(" · ")}
+                      <CredentialCards
+                        subjectType="guardian"
+                        subjectId={g.guardian_id}
+                        cards={cards}
+                        path={`/children/${childId}`}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" aria-label={t("guardians.unlink")}>
-                    <Trash2 className="text-muted-foreground" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t("guardians.unlinkTitle")}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t("guardians.unlinkDescription")}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => unlink(g.guardian_id)}>
-                      {tc("actions.confirm")}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            );
+          })}
+        </div>
+      )}
 
-              {/* Portal access sits with the door credentials because it is the
-                  same question in a different place: how does this adult prove
-                  who they are. The door has a PIN and a badge; the portal has
-                  an account, and this is the only way to connect one. */}
-              {canManageCredentials && (
-                <div className="flex basis-full flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3">
-                  <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    {t("guardians.portal.label")}
-                  </span>
-                  <GuardianPortalAccess
-                    guardianId={g.guardian_id}
-                    guardianName={childDisplayName(g, locale)}
-                    phone={g.phone || null}
-                    hasAccount={g.hasAccount}
-                    email={g.email || null}
-                    claim={g.claim}
-                    now={now}
-                  />
-                </div>
-              )}
-
-              {/* Door credentials: admin-only, and on their own line so the
-                  contact details above stay the first thing you read. */}
-              {canManageCredentials && (
-                <div className="flex basis-full flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3">
-                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {t("guardians.credentials.label")}
-                  </span>
-                  <GuardianCredentialsControl
-                    childId={childId}
-                    guardianId={g.guardian_id}
-                    credential={
-                      credentials?.[g.guardian_id] ?? { tagCode: null, hasPin: false }
-                    }
-                  />
-                  {/* Cards sit with the badge and PIN because they are the same
-                      thing to the door: another way for this adult to prove
-                      who they are. */}
-                  <div className="basis-full">
-                    <CredentialCards
-                      subjectType="guardian"
-                      subjectId={g.guardian_id}
-                      cards={guardianCards?.[g.guardian_id] ?? []}
-                      path={`/children/${childId}`}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </CardContent>
-    </Card>
+      <AlertDialog open={unlinking !== null} onOpenChange={(o) => !o && setUnlinking(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("guardians.unlinkTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("guardians.unlinkDescription")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const id = unlinking;
+                setUnlinking(null);
+                if (id) unlink(id);
+              }}
+            >
+              {tc("actions.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </SectionCard>
   );
 }

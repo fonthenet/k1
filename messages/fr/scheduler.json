@@ -37,5 +37,49 @@
     "order": "L’heure de fin doit être après l’heure de début, le même jour.",
     "weeks": "Saisissez un nombre entier de 1 à 16.",
     "recurrence": "Toutes les séances doivent être comprises dans les dates du programme. Changez la première date ou réduisez le nombre de semaines."
+  },
+  "lesson": {
+    "add": "{profile, select, academic {Ajouter un cours} therapy {Ajouter un atelier} other {Ajouter une activité}}",
+    "new": "{profile, select, academic {Nouveau cours} therapy {Nouvel atelier} other {Nouvelle activité}}",
+    "fields": {
+      "class": "Classe",
+      "program": "Programme",
+      "title": "Intitulé",
+      "type": "Type",
+      "date": "Date",
+      "start": "Début",
+      "end": "Fin",
+      "teacher": "Enseignant",
+      "repeat": "Répéter chaque semaine",
+      "weeks": "{count, plural, one {semaine} other {semaines}}"
+    },
+    "chooseClassFirst": "Choisissez d’abord une classe.",
+    "noPrograms": "Créez d’abord un programme actif pour une classe que vous pouvez encadrer.",
+    "noStaff": "Aucun membre de l’équipe n’est affecté à cette classe.",
+    "assignStaff": "Affecter l’équipe sur la page de la classe",
+    "series": "{profile, select, academic {{count} cours} therapy {{count, plural, one {# atelier} other {# ateliers}}} other {{count, plural, one {# activité} other {# activités}}}}, du {from} au {to}",
+    "outsideRange": "La série dépasse les dates du programme.",
+    "save": "{profile, select, academic {{count, plural, one {Enregistrer} other {Enregistrer # cours}}} therapy {{count, plural, one {Enregistrer} other {Enregistrer # ateliers}}} other {{count, plural, one {Enregistrer} other {Enregistrer # activités}}}}",
+    "validation": {
+      "class": "Choisissez une classe.",
+      "program": "Choisissez un programme actif.",
+      "staff": "Choisissez un membre de l’équipe de cette classe.",
+      "title": "Saisissez un intitulé de 1 à 200 caractères.",
+      "kind": "Choisissez un type.",
+      "date": "Choisissez une date valide.",
+      "range": "La date doit être comprise dans les dates du programme.",
+      "time": "Choisissez une heure valide.",
+      "order": "L’heure de fin doit être après l’heure de début.",
+      "weeks": "Saisissez un nombre de 1 à 16.",
+      "recurrence": "{profile, select, academic {Tous les cours doivent tenir dans les dates du programme.} therapy {Tous les ateliers doivent tenir dans les dates du programme.} other {Toutes les activités doivent tenir dans les dates du programme.}}"
+    },
+    "edit": "{profile, select, academic {Modifier le cours} therapy {Modifier l’atelier} other {Modifier l’activité}}",
+    "busy": "Déjà pris",
+    "onlyThis": "{profile, select, academic {Seul ce cours change ; les autres semaines restent en place.} therapy {Seul cet atelier change ; les autres semaines restent en place.} other {Seule cette activité change ; les autres semaines restent en place.}}",
+    "noProgram": "Sans programme",
+    "titleIdeas": {
+      "care": "Accueil, Éveil, Motricité, Repas, Sieste, Goûter, Sortie",
+      "therapy": "Atelier"
+    }
   }
 }

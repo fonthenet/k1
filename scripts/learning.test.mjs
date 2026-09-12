@@ -1,21 +1,55 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  programTemplates,
-  templatesForType,
-} from "../src/components/modules/learning/program-templates.ts";
-import { readFileSync } from "node:fs";
-import { readdirSync } from "node:fs";
-import {
+import { readFileSync, readdirSync } from "node:fs";
+import { register } from "node:module";
+
+// Runs on Node 22.6+ (native type stripping): `node --test scripts/learning.test.mjs`.
+//
+// The modules under test are the app's own TypeScript, which imports the way
+// the bundler does — `@/lib/algiers` for the shared clock, and relative paths
+// without an extension. Node resolves neither, so a resolve hook maps `@/` to
+// src/ and adds the .ts extension when the file is there. The hook lives in
+// this file as a data: URL, and the modules are imported AFTER it is
+// registered (a static import would be resolved before this line ran).
+const hooks = `
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+let src;
+export function initialize(data) { src = data.src; }
+export async function resolve(specifier, context, next) {
+  let target = specifier;
+  if (target.startsWith("@/")) target = new URL(target.slice(2), src).href;
+  const local = target.startsWith("./") || target.startsWith("../") || target.startsWith("file:");
+  const named = target.slice(target.lastIndexOf("/") + 1).includes(".");
+  if (local && !named) {
+    const base = target.startsWith("file:") ? target : new URL(target, context.parentURL).href;
+    for (const ext of [".ts", ".tsx"]) {
+      if (existsSync(fileURLToPath(base + ext))) { target = base + ext; break; }
+    }
+  }
+  return next(target, context);
+}`;
+register(`data:text/javascript,${encodeURIComponent(hooks)}`, {
+  parentURL: import.meta.url,
+  data: { src: new URL("../src/", import.meta.url).href },
+});
+
+const { programTemplates, templatesForType } = await import(
+  "../src/components/modules/learning/program-templates.ts"
+);
+const {
   date,
   programSchema,
   lessonSchema,
+  updateLessonSchema,
   resultSchema,
   weekStart,
   occurrences,
   seriesFitsProgram,
   learningProfile,
-} from "../src/components/modules/learning/domain.ts";
+  lessonNounProfile,
+  scopeProfile,
+} = await import("../src/components/modules/learning/domain.ts");
 
 const id = "018b78d0-91d4-49aa-9070-52c123456789";
 test("the entire repeated series must fit the program", () => {
@@ -126,6 +160,7 @@ test("invalid dates, reversed ranges and empty titles are rejected", () => {
   );
   assert.equal(
     lessonSchema.safeParse({
+      classId: id,
       programId: id,
       membershipId: id,
       title: "Math",
@@ -137,6 +172,45 @@ test("invalid dates, reversed ranges and empty titles are rejected", () => {
     }).success,
     false,
   );
+});
+test("a class plans its week without a programme, but a cours still needs one", () => {
+  const series = {
+    classId: id,
+    membershipId: id,
+    title: "Accueil",
+    date: "2026-09-13",
+    start: "08:00",
+    end: "09:00",
+    weeks: 4,
+  };
+  // The form sends "" for "Sans programme"; the schema stores null.
+  const care = lessonSchema.safeParse({ ...series, kind: "care", programId: "" });
+  assert.equal(care.success, true);
+  assert.equal(care.data.programId, null);
+  assert.equal(lessonSchema.safeParse({ ...series, kind: "activity", programId: null }).success, true);
+  assert.equal(lessonSchema.safeParse({ ...series, kind: "lesson", programId: null }).success, false);
+  assert.equal(lessonSchema.safeParse({ ...series, kind: "lesson", programId: id }).success, true);
+  // The class is now the series' own fact, not the programme's.
+  assert.equal(
+    lessonSchema.safeParse({ ...series, classId: undefined, kind: "activity", programId: null }).success,
+    false,
+  );
+
+  const one = { id, membershipId: id, title: "Éveil", date: "2026-09-13", start: "09:30", end: "10:00" };
+  assert.equal(updateLessonSchema.safeParse({ ...one, kind: "activity", programId: null }).success, true);
+  assert.equal(updateLessonSchema.safeParse({ ...one, kind: "lesson", programId: null }).success, false);
+  assert.equal(updateLessonSchema.safeParse({ ...one, kind: "lesson", programId: id }).success, true);
+});
+test("one timetable noun per profile, one profile per scope", () => {
+  assert.equal(lessonNounProfile("academic"), "academic");
+  assert.equal(lessonNounProfile("therapy"), "therapy");
+  for (const profile of ["care", "development", "activities"])
+    assert.equal(lessonNounProfile(profile), "other");
+  // An école among the structures makes the building speak cours; without
+  // one it is a préscolaire, whatever else it holds.
+  assert.equal(scopeProfile(["nursery", "kindergarten", "private_primary"]), "academic");
+  assert.equal(scopeProfile(["nursery", "kindergarten"]), "development");
+  assert.equal(scopeProfile([]), "development");
 });
 test("zero is a valid mark; absence cannot silently become zero", () => {
   const base = { assessmentId: id, childId: id, feedback: "" };

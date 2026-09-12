@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Check, Minus, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/shared/section-card";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { setConsent } from "./actions";
@@ -38,49 +38,54 @@ export function ConsentsSection({
     });
   }
 
+  // The answer is carried by the one pressed button — a primary border on
+  // it and nothing else. The row used to be washed green or red as well,
+  // two marks for one fact.
+  const choice = (selected: boolean) =>
+    cn(selected && "border-primary text-primary");
+
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2.5 text-base">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <ShieldCheck className="size-4" />
-          </span>
-          {t("consents.title")}
-        </CardTitle>
-        <CardDescription>{t("consents.description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-3">
+    <SectionCard
+      icon={ShieldCheck}
+      tone={2}
+      title={t("consents.title")}
+      hint={t("consents.description")}
+      contentClassName="gap-0"
+    >
+      <div className="divide-y divide-border">
         {CONSENT_TYPES.map((type) => {
           const state = byType.get(type);
           const granted = state?.granted ?? null;
           return (
             <div
               key={type}
-              className={cn(
-                "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3.5 transition-colors",
-                granted === true && "border-success/30 bg-success/5",
-                granted === false && "border-destructive/30 bg-destructive/5",
-                granted === null && "bg-muted/30"
-              )}
+              className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
             >
               <div className="min-w-0">
-                <div className="font-semibold">{t(`consents.types.${type}`)}</div>
+                <div className="font-semibold">
+                  {t(`consents.types.${type}`)}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   {t(`consents.typeHints.${type}`)}
                   {state?.decided_at && (
                     <span className="ms-2">
-                      · {t("consents.decidedAt", { date: formatDate(state.decided_at, locale) })}
+                      ·{" "}
+                      {t("consents.decidedAt", {
+                        date: formatDate(state.decided_at, locale),
+                      })}
                     </span>
                   )}
                 </div>
               </div>
-              <div className="flex gap-1" role="group" aria-label={t(`consents.types.${type}`)}>
+              <div
+                className="flex gap-1"
+                role="group"
+                aria-label={t(`consents.types.${type}`)}
+              >
                 <Button
                   size="sm"
-                  variant={granted === true ? "default" : "outline"}
-                  className={cn(
-                    granted === true && "bg-success text-success-foreground hover:bg-success/90"
-                  )}
+                  variant="outline"
+                  className={choice(granted === true)}
                   disabled={pending}
                   onClick={() => update(type, true)}
                 >
@@ -89,7 +94,8 @@ export function ConsentsSection({
                 </Button>
                 <Button
                   size="sm"
-                  variant={granted === false ? "destructive" : "outline"}
+                  variant="outline"
+                  className={choice(granted === false)}
                   disabled={pending}
                   onClick={() => update(type, false)}
                 >
@@ -98,7 +104,8 @@ export function ConsentsSection({
                 </Button>
                 <Button
                   size="sm"
-                  variant={granted === null ? "secondary" : "outline"}
+                  variant="outline"
+                  className={choice(granted === null)}
                   disabled={pending}
                   onClick={() => update(type, null)}
                 >
@@ -109,7 +116,7 @@ export function ConsentsSection({
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </SectionCard>
   );
 }

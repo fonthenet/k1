@@ -1,42 +1,45 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import type { LucideIcon } from "lucide-react";
-import { Baby, Building2, Camera, ClipboardCheck, Clock, Loader2, Palette, Pencil, Send, Stethoscope, Users } from "lucide-react";
+import { ClipboardCheck, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { formatDate, formatDZD } from "@/lib/format";
+import { IdentityBand } from "@/components/shared/identity-band";
+import { createClient } from "@/lib/supabase/client";
+import { ageFromDob, formatDate, formatDZD, initials } from "@/lib/format";
 import { STEP, effectiveStructureId, inStructure, type EnrollLinkData, type WizardState } from "./types";
-import { StepHeader } from "./wizard-ui";
-import { StructureChip } from "./step-structure";
+import { GroupLabel, OwnName, StepHeader } from "./wizard-ui";
 import { allergenLabel } from "@/lib/allergens";
 
-function Section({
-  icon: Icon,
+/** A group of the review: small-caps label, one "Modifier" text link, rows on hairlines. */
+function Group({
   title,
   onEdit,
   editLabel,
   children,
 }: {
-  icon: LucideIcon;
   title: string;
   onEdit: () => void;
   editLabel: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border bg-card p-3.5">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="flex items-center gap-2 font-semibold">
-          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          {title}
-        </p>
-        <Button variant="ghost" size="sm" onClick={onEdit}>
-          <Pencil className="size-3.5" data-icon="inline-start" />
-          {editLabel}
-        </Button>
-      </div>
-      <div className="space-y-1 text-sm">{children}</div>
+    <div>
+      <GroupLabel
+        action={
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded text-sm text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            {editLabel}
+          </button>
+        }
+      >
+        {title}
+      </GroupLabel>
+      <div className="mt-1 divide-y divide-border text-sm">{children}</div>
     </div>
   );
 }
@@ -45,18 +48,22 @@ function Row({
   label,
   value,
   ltr,
+  bold,
 }: {
-  label: string;
+  label: React.ReactNode;
   value: React.ReactNode;
   /** For values ending in a neutral character — "A+", "+213…" — which the
    *  bidi algorithm otherwise reorders in Arabic. */
   ltr?: boolean;
+  bold?: boolean;
 }) {
   if (!value) return null;
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-end font-medium" dir={ltr ? "ltr" : undefined}>{value}</span>
+    <div className={bold ? "flex items-baseline justify-between gap-3 py-2 font-semibold" : "flex items-baseline justify-between gap-3 py-2"}>
+      <span className={bold ? "shrink-0" : "shrink-0 text-muted-foreground"}>{label}</span>
+      <span className={bold ? "text-end tabular-nums" : "text-end font-medium"} dir={ltr ? "ltr" : undefined}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -70,6 +77,7 @@ export function StepReview({
   error,
   goTo,
   onSubmit,
+  photoPath,
 }: {
   state: WizardState;
   link: EnrollLinkData;
@@ -82,18 +90,39 @@ export function StepReview({
   error: string | null;
   goTo: (step: number) => void;
   onSubmit: () => void;
+  /** The uploaded photo's storage path, shown as the avatar of the band. */
+  photoPath: string | null;
 }) {
   const t = useTranslations("enroll");
   const tc = useTranslations("common");
   const locale = useLocale();
   const edit = t("review.edit");
+  const supabase = useMemo(() => createClient(), []);
+  const [signedPhoto, setPhotoUrl] = useState<string | null>(null);
+  // A photo removed after it was signed must not linger on the band.
+  const photoUrl = photoPath ? signedPhoto : null;
+
+  // The photo lives in the family's own folder of the private bucket; a
+  // signed URL is the only way to draw it, as the photo step does.
+  useEffect(() => {
+    let cancelled = false;
+    if (!photoPath) return;
+    supabase.storage
+      .from("kg-media")
+      .createSignedUrl(photoPath, 3600)
+      .then(({ data }) => {
+        if (!cancelled && data?.signedUrl) setPhotoUrl(data.signedUrl);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [photoPath, supabase]);
 
   const { child, guardian1, guardian2, hasGuardian2, health } = state;
   // Everything below is read through the chosen structure, exactly as the
   // steps showed it — a crèche-only admission fee must not appear on an
   // école application's first bill.
   const structureId = effectiveStructureId(link, state);
-  const structure = (link.structures ?? []).find((s) => s.id === structureId) ?? null;
   const chosenClass =
     classId && classId !== "undecided"
       ? (inStructure(link.classes ?? [], structureId).find((c) => c.id === classId) ?? null)
@@ -116,121 +145,126 @@ export function StepReview({
     monthlyActivities.reduce((sum, a) => sum + a.fee_amount, 0);
   const guardians = hasGuardian2 ? [guardian1, guardian2] : [guardian1];
 
+  const latinName = `${child.first_name} ${child.last_name}`.trim();
+  const arabicName = `${child.first_name_ar} ${child.last_name_ar}`.trim();
+  const name = locale === "ar" && arabicName ? arabicName : latinName;
+  const otherName = locale === "ar" ? latinName : arabicName;
+  const className = chosenClass
+    ? locale === "ar" && chosenClass.name_ar
+      ? chosenClass.name_ar
+      : chosenClass.name
+    : null;
+
   return (
     <div>
       <StepHeader icon={ClipboardCheck} title={t("review.title")} subtitle={t("review.subtitle")} />
 
-      <div className="space-y-4">
-        {/* Which side of the building, and which room. Shown whenever the
-            building has structures at all — on a structure link the family
-            did not choose, but they should still see where the file lands. */}
-        {(structure || (link.classes ?? []).length > 0) && (
-          <Section
-            icon={Building2}
-            title={t("review.placement")}
-            onEdit={() => goTo(asksStructure ? STEP.structure : STEP.activities)}
+      {/* The child, as the file will show them: photo or initials, name in
+          the reader's script with the other script under it, then the facts
+          — age and gender. The structure is not repeated here: the flow's
+          header directly above already carries it with its tile, and a fact
+          appears once on a screen. */}
+      <IdentityBand
+        className="mb-5"
+        leading={
+          photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- signed URL, expires hourly
+            <img src={photoUrl} alt="" className="size-14 rounded-full object-cover" width={56} height={56} />
+          ) : (
+            <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-base font-semibold text-primary">
+              {initials(child.first_name, child.last_name)}
+            </span>
+          )
+        }
+        title={<OwnName>{name}</OwnName>}
+        subtitle={otherName ? <OwnName>{otherName}</OwnName> : undefined}
+        facts={[
+          child.dob ? <span key="age">{ageFromDob(child.dob, locale)}</span> : null,
+          child.gender ? <span key="gender">{t(`child.${child.gender}`)}</span> : null,
+        ]}
+      />
+
+      <div className="space-y-5">
+        <Group title={t("review.child")} onEdit={() => goTo(STEP.child)} editLabel={edit}>
+          <Row label={t("child.dob")} value={child.dob ? formatDate(child.dob, locale) : null} />
+          <Row label={t("child.bloodType")} value={child.blood_type || null} ltr />
+        </Group>
+
+        <Group title={t("review.photo")} onEdit={() => goTo(STEP.photo)} editLabel={edit}>
+          <p className={child.photo_path ? "py-2 font-medium" : "py-2 text-muted-foreground"}>
+            {child.photo_path ? t("photo.uploaded") : t("review.noPhoto")}
+          </p>
+        </Group>
+
+        {(link.classes ?? []).length > 0 && (
+          <Group
+            title={t("review.class")}
+            onEdit={() => goTo(asksStructure && !className ? STEP.structure : STEP.activities)}
             editLabel={edit}
           >
-            {structure && (
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="shrink-0 text-muted-foreground">{t("review.structure")}</span>
-                <StructureChip structure={structure} />
-              </div>
-            )}
-            {(link.classes ?? []).length > 0 && (
-              <Row
-                label={t("review.class")}
-                value={
-                  chosenClass
-                    ? locale === "ar" && chosenClass.name_ar
-                      ? chosenClass.name_ar
-                      : chosenClass.name
-                    : t("review.classUndecided")
-                }
-              />
-            )}
-          </Section>
+            <p className={className ? "py-2 font-medium" : "py-2 text-muted-foreground"}>
+              {className ?? t("review.classUndecided")}
+            </p>
+          </Group>
         )}
 
-        <Section icon={Baby} title={t("review.child")} onEdit={() => goTo(STEP.child)} editLabel={edit}>
-          <Row
-            label={t("child.firstName")}
-            value={
-              child.first_name_ar || child.last_name_ar
-                ? `${child.first_name} ${child.last_name} · ${child.first_name_ar} ${child.last_name_ar}`
-                : `${child.first_name} ${child.last_name}`
-            }
-          />
-          <Row label={t("child.dob")} value={child.dob ? formatDate(child.dob, locale) : null} />
-          <Row
-            label={t("child.gender")}
-            value={child.gender ? t(`child.${child.gender}`) : null}
-          />
-          <Row label={t("child.bloodType")} value={child.blood_type || null} ltr />
-        </Section>
-
-        <Section icon={Camera} title={t("review.photo")} onEdit={() => goTo(STEP.photo)} editLabel={edit}>
-          <p className={child.photo_path ? "font-medium text-primary" : "text-muted-foreground"}>
-            {child.photo_path ? `✓ ${t("photo.uploaded")}` : t("review.noPhoto")}
-          </p>
-        </Section>
-
-        <Section icon={Users} title={t("review.guardians")} onEdit={() => goTo(STEP.guardians)} editLabel={edit}>
+        <Group title={t("review.guardians")} onEdit={() => goTo(STEP.guardians)} editLabel={edit}>
           {guardians.map((g, i) => (
-            <div key={i} className="flex items-baseline justify-between gap-3">
-              <span className="text-muted-foreground">
+            <div key={i} className="flex items-baseline justify-between gap-3 py-2">
+              <span className="shrink-0 text-muted-foreground">
                 {t(`guardians.relationships.${g.relationship}`)}
               </span>
               <span className="text-end font-medium">
-                {g.first_name} {g.last_name}
-                {g.phone && <span className="text-muted-foreground" dir="ltr"> · {g.phone}</span>}
+                <OwnName>{`${g.first_name} ${g.last_name}`.trim()}</OwnName>
+                {g.phone && (
+                  <span className="text-muted-foreground">
+                    <span aria-hidden> · </span>
+                    <span dir="ltr">{g.phone}</span>
+                  </span>
+                )}
               </span>
             </div>
           ))}
           {state.pickupNote && (
-            <p className="pt-1 text-xs text-muted-foreground">
-              {t("guardians.pickupNote")} : {state.pickupNote}
-            </p>
+            <Row label={t("guardians.pickupNote")} value={<OwnName>{state.pickupNote}</OwnName>} />
           )}
-        </Section>
+        </Group>
 
-        <Section icon={Stethoscope} title={t("review.health")} onEdit={() => goTo(STEP.health)} editLabel={edit}>
-          <p className="font-medium">
-            {t("review.allergiesCount", { count: health.allergies.length })}
-          </p>
-          {health.allergies.length > 0 && (
-            <p className="text-muted-foreground">
-              {health.allergies
-                .map((a) => `${allergenLabel(a.allergen, tc)} (${t(`health.severities.${a.severity}`)})`)
-                .join("، ")}
-            </p>
-          )}
-          {health.doctor_name && (
-            <Row label={t("health.doctorName")} value={health.doctor_name} />
-          )}
-        </Section>
+        <Group title={t("review.health")} onEdit={() => goTo(STEP.health)} editLabel={edit}>
+          <div className="py-2">
+            <p className="font-medium">{t("review.allergiesCount", { count: health.allergies.length })}</p>
+            {health.allergies.length > 0 && (
+              <p className="mt-0.5 text-muted-foreground">
+                {health.allergies
+                  .map((a) => `${allergenLabel(a.allergen, tc)} (${t(`health.severities.${a.severity}`)})`)
+                  .join("، ")}
+              </p>
+            )}
+          </div>
+          {health.doctor_name && <Row label={t("health.doctorName")} value={health.doctor_name} />}
+        </Group>
 
-        <Section icon={Clock} title={t("review.schedule")} onEdit={() => goTo(STEP.activities)} editLabel={edit}>
+        <Group title={t("review.schedule")} onEdit={() => goTo(STEP.activities)} editLabel={edit}>
           {chosenPlan ? (
-            <div className="flex items-baseline justify-between gap-3">
-              <span>
-                {locale === "ar" && chosenPlan.name_ar ? chosenPlan.name_ar : chosenPlan.name}
-              </span>
-              <span className="font-semibold tabular-nums">
-                {formatDZD(chosenPlan.amount, locale)}
-                <span className="ms-1 text-xs font-normal text-muted-foreground">
-                  {t("schedule.perMonth")}
+            <Row
+              label={locale === "ar" && chosenPlan.name_ar ? chosenPlan.name_ar : chosenPlan.name}
+              value={
+                <span className="tabular-nums">
+                  {formatDZD(chosenPlan.amount, locale)}
+                  <span className="ms-1 text-xs font-normal text-muted-foreground">
+                    {t("schedule.perMonth")}
+                  </span>
                 </span>
-              </span>
-            </div>
+              }
+            />
           ) : (
-            <p className="text-muted-foreground">{t("review.scheduleUndecided")}</p>
+            <p className="py-2 text-muted-foreground">{t("review.scheduleUndecided")}</p>
           )}
-        </Section>
+        </Group>
 
-        <Section icon={Palette} title={t("review.activities")} onEdit={() => goTo(STEP.activities)} editLabel={edit}>
+        <Group title={t("review.activities")} onEdit={() => goTo(STEP.activities)} editLabel={edit}>
           {chosenActivities.length === 0 ? (
-            <p className="text-muted-foreground">{t("review.noActivities")}</p>
+            <p className="py-2 text-muted-foreground">{t("review.noActivities")}</p>
           ) : (
             chosenActivities.map((a) => (
               <Row
@@ -240,45 +274,39 @@ export function StepReview({
               />
             ))
           )}
-        </Section>
+        </Group>
 
-        {/* The first bill, added up in front of them. An admission fee that
-            only appears once the child is approved is how trust dies at the
-            first invoice — so it is on the table before they submit. */}
+        {/* The first bill, added up in front of them — the subscription
+            bill's anatomy: rows on hairlines, the total in bold last. An
+            admission fee that only appears once the child is approved is
+            how trust dies at the first invoice. */}
         {(chosenPlan || admissionFees.length > 0) && (
-          <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4">
-            <p className="text-sm font-semibold">{t("review.firstMonth.title")}</p>
-            <div className="mt-2 space-y-1 text-sm">
+          <div>
+            <GroupLabel>{t("review.firstMonth.title")}</GroupLabel>
+            <div className="mt-1 divide-y divide-border text-sm">
               {admissionFees.map((f) => (
-                <div key={f.id} className="flex items-baseline justify-between gap-3">
-                  <span className="text-muted-foreground">
-                    {locale === "ar" && f.name_ar ? f.name_ar : f.name}
-                  </span>
-                  <span className="tabular-nums">{formatDZD(f.amount, locale)}</span>
-                </div>
+                <Row
+                  key={f.id}
+                  label={locale === "ar" && f.name_ar ? f.name_ar : f.name}
+                  value={<span className="tabular-nums">{formatDZD(f.amount, locale)}</span>}
+                />
               ))}
               {chosenPlan && (
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-muted-foreground">
-                    {locale === "ar" && chosenPlan.name_ar ? chosenPlan.name_ar : chosenPlan.name}
-                  </span>
-                  <span className="tabular-nums">{formatDZD(chosenPlan.amount, locale)}</span>
-                </div>
+                <Row
+                  label={locale === "ar" && chosenPlan.name_ar ? chosenPlan.name_ar : chosenPlan.name}
+                  value={<span className="tabular-nums">{formatDZD(chosenPlan.amount, locale)}</span>}
+                />
               )}
               {monthlyActivities.map((a) => (
-                <div key={a.id} className="flex items-baseline justify-between gap-3">
-                  <span className="text-muted-foreground">
-                    {locale === "ar" && a.name_ar ? a.name_ar : a.name}
-                  </span>
-                  <span className="tabular-nums">{formatDZD(a.fee_amount, locale)}</span>
-                </div>
+                <Row
+                  key={a.id}
+                  label={locale === "ar" && a.name_ar ? a.name_ar : a.name}
+                  value={<span className="tabular-nums">{formatDZD(a.fee_amount, locale)}</span>}
+                />
               ))}
-              <div className="flex items-baseline justify-between gap-3 border-t border-primary/20 pt-1.5 font-semibold">
-                <span>{t("review.firstMonth.total")}</span>
-                <span className="tabular-nums">{formatDZD(firstMonth, locale)}</span>
-              </div>
+              <Row label={t("review.firstMonth.total")} value={formatDZD(firstMonth, locale)} bold />
             </div>
-            <p className="mt-2 text-xs text-pretty text-muted-foreground">
+            <p className="mt-1.5 text-xs text-pretty text-muted-foreground">
               {t("review.firstMonth.hint")}
             </p>
           </div>
@@ -293,7 +321,7 @@ export function StepReview({
         <Button
           onClick={onSubmit}
           disabled={submitting}
-          className="h-13 w-full text-base"
+          className="h-12 w-full text-base"
           size="lg"
         >
           {submitting ? (

@@ -7,7 +7,6 @@ import { Building2, MapPin, Phone, Shapes, Upload } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,56 +16,22 @@ import { Textarea } from "@/components/ui/textarea";
 import type { LatLng } from "@/lib/geo";
 import { updateTenantProfile, uploadTenantLogo } from "./actions";
 import { MapPinField } from "./map-pin-field";
-import { EstablishmentStructures } from "./establishment-structures";
-import type { StructureWithUsage } from "@/components/modules/classes/structures-panel";
+import { SectionCard } from "@/components/shared/section-card";
+import { StructuresPanel, type StructureWithUsage } from "@/components/modules/classes/structures-panel";
+import { StructureDialog } from "@/components/modules/classes/structure-dialog";
+import { formatPhone } from "@/lib/format";
 import { DEFAULT_CENTER_TYPE, type CenterType } from "./center-types";
 import { WILAYAS, wilayaLabel } from "./wilayas";
 
 /**
- * One section of the establishment's file.
+ * The establishment's file, four cards, one subject each.
  *
  * The page used to be a single card holding the logo, the name, the
  * structures, two phone fields, the address, the wilaya and a map — a column
  * of unlabelled inputs that gave a director no way to find the one thing they
- * came to change. Four cards, one subject each.
- *
- * The colour is spent exactly once per card, on the icon tile. Tinting the
- * card itself would put four competing washes on one screen and say nothing
- * the heading does not already say; the tile is enough to tell them apart at
- * a glance while scrolling. Light tints take an "ink" token for the glyph —
- * raw gold on a gold tint sits near 1.8:1 (see THEME.md).
+ * came to change. The cards are the shared SectionCard, which was promoted
+ * from here: the colour is spent exactly once per card, on the icon tile.
  */
-function SectionCard({
-  icon: Icon,
-  tone,
-  title,
-  hint,
-  children,
-}: {
-  icon: typeof Building2;
-  tone: string;
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card className="border border-border shadow-sm ring-0">
-      {/* `flex` as well as `flex-row`: the header is a grid by default, and
-          a direction alone does not change the display. */}
-      <CardHeader className="flex flex-row items-start gap-3">
-        <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${tone}`}>
-          <Icon className="size-4.5" aria-hidden />
-        </span>
-        <div className="min-w-0 grid gap-0.5">
-          <CardTitle className="text-base font-semibold">{title}</CardTitle>
-          {hint && <p className="text-xs text-pretty text-muted-foreground">{hint}</p>}
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-4">{children}</CardContent>
-    </Card>
-  );
-}
-
 export interface TenantProfileData {
   name: string;
   phone: string | null;
@@ -98,7 +63,9 @@ export function TenantProfileForm({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(tenant.name);
-  const [phone, setPhone] = useState(tenant.phone ?? "");
+  // Shown grouped (0770 22 00 01) the moment the field loses focus; the
+  // server normalises the digits, so the spaces are display only.
+  const [phone, setPhone] = useState(formatPhone(tenant.phone));
   const [email, setEmail] = useState(tenant.email ?? "");
   const [address, setAddress] = useState(tenant.address ?? "");
   const [wilaya, setWilaya] = useState(tenant.wilaya ?? "");
@@ -160,7 +127,7 @@ export function TenantProfileForm({
     <div className="grid gap-5">
       <SectionCard
         icon={Building2}
-        tone="bg-tile-1 text-primary"
+        tone={0}
         title={t("school.identity")}
         hint={t("school.identityHint")}
       >
@@ -211,16 +178,19 @@ export function TenantProfileForm({
           thing on the page, and it was buried under the logo. */}
       <SectionCard
         icon={Shapes}
-        tone="bg-tile-3 text-gold-ink"
+        tone={1}
         title={t("school.structuresTitle")}
         hint={t("school.structuresHint")}
+        action={
+          isAdmin ? <StructureDialog usedColors={structures.map((s) => s.color)} /> : undefined
+        }
       >
-        <EstablishmentStructures structures={structures} isAdmin={isAdmin} />
+        <StructuresPanel structures={structures} isAdmin={isAdmin} />
       </SectionCard>
 
       <SectionCard
         icon={Phone}
-        tone="bg-tile-2 text-success"
+        tone={2}
         title={t("school.contact")}
         hint={t("school.contactHint")}
       >
@@ -233,6 +203,7 @@ export function TenantProfileForm({
               className="text-start"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              onBlur={() => setPhone(formatPhone(phone))}
               placeholder="034 12 34 56"
             />
           </div>
@@ -253,7 +224,7 @@ export function TenantProfileForm({
 
       <SectionCard
         icon={MapPin}
-        tone="bg-tile-4 text-chart-5"
+        tone={3}
         title={t("school.location")}
         hint={t("school.locationHint")}
       >
@@ -292,16 +263,17 @@ export function TenantProfileForm({
           />
         </div>
         <MapPinField value={pin} onChange={setPin} disabled={pending} />
-      </SectionCard>
 
-      {/* One save for the three cards that are one form. The structures card
-          writes on its own — an added structure is billed, so it cannot sit
-          unsaved behind a button somewhere further down the page. */}
-      <div className="flex justify-end">
-        <Button onClick={save} disabled={pending || name.trim().length < 2}>
-          {tc("actions.save")}
-        </Button>
-      </div>
+        {/* One save for the three cards that are one form, in the footer of
+            the last of them so it visibly belongs to what is above it. The
+            structures card writes on its own — an added structure is billed,
+            so it cannot sit unsaved behind a button further down the page. */}
+        <div className="flex justify-end border-t border-border pt-4">
+          <Button onClick={save} disabled={pending || name.trim().length < 2}>
+            {tc("actions.save")}
+          </Button>
+        </div>
+      </SectionCard>
     </div>
   );
 }

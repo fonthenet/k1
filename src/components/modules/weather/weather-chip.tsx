@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { MapPin } from "lucide-react";
+import { WILAYAS } from "@/components/modules/settings/wilayas";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +21,8 @@ interface Weather {
   now: { temperature: number; symbol: string; windSpeed: number; humidity: number; uvClearSky: number | null };
   days: Day[];
   point: { lat: number; lon: number; exact: boolean };
+  /** The crèche's commune and wilaya from Settings — what the forecast is for. */
+  place?: { commune: string | null; wilaya: string | null };
   fetchedAt: string;
 }
 
@@ -67,6 +71,13 @@ export function WeatherChip({ className }: { className?: string }) {
   // minute" — the window answers that. It also makes the chip agree with the
   // "today" row inside the panel, which is where the mismatch showed.
   const nowGroup = weatherGroup(data.now.symbol);
+  const wilayaRow = WILAYAS.find((w) => w.name === data.place?.wilaya);
+  // The name alone — the settings picker's "16 — Alger" carries the code
+  // for choosing, not for reading.
+  const wilaya = wilayaRow ? (locale === "ar" ? wilayaRow.ar : wilayaRow.name) : (data.place?.wilaya ?? null);
+  const commune = data.place?.commune?.trim() || null;
+  const sameTown = !!commune && commune.toLowerCase() === (data.place?.wilaya ?? "").toLowerCase();
+  const place = [sameTown ? null : commune, wilaya].filter(Boolean).join(locale === "ar" ? "، " : ", ");
   const dayGroup = weatherGroup(data.days[0]?.symbol ?? data.now.symbol);
   const fmtDay = (iso: string) =>
     new Intl.DateTimeFormat(intlLocale(locale), { weekday: "short" }).format(new Date(`${iso}T12:00:00`));
@@ -104,8 +115,18 @@ export function WeatherChip({ className }: { className?: string }) {
       <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] gap-0 p-0">
         <div className="flex items-start justify-between gap-3 border-b border-border/60 p-4">
           <div className="min-w-0">
-            <div className="text-[0.7rem] font-semibold tracking-wide text-muted-foreground uppercase">
-              {t("now")}
+            {/* Where, then when: "Jijel · Maintenant". The wilaya is drawn in
+                the reader's script; the commune is the director's own word.
+                A commune that is the wilaya's own town is said once. */}
+            <div className="flex min-w-0 items-center gap-1.5 text-[0.7rem] font-semibold tracking-wide text-muted-foreground uppercase">
+              {place && (
+                <>
+                  <MapPin className="size-3 shrink-0" aria-hidden />
+                  <bdi dir="auto" className="truncate normal-case tracking-normal">{place}</bdi>
+                  <span aria-hidden>·</span>
+                </>
+              )}
+              <span className="shrink-0">{t("now")}</span>
             </div>
             <div className="mt-0.5 flex items-baseline gap-2">
               <span dir="ltr" className="font-heading text-3xl font-bold tabular-nums text-foreground">

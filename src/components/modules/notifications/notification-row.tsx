@@ -41,17 +41,17 @@ export function NotificationRow({ n }: { n: KgNotification }) {
 
   return (
     <div className="flex w-full items-start gap-3 text-start">
-      <NotificationIcon type={n.type} />
+      {/* The icon says the type; the tint is the same neutral on every row.
+          A red tile on each arrears row and a gold one on each application
+          put nine coloured tiles in the first screen of the history, when
+          colour is for the one fact that needs a human — and the day rows
+          and the unread dot already carry the structure. */}
+      <NotificationIcon type={n.type} className="bg-muted text-muted-foreground" />
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
-          <p
-            className={cn(
-              "min-w-0 flex-1 truncate text-sm text-foreground",
-              unread ? "font-semibold" : "font-medium"
-            )}
-          >
-            {title}
-          </p>
+          {/* Weight does not change with read state: the dot at the end is
+              the one unread mark, here and in the header bell. */}
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{title}</p>
           {/* Server and browser can disagree on the clock for a few seconds. */}
           <time
             dateTime={n.created_at}
@@ -71,6 +71,9 @@ export function NotificationRow({ n }: { n: KgNotification }) {
         aria-hidden
         className={cn("mt-1.5 size-2 shrink-0 rounded-full", unread ? "bg-primary" : "bg-transparent")}
       />
+      {/* The dot is the only visible unread mark, so the word goes with it
+          for whoever cannot see the dot. */}
+      {unread && <span className="sr-only">{t("unread")}</span>}
     </div>
   );
 }
@@ -86,8 +89,7 @@ export function NotificationLink({ n, className }: { n: KgNotification; classNam
         if (unread) void markNotificationsRead([n.id]);
       }}
       className={cn(
-        "block px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none",
-        unread && "bg-primary/5 hover:bg-primary/10",
+        "block px-5 py-3 transition-colors hover:bg-primary/5 focus-visible:bg-primary/5 focus-visible:outline-none",
         className
       )}
     >

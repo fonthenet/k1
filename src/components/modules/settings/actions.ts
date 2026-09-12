@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { setLocale } from "@/app/actions/locale";
+import { flushPush } from "@/app/actions/push";
+import { parseChildDay, type ChildDay, type DailyJournalData } from "@/lib/child-day";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { CENTER_TYPES } from "./center-types";
+import { isValidSendAt, parseDailyJournalData } from "./daily-journal";
 import { TENANT_DOC_TYPES } from "./settings-types";
 import { WILAYA_NAMES } from "./wilayas";
 
@@ -257,7 +260,10 @@ export async function deleteEnrollLink(id: string): Promise<SettingsResult> {
 
 const holidaySchema = z
   .object({
-    name: z.string().trim().min(1).max(160),
+    // Either name is enough: an Arabic director names the feast in Arabic and
+    // owes nobody a French one. The column is NOT NULL, so the Arabic name
+    // stands in for it on the way down.
+    name: z.string().trim().max(160),
     nameAr: z.string().trim().max(160).optional(),
     date: z.string().regex(DATE_RE),
     endDate: z.string().regex(DATE_RE).or(z.literal("")).optional(),
@@ -268,7 +274,8 @@ const holidaySchema = z
     // stays open through them.
     structureId: z.union([z.uuid(), z.literal(""), z.null()]).optional(),
   })
-  .refine((v) => !v.endDate || v.endDate >= v.date);
+  .refine((v) => !v.endDate || v.endDate >= v.date)
+  .refine((v) => v.name.length > 0 || (v.nameAr ?? "").length > 0);
 
 export async function addHoliday(input: z.infer<typeof holidaySchema>): Promise<SettingsResult> {
   const ctx = await requireAdminCtx();
@@ -282,7 +289,7 @@ export async function addHoliday(input: z.infer<typeof holidaySchema>): Promise<
     tenant_id: ctx.tenant.id,
     date: v.date,
     end_date: v.endDate || null,
-    name: v.name,
+    name: v.name || v.nameAr!,
     name_ar: v.nameAr?.trim() || null,
     tentative: v.tentative,
     closure: v.closure,
@@ -424,6 +431,120 @@ export async function deleteTenantDocument(id: string): Promise<SettingsResult> 
   }
   revalidatePath("/settings/documents");
   return { ok: true };
+}
+
+// ------------------------------------------------------------- daily journal
+
+const dailyJournalSchema = z.object({
+  enabled: z.boolean(),
+  sendAt: z.string().refine(isValidSendAt),
+});
+
+/**
+ * The switch and the time of the automatic Journal du jour (0152).
+ *
+ * Written through kg_set_daily_journal and never by updating `settings`
+ * from here: the RPC appends the key atomically, so a director flipping the
+ * switch can never clobber another key that landed in `settings` between the
+ * page render and the click. A send_at the CHECK refuses (later than 21:00)
+ * comes back as 23514 and reads as 'invalid'; the TimePicker never offers
+ * one, so reaching it means a stale page.
+ */
+export async function updateDailyJournal(input: { enabled: boolean; sendAt: string }): Promise<SettingsResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const parsed = dailyJournalSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("kg_set_daily_journal", {
+    p_tenant: ctx.tenant.id,
+    p_enabled: parsed.data.enabled,
+    p_send_at: parsed.data.sendAt,
+  });
+  if (error) {
+    if (error.code === "23514") return { ok: false, error: "invalid" };
+    if (error.message.toLowerCase().includes("forbidden")) return { ok: false, error: "forbidden" };
+    return { ok: false, error: "generic" };
+  }
+
+  // The Journal screen's publish confirm names the moment; it must read the
+  // new time the next time an educator opens it.
+  revalidatePath("/settings/notifications");
+  revalidatePath("/attendance/journal");
+  return { ok: true };
+}
+
+const previewSchema = z.object({ childId: z.uuid(), date: z.string().regex(DATE_RE) });
+
+export type DailyJournalPreview =
+  | { ok: true; day: ChildDay; data: DailyJournalData; tellable: boolean }
+  | { ok: false; error: "generic" | "forbidden" | "invalid" };
+
+/**
+ * What one child's family would receive: the composed day and the counts
+ * the bell renders. Staff-wide, not admin-only, because the RPC guards on
+ * kg_is_staff and the preview writes nothing. Today's draft journal is
+ * included by the RPC itself, since the evening sender will publish it.
+ */
+export async function previewDailyJournal(input: { childId: string; date: string }): Promise<DailyJournalPreview> {
+  await requireStaff();
+  const parsed = previewSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kg_daily_journal_preview", {
+    p_child: parsed.data.childId,
+    p_date: parsed.data.date,
+  });
+  if (error) {
+    return { ok: false, error: error.message.toLowerCase().includes("forbidden") ? "forbidden" : "generic" };
+  }
+  const body = (data ?? null) as { day?: unknown; data?: unknown; tellable?: unknown } | null;
+  const day = parseChildDay(body?.day);
+  const payload = parseDailyJournalData(body?.data);
+  if (!day || !payload) return { ok: false, error: "generic" };
+  return { ok: true, day, data: payload, tellable: body?.tellable === true };
+}
+
+/**
+ * The family's exact row, delivered to the director's own devices. The RPC
+ * writes one already-read row for auth.uid() flagged `preview`, so the
+ * once-per-day digest index ignores it; the flush hands it to the phone
+ * without waiting for the next dispatch.
+ */
+export async function sendDailyJournalPreview(input: { childId: string; date: string }): Promise<SettingsResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const parsed = previewSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("kg_send_daily_journal_preview", {
+    p_child: parsed.data.childId,
+    p_date: parsed.data.date,
+  });
+  if (error) {
+    return { ok: false, error: error.message.toLowerCase().includes("forbidden") ? "forbidden" : "generic" };
+  }
+  await flushPush();
+  return { ok: true };
+}
+
+/**
+ * Whether the signed-in member has anywhere a push can land: a browser
+ * subscription or a native device. Both tables are RLS-scoped to the caller,
+ * so no user filter is needed — and none is added, so a policy change here
+ * cannot widen what this counts.
+ */
+export async function hasPushDevice(): Promise<boolean> {
+  await requireStaff();
+  const supabase = await createClient();
+  const [subs, devices] = await Promise.all([
+    supabase.from("kg_push_subscriptions").select("id", { count: "exact", head: true }),
+    supabase.from("kg_push_devices").select("id", { count: "exact", head: true }),
+  ]);
+  return (subs.count ?? 0) + (devices.count ?? 0) > 0;
 }
 
 // ----------------------------------------------------------------- my profile

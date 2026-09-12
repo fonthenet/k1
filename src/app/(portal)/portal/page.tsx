@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { ParentLearningLink } from "@/components/modules/learning/parent-link";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
   Baby,
   CalendarDays,
-  CalendarHeart,
   ChevronLeft,
   ChevronRight,
   Pin,
@@ -13,15 +11,15 @@ import {
   Wallet,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SectionCard } from "@/components/shared/section-card";
+import { StatusPill, type StatusTone } from "@/components/shared/status-pill";
 import { ValueRange } from "@/components/shared/value-range";
-import { PortalChildLink } from "@/components/shared/entity-link";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, signedMediaUrl } from "@/lib/tenant";
-import { toOpeningHours } from "@/lib/week";
+import { isOpenDayStr, toOpeningHours, type OpeningHours } from "@/lib/week";
+import type { Locale } from "@/i18n/locales";
 import { EstablishmentCard } from "@/components/shared/establishment-card";
 import { childDisplayName, formatDZD, formatDate, formatTime, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -34,19 +32,19 @@ import {
   getMyGuardianBadge,
   getStructures,
   monthRange,
-  toCheckinDialogChildren,
 } from "@/components/modules/portal/data";
-import { StructureChip } from "@/components/modules/portal/structure-chip";
+import { StructureMark } from "@/components/shared/structure-mark";
+import { FactsLine } from "@/components/modules/portal/facts-line";
+import { roomName, structureName } from "@/components/modules/classes/class-types";
 import {
-  attendanceChipClasses,
+  attendanceChipTone,
   eatenKey,
   MOOD_EMOJI,
   parseMeals,
   parseNap,
-  severityClasses,
 } from "@/components/modules/portal/portal-types";
 import { isAway } from "@/components/modules/attendance/status-config";
-import { AckIncidentButton } from "@/components/modules/portal/ack-incident-button";
+import { IncidentRow } from "@/components/modules/portal/incident-row";
 import {
   CheckinDialog,
   type CheckinDialogChildStatus,
@@ -54,6 +52,7 @@ import {
 import { ReportAbsenceDialog } from "@/components/modules/portal/report-absence-dialog";
 import { PortalHomeRefresh } from "@/components/modules/portal/portal-home-refresh";
 import { displayIdentity } from "@/lib/auth-identifier";
+import { MEAL_SLOTS } from "@/lib/journal";
 
 type AttendanceRow = {
   child_id: string;
@@ -91,7 +90,7 @@ type DueRow = {
   status: string;
 };
 
-type IncidentRow = {
+type IncidentRecord = {
   id: string;
   child_id: string;
   occurred_at: string;
@@ -125,6 +124,10 @@ type EventRow = {
   end_at: string | null;
   audience: PortalAudience;
   class_id: string | null;
+  /** The room the event booked, when it did: parents are members and read
+   *  a room like staff do (rm_sel). A family needs the hall as much as the
+   *  hour. */
+  kg_rooms: { name: string; name_ar: string | null } | null;
 };
 
 type HolidayRow = {
@@ -141,15 +144,16 @@ export default async function PortalHomePage() {
   const tenantLogoUrl = await signedMediaUrl(ctx.tenant.logo_url);
   const t = await getTranslations("portal");
   const tCommon = await getTranslations("common");
-  const locale = await getLocale();
+  const locale = (await getLocale()) as Locale;
   const supabase = await createClient();
 
   const today = algiersToday();
+  const openingHours = toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours);
   const { start: monthStart, end: monthEnd } = monthRange(algiersMonth());
   const nowIso = new Date().toISOString();
 
   // The door badge belongs to the guardian, not to a child: fetched once here
-  // and handed to every child card, never re-queried per card.
+  // and raised by the one trigger above the children, never per card.
   const [children, badge, structures] = await Promise.all([
     getMyChildren(supabase, ctx),
     getMyGuardianBadge(supabase, ctx, locale),
@@ -165,6 +169,30 @@ export default async function PortalHomePage() {
   // still owed, and hiding it is how a balance is discovered at re-enrolment.
   const attendingIds = children.filter((c) => ATTENDING.has(c.status)).map((c) => c.id);
   const myClassIds = new Set(children.map((c) => c.class_id).filter((id): id is string => !!id));
+
+  // The week each child's structure keeps — its own if it set one, the
+  // building's otherwise (kg_structure_hours). One RPC per distinct
+  // structure, not per child: two siblings in the crèche share one read, and
+  // a jardin closed on Thursday must not close the crèche's band next to it.
+  // A child with no structure is on the building's week.
+  const structureIds = [...new Set(children.map((c) => c.structure_id))];
+  const hoursByStructure = new Map<string | null, OpeningHours>();
+  await Promise.all(
+    structureIds.map(async (sid) => {
+      if (sid === null) {
+        hoursByStructure.set(null, openingHours);
+        return;
+      }
+      const { data } = await supabase.rpc("kg_structure_hours", { p_structure: sid, p_tenant: ctx.tenant.id });
+      hoursByStructure.set(sid, data ? toOpeningHours(data) : openingHours);
+    })
+  );
+  // On a day the child's structure does not open there is no door to watch:
+  // the live chip and the arrival · nap · lunch · departure band say nothing
+  // true, so a closed day gets one muted line instead. A row written anyway
+  // (an exceptional opening) reopens the day for that child.
+  const closedTodayFor = (child: { structure_id: string | null }) =>
+    !isOpenDayStr(hoursByStructure.get(child.structure_id) ?? openingHours, today);
 
   const [
     { data: profile },
@@ -252,7 +280,9 @@ export default async function PortalHomePage() {
       // Limit raised because class rows now compete for the same slots.
       supabase
         .from("kg_events")
-        .select("id, title, description, start_at, end_at, audience, class_id")
+        .select(
+          "id, title, description, start_at, end_at, audience, class_id, kg_rooms(name, name_ar)"
+        )
         .eq("tenant_id", ctx.tenant.id)
         .gte("start_at", `${today}T00:00:00+01:00`)
         .order("start_at")
@@ -281,7 +311,7 @@ export default async function PortalHomePage() {
     todayReportByChild.set(row.child_id, row);
   }
 
-  const incidents = (incidentsRes.data ?? []) as IncidentRow[];
+  const incidents = (incidentsRes.data ?? []) as IncidentRecord[];
 
   // What is still owed, and by when. `balance` rather than `status`: a partly
   // paid invoice is still money the family owes, and saying "unpaid" about one
@@ -334,7 +364,7 @@ export default async function PortalHomePage() {
   const nowMs = Date.parse(nowIso);
   const stillRelevant = (e: EventRow) => Date.parse(e.end_at ?? e.start_at) >= nowMs;
 
-  const events = ((eventsRes.data ?? []) as EventRow[])
+  const events = ((eventsRes.data ?? []) as unknown as EventRow[])
     .filter(
       (e) =>
         e.audience === "all" ||
@@ -389,15 +419,22 @@ export default async function PortalHomePage() {
     return { kind: "notYet", time: null, reason: null };
   }
 
-  function todayStatus(childId: string): { label: string; classes: string } {
+  /**
+   * The one pill on a child card, or nothing: "not yet arrived" is how every
+   * morning starts and is said by the empty band under the name, not by a
+   * chip on each card.
+   */
+  function todayStatus(childId: string): { label: string; tone: StatusTone } | null {
     const status = todayCheckin(childId);
+    const tone = attendanceChipTone(status.kind);
+    if (!tone) return null;
     switch (status.kind) {
       case "absent":
         return {
           label: status.reason
             ? t("home.status.absentReason", { reason: status.reason })
             : t("home.status.absent"),
-          classes: attendanceChipClasses("absent"),
+          tone,
         };
       case "left":
         return {
@@ -407,15 +444,10 @@ export default async function PortalHomePage() {
                 name: status.collectedBy,
               })
             : t("home.status.left", { time: status.time ?? "" }),
-          classes: attendanceChipClasses("left"),
-        };
-      case "arrived":
-        return {
-          label: t("home.status.arrived", { time: status.time ?? "" }),
-          classes: attendanceChipClasses("arrived"),
+          tone,
         };
       default:
-        return { label: t("home.status.notYet"), classes: attendanceChipClasses("notYet") };
+        return { label: t("home.status.arrived", { time: status.time ?? "" }), tone };
     }
   }
 
@@ -428,6 +460,15 @@ export default async function PortalHomePage() {
     if (!eaten) return null;
     const key = eatenKey(eaten);
     return key ? t(`child.journal.eaten.${key}`) : eaten;
+  }
+
+  /**
+   * The slot in the reader's language when the journal line names one of the
+   * three the write contract knows ("lunch" is a key, never a word a family
+   * should read); an educator's free-typed meal passes through as typed.
+   */
+  function slotLabel(meal: string): string {
+    return (MEAL_SLOTS as readonly string[]).includes(meal) ? t(`day.meals.${meal as (typeof MEAL_SLOTS)[number]}`) : meal;
   }
 
   /** Nap in one short phrase, whichever of the two stored shapes it came in. */
@@ -468,7 +509,7 @@ export default async function PortalHomePage() {
       { label: t("home.today.nap"), value: report ? napLabel(report.nap) : null },
       {
         label: t("home.today.lunch"),
-        value: lunch ? (eatenLabel(lunch.eaten) ?? lunch.meal) : null,
+        value: lunch ? (eatenLabel(lunch.eaten) ?? slotLabel(lunch.meal)) : null,
       },
       {
         label: t("home.today.departure"),
@@ -477,24 +518,15 @@ export default async function PortalHomePage() {
     ];
   }
 
-  // The badge is one code for the whole family, so the whole family travels
-  // with every trigger on this page: a parent who opened it from Ali's card
-  // can switch to Lina without closing it. Built from rows already in hand —
-  // the children, their signed photos and today's attendance — so no card
-  // costs an extra query. This page is the one surface that already knows
-  // today's status, so it is the one that can label the tabs with it.
-  //
-  // Keyed by id, not by position. The card loop used to index this array
-  // with the loop counter, which only held while both lists were the same
-  // list; now that a withdrawn sibling renders a card without a dialog, a
-  // positional lookup would open the enrolled child's badge on the wrong name.
-  const checkinChildren = new Map(
-    toCheckinDialogChildren(
-      children,
-      locale,
-      photoUrls,
-      new Map(children.map((c) => [c.id, todayCheckin(c.id)]))
-    ).map((c) => [c.id, c])
+  // The badge is one code for the whole family, so it is raised once, in the
+  // children section's header, exactly as the children page does — a button
+  // per card was the same QR printed twice. It is put away for the day once
+  // every attending child has been collected: "check in" after check-out is
+  // a control with nothing left to do, and at the gate it invites a second
+  // scan the kiosk would refuse. Still offered while a child is absent — an
+  // absence reported in the morning is often undone by a late drop-off.
+  const badgeWanted = children.some(
+    (c) => ATTENDING.has(c.status) && todayCheckin(c.id).kind !== "left"
   );
 
   const greetingName =
@@ -506,7 +538,6 @@ export default async function PortalHomePage() {
       {/* Re-renders this page when the door tablet writes, and once a minute
           while the tab is visible — see the component for why both. */}
       <PortalHomeRefresh userId={ctx.user.id} />
-      <ParentLearningLink />
 
       {/* ===== Greeting — the anchor of the page: full brand gradient, white ink. ===== */}
       <div className="rounded-2xl bg-gradient-to-br from-brand-from via-brand-via to-brand-to p-5 text-primary-foreground shadow-lg">
@@ -521,91 +552,91 @@ export default async function PortalHomePage() {
       {/* ===== What the family owes =====
            A parent whose child had just been approved saw a normal day and no
            bill: the home carried no mention of money, and the invoice sat two
-           taps away under Payments. Gold, not red — an unpaid invoice inside
-           its terms is a thing to do, not an emergency — and red only once it
-           is genuinely past its date. */}
+           taps away under Payments. One plain row card, not a tinted band —
+           an unpaid invoice inside its terms is a thing to do, not an alarm —
+           and red only once it is genuinely past its date. */}
       {totalDue > 0 && (
         <Link
           href="/portal/payments"
-          className={cn(
-            "flex items-center gap-3.5 rounded-2xl p-4 ring-1 transition-colors",
-            "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-            anyOverdue
-              ? "bg-destructive/5 ring-destructive/25 hover:bg-destructive/10"
-              : "bg-gold-muted/50 ring-gold/30 hover:bg-gold-muted/70"
-          )}
+          className="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <span
             aria-hidden
-            className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-xl",
-              anyOverdue ? "text-destructive" : "text-gold-ink"
-            )}
+            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
           >
-            <Wallet className="size-5" />
+            <Wallet className="size-4" />
           </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground">
+          <span className="min-w-0 flex-1">
+            <span
+              className={cn(
+                "block text-sm font-medium tabular-nums",
+                anyOverdue ? "text-destructive" : "text-foreground"
+              )}
+            >
               {t("home.due.title", { amount: formatDZD(totalDue, locale) })}
-            </p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            </span>
+            <span className="block text-xs text-muted-foreground">
               {anyOverdue
                 ? t("home.due.overdue")
                 : earliestDue
                   ? t("home.due.by", { date: formatDate(earliestDue, locale) })
                   : t("home.due.pending")}
-            </p>
-          </div>
+            </span>
+          </span>
           <ForwardIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </Link>
       )}
 
-      {/* ===== Unacknowledged incidents ===== */}
+      {/* ===== Unacknowledged incidents =====
+           A section card with a row per incident, never a red card holding
+           red boxes: the severity pill beside the child's name is the row's
+           one red, and it only appears when the incident is serious. The
+           card is not drawn at all when there is nothing to acknowledge. */}
       {incidents.length > 0 && (
-        <Card className="bg-destructive/5 shadow-sm ring-destructive/25">
-          <CardHeader className="flex flex-row items-center gap-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
-              <ShieldAlert className="size-5" />
-            </span>
-            <CardTitle className="text-base font-semibold text-destructive">
-              {t("home.incidents.title")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
+        <SectionCard
+          icon={ShieldAlert}
+          tone={3}
+          title={t("home.incidents.title")}
+          contentClassName="px-0"
+        >
+          <ul className="divide-y divide-border">
             {incidents.map((incident) => (
-              <div
+              // The query above keeps only rows awaiting the family's
+              // acknowledgement, so the row is told that plainly.
+              <IncidentRow
                 key={incident.id}
-                className="grid gap-2 rounded-xl bg-card p-3.5 ring-1 ring-destructive/15"
-              >
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-semibold"><PortalChildLink id={incident.child_id}>{childName(incident.child_id)}</PortalChildLink></span>
-                  <Badge className={severityClasses(incident.severity)}>
-                    {t(`home.incidents.severity.${incident.severity}`)}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {formatDate(incident.occurred_at, locale)} · {formatTime(incident.occurred_at, locale)}
-                  </span>
-                </div>
-                <p className="text-sm leading-relaxed text-start" dir="auto">{incident.description}</p>
-                {incident.action_taken && (
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {t("home.incidents.actionTaken")} : {incident.action_taken}
-                  </p>
-                )}
-                <div className="pt-0.5">
-                  <AckIncidentButton incidentId={incident.id} />
-                </div>
-              </div>
+                incident={{ ...incident, parent_ack_at: null }}
+                childName={childName(incident.child_id)}
+                childId={incident.child_id}
+                locale={locale}
+              />
             ))}
-          </CardContent>
-        </Card>
+          </ul>
+        </SectionCard>
       )}
 
-      {/* ===== My children ===== */}
-      <section className="grid gap-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {t("home.childrenTitle")}
-        </h3>
+      {/* ===== My children =====
+           A plain header line, not a section card: what sits under it is a
+           card per child, and a card around cards is a box in a box. */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-base font-semibold">{t("home.childrenTitle")}</h3>
+          {/* The family's report card lives one tap from the children, where a
+              parent looks for it — not as a card above the greeting. The
+              door badge is the row's one button, beside the link. */}
+          {children.length > 0 && (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Link
+                href="/portal/learning"
+                className="inline-flex min-h-11 items-center gap-1 text-sm text-primary hover:underline hover:underline-offset-4"
+              >
+                {t("learning.title")}
+                <ForwardIcon className="size-4" aria-hidden />
+              </Link>
+              {badgeWanted && <CheckinDialog badge={badge} className="px-2.5" />}
+            </div>
+          )}
+        </div>
         {children.length === 0 ? (
           <EmptyState
             icon={<Baby />}
@@ -613,304 +644,326 @@ export default async function PortalHomePage() {
             description={t("home.emptyChildrenDescription")}
           />
         ) : (
-          children.map((child) => {
-            const name = childDisplayName(child, locale);
-            const secondaryName =
-              locale === "ar"
-                ? `${child.first_name} ${child.last_name}`
-                : child.first_name_ar && child.last_name_ar
-                  ? `${child.first_name_ar} ${child.last_name_ar}`
-                  : null;
-            const attending = ATTENDING.has(child.status);
-            const checkin = attending ? todayCheckin(child.id) : null;
-            const status = attending ? todayStatus(child.id) : null;
-            const report = attending ? latestReportByChild.get(child.id) : undefined;
-            const meals = report ? parseMeals(report.meals) : [];
-            const band = attending ? todayBand(child.id) : [];
-            const cls = classLabel(child, locale);
-            const structure =
-              multiStructure && child.structure_id ? structureById.get(child.structure_id) : undefined;
-            return (
-              <Card key={child.id} className="shadow-sm">
-                <CardContent className="grid gap-3.5">
-                  {/* The whole header is the tap target — a parent reaches for
-                      the child's face and name, not the small "details" link. */}
-                  <Link
-                    href={`/portal/children/${child.id}`}
-                    className="-m-1 flex items-center gap-3 rounded-xl p-1 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  >
-                    <Avatar className="size-12 ring-1 ring-primary/15">
-                      {photoUrls.get(child.id) && (
-                        <AvatarImage src={photoUrls.get(child.id)!} alt={name} />
-                      )}
-                      <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
-                        {initials(child.first_name, child.last_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="font-semibold">{name}</span>
-                        {secondaryName && (
-                          <span className="text-sm text-muted-foreground text-start" dir="auto">
-                            {secondaryName}
-                          </span>
-                        )}
-                      </div>
-                      {(cls || structure) && (
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                          {cls && (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span
-                                className="size-2 rounded-full"
-                                style={{ backgroundColor: child.kg_classes?.color ?? "var(--gold)" }}
-                                aria-hidden
-                              />
-                              {cls}
-                            </span>
-                          )}
-                          {structure && <StructureChip structure={structure} locale={locale} />}
-                        </div>
-                      )}
-                    </div>
-                    {/* One chip: the live door status for a child who
-                        attends, the file status for one who does not. Never
-                        both, and never a live chip on a withdrawn child. */}
-                    {status ? (
-                      <Badge className={status.classes}>{status.label}</Badge>
-                    ) : (
-                      <Badge variant="secondary">{t(`children.status.${child.status}`)}</Badge>
-                    )}
-                  </Link>
-
-                  {!attending && (
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      {t(`home.inactive.${child.status}`)}
-                    </p>
-                  )}
-
-                  {attending && (
-                    <dl
-                      aria-label={t("home.today.label")}
-                      className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs"
-                    >
-                      {band.map((segment, i) => (
-                        <div key={segment.label} className="flex items-baseline gap-x-2">
-                          {i > 0 && (
-                            <span aria-hidden className="text-muted-foreground/60">
-                              ·
-                            </span>
-                          )}
-                          <div
-                            className={cn(
-                              "flex items-baseline gap-1",
-                              segment.value ? "text-foreground" : "text-muted-foreground"
-                            )}
-                          >
-                            <dt>{segment.label}</dt>
-                            {segment.value && (
-                              <dd className="font-semibold tabular-nums">{segment.value}</dd>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-
-                  {report && (
+          <div className="grid gap-3">
+            {children.map((child) => {
+              const name = childDisplayName(child, locale);
+              const secondaryName =
+                locale === "ar"
+                  ? `${child.first_name} ${child.last_name}`
+                  : child.first_name_ar && child.last_name_ar
+                    ? `${child.first_name_ar} ${child.last_name_ar}`
+                    : null;
+              const attending = ATTENDING.has(child.status);
+              const checkin = attending ? todayCheckin(child.id) : null;
+              const quietDay = closedTodayFor(child) && checkin?.kind === "notYet";
+              const status = attending && !quietDay ? todayStatus(child.id) : null;
+              const report = attending ? latestReportByChild.get(child.id) : undefined;
+              const meals = report ? parseMeals(report.meals) : [];
+              const band = attending ? todayBand(child.id) : [];
+              const cls = classLabel(child, locale);
+              const structure =
+                multiStructure && child.structure_id ? structureById.get(child.structure_id) : undefined;
+              return (
+                <Card key={child.id} className="border border-border shadow-sm ring-0">
+                  <CardContent className="grid gap-3.5">
+                    {/* The whole header is the tap target — a parent reaches
+                        for the child's face and name; there is no separate
+                        "details" link because the name IS the door. */}
                     <Link
-                      href={`/portal/children/${child.id}?tab=journal`}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 px-3 py-2.5 transition-colors hover:bg-muted"
+                      href={`/portal/children/${child.id}`}
+                      className="-m-1 flex items-center gap-3 rounded-xl p-1 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
-                      <span
-                        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-card text-xl ring-1 ring-border"
-                        aria-hidden
-                      >
-                        {MOOD_EMOJI[report.mood ?? ""] ?? "🙂"}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-semibold text-foreground">
-                          {t("home.lastReport", { date: formatDate(report.date, locale) })}
-                        </span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {meals.length > 0
-                            ? meals
-                                .map((m) => {
-                                  const eaten = eatenLabel(m.eaten);
-                                  return eaten ? `${m.meal} — ${eaten}` : m.meal;
-                                })
-                                .join(" · ")
-                            : (report.activities_text ?? "")}
-                        </span>
-                      </span>
-                      <ForwardIcon className="size-4 shrink-0 text-gold" />
+                      <Avatar className="size-12">
+                        {photoUrls.get(child.id) && (
+                          <AvatarImage src={photoUrls.get(child.id)!} alt={name} />
+                        )}
+                        <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
+                          {initials(child.first_name, child.last_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          <bdi dir="auto" className="font-semibold">{name}</bdi>
+                          {secondaryName && (
+                            <bdi dir="auto" className="text-sm text-muted-foreground text-start">
+                              {secondaryName}
+                            </bdi>
+                          )}
+                        </div>
+                        {/* Where the child is, said once: the class as plain
+                            text, the structure as the one coloured mark — a
+                            second dot on the class read as a second fact. */}
+                        <FactsLine
+                          className="mt-1"
+                          facts={[
+                            cls && <span key="class">{cls}</span>,
+                            structure && (
+                              <StructureMark
+                                key="structure"
+                                structure={{ name: structureName(structure, locale), color: structure.color }}
+                                className="text-xs"
+                              />
+                            ),
+                          ]}
+                        />
+                      </div>
+                      {/* One chip: the live door status for a child who
+                          attends, the file status for one who does not. Never
+                          both, and never a live chip on a withdrawn child. */}
+                      {status ? (
+                        <StatusPill tone={status.tone}>{status.label}</StatusPill>
+                      ) : attending ? null : (
+                        <StatusPill tone={child.status === "withdrawn" ? "danger" : "muted"}>
+                          {t(`children.status.${child.status}`)}
+                        </StatusPill>
+                      )}
                     </Link>
-                  )}
 
-                  {/* Absence and the door badge sit side by side because both
-                      are things a parent does *about today*; "details" is only
-                      the way into the file. The row wraps instead of shrinking —
-                      no target here goes under 44px. The badge itself is per
-                      guardian; opening it from this card only tells the QR which
-                      child to name underneath, so staff know who is being handed
-                      over without the parent navigating away. */}
-                  <div className="flex flex-wrap items-center gap-2">
+                    {!attending && (
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {t(`home.inactive.${child.status}`)}
+                      </p>
+                    )}
+
+                    {quietDay && (
+                      <p className="text-xs text-muted-foreground">{tCommon("establishment.closedToday")}</p>
+                    )}
+
+                    {attending && !quietDay && (
+                      <dl
+                        aria-label={t("home.today.label")}
+                        className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs"
+                      >
+                        {band.map((segment, i) => (
+                          <div key={segment.label} className="flex items-baseline gap-x-2">
+                            {i > 0 && (
+                              <span aria-hidden className="text-muted-foreground/60">
+                                ·
+                              </span>
+                            )}
+                            <div
+                              className={cn(
+                                "flex items-baseline gap-1",
+                                segment.value ? "text-foreground" : "text-muted-foreground"
+                              )}
+                            >
+                              <dt>{segment.label}</dt>
+                              {segment.value && (
+                                <dd className="font-semibold tabular-nums">{segment.value}</dd>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+
+                    {/* The one thing a parent does about today from this
+                        card. The door badge is not here: it is issued per
+                        guardian and raised once in the section header. */}
                     {attending && (
-                      <ReportAbsenceDialog childId={child.id} childName={name} defaultDate={today} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ReportAbsenceDialog childId={child.id} childName={name} defaultDate={today} />
+                      </div>
                     )}
-                    {/* No badge once the child has been collected: "check in"
-                        after check-out is a control with nothing left to do
-                        today, and at the gate it invites a second scan that
-                        the kiosk would refuse. Still offered while absent —
-                        an absence reported in the morning is often undone
-                        by a late drop-off. */}
-                    {attending && checkin?.kind !== "left" && (
-                      <CheckinDialog badge={badge} child={checkinChildren.get(child.id)} />
-                    )}
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                      className="ms-auto h-11 px-3 text-primary hover:text-primary"
-                    >
-                      <Link href={`/portal/children/${child.id}`}>
-                        {t("home.details")}
-                        <ForwardIcon data-icon="inline-end" />
+
+                    {/* The last journal as the card's bottom row, under a
+                        hairline — not a tinted box inside the card. */}
+                    {report && (
+                      <Link
+                        href={`/portal/children/${child.id}/day/${report.date}`}
+                        className="-mx-4 -mb-4 flex min-h-14 items-center gap-3 border-t border-border px-4 py-3 transition-colors hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                      >
+                        <span className="w-6 shrink-0 text-center text-xl leading-none" aria-hidden>
+                          {MOOD_EMOJI[report.mood ?? ""] ?? "🙂"}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium">
+                            {t("home.lastReport", { date: formatDate(report.date, locale) })}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {meals.length > 0
+                              ? meals
+                                  .map((m) => {
+                                    const eaten = eatenLabel(m.eaten);
+                                    return eaten ? `${slotLabel(m.meal)} — ${eaten}` : slotLabel(m.meal);
+                                  })
+                                  .join(" · ")
+                              : (report.activities_text ?? "")}
+                          </span>
+                        </span>
+                        <ForwardIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                       </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
       </section>
 
-      {/* ===== Pinned announcements — gold, so they read as "keep this in mind" ===== */}
+      {/* ===== Pinned announcements =====
+           A plain header line over one card of rows. The pin tile is the
+           page's one gold — "keep this in mind" — said once per row and
+           never as a gold border around the card. */}
       {pinned.length > 0 && (
-        <section className="grid gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {t("home.pinnedTitle")}
-            </h3>
-            <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary">
-              <Link href="/portal/announcements">{t("home.seeAll")}</Link>
-            </Button>
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-base font-semibold">{t("home.pinnedTitle")}</h3>
+            <Link
+              href="/portal/announcements"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:underline hover:underline-offset-4"
+            >
+              {t("home.seeAll")}
+              <ForwardIcon className="size-4" aria-hidden />
+            </Link>
           </div>
-          {pinned.map((a) => (
-            <Card key={a.id} className="border-gold/40 bg-card shadow-sm">
-              <CardContent className="flex gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gold text-gold-foreground">
-                  <Pin className="size-4" />
-                </span>
-                <div className="grid min-w-0 flex-1 gap-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="min-w-0 flex-1 truncate font-semibold text-start" dir="auto">{a.title}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                      {formatDate(a.publish_at, locale)}
-                    </span>
-                  </div>
-                  <p className="line-clamp-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground text-start" dir="auto">
-                    {a.body}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <Card className="border border-border py-0 shadow-sm ring-0">
+            <CardContent className="px-0">
+              <ul className="divide-y divide-border">
+                {pinned.map((a) => (
+                  <li key={a.id}>
+                    <Link
+                      href="/portal/announcements"
+                      className="flex gap-3 px-5 py-3 transition-colors hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                      <span
+                        aria-hidden
+                        className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-tile-3 text-gold-ink"
+                      >
+                        <Pin className="size-4" />
+                      </span>
+                      <span className="grid min-w-0 flex-1 gap-0.5">
+                        <span className="flex items-baseline gap-2">
+                          <bdi dir="auto" className="min-w-0 flex-1 truncate text-sm font-medium text-start">
+                            {a.title}
+                          </bdi>
+                          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                            {formatDate(a.publish_at, locale)}
+                          </span>
+                        </span>
+                        <span className="line-clamp-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+                          <bdi dir="auto" className="text-start">{a.body}</bdi>
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         </section>
       )}
 
-      {/* ===== Upcoming events + holidays ===== */}
-      <section className="grid gap-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {t("home.upcomingTitle")}
-        </h3>
+      {/* ===== Upcoming events + holidays =====
+           A section card with a row per event or holiday. The tone tile in
+           the header is the section's colour; the rows' tiles are muted, and
+           a holiday still to be confirmed carries the one attention pill. */}
+      <SectionCard
+        icon={CalendarDays}
+        tone={0}
+        title={t("home.upcomingTitle")}
+        contentClassName="px-0"
+      >
         {events.length === 0 && holidays.length === 0 ? (
-          <Card className="shadow-sm">
-            <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-              <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <CalendarHeart className="size-6" />
-              </span>
-              <p className="text-sm text-muted-foreground">{t("home.upcomingEmpty")}</p>
-            </CardContent>
-          </Card>
+          <p className="px-5 text-sm text-muted-foreground">{t("home.upcomingEmpty")}</p>
         ) : (
-          <Card className="shadow-sm">
-            <CardContent className="grid gap-3">
-              {events.map((event) => (
-                <div key={event.id} className="flex items-center gap-3 text-sm">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <CalendarDays className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium text-start" dir="auto">{event.title}</span>
-                    {/* Which child this concerns. A guardian with children in two
-                        classes cannot tell two trips apart without it. */}
-                    {event.audience === "class" && event.class_id && (
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {classLabelById.get(event.class_id) ?? ""}
-                      </span>
-                    )}
-                    {/* What it actually is. Staff type this into the event and
-                        it reached the family nowhere at all. */}
-                    {event.description && (
-                      <span className="mt-0.5 block text-xs leading-relaxed text-pretty text-muted-foreground text-start" dir="auto">
-                        {event.description}
-                      </span>
-                    )}
-                  </span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {formatDate(event.start_at, locale, { weekday: "short" })}
-                    {" · "}
-                    {/* Both ends when the event has one: "drop off at 09:00" and
-                        "collect at 13:15" are two different questions. */}
-                    {event.end_at
-                      ? `${formatTime(event.start_at, locale)} – ${formatTime(event.end_at, locale)}`
-                      : formatTime(event.start_at, locale)}
-                  </span>
-                </div>
-              ))}
-              {holidays.map((holiday) => (
-                <div key={holiday.id} className="flex items-center gap-3 text-sm">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gold text-gold-foreground">
-                    <TreePalm className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate font-medium">
-                    {locale === "ar" && holiday.name_ar ? holiday.name_ar : holiday.name}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
-                    {/* A span of dates reorders in Arabic exactly the way a
-                        pair of clock times does, so the two ends are isolated
-                        together. An en dash, not an arrow: a holiday runs from
-                        one date to another, it does not flow anywhere. */}
-                    {holiday.end_date ? (
+          <ul className="divide-y divide-border">
+            {events.map((event) => (
+              <li key={event.id} className="flex min-h-14 items-center gap-3 px-5 py-3 text-sm">
+                <span
+                  aria-hidden
+                  className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+                >
+                  <CalendarDays className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <bdi dir="auto" className="block truncate font-medium text-start">{event.title}</bdi>
+                  {/* Which child this concerns. A guardian with children in two
+                      classes cannot tell two trips apart without it. */}
+                  {event.audience === "class" && event.class_id && (
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {classLabelById.get(event.class_id) ?? ""}
+                    </span>
+                  )}
+                  {/* What it actually is. Staff type this into the event and
+                      it reached the family nowhere at all. */}
+                  {event.description && (
+                    <span className="mt-0.5 block text-xs leading-relaxed text-pretty text-muted-foreground">
+                      <bdi dir="auto" className="text-start">{event.description}</bdi>
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 text-end text-xs text-muted-foreground tabular-nums">
+                  <span className="block">{formatDate(event.start_at, locale, { weekday: "short" })}</span>
+                  {/* Both ends when the event has one: "drop off at 09:00" and
+                      "collect at 13:15" are two different questions. */}
+                  <span className="block">
+                    {event.end_at ? (
                       <ValueRange
-                        from={formatDate(holiday.date, locale, { weekday: "short" })}
-                        to={formatDate(holiday.end_date, locale)}
+                        from={formatTime(event.start_at, locale)}
+                        to={formatTime(event.end_at, locale)}
                         separator="–"
                       />
                     ) : (
-                      formatDate(holiday.date, locale, { weekday: "short" })
-                    )}
-                    {holiday.tentative && (
-                      <Badge className="border-warning/40 bg-warning/15 text-[10px] font-semibold text-foreground">
-                        {t("home.tentative")}
-                      </Badge>
+                      formatTime(event.start_at, locale)
                     )}
                   </span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                  {/* Where to go, after when: the room the event booked. */}
+                  {event.kg_rooms && (
+                    <span className="block">
+                      <bdi dir="auto">{roomName(event.kg_rooms, locale)}</bdi>
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+            {holidays.map((holiday) => (
+              <li key={holiday.id} className="flex min-h-14 items-center gap-3 px-5 py-3 text-sm">
+                <span
+                  aria-hidden
+                  className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+                >
+                  <TreePalm className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <bdi dir="auto" className="block truncate font-medium text-start">
+                    {locale === "ar" && holiday.name_ar ? holiday.name_ar : holiday.name}
+                  </bdi>
+                  {holiday.tentative && (
+                    <StatusPill tone="attention" className="mt-0.5">
+                      {t("home.tentative")}
+                    </StatusPill>
+                  )}
+                </span>
+                <span className="shrink-0 text-end text-xs text-muted-foreground tabular-nums">
+                  {/* A span of dates reorders in Arabic exactly the way a
+                      pair of clock times does, so the two ends are isolated
+                      together. An en dash, not an arrow: a holiday runs from
+                      one date to another, it does not flow anywhere. */}
+                  {holiday.end_date ? (
+                    <ValueRange
+                      from={formatDate(holiday.date, locale, { weekday: "short" })}
+                      to={formatDate(holiday.end_date, locale)}
+                      separator="–"
+                    />
+                  ) : (
+                    formatDate(holiday.date, locale, { weekday: "short" })
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
-      </section>
+      </SectionCard>
 
       {/* Where the crèche is. A parent looking this up is usually already on
           their way, so the pin and the directions button come first — the
           address line is what they read out to a taxi driver. */}
-      <section className="grid gap-3">
-        <h3 className="text-sm font-semibold text-foreground">
-          {tCommon("establishment.title")}
-        </h3>
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-base font-semibold">{tCommon("establishment.title")}</h3>
+        </div>
         <EstablishmentCard
           info={{
             name: ctx.tenant.name,
@@ -922,9 +975,7 @@ export default async function PortalHomePage() {
             wilaya: ctx.tenant.wilaya,
             latitude: ctx.tenant.latitude,
             longitude: ctx.tenant.longitude,
-            openingHours: toOpeningHours(
-              (ctx.tenant as { opening_hours?: unknown }).opening_hours
-            ),
+            openingHours,
           }}
         />
       </section>

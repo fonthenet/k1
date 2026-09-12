@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/shared/date-picker";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { addHoliday } from "./actions";
 
@@ -67,7 +68,45 @@ export function AddHolidayDialog({ structures = [] }: {
     });
   }
 
-  const valid = name.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date) && (!endDate || endDate >= date);
+  // The name in the reader's language is the required one — the product is
+  // Arabic first, and an Arabic director should not have to write the French
+  // name of a feast before the Arabic one. Display falls back to the other.
+  const arabicFirst = locale === "ar";
+  const primary = arabicFirst ? nameAr : name;
+  const valid = primary.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date) && (!endDate || endDate >= date);
+
+  const frField = (
+    <div className="grid gap-2">
+      <Label htmlFor="holiday-name">
+        <span>
+          {t("holidays.nameFr")}
+          {arabicFirst && (
+            <span className="font-normal text-muted-foreground"> ({tc("labels.optional")})</span>
+          )}
+        </span>
+      </Label>
+      <Input id="holiday-name" dir="ltr" className="text-start" value={name} onChange={(e) => setName(e.target.value)} />
+    </div>
+  );
+  const arField = (
+    <div className="grid gap-2">
+      <Label htmlFor="holiday-name-ar">
+        <span>
+          {t("holidays.nameAr")}
+          {!arabicFirst && (
+            <span className="font-normal text-muted-foreground"> ({tc("labels.optional")})</span>
+          )}
+        </span>
+      </Label>
+      <Input
+        id="holiday-name-ar"
+        dir="rtl"
+        className="text-start"
+        value={nameAr}
+        onChange={(e) => setNameAr(e.target.value)}
+      />
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -77,27 +116,17 @@ export function AddHolidayDialog({ structures = [] }: {
           {t("holidays.add")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>{t("holidays.addTitle")}</DialogTitle>
           <DialogDescription>{t("holidays.addDescription")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="holiday-name">{t("holidays.nameFr")}</Label>
-            <Input id="holiday-name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="holiday-name-ar">
-              {t("holidays.nameAr")}{" "}
-              <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
-            </Label>
-            <Input
-              id="holiday-name-ar"
-              dir="rtl"
-              value={nameAr}
-              onChange={(e) => setNameAr(e.target.value)}
-            />
+          {/* Two-up, the required one first: Nom | Nom en arabe for a French
+              reader, the Arabic name first for an Arabic one. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {arabicFirst ? arField : frField}
+            {arabicFirst ? frField : arField}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
@@ -106,8 +135,10 @@ export function AddHolidayDialog({ structures = [] }: {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="holiday-end">
-                {t("holidays.endDate")}{" "}
-                <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+                <span>
+                  {t("holidays.endDate")}{" "}
+                  <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+                </span>
               </Label>
               <DatePicker
                 id="holiday-end"
@@ -130,12 +161,15 @@ export function AddHolidayDialog({ structures = [] }: {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t("holidays.wholeBuilding")}</SelectItem>
+                  <SelectItem value="all">
+                    <Building2 className="size-3.5 text-muted-foreground" aria-hidden />
+                    {t("holidays.wholeBuilding")}
+                  </SelectItem>
                   {structures
                     .filter((s) => s.active)
                     .map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        {structureName(s, locale)}
+                        <StructureMark structure={{ ...s, name: structureName(s, locale) }} />
                       </SelectItem>
                     ))}
                 </SelectContent>

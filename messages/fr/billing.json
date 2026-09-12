@@ -36,18 +36,27 @@
     "noFeePlan": {
       "title": "{count, plural, one {1 enfant inscrit n'est pas facturé chaque mois} other {# enfants inscrits ne sont pas facturés chaque mois}}",
       "body": "Sans formule, le calcul mensuel les ignore.",
-      "action": "Attribuer une formule"
+      "action": "Attribuer une formule",
+      "group": "Sans formule"
     },
     "incomplete": {
       "title": "{count, plural, one {# facture de ce mois est incomplète} other {# factures de ce mois sont incomplètes}}",
       "body": "Des frais dus n'y figurent pas — total manquant : {amount}. Les factures déjà réglées ne sont pas modifiées.",
       "action": "Compléter les factures",
-      "done": "{count, plural, =0 {Rien à ajouter} one {# facture complétée — {amount} ajoutés} other {# factures complétées — {amount} ajoutés}}"
+      "done": "{count, plural, =0 {Rien à ajouter} one {# facture complétée — {amount} ajoutés} other {# factures complétées — {amount} ajoutés}}",
+      "group": "Factures incomplètes",
+      "rowHint": "Des frais dus ne figurent pas sur la facture"
     },
     "drafts": {
       "title": "{count, plural, one {# facture de ce mois est encore un brouillon} other {# factures de ce mois sont encore des brouillons}}",
       "body": "Non émises, invisibles pour les familles — total : {amount}. À l'émission, l'échéance sera fixée au {dueDate}."
-    }
+    },
+    "invoicesTab": "Factures",
+    "searchPlaceholder": "Rechercher un enfant ou un numéro",
+    "count": "{count, plural, =0 {Aucune facture} one {# facture} other {# factures}}",
+    "noMatch": "Aucune facture ne correspond à ces filtres.",
+    "todoHint": "{count, plural, one {# point demande une action ce mois-ci} other {# points demandent une action ce mois-ci}}",
+    "seeAll": "Voir les {count} enfants"
   },
   "status": {
     "draft": "Brouillon",
@@ -213,7 +222,7 @@
     "dateFr": "Date",
     "dateAr": "التاريخ",
     "childFr": "Enfant",
-    "childAr": "الطفل(ة)",
+    "childAr": "الطفل",
     "methodFr": "Mode de paiement",
     "methodAr": "طريقة الدفع",
     "invoiceFr": "Facture",
@@ -252,7 +261,32 @@
     "copied": "Reçu copié",
     "share": "Partager",
     "printing": "Préparation…",
-    "printFailed": "Impossible de préparer le reçu."
+    "printFailed": "Impossible de préparer le reçu.",
+    "payerFr": "Reçu de",
+    "payerAr": "استُلم من",
+    "classFr": "Classe",
+    "classAr": "القسم",
+    "detailFr": "Détail",
+    "detailAr": "التفاصيل",
+    "colDescriptionFr": "Désignation",
+    "colDescriptionAr": "البيان",
+    "colAmountFr": "Montant",
+    "colAmountAr": "المبلغ",
+    "discountFr": "Remise",
+    "discountAr": "تخفيض",
+    "invoiceTotalFr": "Total de la facture",
+    "invoiceTotalAr": "مجموع الفاتورة",
+    "previousFr": "Versements précédents",
+    "previousAr": "الدفعات السابقة",
+    "thisPaymentFr": "Ce versement",
+    "thisPaymentAr": "هذه الدفعة",
+    "balanceFr": "Reste à payer",
+    "balanceAr": "المبلغ المتبقي",
+    "settledFr": "Facture soldée",
+    "settledAr": "الفاتورة مسدّدة",
+    "noteFr": "Note",
+    "noteAr": "ملاحظة",
+    "backPortal": "Retour aux paiements"
   },
   "plans": {
     "title": "Formules et tarifs",
@@ -318,7 +352,11 @@
       "success": "Formule assignée",
       "successBilled": "Formule assignée — {amount} ajoutés à la facture de ce mois",
       "successNotBilled": "Formule assignée, mais la facture du mois n'a pas pu être mise à jour. À vérifier."
-    }
+    },
+    "columns": {
+      "children": "Enfants"
+    },
+    "more": "Plus d'actions"
   },
   "structures": {
     "all": "Toutes les structures",
@@ -362,7 +400,9 @@
     "monthsOwed": "{count, plural, =0 {Aucun} one {# mois} other {# mois}}",
     "dueSince": "Échéance {date}",
     "noGuardian": "Aucun numéro enregistré",
-    "loadError": "Impossible de charger la liste des familles. Le tableau par ancienneté reste disponible."
+    "loadError": "Impossible de charger la liste des familles. Le tableau par ancienneté reste disponible.",
+    "asOf": "au {date}",
+    "count": "{count, plural, =0 {Aucune famille} one {# famille} other {# familles}}"
   },
   "error": {
     "title": "Un problème est survenu",

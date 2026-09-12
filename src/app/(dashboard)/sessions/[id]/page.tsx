@@ -14,6 +14,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { childDisplayName, formatDZD } from "@/lib/format";
+import { roomName } from "@/components/modules/classes/class-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,7 +60,9 @@ interface SessionDetail {
   parent_summary: string | null;
   published: boolean;
   billed: boolean;
+  room_id: string | null;
   kg_children: ChildLite | null;
+  kg_rooms: { name: string; name_ar: string | null } | null;
   kg_programs: {
     id: string;
     name: string;
@@ -78,6 +81,7 @@ export default async function SessionDetailPage({
   const { id } = await params;
   const ctx = await requireStaff();
   const t = await getTranslations("sessions");
+  const tc = await getTranslations("common");
   const locale = await getLocale();
   const supabase = await createClient();
 
@@ -85,8 +89,9 @@ export default async function SessionDetailPage({
     .from("kg_sessions")
     .select(
       "id, child_id, program_id, session_type, therapist_id, scheduled_at, duration_min, status, " +
-        "progress_rating, notes, parent_summary, published, billed, " +
+        "progress_rating, notes, parent_summary, published, billed, room_id, " +
         "kg_children(id, first_name, last_name, first_name_ar, last_name_ar, kg_classes(name, name_ar)), " +
+        "kg_rooms(name, name_ar), " +
         "kg_programs(id, name, session_type, sessions_planned, fee_per_session, status)"
     )
     .eq("id", id)
@@ -247,6 +252,16 @@ export default async function SessionDetailPage({
                     {t("schedule.duration", { count: session.duration_min })}
                   </dd>
                 </div>
+                {/* Only when there is one: a follow-up without a room is a
+                    home visit or the yard, and a dash would say nothing. */}
+                {session.kg_rooms && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-xs text-muted-foreground">{tc("rooms.room")}</dt>
+                    <dd className="truncate text-end font-medium">
+                      <bdi dir="auto">{roomName(session.kg_rooms, locale)}</bdi>
+                    </dd>
+                  </div>
+                )}
               </dl>
 
               <Separator />

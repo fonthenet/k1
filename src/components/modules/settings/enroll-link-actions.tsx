@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, MessageCircle, QrCode, Trash2 } from "lucide-react";
+import { Check, Copy, MessageCircle, MoreHorizontal, QrCode } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -46,6 +49,13 @@ export function LinkActiveSwitch({ id, active }: { id: string; active: boolean }
   );
 }
 
+/**
+ * What a director does with a link, in the row: copy it and send it on
+ * WhatsApp — the two things this page exists for — as ghost icons, and the
+ * rest behind one overflow. Deleting is the only destructive item and lives
+ * inside the menu; a red bin on every row would be the loudest thing on the
+ * page for its rarest action.
+ */
 export function LinkRowActions({
   id,
   label,
@@ -61,6 +71,7 @@ export function LinkRowActions({
   const tc = useTranslations("common");
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [pending, startTransition] = useTransition();
 
   async function copy() {
@@ -88,54 +99,51 @@ export function LinkRowActions({
 
   return (
     <TooltipProvider>
-    <div className="flex items-center justify-end gap-1">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" onClick={copy} aria-label={t("enrollment.copy")}>
-            {copied ? <Check /> : <Copy />}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{t("enrollment.copy")}</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" asChild>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(waText)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t("enrollment.whatsapp")}
-            >
-              <MessageCircle />
-            </a>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{t("enrollment.whatsapp")}</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" asChild>
-            <Link
-              href={`/settings/enrollment/${id}/poster`}
-              aria-label={t("enrollment.poster")}
-            >
-              <QrCode />
-            </Link>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{t("enrollment.poster")}</TooltipContent>
-      </Tooltip>
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-destructive hover:text-destructive"
-            aria-label={tc("actions.delete")}
-          >
-            <Trash2 />
-          </Button>
-        </AlertDialogTrigger>
+      <div className="flex items-center justify-end gap-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" onClick={copy} aria-label={t("enrollment.copy")}>
+              {copied ? <Check /> : <Copy />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t("enrollment.copy")}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" asChild>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(waText)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t("enrollment.whatsapp")}
+              >
+                <MessageCircle />
+              </a>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t("enrollment.whatsapp")}</TooltipContent>
+        </Tooltip>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label={t("enrollment.more")}>
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`/settings/enrollment/${id}/poster`}>
+                <QrCode />
+                {t("enrollment.poster")}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
+              {tc("actions.delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <AlertDialog open={deleting} onOpenChange={setDeleting}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("enrollment.deleteTitle")}</AlertDialogTitle>
@@ -155,7 +163,6 @@ export function LinkRowActions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
     </TooltipProvider>
   );
 }

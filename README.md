@@ -47,7 +47,7 @@ Every variable the code reads is listed, with its purpose, in
 | `NEXT_PUBLIC_GOOGLE_MAPS_KEY` | no — the establishment card degrades to address + directions link | `map-embed.tsx` |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | no — web push stays off, in-app notifications keep working | `push-toggle.tsx`, `src/lib/push-server.ts` |
 | `PUSH_DISPATCH_SECRET` | no — but push never sends without it; must match the `kg_push_config` row | `src/lib/push-server.ts`, `/api/push/dispatch` |
-| `CRON_SECRET` | Vercel injects it; do not set locally | `/api/push/dispatch` |
+| `CRON_SECRET` | Vercel injects it; do not set locally — it only authorises the Vercel Cron backstop | `/api/push/dispatch` |
 
 `NEXT_PUBLIC_*` values are inlined into the browser bundle at build time: never
 put a secret in one, and rebuild after changing one.
@@ -57,10 +57,50 @@ put a secret in one, and rebuild after changing one.
 1. Set the variables above in the Vercel project (Production and Preview).
 2. Apply any new `supabase/migrations/*.sql` to the project, in order, before
    the deploy that needs them lands.
-3. `vercel.json` schedules `/api/push/dispatch` daily at 05:35 UTC (06:35
-   Algiers) via Vercel Cron, authenticated with the injected `CRON_SECRET`.
+3. Push delivery. The database is the primary path: `pg_cron` writes rows
+   nobody's server action flushes (the daily journal at the establishment's
+   time, kiosk check-ins), and Postgres itself calls `/api/push/dispatch`
+   over `pg_net` — `kg_kick_push_dispatch()` right after each daily-journal
+   run, and `kg_dispatch_pending_push()` every 5 minutes for anything else
+   (hourly backoff on rows a kick already failed to deliver). For that call
+   to reach the app, tell the database where it lives, **by hand, in the SQL
+   editor, once per deploy and again whenever the domain changes** — the URL
+   and headers are never committed:
+
+   ```sql
+   update kg_push_config set dispatch_url = '<NEXT_PUBLIC_APP_URL>/api/push/dispatch';
+   -- With Vercel Deployment Protection on, also pass the bypass token, or
+   -- pg_net gets a silent 401 and only the backstops below deliver:
+   update kg_push_config set dispatch_headers = '{"x-vercel-protection-bypass": "<token>"}';
+   select kg_kick_push_dispatch();
+   select status_code, content from net._http_response order by created desc limit 1;
+   -- expect 200 and a body with "runs" and "native" keys
+   ```
+
+   The kick authenticates with the `kg_push_config.secret` row, which must
+   equal `PUSH_DISPATCH_SECRET`. A wrong URL fails silently: the check query
+   above is the only signal, so run it after every deploy. Read the body,
+   not only the status: a 200 whose body lacks `runs` means an older build
+   is still answering at that URL, and it would render digest rows with the
+   generic daily-report text and the pre-day-page link — so no tenant may be
+   shown the daily-journal switch until this check passes.
+
+   Vercel Cron is the backstop, not the delivery path: `vercel.json`
+   schedules `/api/push/dispatch` at 05:35 UTC (06:35 Algiers) and 16:20 UTC
+   (17:20 Algiers, after most establishments' journal time), authenticated
+   with the injected `CRON_SECRET` (Vercel-only; the database kick never
+   uses it). Two daily runs is the Hobby-plan ceiling; the project's plan
+   could not be confirmed from the repository at the time of writing, and a
+   sub-daily schedule makes a Hobby deploy fail, so the daily pair was
+   chosen. On a Pro project replace the 16:20 entry with `*/15 * * * *`
+   (a quarter-hourly sweep) — nothing in the code depends on the schedule.
+   Each call drains up to ten passes of 200 rows per transport under a
+   60-second budget, so a backlog clears in one invocation.
+
    Invoice drafts and overdue refresh are `pg_cron` jobs inside Postgres — see
-   `supabase/README.md`.
+   `supabase/README.md`; the migration that adds the journal sender and the
+   kick (`0152_kg_daily_journal.sql`) carries the same deploy step in its
+   header.
 4. Check `/` (landing), `/login`, and that a protected route redirects when
    signed out. A missing Supabase variable shows itself as one sentence naming
    the variable, not as a stack trace.

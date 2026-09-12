@@ -1,36 +1,43 @@
-// Full application review: child, guardians, health, requested activities + action bar.
+// One application, for one question: can this child come in, and what
+// happens if they do. Identity band, then sections — each only when it has
+// something to say.
 
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
   ArrowLeft,
-  Briefcase,
-  CalendarClock,
+  Baby,
+  Ban,
   ChevronRight,
   FileQuestion,
   HeartPulse,
-  IdCard,
-  MapPin,
-  Phone,
-  ShieldAlert,
-  Stethoscope,
-  TriangleAlert,
+  Palette,
   Users,
 } from "lucide-react";
 import { requireStaff, signedMediaUrl } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
-import { ageFromDob, childDisplayName, formatDZD, formatDate, formatPhone, formatTime, initials, telHref } from "@/lib/format";
+import {
+  ageFromDob,
+  childDisplayName,
+  formatDZD,
+  formatDate,
+  formatPhone,
+  formatTime,
+  initials,
+  telHref,
+} from "@/lib/format";
 import type { Activity, Guardian, KgClass } from "@/lib/types";
 import { CategoryIcon } from "@/components/modules/classes/category-icon";
 import { normalizeAlgerianPhone } from "@/lib/auth-identifier";
-import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ActivityLink } from "@/components/shared/entity-link";
+import { IdentityBand } from "@/components/shared/identity-band";
+import { SectionCard } from "@/components/shared/section-card";
+import { ClassChip } from "@/components/shared/class-chip";
+import { StatusPill } from "@/components/shared/status-pill";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   ReviewActions,
   type AdmissionFee,
@@ -40,39 +47,31 @@ import {
 import {
   ApplicationStructureContext,
   SIBLING_SOURCE,
-  SiblingBadge,
-  TransferBadge,
   loadTransferSummary,
+  structureRefName,
 } from "@/components/modules/enroll/application-card";
-import { isTransferApplication, type ReviewApplication } from "@/components/modules/enroll/review-types";
-import { APPLICATION_STATUS_BADGE } from "@/components/modules/enroll/types";
-import { severityClasses } from "@/components/modules/children/types";
+import {
+  STATUS_TONE,
+  isTransferApplication,
+  type ReviewApplication,
+} from "@/components/modules/enroll/review-types";
 import { allergenLabel } from "@/lib/allergens";
 
-function InfoRow({
-  icon,
+/** Label at the start, value at the end — the bill anatomy, two weights, no icon. */
+function FactRow({
   label,
   value,
   ltr,
 }: {
-  icon?: React.ReactNode;
   label: string;
   value: React.ReactNode;
   ltr?: boolean;
 }) {
   if (!value) return null;
   return (
-    // Label and value sit together. `ms-auto` used to fling the value to the
-    // far edge, so in a wide card "Téléphone" was stranded on one side and the
-    // number on the other with a lake of white between them — the eye has to
-    // travel to pair two things that belong to each other. A colon and a gap
-    // do the same job in the space of two characters.
-    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-      {icon && (
-        <span className="self-start pt-0.5 text-muted-foreground [&>svg]:size-4">{icon}</span>
-      )}
+    <div className="flex items-baseline justify-between gap-4 py-2 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="min-w-0 font-medium" dir={ltr ? "ltr" : undefined}>
+      <span className="min-w-0 text-end font-medium" dir={ltr ? "ltr" : undefined}>
         {value}
       </span>
     </div>
@@ -107,14 +106,17 @@ export default async function ApplicationDetailPage({
   const ctx = await requireStaff();
   const t = await getTranslations("enroll");
   const tc = await getTranslations("common");
+  const tAge = await getTranslations("common.labels");
   const locale = await getLocale();
   const supabase = await createClient();
 
-  // The requested class travels with the row so the chip can name it and the
-  // approve dialog can open on the right group.
+  // The requested structure, class and tariff travel with the row so the
+  // band can name them and the approve dialog can open on the right group.
   const { data } = await supabase
     .from("kg_applications")
-    .select("*, kg_classes(id, name, name_ar, structure_id)")
+    .select(
+      "*, kg_structures(id, name, name_ar, color, center_type), kg_classes(id, name, name_ar, structure_id, color), kg_fee_plans(name, name_ar, amount)"
+    )
     .eq("id", id)
     .eq("tenant_id", ctx.tenant.id)
     .maybeSingle();
@@ -127,7 +129,7 @@ export default async function ApplicationDetailPage({
         description={t("detail.notFoundDesc")}
         action={
           <Button asChild variant="outline">
-            <Link href="/applications">{t("detail.back")}</Link>
+            <Link href="/applications">{t("admin.title")}</Link>
           </Button>
         }
       />
@@ -149,39 +151,39 @@ export default async function ApplicationDetailPage({
   // classes with enrolled counts, requested activities.
   const [photoUrl, classesRes, childrenRes, feePlansRes, admissionRes, activitiesRes] =
     await Promise.all([
-    signedMediaUrl(child.photo_path),
-    supabase.from("kg_classes").select("*").eq("tenant_id", ctx.tenant.id).order("name"),
-    supabase
-      .from("kg_children")
-      .select("class_id")
-      .eq("tenant_id", ctx.tenant.id)
-      .eq("status", "enrolled"),
-    // Fee plans, so approval can start billing in the same transaction. Only a
-    // finance role may read kg_fee_plans, and only they should be choosing a
-    // tariff — an educator reviewing an application gets an empty list and the
-    // billing block simply does not render.
-    ctx.isFinance
-      ? supabase
-          .from("kg_fee_plans")
-          .select("id, name, name_ar, amount, structure_id")
-          .eq("tenant_id", ctx.tenant.id)
-          .eq("active", true)
-          .eq("period", "monthly")
-          .order("amount")
-      : Promise.resolve({ data: [] }),
-    // Admission fees (period 'once') are applied automatically; fetched only to
-    // show the reviewer what the family will be charged.
-    ctx.isFinance
-      ? supabase.rpc("kg_admission_fees", { p_tenant: ctx.tenant.id })
-      : Promise.resolve({ data: [] }),
-    activityIds.length > 0
-      ? supabase
-          .from("kg_activities")
-          .select("*")
-          .eq("tenant_id", ctx.tenant.id)
-          .in("id", activityIds)
-      : Promise.resolve({ data: [] as Activity[] }),
-  ]);
+      signedMediaUrl(child.photo_path),
+      supabase.from("kg_classes").select("*").eq("tenant_id", ctx.tenant.id).order("name"),
+      supabase
+        .from("kg_children")
+        .select("class_id")
+        .eq("tenant_id", ctx.tenant.id)
+        .eq("status", "enrolled"),
+      // Fee plans, so approval can start billing in the same transaction. Only a
+      // finance role may read kg_fee_plans, and only they should be choosing a
+      // tariff — an educator reviewing an application gets an empty list and the
+      // billing block simply does not render.
+      ctx.isFinance
+        ? supabase
+            .from("kg_fee_plans")
+            .select("id, name, name_ar, amount, structure_id")
+            .eq("tenant_id", ctx.tenant.id)
+            .eq("active", true)
+            .eq("period", "monthly")
+            .order("amount")
+        : Promise.resolve({ data: [] }),
+      // Admission fees (period 'once') are applied automatically; fetched only to
+      // show the reviewer what the family will be charged.
+      ctx.isFinance
+        ? supabase.rpc("kg_admission_fees", { p_tenant: ctx.tenant.id })
+        : Promise.resolve({ data: [] }),
+      activityIds.length > 0
+        ? supabase
+            .from("kg_activities")
+            .select("*")
+            .eq("tenant_id", ctx.tenant.id)
+            .in("id", activityIds)
+        : Promise.resolve({ data: [] as Activity[] }),
+    ]);
 
   const enrolledByClass = new Map<string, number>();
   for (const row of (childrenRes.data ?? []) as { class_id: string | null }[]) {
@@ -317,16 +319,66 @@ export default async function ApplicationDetailPage({
     },
     locale
   );
+  // The name in the other script, only when it is a different string.
+  const otherName = (
+    locale === "ar"
+      ? `${child.first_name ?? ""} ${child.last_name ?? ""}`
+      : `${child.first_name_ar ?? ""} ${child.last_name_ar ?? ""}`
+  ).trim();
+  const subtitle = otherName && otherName !== displayName ? otherName : undefined;
 
-  const sourceKey = app.source ? `source.${app.source}` : null;
-  const sourceLabel = sourceKey ? (t.has(sourceKey) ? t(sourceKey) : app.source) : null;
+  // Where the file came from, as one muted word. The public link is the
+  // default channel; a sibling or a transfer changes what approval does.
+  const sourceLabel = isTransfer
+    ? t("admin.sourceTransfer")
+    : isSibling
+      ? t("admin.sourceSibling")
+      : !app.source || app.source === "link" || app.source === "online"
+        ? t("admin.sourceLink")
+        : t.has(`source.${app.source}`)
+          ? t(`source.${app.source}`)
+          : app.source;
+
+  const requestedStructure = ctx.isMultiStructure ? (app.kg_structures ?? null) : null;
+  const requestedClass = app.kg_classes ?? null;
+  const plan = app.kg_fee_plans ?? null;
 
   const hasHealthInfo =
     allergies.length > 0 ||
     conditions.length > 0 ||
     medications.length > 0 ||
-    health.dietary_restrictions ||
-    health.doctor_name;
+    !!health.dietary_restrictions ||
+    !!health.doctor_name;
+  const hasBilling = !!plan || activities.length > 0;
+
+  const facts: React.ReactNode[] = [
+    child.dob ? ageFromDob(child.dob, tAge) : null,
+    requestedStructure ? (
+      <StructureMark
+        key="structure"
+        structure={{
+          name: structureRefName(requestedStructure, locale),
+          color: requestedStructure.color,
+        }}
+        className="text-foreground"
+      />
+    ) : null,
+    requestedClass ? (
+      <ClassChip
+        key="class"
+        name={structureRefName(requestedClass, locale)}
+        color={requestedClass.color}
+      />
+    ) : null,
+    t("detail.submittedOn", { date: formatDate(app.created_at, locale) }),
+    sourceLabel,
+    app.interview_at
+      ? t("pipeline.interviewOn", {
+          date: formatDate(app.interview_at, locale),
+          time: formatTime(app.interview_at, locale),
+        })
+      : null,
+  ];
 
   return (
     <>
@@ -335,401 +387,345 @@ export default async function ApplicationDetailPage({
         className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4 rtl:rotate-180" />
-        {t("detail.back")}
+        {t("admin.title")}
       </Link>
 
-      <PageHeader
-        title={displayName}
-        description={t("detail.submittedOn", { date: formatDate(app.created_at, locale) })}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge className={APPLICATION_STATUS_BADGE[app.status]}>
-            {t(`status.${app.status}`)}
-          </Badge>
-          {ctx.isAdmin && (
-            <ReviewActions
-              appId={app.id}
-              status={app.status}
-              interviewAt={app.interview_at}
-              classes={classes}
-              feePlans={(feePlansRes.data ?? []) as FeePlanOption[]}
-              admissionFees={(admissionRes.data ?? []) as AdmissionFee[]}
-              requestedFeePlanId={(app as { fee_plan_id?: string | null }).fee_plan_id ?? null}
-              requestedClassId={(app as { class_id?: string | null }).class_id ?? null}
-              childDob={child.dob}
-              createdChildId={app.created_child_id}
-              isSibling={isSibling}
-              familyName={familyName}
-              structures={ctx.structures}
-              requestedStructureId={app.structure_id}
-              transfer={transfer}
-            />
-          )}
-        </div>
-      </PageHeader>
+      <IdentityBand
+        leading={
+          <Avatar className="size-14 ring-1 ring-border">
+            {photoUrl && <AvatarImage src={photoUrl} alt={displayName} className="object-cover" />}
+            <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
+              {initials(child.first_name ?? "", child.last_name ?? "")}
+            </AvatarFallback>
+          </Avatar>
+        }
+        // Isolated: a name in the other script keeps its own direction
+        // without dragging the whole title line to the far edge.
+        title={<bdi dir="auto">{displayName}</bdi>}
+        subtitle={subtitle ? <bdi dir="auto">{subtitle}</bdi> : undefined}
+        facts={facts}
+        actions={
+          <>
+            <StatusPill tone={STATUS_TONE[app.status]}>{t(`status.${app.status}`)}</StatusPill>
+            {ctx.isAdmin && (
+              <ReviewActions
+                appId={app.id}
+                status={app.status}
+                interviewAt={app.interview_at}
+                childName={displayName}
+                childAge={child.dob ? ageFromDob(child.dob, tAge) : null}
+                classes={classes}
+                feePlans={(feePlansRes.data ?? []) as FeePlanOption[]}
+                admissionFees={(admissionRes.data ?? []) as AdmissionFee[]}
+                requestedFeePlanId={(app as { fee_plan_id?: string | null }).fee_plan_id ?? null}
+                requestedClassId={app.class_id ?? null}
+                childDob={child.dob}
+                createdChildId={app.created_child_id}
+                isSibling={isSibling}
+                familyName={familyName}
+                structures={ctx.structures}
+                requestedStructureId={app.structure_id}
+                transfer={transfer}
+              />
+            )}
+          </>
+        }
+      />
 
-      {(app.interview_at || isSibling || isTransfer || sourceLabel) && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {isTransfer && app.existing_child_id && (
-            <TransferBadge childId={app.existing_child_id} name={displayName} />
-          )}
-          {isSibling && <SiblingBadge />}
-          {app.interview_at && (
-            <Badge className="border-transparent bg-secondary font-medium text-secondary-foreground">
-              <CalendarClock data-icon="inline-start" />
-              {t("pipeline.interviewOn", {
-                date: formatDate(app.interview_at, locale),
-                time: formatTime(app.interview_at, locale),
-              })}
-            </Badge>
-          )}
-          {!isSibling && !isTransfer && sourceLabel && (
-            <Badge variant="outline">
-              {t("pipeline.sourceLabel")} : {sourceLabel}
-            </Badge>
+      {/* What was decided, in one muted line — the note in the family's own
+          words on its own line, so its direction is its own. */}
+      {(app.reviewed_at || app.review_note) && (
+        <div className="mb-4 text-sm text-muted-foreground">
+          {app.reviewed_at && <p>{t("detail.reviewedOn", { date: formatDate(app.reviewed_at, locale) })}</p>}
+          {app.review_note && (
+            <p>
+              {t("detail.reviewNote")} :{" "}
+              <bdi dir="auto" className="text-foreground">
+                {app.review_note}
+              </bdi>
+            </p>
           )}
         </div>
       )}
 
       <ApplicationStructureContext app={app} />
 
-      {(app.reviewed_at || app.review_note) && (
-        <Card className="mb-4 border-dashed">
-          <CardContent className="p-4 text-sm">
-            {app.reviewed_at && (
-              <p className="text-muted-foreground">
-                {t("detail.reviewedOn", { date: formatDate(app.reviewed_at, locale) })}
-              </p>
-            )}
-            {app.review_note && (
-              <p className="mt-1">
-                <span className="font-medium">{t("detail.reviewNote")} :</span> {app.review_note}
-              </p>
-            )}
-            {app.status === "approved" && app.created_child_id && (
-              <p className="mt-2">
-                <Link
-                  href={`/children/${app.created_child_id}`}
-                  className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  {t("detail.childCreated")} — {t("detail.viewChild")}
-                </Link>
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {isSibling && family && (
-        <Card className="mb-4 bg-gold-muted/40 ring-gold/25">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="size-4 shrink-0 text-gold-ink" />
-              {t("sibling.section")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">{t("sibling.intro")}</p>
-
-            {family.failed && (
-              <div className="flex items-start gap-2.5 rounded-xl bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/20">
-                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-                <p>{t("sibling.error")}</p>
-              </div>
-            )}
-
-            {!family.failed && !family.guardian && (
-              <div className="flex items-start gap-2.5 rounded-xl bg-warning/10 p-3 text-sm ring-1 ring-warning/25">
-                <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning-ink" />
-                <div className="space-y-1">
-                  <p className="font-medium text-warning-ink">{t("sibling.noGuardianTitle")}</p>
-                  <p className="text-muted-foreground">{t("sibling.noGuardianDesc")}</p>
-                </div>
-              </div>
-            )}
-
-            {family.guardian && (
-              <>
-                <div className="rounded-xl bg-card p-3 ring-1 ring-gold/25">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold">{familyName}</p>
-                    <Badge variant="outline">
-                      {t(`guardians.relationships.${family.guardian.relationship}`)}
-                    </Badge>
-                    <Badge variant="secondary">{t("detail.badges.applicant")}</Badge>
-                  </div>
-                  {family.guardian.phone && (
-                    <a
-                      href={telHref(family.guardian.phone)}
-                      className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-                    >
-                      <Phone className="size-4 shrink-0" />
-                      <span dir="ltr">{formatPhone(family.guardian.phone)}</span>
-                    </a>
-                  )}
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium">{t("sibling.enrolledChildren")}</p>
-                  {family.children.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{t("sibling.noChildren")}</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {family.children.map((c) => {
-                        const cls = c.class_id ? classById.get(c.class_id) : null;
-                        return (
-                          <li key={c.id}>
-                            <Link
-                              href={`/children/${c.id}`}
-                              className="flex min-h-11 items-center gap-3 rounded-xl bg-card px-3 py-2 ring-1 ring-foreground/10 transition-colors hover:ring-gold/40"
-                            >
-                              <Avatar className="size-8 shrink-0">
-                                <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                                  {initials(c.first_name, c.last_name)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                                {childDisplayName(c, locale)}
-                              </span>
-                              <span className="shrink-0 text-xs text-muted-foreground">
-                                {cls
-                                  ? locale === "ar" && cls.name_ar
-                                    ? cls.name_ar
-                                    : cls.name
-                                  : t("sibling.noClass")}
-                              </span>
-                              <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:rotate-180" />
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <SectionCard
+          icon={Users}
+          tone={1}
+          title={t("sibling.section")}
+          hint={t("sibling.intro")}
+          className="mb-4"
+          contentClassName="gap-2"
+        >
+          {family.failed && <p className="text-sm text-destructive">{t("sibling.error")}</p>}
+          {!family.failed && !family.guardian && (
+            <p className="text-sm text-gold-ink">{t("sibling.noGuardianDesc")}</p>
+          )}
+          {family.guardian && (
+            <ul className="divide-y divide-border">
+              <li className="flex items-center gap-3 py-2.5">
+                <Avatar className="size-9">
+                  <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                    {initials(family.guardian.first_name, family.guardian.last_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">{familyName}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {t(`guardians.relationships.${family.guardian.relationship}`)}
+                    {family.guardian.phone && (
+                      <>
+                        {" · "}
+                        <a href={telHref(family.guardian.phone)} dir="ltr" className="hover:underline">
+                          {formatPhone(family.guardian.phone)}
+                        </a>
+                      </>
+                    )}
+                  </span>
+                </span>
+              </li>
+              {family.children.length === 0 ? (
+                <li className="py-2.5 text-sm text-muted-foreground">{t("sibling.noChildren")}</li>
+              ) : (
+                family.children.map((c) => {
+                  const cls = c.class_id ? classById.get(c.class_id) : null;
+                  return (
+                    <li key={c.id}>
+                      <Link
+                        href={`/children/${c.id}`}
+                        className="flex min-h-12 items-center gap-3 py-2 transition-colors hover:bg-muted/40"
+                      >
+                        <Avatar className="size-9">
+                          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                            {initials(c.first_name, c.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                          {childDisplayName(c, locale)}
+                        </span>
+                        {cls ? (
+                          <ClassChip name={structureRefName(cls, locale)} />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{t("sibling.noClass")}</span>
+                        )}
+                        <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:rotate-180" />
+                      </Link>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          )}
+        </SectionCard>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Child */}
-        <Card>
-          <CardHeader>
-            <CardTitle>🧒 {t("detail.childSection")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-4">
-              <Avatar className="size-20 rounded-2xl">
-                {photoUrl && <AvatarImage src={photoUrl} alt={displayName} className="object-cover" />}
-                <AvatarFallback className="rounded-2xl bg-primary/10 text-xl font-semibold text-primary">
-                  {initials(child.first_name ?? "", child.last_name ?? "")}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-lg font-semibold">
-                  {child.first_name} {child.last_name}
-                </p>
-                {(child.first_name_ar || child.last_name_ar) && (
-                  <p className="font-[family-name:var(--font-cairo)] text-muted-foreground" dir="rtl">
-                    {child.first_name_ar} {child.last_name_ar}
-                  </p>
-                )}
-                {!photoUrl && child.photo_path && (
-                  <p className="mt-1 text-xs text-muted-foreground">{t("detail.photoUnavailable")}</p>
-                )}
-              </div>
+        <SectionCard
+          icon={Baby}
+          tone={0}
+          title={t("detail.childSection")}
+          hint={t("admin.childHint")}
+          contentClassName="gap-0 divide-y divide-border"
+        >
+          <FactRow label={t("detail.dob")} value={child.dob ? formatDate(child.dob, locale) : null} />
+          <FactRow label={t("detail.gender")} value={child.gender ? t(`child.${child.gender}`) : null} />
+          <FactRow label={t("detail.bloodType")} value={child.blood_type} ltr />
+          {child.notes && (
+            <div className="py-2 text-sm">
+              <span className="text-muted-foreground">{t("guardians.pickupNote")}</span>
+              <bdi dir="auto" className="block text-start">
+                {child.notes}
+              </bdi>
             </div>
-            <Separator />
-            <div className="space-y-2">
-              <InfoRow
-                label={t("detail.dob")}
-                value={
-                  child.dob
-                    ? `${formatDate(child.dob, locale)} · ${ageFromDob(child.dob, locale)}`
-                    : null
-                }
-              />
-              <InfoRow
-                label={t("detail.gender")}
-                value={child.gender ? t(`child.${child.gender}`) : null}
-              />
-              <InfoRow label={t("detail.bloodType")} value={child.blood_type} ltr />
-              {child.notes && (
-                <p className="rounded-lg bg-muted/50 p-2.5 text-sm">
-                  <span className="font-medium">{t("guardians.pickupNote")} :</span> {child.notes}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          )}
+          {!photoUrl && child.photo_path && (
+            <p className="py-2 text-sm text-muted-foreground">{t("detail.photoUnavailable")}</p>
+          )}
+        </SectionCard>
 
-        {/* Guardians */}
-        <Card>
-          <CardHeader>
-            <CardTitle>👨‍👩‍👧 {t("detail.guardiansSection")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {guardians.map((g, i) => (
-              <div key={i} className="rounded-xl border p-3">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  {(() => {
-                    const hit = phoneKeys(g.phone)
-                      .map((k) => guardianLinkByPhone.get(k))
-                      .find(Boolean);
-                    const name = `${g.first_name ?? ""} ${g.last_name ?? ""}`.trim();
-                    return hit ? (
+        <SectionCard
+          icon={Users}
+          tone={1}
+          title={t("detail.guardiansSection")}
+          hint={t("admin.guardiansHint")}
+          contentClassName="gap-0 divide-y divide-border"
+        >
+          {guardians.length === 0 && (
+            <p className="py-2 text-sm text-muted-foreground">{t("admin.noGuardians")}</p>
+          )}
+          {guardians.map((g, i) => {
+            const hit = phoneKeys(g.phone)
+              .map((k) => guardianLinkByPhone.get(k))
+              .find(Boolean);
+            const name = `${g.first_name ?? ""} ${g.last_name ?? ""}`.trim();
+            // The first guardian is the applicant and the primary contact by
+            // default — said nowhere. A second guardian who filed the form
+            // or who pays is the exception worth a word.
+            const marks = [
+              i > 0 && g.is_applicant ? t("admin.marks.applicant") : null,
+              i > 0 && g.is_financial ? t("admin.marks.financial") : null,
+            ].filter(Boolean);
+            const details = [
+              g.workplace,
+              g.address,
+              g.national_id ? (
+                <span key="nid" dir="ltr">
+                  {g.national_id}
+                </span>
+              ) : null,
+            ].filter(Boolean);
+            return (
+              <div key={i} className="flex items-start gap-3 py-3">
+                <Avatar className="size-9">
+                  <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                    {initials(g.first_name ?? "", g.last_name ?? "")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1 text-sm">
+                  <div className="flex flex-wrap items-baseline gap-x-2">
+                    {hit ? (
                       <Link
                         href={`/children/${hit.childId}`}
-                        className="font-semibold underline-offset-4 hover:text-primary hover:underline"
+                        className="font-medium text-primary hover:underline"
                         title={t("detail.knownFamily")}
                       >
                         {name}
                       </Link>
                     ) : (
-                      <p className="font-semibold">{name}</p>
-                    );
-                  })()}
-                  <Badge variant="outline">{t(`guardians.relationships.${g.relationship}`)}</Badge>
-                  {g.is_applicant && <Badge variant="secondary">{t("detail.badges.applicant")}</Badge>}
-                  {g.is_primary && <Badge variant="secondary">{t("detail.badges.primary")}</Badge>}
-                  {g.is_financial && (
-                    <Badge variant="secondary">{t("detail.badges.financial")}</Badge>
-                  )}
-                  <Badge variant={g.can_pickup ? "outline" : "destructive"}>
-                    {g.can_pickup ? t("detail.badges.pickup") : t("detail.badges.noPickup")}
-                  </Badge>
-                </div>
-                <div className="space-y-1.5">
-                  <InfoRow
-                    icon={<Phone />}
-                    label={t("guardians.phone")}
-                    value={
-                      g.phone ? (
-                        <a href={telHref(g.phone)} className="hover:underline">
-                          {formatPhone(g.phone)}
-                        </a>
-                      ) : null
-                    }
-                    ltr
-                  />
-                  <InfoRow icon={<Briefcase />} label={t("guardians.workplace")} value={g.workplace} />
-                  <InfoRow icon={<IdCard />} label={t("guardians.nationalId")} value={g.national_id} ltr />
-                  <InfoRow icon={<MapPin />} label={t("guardians.address")} value={g.address} />
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Health */}
-        <Card>
-          <CardHeader>
-            <CardTitle>🩺 {t("detail.healthSection")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
-                <ShieldAlert className="size-4 text-destructive" />
-                {t("detail.allergies")}
-              </p>
-              {allergies.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("detail.noAllergies")}</p>
-              ) : (
-                <div className="space-y-2">
-                  {allergies.map((a, i) => (
-                    <div key={i} className="rounded-lg border p-2.5 text-sm">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium">{allergenLabel(a.allergen, tc)}</span>
-                        <Badge className={severityClasses(a.severity ?? "mild")}>
-                          {t(`health.severities.${a.severity ?? "mild"}`)}
-                        </Badge>
-                      </div>
-                      {a.reaction && (
-                        <p className="mt-1 text-muted-foreground">
-                          {t("health.reaction")} : {a.reaction}
-                        </p>
-                      )}
-                      {a.action_plan && (
-                        <p className="text-muted-foreground">
-                          {t("health.actionPlan")} : {a.action_plan}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            {!hasHealthInfo && (
-              <p className="text-sm text-muted-foreground">{t("detail.noHealth")}</p>
-            )}
-            {conditions.length > 0 && (
-              <InfoRow
-                icon={<HeartPulse />}
-                label={t("detail.conditions")}
-                value={conditions.join("، ")}
-              />
-            )}
-            {medications.length > 0 && (
-              <InfoRow label={t("detail.medications")} value={medications.join("، ")} />
-            )}
-            {(health.doctor_name || health.doctor_phone) && (
-              <InfoRow
-                icon={<Stethoscope />}
-                label={t("detail.doctor")}
-                value={[health.doctor_name, health.doctor_phone].filter(Boolean).join(" · ")}
-              />
-            )}
-            {health.dietary_restrictions && (
-              <InfoRow label={t("detail.dietary")} value={health.dietary_restrictions} />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Requested activities */}
-        <Card>
-          <CardHeader>
-            <CardTitle>🎨 {t("detail.activitiesSection")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activities.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("detail.noActivities")}</p>
-            ) : (
-              <div className="space-y-2">
-                {activities.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border p-2.5 text-sm"
-                  >
-                    {/* The category's own icon, not a generic sparkle on every
-                        row: every activity carries art / sport / language /
-                        religion, and CategoryIcon already renders exactly that
-                        on the activities page. Same tile, half the size, so the
-                        two screens agree about what an activity looks like. */}
-                    <span className="flex min-w-0 items-center gap-2.5 font-medium">
-                      <CategoryIcon
-                        category={a.category}
-                        className="size-8 [&>svg]:size-4"
-                      />
-                      <span className="min-w-0 truncate">
-                        <ActivityLink id={a.id}>
-                          {locale === "ar" && a.name_ar ? a.name_ar : a.name}
-                        </ActivityLink>
-                      </span>
-                    </span>
-                    <span className="text-end tabular-nums">
-                      {formatDZD(a.fee_amount, locale)}
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {t(`activities.period.${a.fee_period}`)}
-                      </span>
+                      <span className="font-medium">{name}</span>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {[t(`guardians.relationships.${g.relationship}`), ...marks].join(" · ")}
                     </span>
                   </div>
-                ))}
+                  <div className="flex flex-wrap items-center gap-x-2 text-muted-foreground">
+                    {g.phone && (
+                      <a href={telHref(g.phone)} dir="ltr" className="hover:underline">
+                        {formatPhone(g.phone)}
+                      </a>
+                    )}
+                    {g.phone_alt && (
+                      <a href={telHref(g.phone_alt)} dir="ltr" className="hover:underline">
+                        {formatPhone(g.phone_alt)}
+                      </a>
+                    )}
+                    {g.email && (
+                      <a href={`mailto:${g.email}`} dir="ltr" className="hover:underline">
+                        {g.email}
+                      </a>
+                    )}
+                  </div>
+                  {details.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {details.map((d, j) => (
+                        <span key={j}>
+                          {j > 0 && " · "}
+                          {d}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {!g.can_pickup && (
+                    <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Ban className="size-3.5" aria-hidden />
+                      {t("admin.marks.noPickup")}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </SectionCard>
+
+        {hasHealthInfo && (
+          <SectionCard
+            icon={HeartPulse}
+            tone={3}
+            title={t("detail.healthSection")}
+            hint={t("admin.healthHint")}
+            contentClassName="gap-0 divide-y divide-border"
+          >
+            {allergies.map((a, i) => (
+              // The allergy is the page's one red — on the severity, not on a
+              // heading above it.
+              <div key={i} className="py-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium">{allergenLabel(a.allergen, tc)}</span>
+                  <StatusPill tone="danger">
+                    {t(`health.severities.${a.severity ?? "mild"}`)}
+                  </StatusPill>
+                </div>
+                {(a.reaction || a.action_plan) && (
+                  <p className="text-muted-foreground">
+                    {[a.reaction, a.action_plan].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+              </div>
+            ))}
+            <FactRow label={t("detail.conditions")} value={conditions.length ? conditions.join("، ") : null} />
+            <FactRow label={t("detail.medications")} value={medications.length ? medications.join("، ") : null} />
+            <FactRow
+              label={t("detail.doctor")}
+              value={
+                health.doctor_name || health.doctor_phone ? (
+                  <>
+                    {health.doctor_name}
+                    {health.doctor_name && health.doctor_phone && " · "}
+                    {health.doctor_phone && <span dir="ltr">{formatPhone(health.doctor_phone)}</span>}
+                  </>
+                ) : null
+              }
+            />
+            <FactRow label={t("detail.dietary")} value={health.dietary_restrictions} />
+          </SectionCard>
+        )}
+
+        {hasBilling && (
+          <SectionCard
+            icon={Palette}
+            tone={2}
+            title={t("admin.billingSection")}
+            hint={t("admin.billingHint")}
+            contentClassName="gap-0 divide-y divide-border"
+          >
+            {/* A bill: label at the start, amount at the end. The monthly
+                plan first because it is the first thing approval confirms. */}
+            {plan && (
+              <div className="flex items-center justify-between gap-3 py-2 text-sm">
+                <span className="font-medium">
+                  {locale === "ar" && plan.name_ar ? plan.name_ar : plan.name}
+                  <span className="ms-2 text-xs font-normal text-muted-foreground">
+                    {t("admin.monthlyPlan")}
+                  </span>
+                </span>
+                <span className="tabular-nums" dir="ltr">
+                  {formatDZD(plan.amount, locale)}
+                </span>
               </div>
             )}
-          </CardContent>
-        </Card>
+            {activities.map((a) => (
+              <div key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                {/* The category's own icon, not a generic sparkle on every
+                    row: CategoryIcon already renders exactly that on the
+                    activities page, so the two screens agree. */}
+                <span className="flex min-w-0 items-center gap-2.5 font-medium">
+                  <CategoryIcon category={a.category} className="size-8 [&>svg]:size-4" />
+                  <span className="min-w-0 truncate">
+                    <ActivityLink id={a.id}>
+                      {locale === "ar" && a.name_ar ? a.name_ar : a.name}
+                    </ActivityLink>
+                  </span>
+                </span>
+                <span className="shrink-0 text-end tabular-nums">
+                  <span dir="ltr">{formatDZD(a.fee_amount, locale)}</span>
+                  <span className="text-muted-foreground"> · {t(`activities.period.${a.fee_period}`)}</span>
+                </span>
+              </div>
+            ))}
+          </SectionCard>
+        )}
       </div>
     </>
   );

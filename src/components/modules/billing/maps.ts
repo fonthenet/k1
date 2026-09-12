@@ -20,6 +20,24 @@ export const ITEM_KINDS = [
   "other",
 ] as const;
 
+/**
+ * The statuses a month's register can be cut to, in the order they happen.
+ * "draft" is a real state of the list, not an implementation detail: the
+ * monthly run produces drafts and somebody has to issue them. Lives here and
+ * not beside the Select because a server page reads it too, and a constant
+ * exported from a client module reaches the server as a client reference.
+ */
+export const INVOICE_FILTERS = [
+  "all",
+  "draft",
+  "unpaid",
+  "partial",
+  "paid",
+  "overdue",
+  "void",
+] as const;
+export type InvoiceFilter = (typeof INVOICE_FILTERS)[number];
+
 export const INVOICE_STATUS_BADGE: Record<InvoiceStatus, string> = {
   draft: "border-transparent bg-muted text-muted-foreground",
   sent: "border-transparent bg-primary/10 text-primary",

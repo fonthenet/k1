@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, TriangleAlert } from "lucide-react";
+import { Fragment } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { childDisplayName, formatDate } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
+import { SectionCard } from "@/components/shared/section-card";
+import { StatusPill } from "@/components/shared/status-pill";
+import { ValueRange } from "@/components/shared/value-range";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   CopyPreviousWeekButton,
   PublishWeekButton,
@@ -251,6 +255,11 @@ export default async function MenusPage({
   const dayLabel = (d: string) =>
     formatDate(`${d}T12:00:00Z`, locale, { weekday: "long", day: "numeric", month: "long" });
 
+  // The month alone, for today's row, where the day number is drawn in its
+  // own circle and must not be printed a second time beside it.
+  const monthLabel = (d: string) =>
+    formatDate(`${d}T12:00:00Z`, locale, { day: undefined, month: "short", year: undefined });
+
   // Allergy cross-check: menu allergens ∩ enrolled children's recorded allergies.
   const warnings = days
     .map((d) => ({
@@ -258,12 +267,6 @@ export default async function MenusPage({
       conflicts: conflictsFor(menuByDate.get(d)?.allergens ?? [], allergies),
     }))
     .filter((w) => w.conflicts.length > 0);
-
-  const conflictingAllergens = new Map<string, Set<string>>();
-  for (const w of warnings) {
-    const set = new Set(w.conflicts.map((c) => c.allergen));
-    conflictingAllergens.set(w.date, set);
-  }
 
   // One row per ALLERGEN, not per day.
   //
@@ -309,6 +312,13 @@ export default async function MenusPage({
   };
   const weekHasContent = days.some(hasContentOn);
   const weekHasDrafts = days.some((d) => hasContentOn(d) && !menuByDate.get(d)?.published);
+  // The register grows a status column only while a day of this week is
+  // still a draft. Published is the expected state and renders nothing, so
+  // on a finished week the column was an empty head over five blank cells.
+  const showStatus = days.some((d) => {
+    const m = menuByDate.get(d);
+    return !!m && !m.published;
+  });
 
   /**
    * Conflicts in weeks the kitchen has already planned but nobody is looking at.
@@ -339,6 +349,27 @@ export default async function MenusPage({
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(0, 6);
 
+  // The table is keyed by allergen: this week's rows first (widest exposure
+  // on top), then allergens that only appear in a week planned ahead. The
+  // children of an upcoming-only row are the same enrolled children the
+  // check found — an allergy is a fact about the child, not about the week.
+  const weeksByAllergen = new Map<string, string[]>();
+  for (const [week, set] of upcomingWeeks) {
+    for (const a of set) weeksByAllergen.set(a, [...(weeksByAllergen.get(a) ?? []), week]);
+  }
+  const alertRows = [
+    ...alerts.map((a) => ({ ...a, weeks: weeksByAllergen.get(a.allergen) ?? [] })),
+    ...[...weeksByAllergen.entries()]
+      .filter(([allergen]) => !byAllergen.has(allergen))
+      .map(([allergen, weeks]) => ({
+        allergen,
+        children: conflictsFor([allergen], allergies).flatMap((c) => c.children.map((ch) => ({ id: ch.id, name: ch.name }))),
+        dates: [] as string[],
+        everyDay: false,
+        weeks,
+      })),
+  ];
+
   return (
     <div>
       <PageHeader title={t("menus.title")} description={openDaysLabel}>
@@ -350,280 +381,272 @@ export default async function MenusPage({
         />
       </PageHeader>
 
-      {/* Week navigation */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      {/* The roster's filter card: which kitchen, then which week. The
+          chevrons are ghosts and the range is a label, not a boxed control —
+          the card is the one frame. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
         {/* Which kitchen, before which week: everything below is scoped by it.
             Absent in a building with one structure — see roster.tsx. */}
         {structures.length > 1 && (
           <StructurePicker value={structureId} structures={structures} />
         )}
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" asChild>
+          <Button variant="ghost" size="icon-sm" asChild>
             <Link
               href={href(addDaysStr(weekStart, -7))}
               aria-label={t("menus.prevWeek")}
               title={t("menus.prevWeek")}
             >
-              <ChevronLeft className="rtl:-scale-x-100" />
+              <ChevronLeft className="rtl:rotate-180" />
             </Link>
           </Button>
-          <span className="min-w-52 text-center text-sm font-semibold">
-            {/* The OPEN days, not the calendar week. weekEnd is now Saturday
-                so the queries cover the whole seven days; labelling the header
-                with it would read "30 Aug – 5 Sept" for a crèche that shuts on
-                Friday and Saturday. */}
-            {t("menus.weekOf", {
-              start: dayMonthLabel(days[0] ?? weekStart, locale),
-              end: dayMonthLabel(days[days.length - 1] ?? weekEnd, locale),
-            })}
-          </span>
-          <Button variant="outline" size="icon" asChild>
+          {/* The OPEN days, not the calendar week. weekEnd is now Saturday
+              so the queries cover the whole seven days; labelling the range
+              with it would read "30 Aug – 5 Sept" for a crèche that shuts on
+              Friday and Saturday. */}
+          <ValueRange
+            from={dayMonthLabel(days[0] ?? weekStart, locale)}
+            to={dayMonthLabel(days[days.length - 1] ?? weekEnd, locale)}
+            separator="–"
+            className="px-1 text-sm font-medium"
+          />
+          <Button variant="ghost" size="icon-sm" asChild>
             <Link
               href={href(addDaysStr(weekStart, 7))}
               aria-label={t("menus.nextWeek")}
               title={t("menus.nextWeek")}
             >
-              <ChevronRight className="rtl:-scale-x-100" />
+              <ChevronRight className="rtl:rotate-180" />
             </Link>
           </Button>
         </div>
         {weekStart !== currentWeek && (
-          <Button variant="outline" size="sm" asChild>
-            <Link href={href(currentWeek)}>
-              <CalendarDays data-icon="inline-start" />
-              {t("menus.thisWeek")}
-            </Link>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={href(currentWeek)}>{t("menus.thisWeek")}</Link>
           </Button>
         )}
       </div>
 
-      {/* Allergy cross-check.
-          No card, no tint, no accent rail: the warning is a short list of
-          facts, and framing it as a panel only put a second box around three
-          lines of text. What has to be loud is the allergen and the names, so
-          those are what carry the colour. */}
-      {alerts.length > 0 && (
-        <div className="mb-5">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-destructive">
-            <TriangleAlert className="size-4 shrink-0" aria-hidden />
-            {t("menus.allergyWarning")}
-          </p>
-          <ul className="mt-2 space-y-1.5 text-sm">
-            {alerts.map((a) => (
-              <li key={a.allergen} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                {/* The accent is spent once, on the allergen. The names are
-                    ordinary links and the days are quiet: three shades of red
-                    in one line would say "urgent" three times and mean it
-                    less each time. */}
-                <span className="font-semibold capitalize text-destructive">
-                  {allergenLabel(a.allergen)}
-                </span>
-                <span className="min-w-0">
-                  <span className="sr-only">{t("menus.allergyChildrenLabel")} </span>
-                  {a.children.map((child, i) => (
-                    <span key={child.id}>
-                      {i > 0 && (locale === "ar" ? "، " : ", ")}
-                      {/* Straight to the child: the next thing anyone does
-                          after reading this is check what that child is
-                          actually allergic to. */}
-                      <ChildLink id={child.id}>{child.name}</ChildLink>
-                    </span>
-                  ))}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {a.everyDay
-                    ? t("menus.allergyEveryDay")
-                    : a.dates.map((d) => weekdayLabel(d)).join(" · ")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Weeks already planned that nobody is currently looking at. Quieter
-          than the alert above on purpose — that one is about food being served
-          this week; this is a "go and check" for a week still in the future. */}
-      {upcomingWeeks.length > 0 && (
-        <div className="mb-5 rounded-xl border border-gold/40 bg-gold-veil px-4 py-3">
-          <p className="text-sm font-semibold text-gold-ink">{t("menus.upcoming.title")}</p>
-          <p className="mt-0.5 text-xs text-gold-ink/80">{t("menus.upcoming.hint")}</p>
-          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            {upcomingWeeks.map(([week, allergens]) => (
-              <li key={week}>
-                <Link
-                  href={href(week)}
-                  className="font-medium text-gold-ink underline-offset-2 hover:underline"
-                >
-                  {t("menus.upcoming.week", { date: dayMonthLabel(week, locale) })}
-                </Link>
-                {/* capitalize, as the alert above does: allergen values are
-                    free text a director typed, so the same allergen arrives as
-                    "lactose", "Lactose" and "Milk" and a raw list reads ragged. */}
-                <span className="ms-1.5 text-xs capitalize text-gold-ink/80">
-                  {[...allergens].map(allergenLabel).join(locale === "ar" ? "، " : ", ")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* Allergy cross-check, as a table.
+          One row per allergen: who is allergic, which days of this week
+          serve it, and which weeks already planned ahead do too. The danger
+          colour is spent once, on the card's tile; the allergen is bold,
+          the names are ordinary links, the days are quiet — three shades of
+          red in one row would say "urgent" three times and mean it less
+          each time. */}
+      {alertRows.length > 0 && (
+        <SectionCard
+          icon={TriangleAlert}
+          tone="bg-destructive/10 text-destructive"
+          title={t("menus.allergyWarning")}
+          hint={t("menus.alertTable.hint")}
+          className="mb-5"
+          contentClassName="gap-2"
+        >
+          <Table className="[&_td]:px-1.5 [&_th]:px-1.5">
+            <TableHeader>
+              <TableRow className="[&>th]:font-semibold">
+                <TableHead>{t("menus.alertTable.allergen")}</TableHead>
+                <TableHead>{t("menus.alertTable.children")}</TableHead>
+                <TableHead>{t("menus.alertTable.thisWeek")}</TableHead>
+                {upcomingWeeks.length > 0 && <TableHead>{t("menus.alertTable.upcoming")}</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {alertRows.map((row) => (
+                <TableRow key={row.allergen}>
+                  <TableCell className="font-semibold capitalize">{allergenLabel(row.allergen)}</TableCell>
+                  <TableCell className="min-w-0 whitespace-normal">
+                    {row.children.map((child, i) => (
+                      <span key={child.id}>
+                        {i > 0 && (locale === "ar" ? "، " : ", ")}
+                        {/* Straight to the child: the next thing anyone does
+                            after reading this is check what that child is
+                            actually allergic to. */}
+                        <ChildLink id={child.id}>{child.name}</ChildLink>
+                      </span>
+                    ))}
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-muted-foreground">
+                    {row.dates.length === 0
+                      ? "—"
+                      : row.everyDay
+                        ? t("menus.allergyEveryDay")
+                        : row.dates.map((d) => weekdayLabel(d)).join(" · ")}
+                  </TableCell>
+                  {upcomingWeeks.length > 0 && (
+                    <TableCell className="whitespace-normal text-muted-foreground">
+                      {/* The column head already says "weeks"; each link is
+                          the Sunday alone, as a quiet chip, so six of them
+                          wrap instead of stretching the table sideways. */}
+                      {row.weeks.length === 0 ? (
+                        "—"
+                      ) : (
+                        <span className="flex flex-wrap gap-1">
+                          {row.weeks.map((week) => (
+                            <Link
+                              key={week}
+                              href={href(week)}
+                              className="rounded-full border border-border px-2 py-0.5 text-xs text-foreground hover:bg-muted"
+                            >
+                              {dayMonthLabel(week, locale)}
+                            </Link>
+                          ))}
+                        </span>
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {upcomingWeeks.length > 0 && (
+            <p className="text-xs text-muted-foreground">{t("menus.upcoming.hint")}</p>
+          )}
+        </SectionCard>
       )}
 
       {/* The crèche's open days. Never a fixed Sunday→Thursday — see above. */}
       {days.length === 0 ? (
         <EmptyState icon={<CalendarDays />} title={t("menus.closedAll")} />
       ) : (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {days.map((d) => {
-          const menu = menuByDate.get(d) ?? null;
-          const isToday = d === today;
-          const conflicts = conflictingAllergens.get(d);
-          const hasContent = !!(menu?.breakfast || menu?.lunch || menu?.snack);
-          const closure = closedBy.get(d);
+        /* One row per open day, the way the classes page draws classes: the
+           day is the door, the meals are three prose columns, the allergens
+           and the status are quiet text at the end. Five cards in a row
+           squeezed every menu into a column of four words and spent a green
+           pill on every published day — the state that needs no mark. */
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+              <TableHeader>
+                <TableRow className="[&>th]:font-semibold">
+                  <TableHead className="w-36">{t("menus.columns.day")}</TableHead>
+                  {MEALS.map((meal) => (
+                    <TableHead key={meal} className="min-w-40 w-[22%]">
+                      {t(`meals.${meal}`)}
+                    </TableHead>
+                  ))}
+                  <TableHead className="min-w-32">{t("menus.columns.allergens")}</TableHead>
+                  {showStatus && <TableHead>{tc("labels.status")}</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {days.map((d) => {
+                  const menu = menuByDate.get(d) ?? null;
+                  const isToday = d === today;
+                  const hasContent = !!(menu?.breakfast || menu?.lunch || menu?.snack);
+                  const closure = closedBy.get(d);
+                  const closed = !!closure && !hasContent;
+                  const dayNumber = parseInt(d.slice(8), 10);
 
-          // A closure the crèche has already declared. Rendered rather than
-          // dropped, so the gap in the week reads as "Aïd, we are shut" and
-          // not as "somebody forgot Wednesday" — and not as an invitation to
-          // plan meals for a day nobody is coming to eat them.
-          if (closure && !hasContent) {
-            return (
-              <div
-                key={d}
-                className="flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-border bg-muted/30"
-              >
-                <div className="border-b border-dashed bg-muted px-4 py-3">
-                  <p className="text-sm font-bold capitalize text-muted-foreground">
-                    {weekdayLabel(d)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{dayMonthLabel(d, locale)}</p>
-                </div>
-                <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {t("menus.closed")}
-                  </span>
-                  <span className="text-xs text-muted-foreground/80">{closure}</span>
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            /* The whole card opens the editor. It used to be a 28px pencil in
-               the corner — a hard target on the office tablet, and invisible
-               to anyone who did not go looking for it. */
-            <MenuDayDialog
-              key={d}
-              date={d}
-              dateLabel={dayLabel(d)}
-              structureId={structureId}
-              structureLabel={
-                structures.length > 1 && structure ? structureName(structure, locale) : undefined
-              }
-              menu={menu}
-            >
-              <button
-                type="button"
-                aria-label={t("menus.editDay", { date: dayLabel(d) })}
-                className={cn(
-                  "group/card flex h-full flex-col overflow-hidden rounded-xl border bg-card text-start shadow-sm transition-shadow",
-                  "hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                  isToday ? "border-primary/40" : "border-border"
-                )}
-              >
-                {/* The day's header band: neutral, with today the only day
-                    tinted. An allergy shows as one small mark beside the day
-                    name — the alert above and the red chip at the foot of the
-                    card already carry that news. */}
-                <div
-                  className={cn(
-                    "border-b px-4 py-3",
-                    isToday ? "border-primary/20 bg-primary/10 text-primary" : "bg-muted text-foreground"
-                  )}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1.5 text-sm font-bold capitalize">
-                      {weekdayLabel(d)}
-                      {conflicts && (
-                        <TriangleAlert
-                          className="size-3.5 shrink-0 text-destructive"
-                          aria-label={t("menus.allergyWarning")}
-                        />
-                      )}
-                    </p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span
-                        className={cn("text-xs", isToday ? "opacity-75" : "text-muted-foreground")}
-                      >
-                        {dayMonthLabel(d, locale)}
-                      </span>
-                      <Badge
-                        className={cn(
-                          "border-transparent font-medium",
-                          menu?.published
-                            ? "bg-success-muted text-success"
-                            : "bg-gold-muted text-gold-ink"
+                  // The day as two lines: the weekday, then the date in
+                  // muted small text. Today's day number sits in a primary
+                  // circle and nothing else about the row changes.
+                  const dayCell = (
+                    <>
+                      <span className="block font-semibold capitalize">{weekdayLabel(d)}</span>
+                      <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {isToday ? (
+                          <>
+                            <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground tabular-nums">
+                              {dayNumber}
+                            </span>
+                            {monthLabel(d)}
+                          </>
+                        ) : (
+                          dayMonthLabel(d, locale)
                         )}
-                      >
-                        {menu?.published ? t("menus.published") : t("menus.draft")}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
+                      </span>
+                    </>
+                  );
 
-                <div className="flex flex-1 flex-col gap-3 p-4">
-                  {hasContent ? (
-                    <div className="flex-1 space-y-2">
-                      {MEALS.map((meal) => (
-                        <div key={meal}>
-                          <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                            {t(`meals.${meal}`)}
-                          </p>
-                          {menu?.[meal] ? (
-                            <p className="text-sm leading-relaxed whitespace-pre-line text-foreground">
-                              {menu[meal]}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-muted-foreground/70">{t("menus.notSet")}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    /* An empty day said "Non renseigné" three times. One
-                       invitation is both quieter and more useful. */
-                    <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-6 text-muted-foreground transition-colors group-hover/card:border-primary/40 group-hover/card:text-primary">
-                      <Plus className="size-5" aria-hidden />
-                      <span className="text-sm font-medium">{tc("actions.add")}</span>
-                    </div>
-                  )}
-
-                  {menu && menu.allergens.length > 0 && (
-                    <div className="flex flex-wrap gap-1 border-t pt-3">
-                      {menu.allergens.map((a) => {
-                        const conflicting = conflicts?.has(a) ?? false;
-                        return (
-                          <span
-                            key={a}
-                            className={cn(
-                              "rounded-full px-2 py-0.5 text-[11px] font-medium",
-                              // Allergy signalling stays destructive — safety, not decoration.
-                              conflicting
-                                ? "bg-destructive/10 text-destructive"
-                                : "bg-muted text-muted-foreground"
-                            )}
+                  return (
+                    <TableRow key={d} className="relative transition-colors hover:bg-primary/5 [&>td]:align-top">
+                      <TableCell className="w-36 whitespace-nowrap">
+                        {closed ? (
+                          dayCell
+                        ) : (
+                          /* The day opens the editor and its overlay reaches
+                             every cell, so the whole row is the door — the
+                             card used to be, and a 28px pencil before that. */
+                          <MenuDayDialog
+                            date={d}
+                            dateLabel={dayLabel(d)}
+                            structureId={structureId}
+                            structureLabel={
+                              structures.length > 1 && structure
+                                ? structureName(structure, locale)
+                                : undefined
+                            }
+                            menu={menu}
                           >
-                            {allergenLabel(a)}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </button>
-            </MenuDayDialog>
-          );
-        })}
-      </div>
+                            <button
+                              type="button"
+                              aria-label={t("menus.editDay", { date: dayLabel(d) })}
+                              className="block rounded text-start after:absolute after:inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                            >
+                              {dayCell}
+                            </button>
+                          </MenuDayDialog>
+                        )}
+                      </TableCell>
+                      {closed ? (
+                        /* A closure the crèche has already declared. Rendered
+                           rather than dropped, so the gap in the week reads as
+                           "Aïd, we are shut" and not as "somebody forgot
+                           Wednesday" — and not as an invitation to plan meals
+                           for a day nobody is coming to eat them. */
+                        <TableCell
+                          colSpan={MEALS.length + (showStatus ? 2 : 1)}
+                          className="text-sm text-muted-foreground"
+                        >
+                          {t("menus.closed")} · <bdi dir="auto">{closure}</bdi>
+                        </TableCell>
+                      ) : (
+                        <Fragment>
+                          {MEALS.map((meal) => (
+                            <TableCell
+                              key={meal}
+                              className="min-w-40 w-[22%] whitespace-pre-line text-sm"
+                            >
+                              {menu?.[meal] ? (
+                                <bdi dir="auto" className="block text-start leading-relaxed">
+                                  {menu[meal]}
+                                </bdi>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="min-w-32 text-sm text-muted-foreground">
+                            {/* Names joined by a middle dot, quiet on purpose.
+                                Milk and gluten are on a crèche menu every day
+                                and some child is allergic to each, so colouring
+                                the conflicting names painted the whole column
+                                red under an alert card that already says who
+                                is allergic to what, and on which days. */}
+                            {menu && menu.allergens.length > 0
+                              ? menu.allergens.map((a) => allergenLabel(a)).join(" · ")
+                              : "—"}
+                          </TableCell>
+                          {showStatus && (
+                            <TableCell className="whitespace-nowrap">
+                              {/* Published is the expected state and renders
+                                  nothing; a draft is the one that needs a hand. */}
+                              {menu && !menu.published && (
+                                <StatusPill tone="attention">{t("menus.draft")}</StatusPill>
+                              )}
+                            </TableCell>
+                          )}
+                        </Fragment>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

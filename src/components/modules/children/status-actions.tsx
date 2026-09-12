@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Archive, LogOut, RotateCcw } from "lucide-react";
+import { Archive, Ellipsis, IdCard, LogOut, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,21 +16,39 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { ChildStatus } from "@/lib/types";
 import { setChildStatus } from "./actions";
 
+type StatusAction = "withdraw" | "reenroll" | "archive";
+
+/**
+ * The "…" menu of the child's identity band.
+ *
+ * Withdrawing and archiving are the rarest things done to a record, and as
+ * two buttons of their own — one of them red — they were the loudest thing
+ * above the fold. They live here, behind the overflow, with the badge card
+ * beside them; the band keeps one primary (Déplacer) and one outline
+ * (Modifier), the way every record page reads.
+ */
 export function StatusActions({ childId, status }: { childId: string; status: ChildStatus }) {
   const t = useTranslations("children");
   const tc = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState<StatusAction | null>(null);
 
   // Enrolled: offer both ways out. Otherwise: offer the way back.
   const isActive = status === "enrolled";
 
-  function run(action: "withdraw" | "reenroll" | "archive", okKey: string) {
+  function run(action: StatusAction, okKey: string) {
     startTransition(async () => {
       const res = await setChildStatus(childId, action);
       if (res.ok) {
@@ -41,89 +60,82 @@ export function StatusActions({ childId, status }: { childId: string; status: Ch
     });
   }
 
-  // A fragment, not a wrapper div. These buttons are siblings of "Badge card"
-  // and "Edit" in the page header's action row; boxing them in their own flex
-  // container made the group a second grid item that aligned on its own centre
-  // instead of on the row.
+  const COPY: Record<StatusAction, { title: string; description: string; ok: string }> = {
+    withdraw: {
+      title: t("statusActions.withdrawTitle"),
+      description: t("statusActions.withdrawDescription"),
+      ok: "toasts.withdrawn",
+    },
+    archive: {
+      title: t("statusActions.archiveTitle"),
+      description: t("statusActions.archiveDescription"),
+      ok: "toasts.archived",
+    },
+    reenroll: {
+      title: t("statusActions.reenrollTitle"),
+      description: t("statusActions.reenrollDescription"),
+      ok: "toasts.reenrolled",
+    },
+  };
+
   return (
     <>
-      {isActive ? (
-        <>
-          <Confirm
-            trigger={
-              <Button variant="destructive" disabled={pending}>
-                <LogOut data-icon="inline-start" />
-                {t("statusActions.withdraw")}
-              </Button>
-            }
-            title={t("statusActions.withdrawTitle")}
-            description={t("statusActions.withdrawDescription")}
-            cancel={tc("actions.cancel")}
-            confirm={tc("actions.confirm")}
-            onConfirm={() => run("withdraw", "toasts.withdrawn")}
-          />
-          <Confirm
-            trigger={
-              <Button variant="outline" disabled={pending}>
-                <Archive data-icon="inline-start" />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" aria-label={t("profile.more")} disabled={pending}>
+            <Ellipsis />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link href={`/children/${childId}/card`}>
+              <IdCard />
+              {t("profile.badgeCard")}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {isActive ? (
+            <>
+              <DropdownMenuItem onSelect={() => setConfirming("archive")}>
+                <Archive />
                 {t("statusActions.archive")}
-              </Button>
-            }
-            title={t("statusActions.archiveTitle")}
-            description={t("statusActions.archiveDescription")}
-            cancel={tc("actions.cancel")}
-            confirm={tc("actions.confirm")}
-            onConfirm={() => run("archive", "toasts.archived")}
-          />
-        </>
-      ) : (
-        <Confirm
-          trigger={
-            <Button variant="outline" disabled={pending}>
-              <RotateCcw data-icon="inline-start" />
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onSelect={() => setConfirming("withdraw")}>
+                <LogOut />
+                {t("statusActions.withdraw")}
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem onSelect={() => setConfirming("reenroll")}>
+              <RotateCcw />
               {t("statusActions.reenroll")}
-            </Button>
-          }
-          title={t("statusActions.reenrollTitle")}
-          description={t("statusActions.reenrollDescription")}
-          cancel={tc("actions.cancel")}
-          confirm={tc("actions.confirm")}
-          onConfirm={() => run("reenroll", "toasts.reenrolled")}
-        />
-      )}
-    </>
-  );
-}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-/** One destructive-ish button behind a confirmation. */
-function Confirm({
-  trigger,
-  title,
-  description,
-  cancel,
-  confirm,
-  onConfirm,
-}: {
-  trigger: React.ReactNode;
-  title: string;
-  description: string;
-  cancel: string;
-  confirm: string;
-  onConfirm: () => void;
-}) {
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{cancel}</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>{confirm}</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <AlertDialog open={confirming !== null} onOpenChange={(o) => !o && setConfirming(null)}>
+        {confirming && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{COPY[confirming].title}</AlertDialogTitle>
+              <AlertDialogDescription>{COPY[confirming].description}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const action = confirming;
+                  setConfirming(null);
+                  run(action, COPY[action].ok);
+                }}
+              >
+                {tc("actions.confirm")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
+      </AlertDialog>
+    </>
   );
 }

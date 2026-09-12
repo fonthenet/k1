@@ -17,7 +17,7 @@ union all select 'session',id,to_jsonb(s) from public.kg_sessions s;
 commit;
 -- Expected 23P01 followed by aborted-transaction errors; COMMIT rolls it back.
 \set ON_ERROR_STOP off
-\ir ../migrations/20260911010645_kg_scheduler_hardening.sql
+\ir ../migrations/0150_kg_scheduler_hardening.sql
 \set ON_ERROR_STOP on
 select pg_temp.assert_true(to_regnamespace('kg_scheduler_private') is null,'overlap prevents any schema installation');
 select pg_temp.assert_true(not exists (
@@ -30,7 +30,7 @@ select pg_temp.assert_true((select count(*) from source_snapshot)=
   'failed migration does not delete rows');
 delete from public.kg_sessions where id=(select id from scheduler_bad);
 delete from source_snapshot where source='session' and id=(select id from scheduler_bad);
-\ir ../migrations/20260911010645_kg_scheduler_hardening.sql
+\ir ../migrations/0150_kg_scheduler_hardening.sql
 select pg_temp.assert_true(not exists (
   (select 'lesson',id,to_jsonb(l) from public.kg_learning_lessons l
    union all select 'session',id,to_jsonb(s) from public.kg_sessions s)

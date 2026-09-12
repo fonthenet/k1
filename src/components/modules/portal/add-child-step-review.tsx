@@ -13,10 +13,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatDate } from "@/lib/format";
 import { StepHeader } from "@/components/modules/enroll/wizard-ui";
 import type { WizardChild } from "@/components/modules/enroll/types";
-import type { Structure } from "@/components/modules/classes/class-types";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import type { AddChildHealth, AddChildStep } from "./add-child-wizard";
 import type { PortalClassOption } from "./portal-types";
-import { StructureChip } from "./structure-chip";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { allergenLabel } from "@/lib/allergens";
 
 function Section({
@@ -113,7 +113,7 @@ export function AddChildStepReview({
             editLabel={edit}
           >
             <p className="font-medium">
-              <StructureChip structure={structure} locale={locale} />
+              <StructureMark structure={{ name: structureName(structure, locale), color: structure.color }} />
             </p>
           </Section>
         )}

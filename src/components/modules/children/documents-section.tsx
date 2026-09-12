@@ -5,10 +5,8 @@ import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { FileText, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/shared/section-card";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EmptyState } from "@/components/shared/empty-state";
 import { formatDate } from "@/lib/format";
 import { deleteDocument, uploadDocument } from "./actions";
 import { DOC_TYPES, type ChildDocumentRow } from "./types";
@@ -89,7 +86,9 @@ export function DocumentsSection({
         toast.success(t("toasts.deleted"));
         router.refresh();
       } else {
-        toast.error(res.error === "forbidden" ? t("toasts.forbidden") : t("toasts.error"));
+        toast.error(
+          res.error === "forbidden" ? t("toasts.forbidden") : t("toasts.error"),
+        );
       }
     });
   }
@@ -110,7 +109,11 @@ export function DocumentsSection({
         <div className="grid gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="d-title">{t("documents.docTitle")}</Label>
-            <Input id="d-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input
+              id="d-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
           <div className="grid gap-1.5">
             <Label>{t("documents.type")}</Label>
@@ -138,7 +141,11 @@ export function DocumentsSection({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={pending}
+          >
             {tc("actions.cancel")}
           </Button>
           <Button onClick={submit} disabled={!title.trim() || !file || pending}>
@@ -150,117 +157,109 @@ export function DocumentsSection({
   );
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle className="flex items-center gap-2.5 text-base">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <FileText className="size-4" />
-          </span>
-          {t("documents.title")}
-        </CardTitle>
-        {uploadDialog}
-      </CardHeader>
-      <CardContent>
-        {documents.length === 0 ? (
-          <EmptyState
-            icon={
-              <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary [&>svg]:size-7">
-                <FileText />
-              </span>
-            }
-            title={t("documents.empty")}
-            description={t("documents.emptyDescription")}
-          />
-        ) : (
-          <div className="grid gap-2">
-            {documents.map((d) => (
-              <div
-                key={d.id}
-                className="group/doc flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-muted/40"
-              >
-                {/* The row already lit up on hover but only the small "Open"
+    <SectionCard
+      icon={FileText}
+      tone={3}
+      title={t("documents.title")}
+      action={uploadDialog}
+      contentClassName="gap-0"
+    >
+      {documents.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("documents.empty")}</p>
+      ) : (
+        <div className="divide-y divide-border">
+          {documents.map((d) => (
+            <div
+              key={d.id}
+              className="group/doc flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
+            >
+              {/* The row already lit up on hover but only the small "Open"
                     button actually opened anything, so the obvious target — the
                     document's own name — did nothing. The whole left block is
                     the link now; the buttons stay outside it, because a
                     full-row overlay would swallow the delete. A document whose
                     signed URL failed to mint stays inert rather than becoming a
                     dead link. */}
-                {(() => {
-                  const inner = (
-                    <>
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <FileText className="size-4" />
+              {(() => {
+                const inner = (
+                  <>
+                    <div className="min-w-0">
+                      <span
+                        className="block truncate font-medium text-start"
+                        dir="auto"
+                      >
+                        {d.title}
                       </span>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={cn(
-                              "truncate font-semibold",
-                              d.url &&
-                                "text-primary group-hover/doc:underline group-hover/doc:underline-offset-4"
-                            )}
-                          >
-                            {d.title}
-                          </span>
-                          <Badge variant="secondary">
-                            {t(
-                              `documents.types.${
-                                (DOC_TYPES as readonly string[]).includes(d.doc_type)
-                                  ? d.doc_type
-                                  : "other"
-                              }`
-                            )}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {t("documents.addedOn", { date: formatDate(d.created_at, locale) })}
-                        </div>
+                      <div className="text-xs text-muted-foreground">
+                        {t(
+                          `documents.types.${
+                            (DOC_TYPES as readonly string[]).includes(
+                              d.doc_type,
+                            )
+                              ? d.doc_type
+                              : "other"
+                          }`,
+                        )}
+                        {" · "}
+                        {t("documents.addedOn", {
+                          date: formatDate(d.created_at, locale),
+                        })}
                       </div>
-                    </>
-                  );
-                  return d.url ? (
-                    <a
-                      href={d.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                    >
-                      {inner}
-                    </a>
-                  ) : (
-                    <div className="flex min-w-0 flex-1 items-center gap-3">{inner}</div>
-                  );
-                })()}
-                {/* No "Open" button: the row itself is the link now, and two
+                    </div>
+                  </>
+                );
+                return d.url ? (
+                  <a
+                    href={d.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    {inner}
+                  </div>
+                );
+              })()}
+              {/* No "Open" button: the row itself is the link now, and two
                     controls for one action is how a row starts looking busy. */}
-                <div className="flex items-center gap-1">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" aria-label={tc("actions.delete")}>
-                        <Trash2 className="text-muted-foreground" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t("documents.deleteTitle")}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t("documents.deleteDescription")}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => remove(d.id)}>
-                          {tc("actions.confirm")}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+              <div className="flex items-center gap-1">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={tc("actions.delete")}
+                    >
+                      <Trash2 className="text-muted-foreground" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {t("documents.deleteTitle")}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t("documents.deleteDescription")}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>
+                        {tc("actions.cancel")}
+                      </AlertDialogCancel>
+                      <AlertDialogAction onClick={() => remove(d.id)}>
+                        {tc("actions.confirm")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            </div>
+          ))}
+        </div>
+      )}
+    </SectionCard>
   );
 }

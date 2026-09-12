@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { CheckCircle2, ChevronRight, Clock, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { childDisplayName, formatDate, formatTime } from "@/lib/format";
 import type { IncidentSeverity } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -18,13 +16,12 @@ import {
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ClassChip } from "@/components/shared/class-chip";
+import { StatusPill } from "@/components/shared/status-pill";
 import { IncidentDialog } from "@/components/modules/comms/incident-dialog";
+import { IncidentSeverityFilter } from "@/components/modules/comms/incident-severity-filter";
 import { algiersLocalInput } from "@/components/modules/comms/datetime";
-import {
-  incidentSeverityClasses,
-  SEVERITIES,
-  type ChildOption,
-} from "@/components/modules/comms/types";
+import { SEVERITIES, type ChildOption } from "@/components/modules/comms/types";
 
 interface IncidentRow {
   id: string;
@@ -38,7 +35,7 @@ interface IncidentRow {
     last_name: string;
     first_name_ar: string | null;
     last_name_ar: string | null;
-    kg_classes: { name: string; name_ar: string | null } | null;
+    kg_classes: { name: string; name_ar: string | null; color: string } | null;
   } | null;
 }
 
@@ -54,7 +51,6 @@ export default async function IncidentsPage({
 }) {
   const ctx = await requireStaff();
   const t = await getTranslations("comms");
-  const tc = await getTranslations("common");
   const locale = await getLocale();
   const sp = await searchParams;
 
@@ -64,10 +60,12 @@ export default async function IncidentsPage({
 
   const supabase = await createClient();
 
+  // The class colour rides along for the chip under the child's name — the
+  // one mark a class carries anywhere in the product.
   let incidentsQuery = supabase
     .from("kg_incidents")
     .select(
-      "id, occurred_at, severity, description, parent_notified_at, parent_ack_at, kg_children(first_name, last_name, first_name_ar, last_name_ar, kg_classes(name, name_ar))"
+      "id, occurred_at, severity, description, parent_notified_at, parent_ack_at, kg_children(first_name, last_name, first_name_ar, last_name_ar, kg_classes(name, name_ar, color))"
     )
     .eq("tenant_id", ctx.tenant.id)
     .order("occurred_at", { ascending: false })
@@ -102,11 +100,6 @@ export default async function IncidentsPage({
     (r) => (locale === "ar" && r.name_ar ? r.name_ar : r.name)
   );
 
-  const filters: { id: string; label: string }[] = [
-    { id: "all", label: tc("labels.all") },
-    ...SEVERITIES.map((s) => ({ id: s, label: t(`severity.${s}`) })),
-  ];
-
   return (
     <div>
       <PageHeader title={t("incidents.title")} description={t("incidents.description")}>
@@ -117,23 +110,14 @@ export default async function IncidentsPage({
         />
       </PageHeader>
 
-      <div
-        className="mb-5 flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-card p-1.5 shadow-sm sm:w-fit"
-        role="group"
-        aria-label={t("incidents.severityFilter")}
-      >
-        {filters.map((f) => (
-          <Button
-            key={f.id}
-            variant={f.id === activeSeverity ? "default" : "ghost"}
-            size="sm"
-            asChild
-          >
-            <Link href={f.id === "all" ? "/incidents" : `/incidents?severity=${f.id}`}>
-              {f.label}
-            </Link>
-          </Button>
-        ))}
+      {/* The roster's filter card: one select, the count at the end. The
+          former pill row painted its active pill solid — a second primary on
+          a page that already has one. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
+        <IncidentSeverityFilter value={activeSeverity} />
+        <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+          {t("incidents.count", { count: incidents.length })}
+        </span>
       </div>
 
       {incidents.length === 0 ? (
@@ -141,117 +125,94 @@ export default async function IncidentsPage({
           icon={<ShieldAlert />}
           title={t("incidents.empty")}
           description={t("incidents.emptyDescription")}
-          action={
-            <IncidentDialog
-              childrenOptions={childrenOptions}
-              defaultOccurredAt={defaultOccurredAt}
-              rooms={roomNames}
-            />
-          }
         />
       ) : (
-        <Card className="overflow-hidden border border-border py-0 shadow-sm ring-0">
-          <CardContent className="overflow-x-auto p-0">
-            <Table>
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
               <TableHeader>
-                <TableRow>
-                  {[
-                    t("incidents.columns.date"),
-                    t("incidents.columns.child"),
-                    t("incidents.columns.severity"),
-                    t("incidents.columns.description"),
-                    t("incidents.columns.parent"),
-                  ].map((label, i) => (
-                    <TableHead
-                      key={i}
-                      className="text-start text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                    >
-                      {label}
-                    </TableHead>
-                  ))}
-                  <TableHead className="w-10" />
+                <TableRow className="[&>th]:font-semibold">
+                  <TableHead>{t("incidents.columns.date")}</TableHead>
+                  <TableHead>{t("incidents.columns.child")}</TableHead>
+                  <TableHead>{t("incidents.columns.severity")}</TableHead>
+                  <TableHead>{t("incidents.columns.description")}</TableHead>
+                  <TableHead>{t("incidents.columns.parent")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {incidents.map((inc) => {
                   const child = inc.kg_children;
                   const cls = child?.kg_classes;
-                  const clsName = cls
-                    ? locale === "ar" && cls.name_ar
-                      ? cls.name_ar
-                      : cls.name
-                    : null;
 
                   return (
-                    <TableRow key={inc.id} className="transition-colors hover:bg-muted/40">
+                    <TableRow key={inc.id} className="relative transition-colors hover:bg-primary/5 [&>td]:align-top">
                       <TableCell className="whitespace-nowrap">
-                        <div className="text-sm font-medium text-foreground">
-                          {formatDate(inc.occurred_at, locale)}
-                        </div>
+                        <div className="text-sm">{formatDate(inc.occurred_at, locale)}</div>
                         <div className="text-xs text-muted-foreground tabular-nums">
                           {formatTime(inc.occurred_at, locale)}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm font-semibold text-foreground">
-                          {child ? childDisplayName(child, locale) : "—"}
-                        </div>
-                        {clsName && (
-                          <div className="text-xs text-muted-foreground">{clsName}</div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={incidentSeverityClasses(inc.severity)}>
-                          {t(`severity.${inc.severity}`)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-sm text-sm text-muted-foreground">
-                        {excerpt(inc.description)}
-                      </TableCell>
-                      <TableCell>
-                        {inc.parent_ack_at ? (
-                          <div className="flex items-start gap-1.5 text-success">
-                            <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
-                            <div>
-                              <div className="text-sm font-medium">{t("incidents.ack.acked")}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {t("incidents.ack.ackedAt", {
-                                  date: formatDate(inc.parent_ack_at, locale),
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        ) : inc.parent_notified_at ? (
-                          <div className="flex items-start gap-1.5 text-warning">
-                            <Clock className="mt-0.5 size-4 shrink-0" />
-                            <div>
-                              <div className="text-sm font-medium">
-                                {t("incidents.ack.pending")}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {t("incidents.ack.pendingSince", {
-                                  date: formatDate(inc.parent_notified_at, locale),
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <Badge className="border-transparent bg-muted font-medium text-muted-foreground">
-                            {t("incidents.ack.notNotified")}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          asChild
-                          aria-label={t("incidents.view")}
+                        {/* The child's name is the door: its overlay reaches
+                            every cell, so the chevron that used to sit at the
+                            end of the row has nothing left to do. */}
+                        <Link
+                          href={`/incidents/${inc.id}`}
+                          className="font-semibold after:absolute after:inset-0"
                         >
-                          <Link href={`/incidents/${inc.id}`} title={t("incidents.view")}>
-                            <ChevronRight className="rtl:-scale-x-100" />
-                          </Link>
-                        </Button>
+                          <bdi dir="auto">{child ? childDisplayName(child, locale) : "—"}</bdi>
+                        </Link>
+                        <div className="mt-1">
+                          {cls ? (
+                            <ClassChip
+                              name={locale === "ar" && cls.name_ar ? cls.name_ar : cls.name}
+                              color={cls.color}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {/* One pill by meaning: serious is the row's red,
+                            moderate asks for a look, minor is just a word. */}
+                        {inc.severity === "serious" ? (
+                          <StatusPill tone="danger">{t("severity.serious")}</StatusPill>
+                        ) : inc.severity === "moderate" ? (
+                          <StatusPill tone="attention">{t("severity.moderate")}</StatusPill>
+                        ) : (
+                          <span className="text-muted-foreground">{t("severity.minor")}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="min-w-48 max-w-sm whitespace-normal text-sm text-muted-foreground">
+                        <bdi dir="auto" className="block text-start">
+                          {excerpt(inc.description)}
+                        </bdi>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {inc.parent_ack_at ? (
+                          <>
+                            <StatusPill tone="success">{t("incidents.ack.acked")}</StatusPill>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {t("incidents.ack.ackedAt", {
+                                date: formatDate(inc.parent_ack_at, locale),
+                              })}
+                            </div>
+                          </>
+                        ) : inc.parent_notified_at ? (
+                          <>
+                            <StatusPill tone="attention">{t("incidents.ack.pending")}</StatusPill>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {t("incidents.ack.pendingSince", {
+                                date: formatDate(inc.parent_notified_at, locale),
+                              })}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            {t("incidents.ack.notNotified")}
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

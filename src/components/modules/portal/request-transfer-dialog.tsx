@@ -7,7 +7,7 @@
 // request), which room if they have a preference, and why. It sends a
 // REQUEST: kg_request_transfer files an application pointing at the existing
 // child, and the director decides from the applications queue. The copy says
-// "the crèche will confirm" rather than "your child has moved", because the
+// "the office will confirm" rather than "your child has moved", because the
 // second would be a lie on the day the family reads it, and a family who
 // packed the child's things for the école on the strength of it would be
 // told at the gate.
@@ -193,13 +193,17 @@ export function RequestTransferDialog({
             />
           </div>
 
-          {/* The one promise this dialog makes, said before the button so it
-              is read before the tap, not after. */}
-          <p className="rounded-xl bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-            {target
-              ? t("decides", { structure: structureName(target, locale) })
-              : t("decidesGeneric")}
-          </p>
+          {/* The one consequence, as one sentence with the changed fact in
+              bold — said once a structure is chosen, before the button, so it
+              is read before the tap and not after. */}
+          {target && (
+            <p className="text-sm text-muted-foreground">
+              {t.rich("consequence", {
+                structure: structureName(target, locale),
+                b: (chunks) => <b className="font-semibold text-foreground">{chunks}</b>,
+              })}
+            </p>
+          )}
         </div>
 
         <DialogFooter>

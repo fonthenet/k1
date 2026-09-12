@@ -7,16 +7,7 @@
 // (namespace `settings`) — each namespace carries the same
 // `centerTypes.<type>.{name,desc}` subtree so the two surfaces read identically.
 
-import {
-  Baby,
-  Blocks,
-  GraduationCap,
-  HeartHandshake,
-  Palette,
-  School,
-  Tent,
-  type LucideIcon,
-} from "lucide-react";
+import { Baby, Blocks, GraduationCap, HeartHandshake, Palette, School, Tent, type LucideIcon, NotebookPen, BookOpen } from "lucide-react";
 
 /** Order matters: it is the display order in the picker grid. */
 export const CENTER_TYPES = [
@@ -79,8 +70,10 @@ export const CENTER_TYPE_ICON: Record<CenterType, LucideIcon> = {
   therapy_center: HeartHandshake,
   activity_center: Palette,
   camp: Tent,
-  private_primary: School,
-  private_middle: School,
+  // Three glyphs for three levels, so the crèche (School) and the école
+  // primaire never share a tile in the switcher or on an enrolment form.
+  private_primary: NotebookPen,
+  private_middle: BookOpen,
   private_secondary: GraduationCap,
 };
 

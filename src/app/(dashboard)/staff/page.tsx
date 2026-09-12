@@ -1,29 +1,19 @@
 import Link from "next/link";
 import { AlertCircle, CalendarDays, MailPlus, Users } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
-import { formatDate, formatTime, initials } from "@/lib/format";
 import type { Membership, Timesheet } from "@/lib/types";
 import { ClockButton } from "@/components/modules/staff/clock-button";
-import { EditMemberDialog } from "@/components/modules/staff/edit-member-dialog";
 import { InviteDialog } from "@/components/modules/staff/invite-dialog";
 import { algiersToday } from "@/components/modules/staff/dates";
 import { memberName } from "@/lib/member-names";
-import { MEMBER_STATUS_BADGE, ROLE_BADGE, STAFF_ROLES } from "@/components/modules/staff/maps";
 import type { MemberStatus, ProfileLite, StaffRole } from "@/components/modules/staff/staff-types";
-import { StructureChips } from "@/components/modules/staff/structure-chips";
-import { StructureFilter } from "@/components/modules/staff/structure-filter";
+import { TeamRoster, type TeamRow } from "@/components/modules/staff/team-roster";
 import type { Structure } from "@/components/modules/classes/class-types";
 
 type TodayRow = Pick<Timesheet, "membership_id" | "clock_in_at" | "clock_out_at">;
@@ -51,7 +41,6 @@ export default async function StaffPage({
   const ctx = await requireStaff();
   const supabase = await createClient();
   const t = await getTranslations("staff");
-  const locale = await getLocale();
   const today = algiersToday();
 
   const [
@@ -109,20 +98,7 @@ export default async function StaffPage({
     tsByMember.set(row.membership_id, arr);
   }
 
-  const roleRank = new Map(STAFF_ROLES.map((r, i) => [r, i]));
-  const sorted = [...memberList].sort((a, b) => {
-    const ra = roleRank.get(a.role as StaffRole) ?? 99;
-    const rb = roleRank.get(b.role as StaffRole) ?? 99;
-    if (ra !== rb) return ra - rb;
-    const na = memberName(a, a.user_id ? profileById.get(a.user_id)?.full_name : null) ?? "—";
-    const nb = memberName(b, b.user_id ? profileById.get(b.user_id)?.full_name : null) ?? "—";
-    return na.localeCompare(nb);
-  });
-
   const structures = (structureRows ?? []) as Structure[];
-  // Under two structures the word means nothing: every row would carry the same
-  // chip and the filter would offer a choice of one.
-  const manyStructures = structures.length > 1;
 
   // A member's structures are the ones their CLASSES belong to. A class filed
   // under no structure adds nothing — it already belongs to the whole building.
@@ -140,11 +116,11 @@ export default async function StaffPage({
   for (const row of (directRows ?? []) as { membership_id: string; structure_id: string }[]) {
     addStructure(row.membership_id, row.structure_id);
   }
-  // Read back through the sorted list so a member's chips come out in the order
-  // the director arranged their structures in, not the order the join returned.
-  const memberStructures = (membershipId: string): Structure[] => {
+  // Read back through the building's list so a member's marks come out in the
+  // order the director arranged their structures in, not the join's order.
+  const memberStructureIds = (membershipId: string): string[] => {
     const ids = structureIdsByMember.get(membershipId);
-    return ids ? structures.filter((s) => ids.has(s.id)) : [];
+    return ids ? structures.filter((s) => ids.has(s.id)).map((s) => s.id) : [];
   };
 
   // Falls back to the rail's switcher, so the page and the sidebar never
@@ -156,8 +132,8 @@ export default async function StaffPage({
       : (ctx.structureId ?? "all");
   const visible =
     structureFilter === "all"
-      ? sorted
-      : sorted.filter((m) => {
+      ? memberList
+      : memberList.filter((m) => {
           const ids = structureIdsByMember.get(m.id);
           // Narrowing to one structure KEEPS the people who teach in none. The
           // cook, the driver and the director belong to the building, so they
@@ -168,6 +144,22 @@ export default async function StaffPage({
 
   const myRows = tsByMember.get(ctx.membership.id) ?? [];
   const myDirection: "in" | "out" = myRows.some((r) => r.clock_in_at && !r.clock_out_at) ? "out" : "in";
+
+  const rows: TeamRow[] = visible.map((m) => {
+    const profile = m.user_id ? profileById.get(m.user_id) : undefined;
+    return {
+      id: m.id,
+      name: memberName(m, profile?.full_name) ?? "—",
+      jobTitle: m.job_title ?? null,
+      code: m.staff_code ?? null,
+      avatarUrl: profile?.avatar_url ?? null,
+      role: m.role as StaffRole,
+      status: (m.status === "disabled" ? "disabled" : m.status) as MemberStatus,
+      hireDate: m.hire_date ?? null,
+      structureIds: memberStructureIds(m.id),
+      today: todayState(tsByMember.get(m.id) ?? []),
+    };
+  });
 
   return (
     <div>
@@ -198,143 +190,15 @@ export default async function StaffPage({
           <AlertTitle>{t("errors.generic")}</AlertTitle>
           <AlertDescription>{t("team.loadError")}</AlertDescription>
         </Alert>
-      ) : sorted.length === 0 ? (
+      ) : memberList.length === 0 ? (
         <EmptyState icon={<Users />} title={t("team.empty")} description={t("team.emptyHint")} />
       ) : (
-        <>
-          {/* Only once the building runs more than one structure — a crèche with
-              a single one should not be asked to choose between one thing. */}
-          {manyStructures && (
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              {!ctx.structureId && (
-                <StructureFilter value={structureFilter} structures={structures} />
-              )}
-            </div>
-          )}
-          {visible.length === 0 ? (
-            <EmptyState icon={<Users />} title={t("team.noMatch")} description={t("team.noMatchHint")} />
-          ) : (
-            <Card className="overflow-hidden border border-border py-0 shadow-sm ring-0">
-              <CardContent className="overflow-x-auto p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        {t("team.columns.member")}
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        {t("team.columns.role")}
-                      </TableHead>
-                      {manyStructures && (
-                        <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                          {t("team.columns.structure")}
-                        </TableHead>
-                      )}
-                      <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        {t("team.columns.code")}
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        {t("team.columns.phone")}
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        {t("team.columns.hireDate")}
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        {t("team.columns.status")}
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        {t("team.columns.today")}
-                      </TableHead>
-                      {ctx.isAdmin && <TableHead className="w-10" />}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {visible.map((m) => {
-                      const profile = m.user_id ? profileById.get(m.user_id) : undefined;
-                      const name = memberName(m, profile?.full_name) ?? "—";
-                      const parts = name.split(" ");
-                      const state = todayState(tsByMember.get(m.id) ?? []);
-                      const role = m.role as StaffRole;
-                      const status = (m.status === "disabled" ? "disabled" : m.status) as MemberStatus;
-                      return (
-                        <TableRow key={m.id} className="transition-colors hover:bg-muted/40">
-                          <TableCell className="py-3">
-                            <Link
-                              href={`/staff/${m.id}`}
-                              className="group/member flex items-center gap-3"
-                            >
-                              <Avatar className="size-9 ring-1 ring-border">
-                                <AvatarImage src={profile?.avatar_url ?? undefined} alt="" />
-                                <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                                  {initials(parts[0] ?? "", parts[1] ?? "")}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="flex min-w-0 flex-col">
-                                <span className="truncate font-semibold text-foreground group-hover/member:text-primary">
-                                  {name}
-                                </span>
-                                {m.job_title && (
-                                  <span className="truncate text-xs text-muted-foreground">
-                                    {m.job_title}
-                                  </span>
-                                )}
-                              </span>
-                            </Link>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={ROLE_BADGE[role]}>{t(`roles.${role}`)}</Badge>
-                          </TableCell>
-                          {manyStructures && (
-                            <TableCell>
-                              <StructureChips structures={memberStructures(m.id)} locale={locale} />
-                            </TableCell>
-                          )}
-                          <TableCell dir="ltr">
-                            {m.staff_code ? (
-                              <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                                {m.staff_code}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell dir="ltr" className="text-start tabular-nums">
-                            {profile?.phone ?? <span className="text-muted-foreground">—</span>}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {m.hire_date ? formatDate(m.hire_date, locale) : "—"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={MEMBER_STATUS_BADGE[status]}>{t(`memberStatus.${status}`)}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {state.kind === "present" ? (
-                              <Badge className="gap-1.5 border-transparent bg-success/10 font-medium text-success">
-                                <span aria-hidden className="size-1.5 rounded-full bg-success" />
-                                {t("clock.presentSince", { time: formatTime(state.at!, locale) })}
-                              </Badge>
-                            ) : state.kind === "left" ? (
-                              <Badge className="border-transparent bg-muted font-medium text-muted-foreground">
-                                {t("clock.leftAt", { time: formatTime(state.at!, locale) })}
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">{t("clock.notIn")}</span>
-                            )}
-                          </TableCell>
-                          {ctx.isAdmin && (
-                            <TableCell className="text-end">
-                              <EditMemberDialog member={m} name={name} />
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
-        </>
+        <TeamRoster
+          rows={rows}
+          structures={structures}
+          structureFilter={structureFilter}
+          showStructureFilter={!ctx.structureId}
+        />
       )}
     </div>
   );

@@ -3,13 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Pencil, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -35,17 +34,28 @@ import {
   SOLIDARITY_CENTER_TYPES,
 } from "@/components/modules/settings/center-types";
 
-/** Create or edit a structure of the establishment. Admin-only. */
+const sameColor = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+/**
+ * Create or edit a structure of the establishment. Admin-only.
+ *
+ * Two ways to open it: with its own outline trigger (the section header's
+ * "Ajouter une structure"), or controlled from outside — the row's overflow
+ * menu owns the "Modifier" item and simply flips `open`. A dialog that always
+ * carried its own pencil button forced every row to show one.
+ */
 export function StructureDialog({
   structure,
-  trigger = "button",
+  usedColors = [],
+  open: controlledOpen,
+  onOpenChange,
 }: {
   structure?: Structure;
-  /**
-   * "chip" sits inline at the end of a row of structure chips, so adding one
-   * reads as adding to what is there rather than as editing it.
-   */
-  trigger?: "button" | "chip";
+  /** Colours already taken by sibling structures, so a new one starts distinct. */
+  usedColors?: string[];
+  /** When given, the dialog is controlled and renders no trigger of its own. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const t = useTranslations("classes");
   const schoolsAvailable = usePrivateSchoolSupport();
@@ -53,18 +63,28 @@ export function StructureDialog({
   const tc = useTranslations("common");
   const tSettings = useTranslations("settings");
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const controlled = controlledOpen !== undefined;
+  const open = controlled ? controlledOpen : ownOpen;
+  const setOpen = (next: boolean) => {
+    if (controlled) onOpenChange?.(next);
+    else setOwnOpen(next);
+  };
   const [pending, startTransition] = useTransition();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     name: structure?.name ?? "",
     nameAr: structure?.name_ar ?? "",
     centerType: structure?.center_type ?? "kindergarten",
-    color: structure?.color ?? CLASS_COLORS[5],
+    // The first palette colour no sibling uses, so two structures never start
+    // the same teal and the roster's dots stay tellable apart.
+    color:
+      structure?.color ??
+      CLASS_COLORS.find((c) => !usedColors.some((u) => sameColor(u, c))) ??
+      CLASS_COLORS[5],
     sortOrder: structure ? String(structure.sort_order) : "0",
     active: structure?.active ?? true,
-  });
+  }));
 
-  const sameColor = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
   const offPalette =
     !CLASS_COLORS.some((c) => sameColor(c, form.color)) && /^#[0-9a-fA-F]{6}$/.test(form.color)
       ? form.color
@@ -99,35 +119,19 @@ export function StructureDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {structure ? (
-          <Button variant="ghost" size="icon-sm" aria-label={t("structures.edit")}>
-            <Pencil />
-          </Button>
-        ) : trigger === "chip" ? (
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
-          >
-            <span
-              className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-              aria-hidden
-            >
-              <Plus className="size-4" />
-            </span>
-            {t("structures.add")}
-          </button>
-        ) : (
-          <Button>
+      {!controlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
             <Plus data-icon="inline-start" />
-            {t("structures.new")}
+            {t("structures.add")}
           </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent>
+        </DialogTrigger>
+      )}
+      <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>{structure ? t("structures.editTitle") : t("structures.newTitle")}</DialogTitle>
-          <DialogDescription>{t("structures.dialogDescription")}</DialogDescription>
+          {/* The one notice worth its space: adding a structure changes the
+              bill, and the director should read that before naming it. */}
           {!structure && (
             <p className="mt-1 rounded-lg bg-gold-muted/50 px-2.5 py-1.5 text-xs text-gold-ink">
               {t("structures.billingNotice")}
@@ -203,18 +207,22 @@ export function StructureDialog({
               ))}
             </div>
           </div>
-          <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-            <span className="text-sm">
-              {t("structures.active")}
-              <span className="mt-0.5 block text-xs text-muted-foreground">
-                {t("structures.activeHint")}
+          {/* Only while editing: a structure that does not exist yet cannot
+              be out of service. */}
+          {structure && (
+            <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+              <span className="text-sm">
+                {t("structures.active")}
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {t("structures.activeHint")}
+                </span>
               </span>
-            </span>
-            <Switch
-              checked={form.active}
-              onCheckedChange={(v) => setForm((f) => ({ ...f, active: v }))}
-            />
-          </label>
+              <Switch
+                checked={form.active}
+                onCheckedChange={(v) => setForm((f) => ({ ...f, active: v }))}
+              />
+            </label>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>

@@ -1,31 +1,22 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { AlarmClock, ChevronRight, CircleCheck, Coins, Eye, FileText, Receipt, TriangleAlert } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ChevronRight, ClipboardList, Coins, FileText, Receipt, TriangleAlert, UserRound } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { SectionCard } from "@/components/shared/section-card";
+import { StatCard } from "@/components/shared/stat-card";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import { childDisplayName, formatDate, formatDZD } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import type { InvoiceStatus } from "@/lib/types";
+import { BillingTabs } from "@/components/modules/billing/billing-tabs";
 import { GenerateInvoicesButton } from "@/components/modules/billing/generate-invoices-button";
 import { NewInvoiceDialog } from "@/components/modules/billing/new-invoice-dialog";
-import { RecordPaymentDialog } from "@/components/modules/billing/record-payment-dialog";
-import { MonthFilter } from "@/components/modules/billing/month-filter";
-import { StatusChips } from "@/components/modules/billing/status-chips";
-import { StructureFilter } from "@/components/modules/billing/structure-filter";
-import { EmptyIcon, MoneyStat } from "@/components/modules/billing/finance-ui";
+import {
+  InvoicesRegister,
+  type RegisterRow,
+  type RegisterStructure,
+} from "@/components/modules/billing/invoices-register";
 import {
   addDays,
   algiersMonth,
@@ -38,18 +29,13 @@ import {
 import {
   displayInvoiceNumber,
   effectiveStatus,
-  INVOICE_STATUS_BADGE,
+  INVOICE_FILTERS,
+  type InvoiceFilter,
 } from "@/components/modules/billing/maps";
 import { CompleteInvoicesButton } from "@/components/modules/billing/complete-invoices-button";
 import { IssueInvoicesButton } from "@/components/modules/billing/issue-invoices-button";
 import type { ChildOption, InvoiceGap } from "@/components/modules/billing/billing-types";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
-
-// "draft" is a real state of this list, not an implementation detail: the
-// monthly run produces drafts and somebody has to issue them. Without the
-// chip the 17 drafts the real client was sitting on had no count anywhere.
-const FILTERS = ["all", "draft", "unpaid", "partial", "paid", "overdue", "void"] as const;
-type Filter = (typeof FILTERS)[number];
 
 type HubRow = {
   id: string;
@@ -72,6 +58,11 @@ type HubRow = {
   } | null;
 };
 
+/** An enrolled child with the class the À-traiter row names. */
+type UnbilledChild = ChildOption & {
+  kg_classes: { name: string; name_ar: string | null } | null;
+};
+
 /** A payment, with the child it settles for — the only route to its structure. */
 type PayRow = {
   amount: number;
@@ -81,17 +72,19 @@ type PayRow = {
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; status?: string; structure?: string }>;
+  searchParams: Promise<{ month?: string; status?: string; structure?: string; todo?: string }>;
 }) {
   const sp = await searchParams;
   const ctx = await requireFinance();
   const t = await getTranslations("billing");
+  // The À-traiter title is the dashboard's, so the two lists read as one idea.
+  const td = await getTranslations("dashboard");
   const locale = await getLocale();
   const supabase = await createClient();
 
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? "") ? (sp.month as string) : algiersMonth();
-  const filter: Filter = (FILTERS as readonly string[]).includes(sp.status ?? "")
-    ? (sp.status as Filter)
+  const filter: InvoiceFilter = (INVOICE_FILTERS as readonly string[]).includes(sp.status ?? "")
+    ? (sp.status as InvoiceFilter)
     : "all";
   const { start, end } = monthRange(month);
   const today = algiersToday();
@@ -103,6 +96,7 @@ export default async function BillingPage({
     { data: feeRows },
     { data: gapRows },
     { data: structureRows },
+    { count: invoiceCount },
   ] = await Promise.all([
     supabase
       .from("kg_invoices")
@@ -123,9 +117,11 @@ export default async function BillingPage({
       .eq("tenant_id", ctx.tenant.id)
       .gte("paid_at", start)
       .lt("paid_at", end),
+    // The class travels with the child so the "no fee plan" row can say which
+    // room they sit in — the one fact that tells two Adams apart.
     supabase
       .from("kg_children")
-      .select("id, first_name, last_name, first_name_ar, last_name_ar")
+      .select("id, first_name, last_name, first_name_ar, last_name_ar, kg_classes(name, name_ar)")
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled")
       .order("first_name"),
@@ -159,6 +155,13 @@ export default async function BillingPage({
       .eq("tenant_id", ctx.tenant.id)
       .order("sort_order")
       .order("name"),
+    // Whether the establishment has ever billed anything. The whole-page
+    // empty state is for that one case; an empty MONTH keeps its filter card,
+    // because the month is precisely what the reader needs to change.
+    supabase
+      .from("kg_invoices")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", ctx.tenant.id),
   ]);
   if (error) throw new Error(error.message);
 
@@ -180,7 +183,8 @@ export default async function BillingPage({
     structureFilter === "all"
       ? monthInvoices
       : monthInvoices.filter((inv) => inv.kg_children?.structure_id === structureFilter);
-  const childOptions: ChildOption[] = childRows ?? [];
+  const children = (childRows ?? []) as unknown as UnbilledChild[];
+  const childOptions: ChildOption[] = children;
 
   const billedChildIds = new Set(
     ((feeRows ?? []) as { child_id: string; end_date: string | null }[])
@@ -189,10 +193,9 @@ export default async function BillingPage({
       .filter((f) => f.end_date === null || f.end_date > today)
       .map((f) => f.child_id)
   );
-  const unbilled = childOptions.filter((c) => !billedChildIds.has(c.id));
+  const unbilled = children.filter((c) => !billedChildIds.has(c.id));
 
   const gaps = (gapRows ?? []) as InvoiceGap[];
-  const gapTotal = gaps.reduce((s, g) => s + Number(g.missing), 0);
 
   const withEffective = invoices.map((inv) => ({ inv, shown: effectiveStatus(inv, today) }));
 
@@ -220,11 +223,46 @@ export default async function BillingPage({
     .filter(({ shown }) => shown === "unpaid" || shown === "partial" || shown === "overdue")
     .reduce((s, { inv }) => s + (Number(inv.total) - Number(inv.paid_amount)), 0);
 
-  const countFor = (f: Filter) =>
-    f === "all" ? invoices.length : withEffective.filter(({ shown }) => shown === f).length;
-  const chips = FILTERS.map((f) => ({ value: f, label: t(`filters.${f}`), count: countFor(f) }));
   const visible =
     filter === "all" ? withEffective : withEffective.filter(({ shown }) => shown === filter);
+
+  // Resolved here, not in the register: the name, the class and the effective
+  // status all depend on the locale or on today, and the client component's
+  // only job is to search, group and draw rows it can already read.
+  const registerRows: RegisterRow[] = visible.map(({ inv, shown }) => {
+    const balance = Number(inv.total) - Number(inv.paid_amount);
+    const cls = inv.kg_children?.kg_classes;
+    return {
+      id: inv.id,
+      numberLabel: displayInvoiceNumber(inv.issue_date, inv.number, t("status.draft")),
+      isDraft: inv.number === null,
+      childName: inv.kg_children ? childDisplayName(inv.kg_children, locale) : "—",
+      className: cls ? (locale === "ar" && cls.name_ar ? cls.name_ar : cls.name) : null,
+      structureId: inv.kg_children?.structure_id ?? null,
+      total: Number(inv.total),
+      paid: Number(inv.paid_amount),
+      balance,
+      dueDate: inv.due_date,
+      shown,
+      // Not on a draft: cash against an unissued bill would settle it without
+      // a number ever being spent. Issue first.
+      payable: shown !== "paid" && shown !== "void" && shown !== "draft" && balance > 0,
+    };
+  });
+  // Group rows by structure only while the whole building is on screen. A
+  // month narrowed to one structure is one list, and so is a one-structure
+  // crèche. The trailing group collects children filed under no structure.
+  const registerGroups: RegisterStructure[] | null =
+    structures.length > 1 && structureFilter === "all"
+      ? [
+          ...structures.map((str) => ({
+            id: str.id,
+            name: structureName(str, locale),
+            color: str.color,
+          })),
+          { id: null, name: t("structures.whole"), color: null },
+        ]
+      : null;
 
   const monthOptions = recentMonths(12).map((m) => ({ value: m, label: monthLabel(m, locale) }));
   const currentMonthLabel = monthLabel(month, locale);
@@ -235,290 +273,218 @@ export default async function BillingPage({
     ? `${currentMonthLabel} · ${structureName(shownStructure, locale)}`
     : currentMonthLabel;
 
+  const todoCount = (drafts.length > 0 ? 1 : 0) + unbilled.length + gaps.length;
+
+  // Each group shows a handful and offers the rest. Twelve children without
+  // a tariff is a real backlog, but drawn in full it pushed the month's
+  // register below the first screen — the list this page exists for. The
+  // link keeps every other filter and adds `todo=all`, so expanding is one
+  // more state of the URL, like the month and the status.
+  const TODO_ROWS = 5;
+  const showAllTodo = sp.todo === "all";
+  const expandHref = (() => {
+    const params = new URLSearchParams();
+    params.set("month", month);
+    if (filter !== "all") params.set("status", filter);
+    if (sp.structure) params.set("structure", sp.structure);
+    params.set("todo", "all");
+    return `/billing?${params.toString()}`;
+  })();
+  const shownUnbilled = showAllTodo ? unbilled : unbilled.slice(0, TODO_ROWS);
+  const shownGaps = showAllTodo ? gaps : gaps.slice(0, TODO_ROWS);
+  /** The tertiary "see all" row under a capped group. */
+  const seeAllRow = (count: number) => (
+    <li className="px-5 py-3">
+      <Link
+        href={expandHref}
+        className="inline-flex items-center gap-1 text-sm text-primary"
+      >
+        {t("hub.seeAll", { count })}
+        <ChevronRight className="size-4 rtl:rotate-180" aria-hidden />
+      </Link>
+    </li>
+  );
+
   return (
     <div>
+      {/* One primary per page: the thing this page creates. */}
       <PageHeader title={t("hub.title")} description={t("hub.description")}>
-        <Button variant="outline" asChild>
-          <Link href="/billing/plans">{t("hub.plansLink")}</Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href="/billing/arrears">
-            <AlarmClock data-icon="inline-start" />
-            {t("hub.arrearsLink")}
-          </Link>
-        </Button>
         <NewInvoiceDialog childOptions={childOptions} />
         <GenerateInvoicesButton month={month} monthLabel={currentMonthLabel} />
-        {drafts.length > 0 && (
-          <IssueInvoicesButton
-            month={month}
-            monthLabel={currentMonthLabel}
-            count={drafts.length}
-            amountLabel={formatDZD(draftTotal, locale)}
-            dueDateLabel={formatDate(issueDue, locale)}
-          />
-        )}
       </PageHeader>
 
-      {/* Drafts nobody has issued. Generating a month is not billing it: the
-          drafts have no number and no family can see them, so a month can look
-          "done" in this list while every parent is still waiting for a bill.
-          One heading, the amount, one action — same quiet shape as the two
-          blocks below, so the page does not stack three alarms. */}
-      {drafts.length > 0 && (
-        <div className="mb-6">
-          <p className="text-sm font-semibold text-foreground">
-            {t("hub.drafts.title", { count: drafts.length })}
-          </p>
-          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            {t("hub.drafts.body", {
-              amount: formatDZD(draftTotal, locale),
-              dueDate: formatDate(issueDue, locale),
-            })}
-          </p>
-          <div className="mt-2">
-            <IssueInvoicesButton
-              variant="outline"
-              month={month}
-              monthLabel={currentMonthLabel}
-              count={drafts.length}
-              amountLabel={formatDZD(draftTotal, locale)}
-              dueDateLabel={formatDate(issueDue, locale)}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Enrolled and unbillable. The monthly run reads kg_child_fees, so a child
-          without a fee row is skipped every month in silence — no error, no run
-          exception a human would read as a problem, just a family who never
-          receives an invoice. Approval now sets the fee (0054); this catches the
-          ones approved before it did, and anyone whose plan is later ended. */}
-      {/* Enrolled and unbillable. The monthly run reads kg_child_fees, so a child
-          without a live monthly fee is charged no tuition — no error, nothing a
-          human would read as a problem, just a family who is never invoiced.
-          Approval now forces the choice (0063) and the run reports them (0064);
-          this is where they wait until somebody acts.
-
-          Each child is their own link. There used to be one "Attribuer une
-          formule" button here that navigated to whichever child happened to be
-          first in the list — a label promising an action it did not perform,
-          for a child it did not name. With two children waiting, that button
-          silently ignored one of them. */}
-      {unbilled.length > 0 && (
-        <div className="mb-6">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-gold-ink">
-            <TriangleAlert className="size-4 shrink-0" aria-hidden />
-            {t("hub.noFeePlan.title", { count: unbilled.length })}
-          </p>
-          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            {t("hub.noFeePlan.body")}
-          </p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {unbilled.map((c) => (
-              <li key={c.id}>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/children/${c.id}?tab=billing`}>
-                    {childDisplayName(c, locale)}
-                    <ChevronRight
-                      data-icon="inline-end"
-                      className="rtl:-scale-x-100"
-                      aria-hidden
-                    />
-                  </Link>
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Open invoices that are short. Distinct from the block above: those
-          children have no tariff at all, these have one and were charged less
-          than it. Same quiet treatment — one heading, the names, one action —
-          because two loud panels stacked on a screen read as an outage. */}
-      {gaps.length > 0 && (
-        <div className="mb-6">
-          <p className="text-sm font-semibold text-foreground">
-            {t("hub.incomplete.title", { count: gaps.length })}
-          </p>
-          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            {t("hub.incomplete.body", { amount: formatDZD(gapTotal, locale) })}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {gaps.map((g) => (
-              <Button key={g.child_id} variant="outline" size="sm" asChild>
-                <Link href={`/children/${g.child_id}?tab=billing`}>
-                  {childDisplayName(g, locale)}
-                  <span className="text-muted-foreground">
-                    {" +"}
-                    {formatDZD(Number(g.missing), locale)}
-                  </span>
-                </Link>
-              </Button>
-            ))}
-            <CompleteInvoicesButton month={month} />
-          </div>
-        </div>
-      )}
+      <BillingTabs />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <MoneyStat
+        <StatCard
           label={t("hub.stats.invoiced")}
           value={formatDZD(invoiced, locale)}
           hint={statHint}
           icon={<Receipt />}
-          tone="primary"
         />
-        <MoneyStat
+        <StatCard
           label={t("hub.stats.collected")}
           value={formatDZD(collected, locale)}
           hint={statHint}
           icon={<Coins />}
-          tone="income"
+          tone="success"
         />
-        <MoneyStat
+        <StatCard
           label={t("hub.stats.outstanding")}
           value={formatDZD(outstanding, locale)}
           hint={statHint}
-          icon={outstanding > 0 ? <TriangleAlert /> : <CircleCheck />}
-          tone={outstanding > 0 ? "destructive" : "muted"}
-          highlight={outstanding > 0}
+          icon={<TriangleAlert />}
+          tone="danger"
         />
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <MonthFilter options={monthOptions} value={month} ariaLabel={t("hub.monthAria")} />
-          {!ctx.structureId && (
-            <StructureFilter structures={structures} value={structureFilter} />
-          )}
-        </div>
-        <StatusChips chips={chips} value={filter} />
-      </div>
-
-      {visible.length === 0 ? (
-        <EmptyState
-          icon={
-            <EmptyIcon>
-              <FileText />
-            </EmptyIcon>
-          }
-          title={t("hub.empty")}
-          description={t("hub.emptyHint")}
-          action={
-            filter === "all" ? (
-              <GenerateInvoicesButton month={month} monthLabel={currentMonthLabel} />
-            ) : undefined
-          }
-        />
-      ) : (
-        <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
-                <TableRow>
-                  <TableHead className="ps-4">{t("hub.columns.number")}</TableHead>
-                  <TableHead>{t("hub.columns.child")}</TableHead>
-                  <TableHead>{t("hub.columns.period")}</TableHead>
-                  <TableHead className="text-end">{t("hub.columns.total")}</TableHead>
-                  <TableHead className="text-end">{t("hub.columns.paid")}</TableHead>
-                  <TableHead className="text-end">{t("hub.columns.balance")}</TableHead>
-                  <TableHead>{t("hub.columns.dueDate")}</TableHead>
-                  <TableHead>{t("hub.columns.status")}</TableHead>
-                  <TableHead className="pe-4 text-end">{t("hub.columns.actions")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.map(({ inv, shown }) => {
-                  const numberLabel = displayInvoiceNumber(
-                    inv.issue_date,
-                    inv.number,
-                    t("status.draft")
-                  );
-                  const balance = Number(inv.total) - Number(inv.paid_amount);
-                  const childName = inv.kg_children
-                    ? childDisplayName(inv.kg_children, locale)
-                    : "—";
-                  const cls = inv.kg_children?.kg_classes;
-                  const overdue = shown === "overdue";
-                  // Not on a draft: cash against an unissued bill would settle
-                  // it without a number ever being spent. Issue first.
-                  const payable =
-                    shown !== "paid" && shown !== "void" && shown !== "draft" && balance > 0;
+      {/* What the month still needs a human for, in one list rather than
+          three loose panels: drafts nobody has issued (generating a month is
+          not billing it — the drafts have no number and no family can see
+          them), children enrolled without a monthly fee (the run skips them in
+          silence, and a family is never invoiced), and open invoices that are
+          short of a charge the child owes (neither the run nor the enrolment
+          trigger revisits them). The card is not drawn at all when there is
+          nothing to do — a permanent "nothing to do" box is noise. */}
+      {todoCount > 0 && (
+        <SectionCard
+          icon={ClipboardList}
+          tone={1}
+          title={td("todo.title")}
+          hint={t("hub.todoHint", { count: todoCount })}
+          action={gaps.length > 0 ? <CompleteInvoicesButton month={month} /> : undefined}
+          className="mb-6"
+          contentClassName="px-0"
+        >
+          <ul className="divide-y divide-border">
+            {drafts.length > 0 && (
+              <li className="flex min-h-14 items-center gap-3 px-5 py-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-tile-1 text-primary">
+                  <FileText className="size-4" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">
+                    {t("hub.drafts.title", { count: drafts.length })}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {t("hub.drafts.body", {
+                      amount: formatDZD(draftTotal, locale),
+                      dueDate: formatDate(issueDue, locale),
+                    })}
+                  </span>
+                </span>
+                <IssueInvoicesButton
+                  variant="outline"
+                  month={month}
+                  monthLabel={currentMonthLabel}
+                  count={drafts.length}
+                  amountLabel={formatDZD(draftTotal, locale)}
+                  dueDateLabel={formatDate(issueDue, locale)}
+                />
+              </li>
+            )}
+            {unbilled.length > 0 && (
+              <>
+                <li className="bg-muted/30 px-5 py-1.5 text-xs">
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">{t("hub.noFeePlan.group")}</span>
+                    <span className="text-muted-foreground tabular-nums">{unbilled.length}</span>
+                  </span>
+                </li>
+                {/* Each child is their own door, to the billing tab where the
+                    fee is set. There used to be one "Attribuer une formule"
+                    button here that navigated to whichever child happened to
+                    be first in the list — a label promising an action it did
+                    not perform, for a child it did not name. */}
+                {shownUnbilled.map((c) => {
+                  const cls = c.kg_classes;
                   return (
-                    <TableRow key={inv.id} className={cn("h-14", overdue && "bg-destructive/5")}>
-                      <TableCell className="ps-4 font-medium">
+                    <li key={c.id} className="relative flex min-h-14 items-center gap-3 px-5 py-3 transition-colors hover:bg-primary/5">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                        <UserRound className="size-4" aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1">
                         <Link
-                          href={`/billing/invoices/${inv.id}`}
-                          className="tabular-nums hover:text-primary hover:underline"
+                          href={`/children/${c.id}?tab=billing`}
+                          className="block text-sm font-medium after:absolute after:inset-0"
                         >
-                          {numberLabel}
+                          <span className="block truncate"><bdi dir="auto">{childDisplayName(c, locale)}</bdi></span>
                         </Link>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{childName}</div>
-                        {cls && (
-                          <div className="text-xs text-muted-foreground">
-                            {locale === "ar" && cls.name_ar ? cls.name_ar : cls.name}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {inv.period_month ? monthLabel(inv.period_month.slice(0, 7), locale) : "—"}
-                      </TableCell>
-                      <TableCell className="text-end tabular-nums">
-                        {formatDZD(inv.total, locale)}
-                      </TableCell>
-                      <TableCell
-                        className={cn(
-                          "text-end tabular-nums",
-                          Number(inv.paid_amount) > 0
-                            ? "font-medium text-income"
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        {formatDZD(inv.paid_amount, locale)}
-                      </TableCell>
-                      <TableCell
-                        className={cn(
-                          "text-end font-semibold tabular-nums",
-                          balance <= 0 && "font-normal text-muted-foreground",
-                          overdue && "text-destructive"
-                        )}
-                      >
-                        {formatDZD(balance, locale)}
-                      </TableCell>
-                      <TableCell className={cn(overdue && "font-medium text-destructive")}>
-                        {inv.due_date ? formatDate(inv.due_date, locale) : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={INVOICE_STATUS_BADGE[shown]}>{t(`status.${shown}`)}</Badge>
-                      </TableCell>
-                      <TableCell className="pe-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" asChild aria-label={t("hub.view")}>
-                            <Link href={`/billing/invoices/${inv.id}`}>
-                              <Eye />
-                            </Link>
-                          </Button>
-                          {/* Always rendered, never `payable && …`: the action
-                              revalidates this page, and unmounting the dialog
-                              mid-confirmation takes the receipt link with it. */}
-                          <RecordPaymentDialog
-                            size="sm"
-                            payable={payable}
-                            invoice={{ id: inv.id, numberLabel, childName, balance }}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {cls ? (
+                            <bdi dir="auto">{locale === "ar" && cls.name_ar ? cls.name_ar : cls.name}</bdi>
+                          ) : (
+                            t("hub.noFeePlan.body")
+                          )}
+                        </span>
+                      </span>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />
+                    </li>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
+                {shownUnbilled.length < unbilled.length && seeAllRow(unbilled.length)}
+              </>
+            )}
+            {gaps.length > 0 && (
+              <>
+                <li className="bg-muted/30 px-5 py-1.5 text-xs">
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">{t("hub.incomplete.group")}</span>
+                    <span className="text-muted-foreground tabular-nums">{gaps.length}</span>
+                  </span>
+                </li>
+                {/* Distinct from the group above: those children have no
+                    tariff at all, these have one and were charged less than
+                    it. The amount is what is missing, and the header action
+                    adds it to every one of them at once. */}
+                {/* The name is the door here too, to the billing tab where
+                    the short invoice can be read against the tariff. The
+                    amount is not interactive, so nothing needs lifting. */}
+                {shownGaps.map((g) => (
+                  <li key={g.child_id} className="relative flex min-h-14 items-center gap-3 px-5 py-3 transition-colors hover:bg-primary/5">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                      <Receipt className="size-4" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <Link
+                        href={`/children/${g.child_id}?tab=billing`}
+                        className="block text-sm font-medium after:absolute after:inset-0"
+                      >
+                        <span className="block truncate"><bdi dir="auto">{childDisplayName(g, locale)}</bdi></span>
+                      </Link>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {t("hub.incomplete.rowHint")}
+                      </span>
+                    </span>
+                    <span dir="ltr" className="text-sm tabular-nums">
+                      +{formatDZD(Number(g.missing), locale)}
+                    </span>
+                  </li>
+                ))}
+                {shownGaps.length < gaps.length && seeAllRow(gaps.length)}
+              </>
+            )}
+          </ul>
+        </SectionCard>
+      )}
+
+      {/* The page-wide empty state is for an establishment that has never
+          billed. An empty month keeps the filter card — the month and
+          structure selects are the way out of it. */}
+      {(invoiceCount ?? 0) === 0 ? (
+        <EmptyState icon={<FileText />} title={t("hub.empty")} description={t("hub.emptyHint")} />
+      ) : (
+        <InvoicesRegister
+          rows={registerRows}
+          monthOptions={monthOptions}
+          month={month}
+          structures={structures}
+          structureFilter={structureFilter}
+          showStructureFilter={!ctx.structureId}
+          status={filter}
+          groups={registerGroups}
+          monthIsEmpty={monthInvoices.length === 0}
+        />
       )}
     </div>
   );

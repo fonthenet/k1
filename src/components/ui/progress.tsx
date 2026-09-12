@@ -19,10 +19,12 @@ function Progress({
       )}
       {...props}
     >
+      {/* A width from the inline start, not a translateX: the transform
+          slid the fill to the LEFT in Arabic, so a 30% bar read as 70%. */}
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
-        className="size-full flex-1 bg-primary transition-all"
-        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+        className="h-full bg-primary transition-all"
+        style={{ width: `${Math.max(0, Math.min(100, value || 0))}%` }}
       />
     </ProgressPrimitive.Root>
   )

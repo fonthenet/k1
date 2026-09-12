@@ -6,15 +6,17 @@
 // stores a structured type + data payload, so the same row reads in Arabic
 // for one parent and in French for the other.
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useMessages, useTranslations } from "next-intl";
 import { Bell, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import type { Locale } from "@/i18n/request";
 import { notificationHref, renderNotification, type KgNotification } from "@/lib/notifications";
+import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { algiersDay, shiftDay } from "@/components/modules/notifications/dates";
 import { NotificationIcon } from "@/components/modules/notifications/meta";
@@ -51,7 +53,7 @@ function relativeTime(iso: string, now: number, locale: Locale, justNow: string)
   return f.format(-Math.round(months / 12), "year");
 }
 
-/** Day heading: today / yesterday, then "Sunday 24 August". */
+/** Day group label: today / yesterday, then "dim. 24 août 2025". */
 function dayLabel(
   day: string,
   iso: string,
@@ -61,13 +63,25 @@ function dayLabel(
 ): string {
   if (day === today) return labels.today;
   if (day === shiftDay(today, -1)) return labels.yesterday;
-  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
-    timeZone: "Africa/Algiers",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date(iso));
+  return formatDate(iso, locale, { weekday: "short" });
 }
+
+/**
+ * The types whose tile keeps its red. Every other row's tile is neutralised
+ * to the muted tone: a column of teal, gold, green and red tiles was a
+ * column of colour that said nothing a parent could act on, and the one
+ * accent worth keeping is severity — an incident, an allergy, money that
+ * bounced, an absence the office flagged. `meta.tsx` is shared with the
+ * staff bell and stays as it is; the override is applied here, by the list.
+ */
+const ALARM_TYPES: ReadonlySet<string> = new Set([
+  "incident",
+  "incident_updated",
+  "allergy_changed",
+  "payment_overdue",
+  "payment_reversed",
+  "attendance_flagged",
+]);
 
 export function NotificationList({
   initial,
@@ -193,84 +207,98 @@ export function NotificationList({
       {rows.length === 0 ? (
         <EmptyState icon={<Bell />} title={t("empty")} description={t("emptyHint")} />
       ) : (
-        <div className="grid gap-5">
-          {groups.map(({ day, items }) => (
-            <section key={day} className="grid gap-2">
-              <h3 className="px-1 text-xs font-semibold text-muted-foreground">
-                {dayLabel(day, items[0].created_at, today, locale, {
-                  today: t("today"),
-                  yesterday: t("yesterday"),
-                })}
-              </h3>
-              <ul className="grid gap-2">
-                {items.map((n) => {
-                  const isUnread = !n.read_at;
-                  const { title, body } = renderNotification(n, messages, locale);
-                  const href = notificationHref(n, true);
-                  const otherTenant = foreignTenant(n);
-                  return (
-                    <li key={n.id}>
-                      <Link
-                        href={href}
-                        onClick={(e) => {
-                          if (isUnread) markRead([n.id]);
-                          if (otherTenant) {
-                            e.preventDefault();
-                            startSwitch(() => openInCreche(otherTenant, href));
-                          }
-                        }}
-                        className={cn(
-                          "flex min-h-16 items-start gap-3 rounded-xl px-3 py-3 text-start transition-colors",
-                          isUnread
-                            ? "bg-card ring-1 ring-primary/25 hover:bg-primary/5"
-                            : "bg-card/60 ring-1 ring-foreground/10 hover:bg-card"
-                        )}
-                      >
-                        <NotificationIcon type={n.type} className="mt-0.5 size-10 [&>svg]:size-5" />
-                        <span className="grid min-w-0 flex-1 gap-1">
-                          <span className="flex items-start gap-2">
-                            <span
-                              className={cn(
-                                "min-w-0 flex-1 text-sm leading-snug text-foreground",
-                                isUnread ? "font-bold" : "font-medium"
-                              )}
-                            >
-                              {title}
-                            </span>
-                            <time
-                              dateTime={n.created_at}
-                              className="shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular-nums"
-                            >
-                              {relativeTime(n.created_at, now, locale, t("justNow"))}
-                            </time>
-                          </span>
-                          {body && (
-                            <span className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                              {body}
-                            </span>
-                          )}
-                          {/* Which crèche, when it is not the one on screen. */}
-                          {otherTenant && (
-                            <span className="truncate text-[11px] font-medium text-muted-foreground">
-                              {tenantNames[otherTenant] ?? ""}
-                            </span>
-                          )}
+        // One card, one list, the days as group rows inside it — never a
+        // section per day. Read rows are not dimmed and unread ones are not
+        // ringed: the primary dot at the end is the one mark for "new".
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            <ul className="divide-y divide-border">
+              {groups.map(({ day, items }) => {
+                const unreadInDay = items.filter((n) => !n.read_at).length;
+                return (
+                  <Fragment key={day}>
+                    <li className="bg-muted/30 px-5 py-1.5 text-xs">
+                      <span className="flex items-center gap-2">
+                        <span className="font-semibold">
+                          {dayLabel(day, items[0].created_at, today, locale, {
+                            today: t("today"),
+                            yesterday: t("yesterday"),
+                          })}
                         </span>
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "mt-2 size-2 shrink-0 rounded-full",
-                            isUnread ? "bg-primary" : "bg-transparent"
-                          )}
-                        />
-                      </Link>
+                        {unreadInDay > 0 && (
+                          <span className="text-muted-foreground tabular-nums">
+                            {t("unreadCount", { count: unreadInDay })}
+                          </span>
+                        )}
+                      </span>
                     </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
-        </div>
+                    {items.map((n) => {
+                      const isUnread = !n.read_at;
+                      const { title, body } = renderNotification(n, messages, locale);
+                      const href = notificationHref(n, true);
+                      const otherTenant = foreignTenant(n);
+                      return (
+                        <li
+                          key={n.id}
+                          className="relative flex min-h-14 gap-3 px-5 py-3 transition-colors hover:bg-primary/5"
+                        >
+                          <NotificationIcon
+                            type={n.type}
+                            className={cn(
+                              "mt-0.5",
+                              !ALARM_TYPES.has(n.type) && "bg-muted text-muted-foreground"
+                            )}
+                          />
+                          <span className="grid min-w-0 flex-1 gap-0.5">
+                            <span className="flex items-start gap-2">
+                              {/* The title is the door: its overlay covers the
+                                  row, and the tap still marks the row read and
+                                  switches crèche when the row is foreign. */}
+                              <Link
+                                href={href}
+                                onClick={(e) => {
+                                  if (isUnread) markRead([n.id]);
+                                  if (otherTenant) {
+                                    e.preventDefault();
+                                    startSwitch(() => openInCreche(otherTenant, href));
+                                  }
+                                }}
+                                className="min-w-0 flex-1 text-start text-sm font-medium leading-snug text-foreground after:absolute after:inset-0"
+                              >
+                                {title}
+                              </Link>
+                              <time
+                                dateTime={n.created_at}
+                                dir="ltr"
+                                className="shrink-0 pt-px text-xs whitespace-nowrap text-muted-foreground tabular-nums"
+                              >
+                                {relativeTime(n.created_at, now, locale, t("justNow"))}
+                              </time>
+                            </span>
+                            {body && (
+                              <span className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                                {body}
+                              </span>
+                            )}
+                            {/* Which crèche, when it is not the one on screen. */}
+                            {otherTenant && (
+                              <span className="truncate text-[11px] text-muted-foreground">
+                                {tenantNames[otherTenant] ?? ""}
+                              </span>
+                            )}
+                          </span>
+                          {isUnread && (
+                            <span aria-hidden className="mt-2 size-2 shrink-0 rounded-full bg-primary" />
+                          )}
+                        </li>
+                      );
+                    })}
+                  </Fragment>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

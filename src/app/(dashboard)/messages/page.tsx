@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server";
 import { MessagesSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
-import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { NewThreadDialog } from "@/components/modules/comms/new-thread-dialog";
@@ -39,21 +38,13 @@ export default async function MessagesPage() {
           icon={<MessagesSquare />}
           title={t("messages.empty")}
           description={t("messages.emptyDescription")}
-          action={<NewThreadDialog childrenOptions={childrenOptions} />}
         />
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
-          <ThreadsList items={items} />
-          <Card className="hidden min-h-[420px] items-center justify-center border border-border py-0 shadow-sm ring-0 lg:flex">
-            <div className="flex flex-col items-center gap-3 p-8 text-center text-muted-foreground">
-              <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <MessagesSquare className="size-7" />
-              </span>
-              <p className="text-base font-semibold text-foreground">{t("messages.selectThread")}</p>
-              <p className="max-w-xs text-sm leading-relaxed">{t("messages.selectThreadHint")}</p>
-            </div>
-          </Card>
-        </div>
+        /* The list alone, at full width. The index used to split the page
+           with an empty "choose a conversation" card — a box whose only
+           content was that nothing had been chosen yet. The split belongs to
+           /messages/[threadId], where there is a thread to show beside it. */
+        <ThreadsList items={items} />
       )}
     </div>
   );

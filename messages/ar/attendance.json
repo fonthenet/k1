@@ -7,18 +7,18 @@
     "today": "اليوم",
     "history": "السجل الشهري",
     "register": "سجل اليوم",
-    "closedNotice": "{day} — الروضة لا تفتح في هذا اليوم.",
+    "closedNotice": "{day} — المؤسسة لا تفتح في هذا اليوم.",
     "todayLabel": "اليوم",
     "sortLabel": "الترتيب",
     "sortPresent": "الحاضرون أولاً",
     "sortUnmarked": "غير المسجّلين أولاً",
     "sortName": "بالاسم",
-    "holidayNotice": "{name} — الروضة مغلقة في هذا اليوم.",
+    "holidayNotice": "{name} — المؤسسة مغلقة في هذا اليوم.",
     "futureNotice": "هذا اليوم لم يأتِ بعد — لا يمكن تسجيل الحضور مسبقًا."
   },
   "tabs": {
     "all": "كل الأقسام",
-    "presence": "{present, plural, zero {لا حاضر من أصل {total}} one {حاضر واحد من أصل {total}} two {حاضران من أصل {total}} few {# حاضرين من أصل {total}} many {# حاضرًا من أصل {total}} other {# حاضر من أصل {total}}}"
+    "presence": "{present, plural, zero {لا أحد حاضر من أصل {total}} one {حاضر واحد من أصل {total}} two {حاضران من أصل {total}} few {# حاضرين من أصل {total}} many {# حاضرًا من أصل {total}} other {# حاضر من أصل {total}}}"
   },
   "structures": {
     "filter": "التصفية حسب الهيكل",
@@ -28,7 +28,10 @@
     "present": "{count, plural, =0 {لا أحد حاضر} one {حاضر واحد} two {حاضران} few {# حاضرين} many {# حاضرًا} other {# حاضر}}",
     "absent": "{count, plural, =0 {لا أحد غائب} one {غائب واحد} two {غائبان} few {# غائبين} many {# غائبًا} other {# غائب}}",
     "notMarked": "{count, plural, =0 {لا أحد بدون تسجيل} one {واحد بدون تسجيل} two {اثنان بدون تسجيل} few {# بدون تسجيل} many {# بدون تسجيل} other {# بدون تسجيل}}",
-    "checkedOut": "{count, plural, =0 {لم يخرج أحد} one {خرج واحد} two {خرج اثنان} few {# خرجوا} many {# خرجوا} other {# خرجوا}}"
+    "checkedOut": "{count, plural, =0 {لم يخرج أحد} one {خرج واحد} two {خرج اثنان} few {# خرجوا} many {# خرجوا} other {# خرجوا}}",
+    "ofTotal": "{count, plural, =0 {لا أطفال مسجّلون} one {من أصل طفل واحد} two {من أصل طفلين} few {من أصل # أطفال} many {من أصل # طفلًا} other {من أصل # طفل}}",
+    "reportedByParents": "{count, plural, =0 {لم تبلّغ أي عائلة} one {بلّغت عنه عائلته} two {بلّغت عنهما عائلتاهما} few {# بلّغت عنهم عائلاتهم} many {# بلّغت عنهم عائلاتهم} other {# بلّغت عنهم عائلاتهم}}",
+    "stillHere": "{count, plural, =0 {لم يبقَ أحد} one {واحد لا يزال هنا} two {اثنان لا يزالان هنا} few {# لا يزالون هنا} many {# لا يزالون هنا} other {# لا يزالون هنا}}"
   },
   "status": {
     "present": "حاضر",
@@ -82,7 +85,7 @@
     "bulkDone": "{count, plural, one {تم تسجيل طفل واحد حاضرًا} two {تم تسجيل طفلين حاضرين} few {تم تسجيل # أطفال حاضرين} many {تم تسجيل # طفلًا حاضرين} other {تم تسجيل # طفل حاضرين}}",
     "bulkNone": "جميع الأطفال مسجلون بالفعل",
     "error": "حدث خطأ. أعد المحاولة.",
-    "closed": "الروضة مغلقة في هذا اليوم — لم يُسجَّل أي حضور.",
+    "closed": "المؤسسة مغلقة في هذا اليوم — لم يُسجَّل أي حضور.",
     "future": "لا يمكن تسجيل الحضور ليوم لم يأتِ بعد."
   },
   "empty": {
@@ -104,5 +107,81 @@
     "total": "المجموع",
     "totalTitle": "أيام الحضور في الشهر",
     "empty": "لا توجد بيانات حضور لهذا الشهر."
+  },
+  "sections": {
+    "register": "السجل",
+    "journal": "اليوميات",
+    "history": "السجل الشهري",
+    "label": "صفحات الحضور"
+  },
+  "journal": {
+    "title": "يوميات اليوم",
+    "description": "مزاج كل طفل حاضر ووجبته وقيلولته",
+    "columns": {
+      "child": "الطفل",
+      "mood": "المزاج",
+      "meal": "الوجبة",
+      "nap": "القيلولة",
+      "note": "ملاحظة",
+      "photos": "الصور"
+    },
+    "moods": {
+      "happy": "فرح",
+      "calm": "هدوء",
+      "tired": "تعب",
+      "upset": "انزعاج"
+    },
+    "eaten": {
+      "all": "كل شيء",
+      "half": "النصف",
+      "little": "قليل",
+      "none": "لا شيء"
+    },
+    "napFrom": "من",
+    "napTo": "إلى",
+    "notSlept": "بدون قيلولة",
+    "napMinutes": "{minutes} دقيقة",
+    "notePlaceholder": "سطر للعائلة",
+    "photos": {
+      "title": "<name>{child}</name> · صور يوم {date}",
+      "add": "إضافة صور",
+      "remove": "إزالة",
+      "count": "{count, plural, zero {لا صور} one {صورة واحدة} two {صورتان} few {# صور} many {# صورة} other {# صورة}}",
+      "noConsent": "لم تردّ العائلة بعد على موافقة الصور.",
+      "refused": "رفضت العائلة التصوير.",
+      "seeConsents": "عرض الموافقات",
+      "tooLarge": "تعذّر تصغير هذه الصورة."
+    },
+    "bulkMeal": "الجميع أكلوا جيدا",
+    "publish": "نشر اليوميات",
+    "publishTitle": "نشر يوميات {date}",
+    "publishDigest": "يظهر للعائلات فورا؛ ويصل إلى هواتفهم ضمن يوميات اليوم نحو <ltr>{time}</ltr>.",
+    "publishNow": "يظهر للعائلات فورا؛ ويُرسَل إلى هواتفهم الآن.",
+    "publishConfirm": "نشر",
+    "published": "منشور",
+    "sentAt": "أُرسل على الساعة <ltr>{time}</ltr>",
+    "ledger": {
+      "skipped_absent": "لم يُرسل · غائب",
+      "skipped_unmarked": "لم يُرسل · غير مسجَّل",
+      "skipped_empty": "لم يُرسل · لا شيء يُروى",
+      "skipped_no_account": "لم يُرسل · لا حساب للعائلة",
+      "failed": "فشل الإرسال · تُعاد المحاولة"
+    },
+    "saved": "تم الحفظ",
+    "empty": "لم يُسجَّل أي طفل حاضرا",
+    "emptyDescription": "سجّلوا الوصول في السجل، ثم تُملأ اليوميات.",
+    "openRegister": "فتح السجل",
+    "toasts": {
+      "published": "{count, plural, zero {لم يُنشر شيء} one {نُشرت يوميات طفل واحد} two {نُشرت يوميات طفلين} few {نُشرت يوميات # أطفال} many {نُشرت يوميات # طفلا} other {نُشرت يوميات # طفل}}"
+    },
+    "errors": {
+      "future": "لم يحن هذا اليوم بعد.",
+      "closed": "المؤسسة مغلقة في ذلك اليوم.",
+      "absent": "هذا الطفل غير مسجَّل حاضرا.",
+      "profile": "اليوميات لا تخصّ هذا القسم.",
+      "consent": "لم تسمح العائلة بالصور.",
+      "forbidden": "الفريق التربوي وحده يملأ اليوميات.",
+      "invalid": "تحقّقوا من الإدخال."
+    }
   }
 }

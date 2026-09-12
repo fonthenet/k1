@@ -1,16 +1,17 @@
 "use client";
 
-// Action bar on the application detail page: approve (class + tag code),
-// reject (with note), and the shared stage menu for every other pipeline move.
+// Action bar in the identity band of an application: approve (class + tariff),
+// and the shared stage menu for every other pipeline move, refusal included.
 //
-// In a building with two structures the approve dialog is also where the
-// child lands on one side or the other: the class picker is grouped by
-// structure, opens on the structure the family asked for, and says in one
-// line where the child will be filed. A transfer request (0140) uses the same
-// dialog with the parts that do not apply removed — no badge code (the child
-// keeps theirs), no first-month invoice by default, only the target
-// structure's tariffs — because the database will MOVE the child rather than
-// create one.
+// The approve dialog is ONE decision — "inscrire cet enfant, ici, à ce tarif"
+// — so it holds exactly two inputs (the class, the tariff with its discount)
+// and one sentence that recomputes from them. In a building with two
+// structures the class picker is grouped by structure and opens on the
+// structure the family asked for; the sentence says where the child lands
+// and turns gold only when that is not what the family asked. A transfer
+// request (0140) uses the same dialog with the parts that do not apply
+// removed — no first-month invoice by default, only the target structure's
+// tariffs — because the database will MOVE the child rather than create one.
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -24,7 +25,7 @@ import {
 } from "@/lib/structure-groups";
 import { ageBandLabel } from "@/components/modules/classes/class-types";
 import { toast } from "sonner";
-import { ArrowRightLeft, Check, Loader2, TriangleAlert, Users, X } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -45,9 +46,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDZD } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { approveApplication, updateApplicationStatus } from "@/app/(dashboard)/applications/actions";
 import { StageMenu } from "./stage-menu";
 import type { PipelineStatus } from "./types";
@@ -87,14 +90,35 @@ export type ClassOption = {
   structure_id?: string | null;
 };
 
-/** A small colour dot: the structure's own colour, the one signal it gets. */
+/** The structure's own colour as a dot, the one signal it gets in the picker.
+ *  `inline-block` so it has a box even outside a flex row. */
 function StructureDot({ color }: { color?: string }) {
   return (
     <span
       aria-hidden
-      className="size-2 shrink-0 rounded-full ring-1 ring-inset ring-foreground/10"
+      className="inline-block size-2 shrink-0 rounded-full ring-1 ring-inset ring-foreground/10"
       style={{ backgroundColor: color ?? "var(--muted-foreground)" }}
     />
+  );
+}
+
+const bold = (chunks: React.ReactNode) => <b className="font-semibold text-foreground">{chunks}</b>;
+
+/**
+ * An age band with its two numbers isolated: "3–4 سنوات" must keep 3 before
+ * 4 in Arabic, and only the numeric run is wrapped so the word stays where
+ * the sentence puts it. ageBandLabel returns a plain string, so the run is
+ * found here rather than there.
+ */
+function BandText({ label }: { label: string }) {
+  const m = label.match(/^(.*?)([\d.,]+\s*[–-]\s*[\d.,]+)(.*)$/);
+  if (!m) return <>{label}</>;
+  return (
+    <>
+      {m[1]}
+      <span dir="ltr">{m[2]}</span>
+      {m[3]}
+    </>
   );
 }
 
@@ -102,6 +126,8 @@ export function ReviewActions({
   appId,
   status,
   interviewAt,
+  childName,
+  childAge,
   classes,
   feePlans,
   admissionFees,
@@ -118,6 +144,10 @@ export function ReviewActions({
   appId: string;
   status: PipelineStatus;
   interviewAt: string | null;
+  /** The child's name in the reader's script — the dialog's title. */
+  childName: string;
+  /** The child's age in words, already translated ("3 ans 10 mois"). */
+  childAge?: string | null;
   classes: ClassOption[];
   /** Empty for a non-finance reviewer; the billing block hides itself then. */
   feePlans: FeePlanOption[];
@@ -135,7 +165,7 @@ export function ReviewActions({
   /** The applicant's guardian record, when one exists — the family approval
    *  will link this child to. Null means approving starts a NEW family. */
   familyName?: string | null;
-  /** Every active structure of the building. Fewer than two: no grouping, no chip. */
+  /** Every active structure of the building. Fewer than two: no grouping, no mark. */
   structures?: StructureLite[];
   /** The structure the FAMILY asked for (0136/0140). Null = the whole building. */
   requestedStructureId?: string | null;
@@ -143,6 +173,7 @@ export function ReviewActions({
   transfer?: TransferSummary | null;
 }) {
   const t = useTranslations("enroll");
+  const tc = useTranslations("common");
   // The classes namespace owns every phrasing of an age band — see
   // ageBandLabel. Borrowed here rather than re-worded in enroll.json.
   const tClasses = useTranslations("classes");
@@ -152,24 +183,10 @@ export function ReviewActions({
 
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
-  /**
-   * The room, proposed rather than left blank.
-   *
-   * The crèche bands its classes in months for exactly this, and this dialog
-   * held the bands and the birth date and joined neither — so every approval
-   * opened on "no class for now", and an unplaced child is missing from the
-   * attendance tabs and from every class report.
-   *
-   * The age decides the proposal even when the family named a class: parents
-   * pick the room they have heard of, and only the crèche knows what the bands
-   * mean. Their choice is not discarded — it is shown right under the field so
-   * the reviewer sees any disagreement instead of overwriting it silently.
-   *
-   * Derived at render, never stored: a class created next term proposes itself
-   * on every pending application at once, with nothing to backfill.
-   */
+
   const isTransfer = !!transfer;
   const multiStructure = structures.length > 1;
+  const whole = t("approve.wholeBuilding");
   const requestedStructure = requestedStructureId
     ? (structures.find((s) => s.id === requestedStructureId) ?? null)
     : null;
@@ -190,30 +207,44 @@ export function ReviewActions({
     const c = classes.find((x) => x.id === id);
     return c ? c.capacity - c.enrolled : 0;
   };
-  // The proposal is made INSIDE the structure the family asked for. One
-  // suggestion across both structures is not an answer — a five-year-old
-  // fits the crèche's Grande Section and the école's Préscolaire, and picking
-  // one silently is how a child lands on the wrong register. Without a
-  // requested structure (a whole-building link, or a file older than 0136)
-  // the building-wide proposal stands, and the "will be filed in" line below
-  // makes the consequence visible.
+  /**
+   * The room the age points to, proposed rather than left blank.
+   *
+   * The proposal is made INSIDE the structure the family asked for first: a
+   * five-year-old fits the crèche's Grande Section and the école's
+   * Préscolaire, and picking one silently is how a child lands on the wrong
+   * register. Only when that structure has no band for this age does the
+   * building-wide proposal stand — and the sentence under the picker then
+   * names the other structure, because that is a real choice for the
+   * reviewer. (It used to fall back on a truthy "no fit" object, so a child
+   * of 3 ans 10 mois was told no band existed while Moyenne Section 3–4 ans
+   * sat two lines lower in the list.)
+   *
+   * Derived at render, never stored: a class created next term proposes
+   * itself on every pending application at once, with nothing to backfill.
+   */
   const perStructure = childDob
     ? suggestClassPerStructure(offeredClasses, childDob, freeSpace)
     : null;
+  const inRequested = requestedStructureId ? (perStructure?.get(requestedStructureId) ?? null) : null;
   const suggestion = childDob
-    ? (requestedStructureId && perStructure?.get(requestedStructureId)) ||
-      suggestClass(offeredClasses, childDob, freeSpace)
+    ? inRequested?.classId
+      ? inRequested
+      : suggestClass(offeredClasses, childDob, freeSpace)
+    : null;
+  const suggestedClass = suggestion?.classId
+    ? (classes.find((c) => c.id === suggestion.classId) ?? null)
     : null;
   const requestedClass = requestedClassId
     ? (offeredClasses.find((c) => c.id === requestedClassId) ?? null)
     : null;
+  // The family's own request is the default when they made one; the age
+  // proposes a room only when they did not. The line under the picker says
+  // whether the two agree, so a disagreement is seen, never overwritten.
   const [classId, setClassId] = useState<string>(
-    suggestion?.classId ?? requestedClass?.id ?? "none",
+    requestedClass?.id ?? suggestedClass?.id ?? "none"
   );
   const className = (c: ClassOption) => (locale === "ar" && c.name_ar ? c.name_ar : c.name);
-  const showingSuggestion = !!suggestion?.classId && classId === suggestion.classId;
-  /** The family named a room and it is not the one selected — say so. */
-  const familyDisagrees = !!requestedClass && requestedClass.id !== classId;
 
   // The picker, grouped by structure, the requested structure's group first
   // so the reviewer's eye lands where the family's did. Headings only appear
@@ -227,19 +258,15 @@ export function ReviewActions({
     : groups;
 
   // Where the child will actually be filed: the selected class decides when
-  // it belongs to a structure, the family's request otherwise. Shown as one
-  // line under the picker, because it is the one consequence of this choice
-  // that the class name alone does not say.
+  // it belongs to a structure, the family's request otherwise.
   const selectedClass = classId === "none" ? null : (classes.find((c) => c.id === classId) ?? null);
   const targetStructureId = selectedClass?.structure_id ?? requestedStructureId ?? null;
   const targetStructure = targetStructureId
     ? (structures.find((s) => s.id === targetStructureId) ?? null)
     : null;
   const rehomed =
-    !isTransfer && !!requestedStructure && targetStructureId !== requestedStructureId;
-  // The family's own request wins the default: they said which schedule they
-  // need on the enrolment form, so the reviewer confirms rather than guesses.
-  // Failing that, the only plan when there is only one.
+    !isTransfer && multiStructure && !!requestedStructure && targetStructureId !== requestedStructureId;
+
   // A tariff follows the structure the child lands in: the building's plans
   // plus that structure's own. The école's tariff on a crèche child would be
   // refused by kg_move_child on a transfer (fee_plan_not_in_structure) and is
@@ -247,10 +274,13 @@ export function ReviewActions({
   // no structure_id field (a caller that did not select it) is treated as
   // building-wide — the pre-0136 behaviour, which showed everything.
   const offeredPlans = feePlans.filter(
-    (f) => f.structure_id == null || f.structure_id === targetStructureId,
+    (f) => f.structure_id == null || f.structure_id === targetStructureId
   );
   const requestedIsOffered =
     !!requestedFeePlanId && offeredPlans.some((f) => f.id === requestedFeePlanId);
+  // The family's own request wins the default: they said which schedule they
+  // need on the enrolment form, so the reviewer confirms rather than guesses.
+  // Failing that, the only plan when there is only one.
   const [chosenFeePlanId, setFeePlanId] = useState<string>(
     requestedIsOffered
       ? (requestedFeePlanId as string)
@@ -262,17 +292,25 @@ export function ReviewActions({
   // it falls back to "none" rather than submitting a plan the list no longer
   // shows, and the no-plan acknowledgement then applies as usual.
   const feePlanId = offeredPlans.some((f) => f.id === chosenFeePlanId) ? chosenFeePlanId : "none";
+  const chosenPlan = feePlanId === "none" ? null : (offeredPlans.find((f) => f.id === feePlanId) ?? null);
+  const [discount, setDiscount] = useState("");
+  const discountPct = Math.min(100, Math.max(0, Number(discount) || 0));
   // A transfer does not open a new month by default: the child is already
   // being invoiced this month by the structure they are leaving, and the
   // old tariff stops the day before the move (kg_move_child). The reviewer
   // can still tick it when the new structure bills from day one.
   const [billFirstMonth, setBillFirstMonth] = useState(!isTransfer);
   const [noFeeAcknowledged, setNoFeeAcknowledged] = useState(false);
-  // Only when the crèche actually HAS plans to choose from: a tenant that has
-  // not set its tariffs up yet must still be able to enrol.
+  // Enrolling with no monthly plan has to be a decision, not a default
+  // nobody noticed: kg_generate_monthly_invoices bills from kg_child_fees and
+  // skips a child with no row, so "none" means this family is never invoiced
+  // — and nothing downstream ever says so. Only when the crèche actually HAS
+  // plans to choose from: a tenant without tariffs must still be able to enrol.
   const mustAcknowledgeNoFee =
     offeredPlans.length > 0 && feePlanId === "none" && !noFeeAcknowledged;
   const [rejectNote, setRejectNote] = useState("");
+
+  const admissionTotal = admissionFees.reduce((n, f) => n + f.amount, 0);
 
   if (status === "approved") {
     return createdChildId ? (
@@ -289,6 +327,7 @@ export function ReviewActions({
         classId: classId === "none" ? null : classId,
         tagCode: null,
         feePlanId: feePlanId === "none" ? null : feePlanId,
+        discountPct,
         billFirstMonth,
       });
       if (res.error || !res.childId) {
@@ -319,9 +358,109 @@ export function ReviewActions({
     });
   };
 
+  /** "La crèche · Moyenne Section" — the structure only in a building with a choice. */
+  const placeName = (s: StructureLite | null, cls: string | null) =>
+    [multiStructure || isTransfer ? structureLabel(s, locale, whole) : null, cls]
+      .filter(Boolean)
+      .join(" · ");
+
+  // The one sentence the family's request makes, for the header.
+  const requestedPlace = placeName(
+    requestedStructure,
+    requestedClass ? className(requestedClass) : null
+  );
+  const description = isTransfer
+    ? t("approve.transferLine", {
+        from: [transfer?.fromStructureName ?? t("approve.noStructure"), transfer?.fromClassName]
+          .filter(Boolean)
+          .join(" · "),
+        to: requestedPlace || whole,
+      })
+    : requestedPlace
+      ? t("approve.familyAsked", { place: requestedPlace })
+      : t("approve.familyAskedNothing");
+
+  // The age's opinion, in one line. Gold only when it disagrees with the
+  // room selected — the reviewer has a real choice then, not an error.
+  const band = suggestedClass
+    ? ageBandLabel(suggestedClass.age_min_months, suggestedClass.age_max_months, tClasses)
+    : null;
+  const ageAgrees = !!suggestedClass && classId === suggestedClass.id;
+  const suggestedElsewhere =
+    !!suggestedClass &&
+    multiStructure &&
+    !isTransfer &&
+    (suggestedClass.structure_id ?? null) !== targetStructureId;
+  const ageValues = {
+    age: childAge ?? "",
+    class: suggestedClass ? className(suggestedClass) : "",
+    structure: suggestedElsewhere
+      ? structureLabel(
+          structures.find((s) => s.id === suggestedClass?.structure_id) ?? null,
+          locale,
+          whole
+        )
+      : "",
+    band: () => (band ? <BandText label={band} /> : null),
+  };
+  const ageLine = !childDob
+    ? null
+    : suggestedClass
+      ? ageAgrees
+        ? t.rich("approve.ageFits", ageValues)
+        : suggestedElsewhere
+          ? t.rich("approve.ageSuggestsIn", ageValues)
+          : t.rich("approve.ageSuggests", ageValues)
+      : suggestion?.reason === "outside"
+        ? t("approve.ageOutside", { age: childAge ?? "" })
+        : suggestion?.reason === "unbanded"
+          ? t("reviewActions.classNoFit.unbanded")
+          : null;
+  const familyDisagrees = !!requestedClass && requestedClass.id !== classId;
+
+  // The consequence, as one sentence that recomputes from the two inputs.
+  const targetPlace = placeName(
+    targetStructure,
+    selectedClass ? className(selectedClass) : isTransfer && requestedClass ? className(requestedClass) : null
+  );
+  const pieces: React.ReactNode[] = [];
+  if (isTransfer) {
+    pieces.push(
+      t.rich("approve.summary.transfer", {
+        b: bold,
+        from: [transfer?.fromStructureName ?? t("approve.noStructure"), transfer?.fromClassName]
+          .filter(Boolean)
+          .join(" · "),
+        to: targetPlace || whole,
+      })
+    );
+  } else {
+    pieces.push(
+      t.rich("approve.summary.place", {
+        b: bold,
+        place: targetPlace || t("reviewActions.noClass"),
+      })
+    );
+    if (rehomed) {
+      pieces.push(
+        <span className="text-gold-ink">
+          {t("approve.summary.rehomed", { from: structureLabel(requestedStructure, locale, whole) })}
+        </span>
+      );
+    }
+  }
+  if (chosenPlan) {
+    pieces.push(t.rich("approve.summary.plan", { b: bold, amount: formatDZD(chosenPlan.amount, locale) }));
+    if (discountPct > 0) pieces.push(t("approve.summary.discount", { pct: discountPct }));
+    if (admissionTotal > 0 && !isTransfer) {
+      pieces.push(t("approve.summary.admission", { amount: formatDZD(admissionTotal, locale) }));
+    }
+  } else if (isTransfer && offeredPlans.length === 0) {
+    pieces.push(t("approve.summary.tariffStops"));
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {/* Approve */}
       <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
         <DialogTrigger asChild>
           <Button disabled={pending}>
@@ -329,62 +468,25 @@ export function ReviewActions({
             {t("reviewActions.approve")}
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {t(isTransfer ? "approve.transferTitle" : "reviewActions.approveTitle")}
+              {t(isTransfer ? "approve.titleTransfer" : "approve.title", { name: childName })}
             </DialogTitle>
-            <DialogDescription>
-              {t(isTransfer ? "approve.transferDesc" : "reviewActions.approveDesc")}
-            </DialogDescription>
+            <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4 py-1">
-            {/* The structure first, above everything: it is what the family
-                asked for and, on a transfer, the one thing the reviewer cannot
-                change here. The structure's own colour is the only accent. */}
-            {(multiStructure || isTransfer) && (requestedStructure || isTransfer) && (
-              <div className="flex items-start gap-2.5 rounded-xl bg-muted/60 p-3 text-sm">
-                {isTransfer ? (
-                  <ArrowRightLeft className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                ) : (
-                  <span className="mt-1.5">
-                    <StructureDot color={requestedStructure?.color} />
-                  </span>
-                )}
-                <div className="min-w-0 space-y-0.5">
-                  <p>
-                    <span className="text-muted-foreground">{t("approve.requested")} </span>
-                    <span className="inline-flex items-center gap-1.5 font-medium">
-                      {isTransfer && <StructureDot color={requestedStructure?.color} />}
-                      {structureLabel(requestedStructure, locale, t("approve.wholeBuilding"))}
-                    </span>
-                  </p>
-                  {isTransfer && transfer && (
-                    <p className="text-xs text-muted-foreground">
-                      {t("approve.transferFrom", {
-                        from: [transfer.fromStructureName ?? t("approve.noStructure"), transfer.fromClassName]
-                          .filter(Boolean)
-                          .join(" · "),
-                      })}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
             {/* Approval matches the applicant's guardian by user_id, then by
                 normalised phone (migration 0017) — so say which way it will go. */}
-            {isSibling &&
-              (familyName ? (
-                <div className="flex items-start gap-2 rounded-xl bg-gold-muted/60 p-3 text-sm text-gold-ink ring-1 ring-gold/25">
-                  <Users className="mt-0.5 size-4 shrink-0" />
-                  <p>{t("reviewActions.siblingLinkNamed", { name: familyName })}</p>
-                </div>
-              ) : (
-                <div className="flex items-start gap-2 rounded-xl bg-warning/10 p-3 text-sm text-warning-ink ring-1 ring-warning/25">
-                  <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-                  <p>{t("reviewActions.siblingNoFamily")}</p>
-                </div>
-              ))}
+            {isSibling && (
+              <p className={cn("text-xs", familyName ? "text-muted-foreground" : "text-gold-ink")}>
+                {familyName
+                  ? t("reviewActions.siblingLinkNamed", { name: familyName })
+                  : t("reviewActions.siblingNoFamily")}
+              </p>
+            )}
+
             <div className="space-y-1.5">
               <Label>{t("reviewActions.class")}</Label>
               <Select value={classId} onValueChange={setClassId}>
@@ -402,30 +504,30 @@ export function ReviewActions({
                       : t("reviewActions.noClass")}
                   </SelectItem>
                   {/* The band is shown because it is the REASON one of these
-                      is pre-selected. Without it the proposal is an assertion
-                      the reviewer cannot check, and a mistyped band on the
-                      classes page stays invisible until children land in the
-                      wrong room. */}
+                      is proposed. Without it the proposal is an assertion the
+                      reviewer cannot check. */}
                   {orderedGroups.map((g) => {
                     const items = g.classes.map((c) => {
-                      const band = ageBandLabel(c.age_min_months, c.age_max_months, tClasses);
-                      const proposed = !!suggestion?.classId && c.id === suggestion.classId;
+                      const itemBand = ageBandLabel(c.age_min_months, c.age_max_months, tClasses);
+                      const proposed = !!suggestedClass && c.id === suggestedClass.id;
                       return (
                         <SelectItem key={c.id} value={c.id}>
                           {className(c)}
-                          {band && (
-                            <span className="text-muted-foreground"> {band}</span>
+                          {itemBand && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              <BandText label={itemBand} />
+                            </span>
                           )}
                           <span className="text-muted-foreground tabular-nums" dir="ltr">
                             {" "}
                             ({c.enrolled}/{c.capacity})
                           </span>
-                          {/* The proposal is marked IN the list, not only by
-                              being selected: once the reviewer opens the
-                              menu to compare rooms, the one the age points
-                              to should still be findable. */}
+                          {/* Marked IN the list, not only by being selected:
+                              once the menu is open to compare rooms, the one
+                              the age points to should still be findable. */}
                           {proposed && (
-                            <span className="text-xs text-success"> · {t("approve.proposed")}</span>
+                            <span className="text-xs text-muted-foreground"> · {t("approve.proposed")}</span>
                           )}
                         </SelectItem>
                       );
@@ -436,7 +538,7 @@ export function ReviewActions({
                       <SelectGroup key={key}>
                         <SelectLabel className="flex items-center gap-1.5">
                           <StructureDot color={g.structure?.color} />
-                          {structureLabel(g.structure, locale, t("approve.wholeBuilding"))}
+                          {structureLabel(g.structure, locale, whole)}
                         </SelectLabel>
                         {items}
                       </SelectGroup>
@@ -444,93 +546,23 @@ export function ReviewActions({
                   })}
                 </SelectContent>
               </Select>
-              {/* Where the child is filed as a result. Only worth a line in a
-                  building with a choice, and gold — the reviewer's decision,
-                  not an error — when it is not the structure the family named. */}
-              {multiStructure && !isTransfer && (
-                <p
-                  className={
-                    rehomed
-                      ? "flex items-center gap-1.5 text-xs font-medium text-gold-ink"
-                      : "flex items-center gap-1.5 text-xs text-muted-foreground"
-                  }
-                >
-                  <StructureDot color={targetStructure?.color} />
-                  {rehomed
-                    ? t("approve.rehomed", {
-                        to: structureLabel(targetStructure, locale, t("approve.wholeBuilding")),
-                        from: structureLabel(requestedStructure, locale, t("approve.wholeBuilding")),
-                      })
-                    : t("approve.landsIn", {
-                        name: structureLabel(targetStructure, locale, t("approve.wholeBuilding")),
-                      })}
+              {ageLine && (
+                <p className={cn("text-xs", ageAgrees || !suggestedClass ? "text-muted-foreground" : "text-gold-ink")}>
+                  {ageLine}
                 </p>
               )}
-              {/* Three different facts, so three different signals. The
-                  family asked for this room AND the age agrees is the one
-                  worth a tick: there is nothing left for the reviewer to
-                  decide. A bare age proposal is the same green without the
-                  tick, because it is still only the software's opinion. A
-                  disagreement is gold — the reviewer has a real choice. */}
-              {showingSuggestion &&
-                (requestedClass?.id === classId ? (
-                  <p className="flex items-center gap-1 text-xs font-medium text-success">
-                    <Check className="size-3.5 shrink-0" aria-hidden />
-                    {t("reviewActions.classFamilyAgrees")}
-                  </p>
-                ) : (
-                  <p className="text-xs text-success">
-                    {t(
-                      suggestion.reason === "tiebreak"
-                        ? "reviewActions.classFromAgeTie"
-                        : "reviewActions.classFromAge",
-                    )}
-                  </p>
-                ))}
               {familyDisagrees && (
                 <p className="text-xs text-gold-ink">
-                  {t("reviewActions.classFamilyAsked", {
-                    name: className(requestedClass),
-                  })}
+                  {t("reviewActions.classFamilyAsked", { name: className(requestedClass) })}
                 </p>
               )}
-              {!!childDob &&
-                classId === "none" &&
-                (suggestion?.reason === "outside" || suggestion?.reason === "unbanded") && (
-                  <p className="text-xs text-muted-foreground">
-                    {t(`reviewActions.classNoFit.${suggestion.reason}`)}
-                  </p>
-                )}
             </div>
-            {/* The badge code is not asked for. It used to be pre-filled from a
-                client-side scan of existing codes, which two reviewers approving
-                at the same moment would both compute as the same K-NNN.
-                kg_children_auto_tag (0025) allocates it inside the insert, so it
-                cannot collide. */}
-            {!isTransfer && (
-              <p className="text-xs text-muted-foreground">{t("reviewActions.tagHint")}</p>
-            )}
 
-            {/* Billing. Approval used to set the child up completely and the
-                money not at all, so an approved child attended and was invoiced
-                nothing. The monthly run bills from kg_child_fees and skips a
-                child with no row there, so this is the only moment it reliably
-                gets set. */}
-            {/* What approval does to the money the child already pays — said
-                whether or not this reviewer can see tariffs, because the old
-                structure's own tariff stops either way. */}
-            {isTransfer && offeredPlans.length === 0 && (
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {t("approve.transferTariffStops")}
-              </p>
-            )}
+            {/* Billing, decided at the moment of approval. Approval used to set
+                the child up completely and the money not at all, so an
+                approved child attended and was invoiced nothing. */}
             {offeredPlans.length > 0 && (
-              <div className="space-y-3 rounded-xl border border-border p-3">
-                {isTransfer && (
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    {t("approve.transferTariffStops")}
-                  </p>
-                )}
+              <div className="grid gap-3 sm:grid-cols-[1fr_7rem]">
                 <div className="space-y-1.5">
                   <Label>{t("reviewActions.feePlan")}</Label>
                   <Select value={feePlanId} onValueChange={setFeePlanId}>
@@ -550,118 +582,113 @@ export function ReviewActions({
                       ))}
                     </SelectContent>
                   </Select>
-                  {requestedIsOffered && feePlanId === requestedFeePlanId && (
-                    <p className="text-xs text-success">
-                      {t("reviewActions.familyChose")}
-                    </p>
-                  )}
-                  {/* Enrolling with no monthly plan has to be a decision, not
-                      a default nobody noticed. kg_generate_monthly_invoices
-                      bills from kg_child_fees and skips a child with no row,
-                      so "none" means this family is never invoiced for the
-                      month — and nothing downstream ever says so. Four
-                      children reached that state before anyone spotted it. */}
-                  {feePlanId === "none" && (
-                    <label className="flex items-start gap-2.5 rounded-lg bg-warning/10 p-2.5 text-sm ring-1 ring-warning/30">
-                      <Checkbox
-                        checked={noFeeAcknowledged}
-                        onCheckedChange={(v) => setNoFeeAcknowledged(v === true)}
-                        className="mt-0.5"
-                      />
-                      <span className="min-w-0 text-warning-ink">
-                        {t("reviewActions.noFeePlanWarning")}
-                      </span>
-                    </label>
-                  )}
                 </div>
-
-                {feePlanId !== "none" && (
-                  <>
-                    {/* Not an input. Admission fees are the tariffs with period
-                        'once' and they are applied automatically — showing the
-                        figure is honest; asking somebody to retype it is how it
-                        ends up wrong. */}
-                    {admissionFees.length > 0 && (
-                      <div className="rounded-lg bg-muted/60 px-3 py-2 text-sm">
-                        <span className="font-medium">{t("reviewActions.admissionFees")}</span>
-                        <ul className="mt-1 grid gap-0.5">
-                          {admissionFees.map((f) => (
-                            <li key={f.id} className="flex justify-between gap-3">
-                              <span className="min-w-0 truncate text-muted-foreground">
-                                {locale === "ar" && f.name_ar ? f.name_ar : f.name}
-                              </span>
-                              <span className="shrink-0 tabular-nums">
-                                {formatDZD(f.amount, locale)}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <label className="flex items-start gap-2.5 text-sm">
-                      <Checkbox
-                        checked={billFirstMonth}
-                        onCheckedChange={(v) => setBillFirstMonth(v === true)}
-                        className="mt-0.5"
-                      />
-                      <span className="min-w-0">
-                        <span className="font-medium">{t("reviewActions.billNow")}</span>
-                        <span className="block text-xs leading-relaxed text-muted-foreground">
-                          {t("reviewActions.billNowHint")}
-                        </span>
-                      </span>
-                    </label>
-                  </>
-                )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="kg-approve-discount">{t("approve.discount")}</Label>
+                  <Input
+                    id="kg-approve-discount"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={100}
+                    step={1}
+                    dir="ltr"
+                    placeholder="0"
+                    className="h-auto py-2"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                    disabled={!chosenPlan}
+                  />
+                </div>
               </div>
             )}
+
+            {/* The consequence, in one sentence, the changed facts in bold. */}
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {pieces.map((p, i) => (
+                <span key={i}>
+                  {i > 0 && " · "}
+                  {p}
+                </span>
+              ))}
+              .
+            </p>
+
+            {chosenPlan && (
+              <label className="flex items-center gap-2.5 text-sm">
+                <Checkbox
+                  checked={billFirstMonth}
+                  onCheckedChange={(v) => setBillFirstMonth(v === true)}
+                />
+                <span>{t("reviewActions.billNow")}</span>
+              </label>
+            )}
+            {offeredPlans.length > 0 && feePlanId === "none" && (
+              <label className="flex items-start gap-2.5 text-sm text-gold-ink">
+                <Checkbox
+                  checked={noFeeAcknowledged}
+                  onCheckedChange={(v) => setNoFeeAcknowledged(v === true)}
+                  className="mt-0.5"
+                />
+                <span>{t("reviewActions.noFeePlanWarning")}</span>
+              </label>
+            )}
           </div>
+
           <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveOpen(false)} disabled={pending}>
+              {tc("actions.cancel")}
+            </Button>
             <Button onClick={doApprove} disabled={pending || mustAcknowledgeNoFee}>
               {pending && <Loader2 className="size-4 animate-spin" data-icon="inline-start" />}
               {pending
                 ? t("reviewActions.approving")
-                : t(isTransfer ? "approve.confirmTransfer" : "reviewActions.confirmApprove")}
+                : t(isTransfer ? "approve.transferVerb" : "reviewActions.approve")}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Every other pipeline move (under review, interview, offer, waitlist…) */}
-      <StageMenu appId={appId} status={status} interviewAt={interviewAt} size="default" />
+      {/* Every other pipeline move — refusal lives in this menu too, and
+          comes back here for its note. */}
+      <StageMenu
+        appId={appId}
+        status={status}
+        interviewAt={interviewAt}
+        onReject={status === "rejected" ? undefined : () => setRejectOpen(true)}
+      />
 
-      {/* Reject */}
-      {status !== "rejected" && (
-        <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-          <DialogTrigger asChild>
-            <Button variant="destructive" disabled={pending}>
-              <X className="size-4" data-icon="inline-start" />
-              {t("reviewActions.reject")}
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("reviewActions.rejectTitle")}</DialogTitle>
+            <DialogDescription>{t("reviewActions.rejectDesc")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5 py-1">
+            <Label htmlFor="kg-reject-note">{t("reviewActions.note")}</Label>
+            <Textarea
+              id="kg-reject-note"
+              rows={3}
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={pending}>
+              {tc("actions.cancel")}
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{t("reviewActions.rejectTitle")}</DialogTitle>
-              <DialogDescription>{t("reviewActions.rejectDesc")}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-1.5 py-1">
-              <Label htmlFor="kg-reject-note">{t("reviewActions.note")}</Label>
-              <Textarea
-                id="kg-reject-note"
-                rows={3}
-                value={rejectNote}
-                onChange={(e) => setRejectNote(e.target.value)}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="destructive" onClick={doReject} disabled={pending}>
-                {pending && <Loader2 className="size-4 animate-spin" data-icon="inline-start" />}
-                {t("reviewActions.confirmReject")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+            <Button
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              onClick={doReject}
+              disabled={pending}
+            >
+              {pending && <Loader2 className="size-4 animate-spin" data-icon="inline-start" />}
+              {t("reviewActions.confirmReject")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,28 +1,34 @@
 import { algiersToday } from "@/lib/algiers";
-import { AlertCircle, CalendarDays, Info } from "lucide-react";
+import { AlertCircle, Building2, CalendarDays } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/tenant";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { AddHolidayDialog } from "@/components/modules/settings/add-holiday-dialog";
 import {
-  ClosureSwitch, ConfirmHolidayDialog, DeleteHolidayButton,
+  ClosureSwitch, ConfirmHolidayDialog, HolidayRowMenu,
 } from "@/components/modules/settings/holiday-actions";
 import type { HolidayRow } from "@/components/modules/settings/settings-types";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 
-/** Today in Algeria (UTC+1, no DST) as YYYY-MM-DD. */
+/** The roster's head style: sentence case, muted, never uppercase. */
+const HEAD = "text-sm font-medium text-muted-foreground";
+
 export default async function HolidaysPage() {
   const ctx = await requireAdmin();
   const supabase = await createClient();
   const t = await getTranslations("settings");
   const locale = await getLocale();
+  // Today in Algeria (UTC+1, no DST) as YYYY-MM-DD.
   const today = algiersToday();
 
   const [{ data, error }, { data: structureRows }] = await Promise.all([
@@ -46,6 +52,7 @@ export default async function HolidaysPage() {
   const structures = (structureRows ?? []) as Structure[];
   const manyStructures = structures.length > 1;
   const structureById = new Map(structures.map((s) => [s.id, s]));
+  const columns = manyStructures ? 5 : 4;
 
   // Group by calendar month, keeping the ascending date order from the query.
   const months = new Map<string, HolidayRow[]>();
@@ -55,8 +62,6 @@ export default async function HolidaysPage() {
     if (bucket) bucket.push(h);
     else months.set(key, [h]);
   }
-
-  const hasTentative = holidays.some((h) => h.tentative);
 
   return (
     <div>
@@ -78,112 +83,120 @@ export default async function HolidaysPage() {
           action={<AddHolidayDialog structures={structures} />}
         />
       ) : (
-        <div className="space-y-6">
-          {hasTentative && (
-            <Alert className="border-gold/40 bg-gold/5 [&>svg]:text-gold">
-              <Info />
-              <AlertTitle>{t("holidays.tentativeBadge")}</AlertTitle>
-              <AlertDescription>{t("holidays.tentativeNotice")}</AlertDescription>
-            </Alert>
-          )}
-
-          {[...months.entries()].map(([month, rows]) => (
-            <Card key={month} className="overflow-hidden border border-border shadow-sm ring-0">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold capitalize">
-                  {formatDate(`${month}-01`, locale, {
-                    day: undefined,
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ul>
-                  {rows.map((h) => {
-                    const label = locale === "ar" && h.name_ar ? h.name_ar : h.name;
-                    const past = (h.end_date ?? h.date) < today;
-                    return (
-                      <li
-                        key={h.id}
-                        className={cn(
-                          "flex flex-wrap items-center gap-3 border-b px-4 py-3.5 transition-colors last:border-b-0 hover:bg-muted/40 md:px-6",
-                          past && "opacity-70"
-                        )}
-                      >
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "h-9 w-1 shrink-0 rounded-full",
-                            h.tentative
-                              ? "bg-gold/70"
-                              : h.closure
-                                ? "bg-primary/60"
-                                : "bg-border"
-                          )}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-foreground">{label}</span>
-                            {h.tentative && (
-                              <Badge className="border border-dashed border-gold/60 bg-gold/10 font-medium text-foreground">
-                                {t("holidays.tentativeBadge")}
-                              </Badge>
-                            )}
-                            {!h.closure && (
-                              <Badge className="border-transparent bg-success/10 font-medium text-success">
-                                {t("holidays.openBadge")}
-                              </Badge>
-                            )}
-                            {past && (
-                              <Badge className="border-transparent bg-muted font-medium text-muted-foreground">
-                                {t("holidays.past")}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-                            <span>
-                              {h.end_date && h.end_date !== h.date
-                                ? t("holidays.dateRange", {
-                                    start: formatDate(h.date, locale),
-                                    end: formatDate(h.end_date, locale),
-                                  })
-                                : formatDate(h.date, locale)}
+        <Card className="overflow-hidden border border-border py-0 shadow-sm ring-0">
+          <CardContent className="overflow-x-auto p-0">
+            {/* One card, one table; a month is a group row inside it, never a
+                card of its own. A tentative date is signalled once, by the
+                Confirmer button — it is the action and the signal. */}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className={HEAD}>{t("holidays.columns.holiday")}</TableHead>
+                  <TableHead className={HEAD}>{t("holidays.columns.date")}</TableHead>
+                  {manyStructures && (
+                    <TableHead className={HEAD}>{t("holidays.structure")}</TableHead>
+                  )}
+                  <TableHead className={HEAD}>{t("holidays.columns.closure")}</TableHead>
+                  <TableHead className="w-40">
+                    <span className="sr-only">{t("holidays.columns.actions")}</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...months.entries()].map(([month, rows]) => (
+                  <MonthGroup key={month} month={month} locale={locale} columns={columns}>
+                    {rows.map((h) => {
+                      const label = locale === "ar" && h.name_ar ? h.name_ar : h.name;
+                      const other = locale === "ar" ? h.name : h.name_ar;
+                      const past = (h.end_date ?? h.date) < today;
+                      const structure = h.structure_id
+                        ? (structureById.get(h.structure_id) ?? null)
+                        : null;
+                      return (
+                        <TableRow
+                          key={h.id}
+                          className={cn("h-14 transition-colors hover:bg-muted/40", past && "opacity-70")}
+                        >
+                          <TableCell>
+                            <span className="block text-start font-semibold text-foreground">
+                              <bdi dir="auto">{label}</bdi>
                             </span>
-                            {/* Who closes — on every row once there are two
-                                structures, because "the whole building" is an
-                                answer here and silence would read as one. */}
-                            {manyStructures && (
-                              <>
-                                <span aria-hidden>·</span>
-                                <span>
-                                  {h.structure_id && structureById.has(h.structure_id)
-                                    ? structureName(structureById.get(h.structure_id)!, locale)
-                                    : t("holidays.wholeBuilding")}
+                            {other && other !== label && (
+                              <span className="block text-start text-xs text-muted-foreground">
+                                <bdi dir="auto">{other}</bdi>
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {h.end_date && h.end_date !== h.date
+                              ? t("holidays.dateRange", {
+                                  start: formatDate(h.date, locale),
+                                  end: formatDate(h.end_date, locale),
+                                })
+                              : formatDate(h.date, locale)}
+                          </TableCell>
+                          {manyStructures && (
+                            <TableCell>
+                              {structure ? (
+                                <StructureMark
+                                  structure={{ ...structure, name: structureName(structure, locale) }}
+                                />
+                              ) : (
+                                // The building has no colour of its own — a
+                                // grey glyph, the same one the links table uses.
+                                <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                                  <Building2 className="size-3.5 shrink-0" aria-hidden />
+                                  {t("holidays.wholeBuilding")}
                                 </span>
-                              </>
-                            )}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {h.tentative && <ConfirmHolidayDialog holiday={h} />}
-                          <div className="flex items-center gap-2 ps-2">
-                            <span className="text-xs text-muted-foreground">
-                              {t("holidays.columns.closure")}
-                            </span>
+                              )}
+                            </TableCell>
+                          )}
+                          <TableCell>
                             <ClosureSwitch id={h.id} closure={h.closure} />
-                          </div>
-                          <DeleteHolidayButton id={h.id} name={label} />
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                          </TableCell>
+                          <TableCell className="text-end">
+                            <span className="inline-flex items-center justify-end gap-1">
+                              {h.tentative && <ConfirmHolidayDialog holiday={h} />}
+                              <HolidayRowMenu id={h.id} name={label} />
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </MonthGroup>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
+  );
+}
+
+/** A small-caps group row inside the same table, the way the bill groups its lines. */
+function MonthGroup({
+  month,
+  locale,
+  columns,
+  children,
+}: {
+  month: string;
+  locale: string;
+  columns: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <TableRow className="hover:bg-transparent">
+        <TableCell
+          colSpan={columns}
+          className="bg-muted/30 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+        >
+          {formatDate(`${month}-01`, locale, { day: undefined, month: "long", year: "numeric" })}
+        </TableCell>
+      </TableRow>
+      {children}
+    </>
   );
 }

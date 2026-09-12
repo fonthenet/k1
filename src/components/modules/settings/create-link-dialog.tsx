@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,15 +11,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { DatePicker } from "@/components/shared/date-picker";
+import { StructureTile } from "@/components/shared/structure-mark";
+import { cn } from "@/lib/utils";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { createEnrollLink } from "./actions";
 
-/** The Select's value for "the whole building" — structure_id NULL in the row. */
-const WHOLE_BUILDING = "all";
+/** A tile-shaped choice: the structure's own mark, selected = 2px primary border, nothing else. */
+const TILE =
+  "flex items-center rounded-xl border-2 px-3 py-2 text-start transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
 export function CreateLinkDialog({ structures = [] }: {
   /** The structures of the establishment; the picker hides itself under two. */
@@ -82,7 +82,7 @@ export function CreateLinkDialog({ structures = [] }: {
           {t("enrollment.create")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>{t("enrollment.createTitle")}</DialogTitle>
           <DialogDescription>{t("enrollment.createDescription")}</DialogDescription>
@@ -99,34 +99,49 @@ export function CreateLinkDialog({ structures = [] }: {
           </div>
           {/* Shown only once the building has more than one structure — signup
               already makes one link per structure, so this is the picker for the
-              extra link a director writes by hand. */}
+              extra link a director writes by hand. The choice is the structure's
+              own tile, the mark it carries everywhere else. */}
           {active.length > 1 && (
             <div className="grid gap-2">
-              <Label htmlFor="link-structure">{t("enrollment.structure")}</Label>
-              <Select
-                value={structureId || WHOLE_BUILDING}
-                onValueChange={(v) => setStructureId(v === WHOLE_BUILDING ? "" : v)}
+              <Label id="link-structure-label">{t("enrollment.structure")}</Label>
+              <div
+                role="radiogroup"
+                aria-labelledby="link-structure-label"
+                className="grid gap-2 sm:grid-cols-2"
               >
-                <SelectTrigger id="link-structure" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* The structure's own colour is the one signal, the same dot
-                      the comms picker and the links table give it. */}
-                  {active.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      <span
-                        className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-                        style={{ backgroundColor: s.color }}
-                        aria-hidden
-                      />
-                      {structureName(s, locale)}
-                    </SelectItem>
-                  ))}
-                  <SelectSeparator />
-                  <SelectItem value={WHOLE_BUILDING}>{t("enrollment.wholeBuilding")}</SelectItem>
-                </SelectContent>
-              </Select>
+                {active.map((s) => {
+                  const selected = structureId === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setStructureId(s.id)}
+                      className={cn(TILE, selected ? "border-primary" : "border-border")}
+                    >
+                      <StructureTile structure={{ ...s, name: structureName(s, locale) }} />
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={structureId === ""}
+                  onClick={() => setStructureId("")}
+                  className={cn(TILE, "gap-2", structureId === "" ? "border-primary" : "border-border")}
+                >
+                  {/* The building has no colour of its own — a grey glyph in
+                      the same tile shape, as the switcher draws it. */}
+                  <span
+                    className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                    aria-hidden
+                  >
+                    <Building2 className="size-4" />
+                  </span>
+                  <span className="text-sm font-medium">{t("enrollment.wholeBuilding")}</span>
+                </button>
+              </div>
               {/* The hint changes with the answer: a structure link files its
                   applications there; a building link asks the family instead,
                   and the director should know that before printing it. */}
@@ -139,20 +154,24 @@ export function CreateLinkDialog({ structures = [] }: {
           )}
           {/* Subgrid, because "(facultatif)" makes one label wrap to two lines
               and the other not — without it the two controls sit at different
-              heights. The rows are shared, so the inputs line up whatever the
-              label does in any of the three languages. */}
+              heights. The label and its qualifier are one inline span so they
+              wrap together instead of the qualifier drifting to the far end. */}
           <div className="grid gap-4 sm:grid-cols-2 sm:grid-rows-[auto_auto]">
             <div className="grid gap-2 sm:row-span-2 sm:grid-rows-subgrid">
               <Label htmlFor="link-expiry" className="items-start">
-                {t("enrollment.expires")}{" "}
-                <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+                <span>
+                  {t("enrollment.expires")}{" "}
+                  <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+                </span>
               </Label>
               <DatePicker id="link-expiry" value={expiresAt} onChange={setExpiresAt} />
             </div>
             <div className="grid gap-2 sm:row-span-2 sm:grid-rows-subgrid">
               <Label htmlFor="link-max" className="items-start">
-                {t("enrollment.maxUses")}{" "}
-                <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+                <span>
+                  {t("enrollment.maxUses")}{" "}
+                  <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+                </span>
               </Label>
               <Input
                 id="link-max"

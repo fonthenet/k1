@@ -53,8 +53,8 @@
       "pending": "Facture en attente de règlement"
     },
     "inactive": {
-      "withdrawn": "A quitté la crèche",
-      "alumni": "A quitté la crèche — ancien(ne)",
+      "withdrawn": "A quitté l'établissement",
+      "alumni": "A quitté l'établissement — ancien élève",
       "waitlist": "Sur liste d'attente — pas encore de présences",
       "pending": "Demande en cours d'examen — pas encore de présences"
     },
@@ -97,8 +97,8 @@
     "status": {
       "pending": "En attente",
       "waitlist": "Liste d'attente",
-      "withdrawn": "Radié(e)",
-      "alumni": "Ancien(ne)"
+      "withdrawn": "Retiré",
+      "alumni": "Ancien élève"
     },
     "due": {
       "amount": "{amount} à régler",
@@ -111,8 +111,9 @@
     "description": "Les demandes encore chez l'administration restent ici jusqu'à la réponse du jardin d'enfants.",
     "sentOn": "Envoyée le {date}",
     "processing": "Dossier reçu — en cours de traitement. La crèche vous contactera.",
-    "closed": "Dossier traité — contactez la crèche pour la suite.",
-    "processingTransfer": "Demande de changement de structure reçue — la direction confirmera."
+    "closed": "Dossier traité — contactez l'établissement pour la suite.",
+    "processingTransfer": "Demande de changement de structure reçue — la direction confirmera.",
+    "group": "Demandes en cours"
   },
   "addChild": {
     "trigger": "Inscrire un autre enfant",
@@ -153,19 +154,19 @@
     "classChoice": {
       "title": "Classe souhaitée",
       "reviewLabel": "Classe souhaitée",
-      "undecided": "La crèche décide"
+      "undecided": "La direction décide"
     }
   },
   "messages": {
     "title": "Messages",
-    "description": "Vos échanges avec la crèche au sujet de vos enfants.",
+    "description": "Vos échanges avec l'établissement au sujet de vos enfants.",
     "empty": "Aucune conversation",
-    "emptyDescription": "Démarrez une conversation avec la crèche : une question, une demande, tout ce qui concerne votre enfant. Les réponses arrivent ici.",
+    "emptyDescription": "Démarrez une conversation avec l'établissement : une question, une demande, tout ce qui concerne votre enfant. Les réponses arrivent ici.",
     "start": "Nouvelle conversation",
     "noSubject": "Sans objet",
     "you": "Vous",
     "yesterday": "Hier",
-    "awaitingYou": "Nouveau message de la crèche",
+    "awaitingYou": "Nouveau message de l'établissement",
     "back": "Retour aux messages",
     "notFound": "Conversation indisponible",
     "notFoundDescription": "Cette conversation n'est pas liée à votre compte ou n'existe plus.",
@@ -247,19 +248,19 @@
       "attendance": "Présences",
       "health": "Santé",
       "activities": "Activités",
-      "permissions": "Autorisations"
+      "permissions": "Accès"
     },
     "journal": {
       "title": "Journal quotidien",
       "empty": "Aucun journal publié",
-      "emptyDescription": "Le journal de votre enfant apparaîtra ici dès sa publication par l'éducatrice.",
+      "emptyDescription": "Le journal de votre enfant apparaîtra ici dès sa publication par l'éducateur.",
       "meals": "Repas",
       "nap": "Sieste",
       "napRange": "de {start} à {end}",
       "napFrom": "à partir de {time}",
       "napUntil": "jusqu'à {time}",
       "activities": "Activités",
-      "notes": "Notes de l'éducatrice",
+      "notes": "Mot de l'équipe",
       "napNone": "N'a pas dormi",
       "napSlept": "A dormi",
       "napMinutes": "A dormi {minutes} min",
@@ -268,6 +269,19 @@
         "half": "A mangé la moitié",
         "little": "A peu mangé",
         "none": "N'a rien mangé"
+      },
+      "hint": "Les 30 derniers jours",
+      "emptyDays": "Aucune journée enregistrée",
+      "emptyDaysDescription": "Les journées de votre enfant apparaîtront ici dès le premier jour de présence.",
+      "facts": {
+        "lessons": {
+          "academic": "{count, plural, one {# cours} other {# cours}}",
+          "therapy": "{count, plural, one {# atelier} other {# ateliers}}",
+          "other": "{count, plural, one {# activité} other {# activités}}"
+        },
+        "nap": "sieste {minutes} min",
+        "incidents": "{count, plural, one {# incident} other {# incidents}}",
+        "sessions": "{count, plural, one {# séance} other {# séances}}"
       }
     },
     "attendance": {
@@ -488,7 +502,7 @@
     "paid": "Payé",
     "balance": "Reste à payer",
     "empty": "Aucune facture pour l'instant",
-    "emptyDescription": "Les factures de la crèche apparaîtront ici dès leur émission.",
+    "emptyDescription": "Les factures de l'établissement apparaîtront ici dès leur émission.",
     "statuses": {
       "draft": "Brouillon",
       "sent": "Envoyée",
@@ -513,12 +527,12 @@
       }
     },
     "cash": {
-      "title": "Paiement en espèces à la crèche",
-      "body": "Le règlement se fait en espèces auprès de l'administration de la crèche, et un reçu numéroté vous est remis immédiatement. Aucun paiement en ligne n'est nécessaire."
+      "title": "Paiement en espèces à l'établissement",
+      "body": "Le règlement se fait en espèces auprès de l'administration de l'établissement, et un reçu numéroté vous est remis immédiatement. Aucun paiement en ligne n'est nécessaire."
     },
     "fees": {
       "title": "Votre tarif mensuel",
-      "description": "Ce que la crèche facture chaque mois, avant les activités et les extras.",
+      "description": "Ce que l'établissement facture chaque mois, avant les activités et les extras.",
       "none": "Aucun tarif enregistré. Demandez à l'administration.",
       "perMonth": "par mois",
       "discount": "remise {pct} %",
@@ -535,9 +549,9 @@
   },
   "announcements": {
     "title": "Actualités",
-    "description": "Les annonces de la crèche destinées aux parents et aux classes de vos enfants.",
+    "description": "Les annonces de l'établissement destinées aux parents et aux classes de vos enfants.",
     "empty": "Aucune annonce",
-    "emptyDescription": "Les annonces de la crèche qui vous concernent apparaîtront ici.",
+    "emptyDescription": "Les annonces de l'établissement qui vous concernent apparaîtront ici.",
     "pinned": "Épinglée",
     "audience": {
       "all": "Tout le monde",
@@ -545,7 +559,8 @@
       "staff": "Équipe",
       "class": "Classe",
       "structure": "Structure"
-    }
+    },
+    "recent": "Récentes"
   },
   "profile": {
     "title": "Mon profil",
@@ -643,13 +658,13 @@
   },
   "classChoice": {
     "forAge": "Son âge",
-    "undecided": "Laisser la crèche décider",
+    "undecided": "Laisser la direction décider",
     "undecidedHint": "Vous en discuterez ensemble."
   },
   "transfer": {
     "trigger": "Changer de structure",
     "title": "Changer de structure",
-    "description": "Demandez le passage de {name} vers une autre structure de l'établissement. La direction confirmera.",
+    "description": "Demandez le passage vers une autre structure de l'établissement.",
     "structureLabel": "Vers quelle structure ?",
     "classLabel": "Classe souhaitée",
     "noteLabel": "Un mot pour la direction",
@@ -669,6 +684,65 @@
       "sameStructure": "Votre enfant est déjà dans cette structure.",
       "notEnrolled": "Seul un enfant inscrit peut changer de structure. Contactez l'administration.",
       "unknownStructure": "Cette structure n'est plus proposée. Rechargez la page."
-    }
+    },
+    "consequence": "La direction confirmera le passage vers <b>{structure}</b> et sa date."
+  },
+  "learning": {
+    "title": "Programmes",
+    "weekOf": "Semaine du {from} au {to}",
+    "today": "Cette semaine",
+    "noChildren": "Aucun enfant rattaché",
+    "noChildrenDescription": "Les programmes et les résultats de vos enfants apparaîtront ici dès que l'établissement les aura rattachés à votre compte.",
+    "thisWeek": "Cette semaine",
+    "noLessons": "Rien de prévu cette semaine.",
+    "programs": "Programmes en cours",
+    "noPrograms": "Aucun programme en cours.",
+    "results": "Résultats publiés",
+    "noResults": "Aucun résultat publié pour le moment.",
+    "progressHint": "{profile, select, academic {Cours donnés sur cours prévus} therapy {Ateliers donnés sur ateliers prévus} other {Activités données sur activités prévues}}",
+    "nothingThisWeek": "Rien de publié cette semaine.",
+    "week": "Semaine de la classe"
+  },
+  "day": {
+    "prev": "Jour précédent",
+    "next": "Jour suivant",
+    "navLabel": "Changer de jour",
+    "closed": "Fermé ce jour",
+    "empty": "Rien d'enregistré pour cette journée",
+    "emptyDescription": "Les présences, repas et activités apparaissent au fil de la journée.",
+    "presence": "Présence",
+    "pickedUpBy": "Récupéré par <name>{who}</name>",
+    "away": {
+      "absent": "Absent ce jour",
+      "sick": "Malade ce jour",
+      "excused": "Absence excusée"
+    },
+    "blocks": {
+      "academic": "Cours de la classe",
+      "therapy": "Ateliers",
+      "other": "Activités de la classe"
+    },
+    "blocksAway": "Absent ce jour",
+    "meals": {
+      "title": "Repas",
+      "breakfast": "Petit-déjeuner",
+      "lunch": "Déjeuner",
+      "snack": "Goûter"
+    },
+    "napMood": "Sieste et humeur",
+    "moods": {
+      "happy": "Joyeuse",
+      "calm": "Calme",
+      "energetic": "Énergique",
+      "tired": "Fatiguée",
+      "sad": "Triste",
+      "upset": "Contrariée",
+      "sick": "Pas en forme"
+    },
+    "photos": "Photos",
+    "incidents": "Incidents",
+    "ackedAt": "Accusé le {date} · <ltr>{time}</ltr>",
+    "sessions": "Séances",
+    "photoOpen": "Photo {n} — ouvrir en plein écran"
   }
 }

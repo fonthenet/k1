@@ -1,5 +1,7 @@
 "use client";
 
+import type { RosterNoun } from "@/lib/vocabulary";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -20,16 +22,13 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/shared/date-picker";
-import { groupClassesByStructure, structureLabel } from "@/lib/structure-groups";
-import { centerTypeOption } from "@/components/modules/settings/center-types";
 import { createChild } from "./actions";
+import { ClassSelect, classChoiceValue, parseClassChoice } from "./class-select";
 import type { ClassOption, StructureOption } from "./types";
 
 const EMPTY = {
@@ -39,18 +38,20 @@ const EMPTY = {
   lastNameAr: "",
   dob: "",
   gender: "" as "" | "male" | "female",
-  classId: "none",
-  /** "" = not chosen. Only asked in a building with several structures. */
-  structureId: "",
+  /** A class id, "structure:<id>" for no class on that side, or nothing. */
+  place: "",
 };
 
 export function AddChildDialog({
   classes,
   structures = [],
+  noun = "children",
 }: {
   classes: ClassOption[];
+  /** "pupils" in a school scope — the button says "Ajouter un élève". */
+  noun?: RosterNoun;
   /** The building's active structures. Defaults to none so a caller that
-   *  predates structures keeps compiling; below two the control is hidden. */
+   *  predates structures keeps compiling; below two the list is flat. */
   structures?: StructureOption[];
 }) {
   const t = useTranslations("children");
@@ -58,46 +59,19 @@ export function AddChildDialog({
   const locale = useLocale();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY);
+  // One structure: "Sans classe" already means "on its register".
+  const initial = () => ({
+    ...EMPTY,
+    place:
+      structures.length === 1
+        ? classChoiceValue({ classId: null, structureId: structures[0].id })
+        : "",
+  });
+  const [form, setForm] = useState(initial);
   const [pending, startTransition] = useTransition();
 
   const set = (key: keyof typeof EMPTY) => (value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
-
-  const multi = structures.length > 1;
-  const chosenClass = classes.find((c) => c.id === form.classId) ?? null;
-  // A class names its structure, and the database will re-derive it on
-  // insert whatever the form says — so the structure control simply follows
-  // the class and says so, rather than let the two disagree on screen.
-  const followsClass = !!chosenClass?.structure_id;
-  const effectiveStructureId = chosenClass?.structure_id ?? form.structureId;
-  // Choosing a structure first narrows the rooms to it plus the building's
-  // own; choosing nothing shows every room, grouped, so the grouping itself
-  // answers "which side is Petite Section on".
-  const visibleClasses =
-    multi && effectiveStructureId
-      ? classes.filter((c) => c.structure_id === effectiveStructureId || !c.structure_id)
-      : classes;
-  const { groups, single } = groupClassesByStructure(visibleClasses, multi ? structures : []);
-
-  function chooseClass(id: string) {
-    const cls = classes.find((c) => c.id === id);
-    setForm((f) => ({
-      ...f,
-      classId: id,
-      structureId: cls?.structure_id ?? f.structureId,
-    }));
-  }
-
-  function chooseStructure(id: string) {
-    // A room from another structure cannot stay selected once the structure
-    // changes; a building-wide one can.
-    setForm((f) => {
-      const cls = classes.find((c) => c.id === f.classId);
-      const keep = !cls || !cls.structure_id || cls.structure_id === id;
-      return { ...f, structureId: id, classId: keep ? f.classId : "none" };
-    });
-  }
 
   const canSubmit =
     form.firstName.trim() && form.lastName.trim() && form.dob && form.gender && !pending;
@@ -105,6 +79,7 @@ export function AddChildDialog({
   function submit() {
     if (!canSubmit || !form.gender) return;
     const gender = form.gender;
+    const { classId, structureId } = parseClassChoice(form.place, classes);
     startTransition(async () => {
       const res = await createChild({
         firstName: form.firstName,
@@ -113,13 +88,13 @@ export function AddChildDialog({
         lastNameAr: form.lastNameAr || undefined,
         dob: form.dob,
         gender,
-        classId: form.classId === "none" ? null : form.classId,
-        structureId: effectiveStructureId || null,
+        classId,
+        structureId,
       });
       if (res.ok) {
         toast.success(t("toasts.created"));
         setOpen(false);
-        setForm(EMPTY);
+        setForm(initial());
         if (res.id) router.push(`/children/${res.id}`);
         else router.refresh();
       } else {
@@ -128,12 +103,59 @@ export function AddChildDialog({
     });
   }
 
+  // The names in the reader's own script come first; the French pair types
+  // left-to-right and the Arabic pair right-to-left whatever the UI language.
+  const latinPair = (
+    <>
+      <div className="grid gap-1.5">
+        <Label htmlFor="add-first">{t("form.firstName")}</Label>
+        <Input
+          id="add-first"
+          dir="ltr"
+          value={form.firstName}
+          onChange={(e) => set("firstName")(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor="add-last">{t("form.lastName")}</Label>
+        <Input
+          id="add-last"
+          dir="ltr"
+          value={form.lastName}
+          onChange={(e) => set("lastName")(e.target.value)}
+        />
+      </div>
+    </>
+  );
+  const arabicPair = (
+    <>
+      <div className="grid gap-1.5">
+        <Label htmlFor="add-first-ar">{t("form.firstNameAr")}</Label>
+        <Input
+          id="add-first-ar"
+          dir="rtl"
+          value={form.firstNameAr}
+          onChange={(e) => set("firstNameAr")(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor="add-last-ar">{t("form.lastNameAr")}</Label>
+        <Input
+          id="add-last-ar"
+          dir="rtl"
+          value={form.lastNameAr}
+          onChange={(e) => set("lastNameAr")(e.target.value)}
+        />
+      </div>
+    </>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
           <Plus data-icon="inline-start" />
-          {t("roster.addChild")}
+          {t(noun === "pupils" ? "roster.pupils.addChild" : "roster.addChild")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
@@ -143,40 +165,8 @@ export function AddChildDialog({
         </DialogHeader>
         <div className="grid gap-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="add-first">{t("form.firstName")}</Label>
-              <Input
-                id="add-first"
-                value={form.firstName}
-                onChange={(e) => set("firstName")(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="add-last">{t("form.lastName")}</Label>
-              <Input
-                id="add-last"
-                value={form.lastName}
-                onChange={(e) => set("lastName")(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="add-first-ar">{t("form.firstNameAr")}</Label>
-              <Input
-                id="add-first-ar"
-                dir="rtl"
-                value={form.firstNameAr}
-                onChange={(e) => set("firstNameAr")(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="add-last-ar">{t("form.lastNameAr")}</Label>
-              <Input
-                id="add-last-ar"
-                dir="rtl"
-                value={form.lastNameAr}
-                onChange={(e) => set("lastNameAr")(e.target.value)}
-              />
-            </div>
+            {locale === "ar" ? arabicPair : latinPair}
+            {locale === "ar" ? latinPair : arabicPair}
             <div className="grid gap-1.5">
               <Label htmlFor="add-dob">{t("form.dob")}</Label>
               <DatePicker
@@ -187,10 +177,10 @@ export function AddChildDialog({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>{t("form.gender")}</Label>
+              <Label htmlFor="add-gender">{t("form.gender")}</Label>
               <Select value={form.gender} onValueChange={set("gender")}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("form.gender")} />
+                <SelectTrigger id="add-gender" className="w-full">
+                  <SelectValue placeholder="—" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="male">{t("gender.male")}</SelectItem>
@@ -198,60 +188,15 @@ export function AddChildDialog({
                 </SelectContent>
               </Select>
             </div>
-            {multi && (
-              <div className="col-span-2 grid gap-1.5">
-                <Label>{t("form.structure")}</Label>
-                <Select
-                  value={effectiveStructureId || undefined}
-                  onValueChange={chooseStructure}
-                  disabled={followsClass}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={t("form.structurePlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* No "whole building" here: a child in a two-structure
-                        building is on one register or the other. */}
-                    {structures.map((s) => {
-                      const { Icon } = centerTypeOption(s.center_type);
-                      return (
-                        <SelectItem key={s.id} value={s.id}>
-                          <Icon className="size-4" style={{ color: s.color }} aria-hidden />
-                          {structureLabel(s, locale, "")}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {followsClass ? t("form.structureFollowsClass") : t("form.structureHint")}
-                </p>
-              </div>
-            )}
-            <div className={multi ? "col-span-2 grid gap-1.5" : "grid gap-1.5"}>
-              <Label>{t("form.class")}</Label>
-              <Select value={form.classId} onValueChange={chooseClass}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t("form.noClass")}</SelectItem>
-                  {groups.map((g) => (
-                    <SelectGroup key={g.structure?.id ?? "building"}>
-                      {!single && (
-                        <SelectLabel>
-                          {structureLabel(g.structure, locale, tc("structures.all"))}
-                        </SelectLabel>
-                      )}
-                      {g.classes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {locale === "ar" && c.name_ar ? c.name_ar : c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="col-span-2 grid gap-1.5">
+              <Label htmlFor="add-class">{t("form.class")}</Label>
+              <ClassSelect
+                id="add-class"
+                value={form.place}
+                onChange={set("place")}
+                classes={classes}
+                structures={structures}
+              />
             </div>
           </div>
           {/* No badge-code input here. kg_children_auto_tag (migration 0025)

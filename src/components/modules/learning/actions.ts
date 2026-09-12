@@ -11,26 +11,19 @@ import {
   resultSchema,
   occurrences,
   seriesFitsProgram,
+  type LessonClash,
 } from "./domain";
+import { lessonErrorState, revalidateLessons } from "./lesson-errors";
 
-export type LearningActionState = { error?: string; ok?: boolean };
-function errorState(
-  error: { code?: string; message?: string } | null,
-): LearningActionState {
-  if (error?.code === "23P01") return { error: "conflict" };
-  if (error?.code === "42501") return { error: "forbidden" };
-  if (error?.message?.includes("outside_opening_hours"))
-    return { error: "closed" };
-  if (error?.message?.includes("assign_staff_first"))
-    return { error: "staffAssignment" };
-  if (error?.message?.includes("archived_program"))
-    return { error: "archivedProgram" };
-  if (error?.message?.includes("outside_program_dates"))
-    return { error: "programDates" };
-  if (error?.code === "23514" || error?.code === "23503")
-    return { error: "invalid" };
-  return { error: "failed" };
-}
+/** `at` is set only on a booking clash: the slot that was already taken, so
+ *  the form can print the time and not just the refusal. */
+export type LearningActionState = {
+  error?: string;
+  ok?: boolean;
+  at?: LessonClash;
+};
+/** Programmes, assessments and results; lessons have their own list in
+ *  lesson-errors.ts because more pages print them. */
 function refresh() {
   for (const path of [
     "/learning",
@@ -59,7 +52,7 @@ export async function saveProgram(
     starts_on: d.startsOn,
     ends_on: d.endsOn,
   });
-  if (error) return errorState(error);
+  if (error) return lessonErrorState(error);
   refresh();
   return { ok: true };
 }
@@ -73,30 +66,41 @@ export async function saveLessons(
   if (!parsed.success) return { error: "invalid" };
   const d = parsed.data;
   const db = await createClient();
-  const { data: p } = await db
-    .from("kg_learning_programs")
-    .select("class_id, starts_on, ends_on, archived")
-    .eq("id", d.programId)
-    .eq("tenant_id", ctx.tenant.id)
-    .single();
-  if (!p) return { error: "invalid" };
-  if (p.archived) return { error: "archivedProgram" };
-  if (!seriesFitsProgram(d.date, d.weeks, p.starts_on, p.ends_on))
-    return { error: "programDates" };
+  // A programme bounds the series by its dates and names its class; without
+  // one (a routine block, a group activity — 0153) the form's class stands
+  // alone and only the closure guard bounds the weeks. The class the form
+  // sent must be the programme's: a stale form is refused, not corrected.
+  if (d.programId !== null) {
+    const { data: p } = await db
+      .from("kg_learning_programs")
+      .select("class_id, starts_on, ends_on, archived")
+      .eq("id", d.programId)
+      .eq("tenant_id", ctx.tenant.id)
+      .single();
+    if (!p || p.class_id !== d.classId) return { error: "invalid" };
+    if (p.archived) return { error: "archivedProgram" };
+    if (!seriesFitsProgram(d.date, d.weeks, p.starts_on, p.ends_on))
+      return { error: "programDates" };
+  }
   // One INSERT makes the complete repeated series atomic, including conflicts.
+  // A class outside the tenant fails the (class_id, tenant_id) foreign key,
+  // which lessonErrorState reads as `invalid`; a room outside it fails the
+  // composite key of 0155 the same way. "" is the class's home room, stored
+  // as NULL so the cours follows the class if it ever moves (D2).
   const { error } = await db.from("kg_learning_lessons").insert(
     occurrences(d.date, d.start, d.end, d.weeks).map((slot) => ({
       ...slot,
       tenant_id: ctx.tenant.id,
-      class_id: p.class_id,
+      class_id: d.classId,
       program_id: d.programId,
       membership_id: d.membershipId,
       title: d.title,
       kind: d.kind,
+      room_id: d.roomId || null,
     })),
   );
-  if (error) return errorState(error);
-  refresh();
+  if (error) return lessonErrorState(error);
+  revalidateLessons();
   return { ok: true };
 }
 
@@ -125,7 +129,7 @@ export async function saveAssessment(
     kind: d.kind,
     max_score: d.maxScore,
   });
-  if (error) return errorState(error);
+  if (error) return lessonErrorState(error);
   refresh();
   return { ok: true };
 }
@@ -161,7 +165,7 @@ export async function saveResult(
     },
     { onConflict: "assessment_id,child_id" },
   );
-  if (error) return errorState(error);
+  if (error) return lessonErrorState(error);
   refresh();
   return { ok: true };
 }
@@ -205,8 +209,9 @@ export async function changeLearningState(
     .eq("id", id)
     .select("id")
     .maybeSingle();
-  if (error) return errorState(error);
+  if (error) return lessonErrorState(error);
   if (!data) return { error: "forbidden" };
-  refresh();
+  if (entity === "lesson") revalidateLessons();
+  else refresh();
   return { ok: true };
 }

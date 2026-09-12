@@ -9,7 +9,7 @@ import {
 } from "@/components/shared/sortable-header";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { AlertTriangle, ArrowRightLeft, ChevronDown, Search, X } from "lucide-react";
+import { ArrowRightLeft, ChevronDown, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,19 +30,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ClassChip as SharedClassChip } from "@/components/shared/class-chip";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StatusPill, type StatusTone } from "@/components/shared/status-pill";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { ageFromDob, childDisplayName, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ChildStatus } from "@/lib/types";
 import { ChildAvatar } from "./child-avatar";
-import {
-  childStatusClasses,
-  type ClassOption,
-  type RosterChild,
-} from "./types";
+import type { ClassOption, RosterChild } from "./types";
 import { AllergyBadge as SharedAllergyBadge } from "./allergy-badge";
 import { MoveChildDialog } from "./move-child-dialog";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
+import type { RosterNoun } from "@/lib/vocabulary";
 
 /** A class with the structure it belongs to — what the move dialog needs to
  *  offer "this class, in that structure" rather than a flat list of names. */
@@ -56,28 +56,11 @@ function ClassChip({ child, locale }: { child: RosterChild; locale: string }) {
     return <span className="text-sm text-muted-foreground">{t("roster.noClass")}</span>;
   }
   const name = locale === "ar" && child.classNameAr ? child.classNameAr : child.className;
-  return (
-    <Badge variant="outline" className="gap-1.5 bg-muted/50">
-      {/* `classColor` is per-class user data from kg_classes.color — kept as a dot. */}
-      <span
-        className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-        style={{ backgroundColor: child.classColor ?? "var(--primary)" }}
-        aria-hidden
-      />
-      {name}
-    </Badge>
-  );
+  return <SharedClassChip name={name} color={child.classColor} />;
 }
 
-/**
- * Which structure of the building the child is in.
- *
- * The structure's own colour (kg_structures.color) is the whole signal: a dot
- * and the name, nothing else. The class chip already carries its own colour
- * next to it, and two coloured badges side by side would read as two badges
- * about one child. A child whose structure is gone shows a dash — an answer
- * the office should notice, not a blank.
- */
+/** Which structure of the building the child is in — the inline mark, or a
+ *  dash when the structure is gone, an answer the office should notice. */
 function StructureCell({
   structure,
   locale,
@@ -87,16 +70,11 @@ function StructureCell({
   locale: string;
   className?: string;
 }) {
-  if (!structure) return <span className="text-muted-foreground">—</span>;
   return (
-    <span className={cn("inline-flex items-center gap-1.5 text-sm", className)}>
-      <span
-        className="size-2 shrink-0 rounded-full ring-1 ring-inset ring-foreground/10"
-        style={{ backgroundColor: structure.color }}
-        aria-hidden
-      />
-      <span className="truncate">{structureName(structure, locale)}</span>
-    </span>
+    <StructureMark
+      structure={structure ? { name: structureName(structure, locale), color: structure.color } : null}
+      className={className}
+    />
   );
 }
 
@@ -106,22 +84,36 @@ function AllergyBadge({ child }: { child: RosterChild }) {
 }
 
 /**
- * Enrolled, and charged no tuition.
+ * The one pill a row may carry at the end, by meaning.
  *
- * Gold rather than red: nobody is late — the crèche is simply not billing this
- * family yet, and somebody has to decide. Shown only to finance, because the
- * roster is read by educators all day and who is being charged is not their
- * business; the page sets the flag to false for everyone else.
+ * An enrolled child — the expected state of every row — shows nothing; the
+ * absence is the signal. Withdrawn and alumni are muted, pending and
+ * waitlist need a decision. "Sans mensualité" is the other thing that needs
+ * a human: enrolled and charged no tuition. Gold, not red — nobody is late,
+ * the establishment is simply not billing this family yet. Shown only to
+ * finance (the page sets the flag to false for everyone else), and here at
+ * the end of the row rather than in the Allergies column, where a money fact
+ * read as a safety warning.
  */
-function NoFeePlanBadge({ child }: { child: RosterChild }) {
+const STATUS_TONE: Partial<Record<ChildStatus, StatusTone>> = {
+  pending: "attention",
+  waitlist: "attention",
+  withdrawn: "muted",
+  alumni: "muted",
+};
+
+function StatusCell({ child }: { child: RosterChild }) {
   const t = useTranslations("children");
-  if (!child.noFeePlan) return null;
-  return (
-    <Badge className="border-gold/40 bg-gold-muted text-gold-ink" title={t("billing.noPlanHint")}>
-      <AlertTriangle aria-hidden />
-      {t("billing.noPlan")}
-    </Badge>
-  );
+  const tone = STATUS_TONE[child.status];
+  if (tone) return <StatusPill tone={tone}>{t(`status.${child.status}`)}</StatusPill>;
+  if (child.noFeePlan) {
+    return (
+      <span title={t("billing.noPlanHint")}>
+        <StatusPill tone="attention">{t("billing.noPlan")}</StatusPill>
+      </span>
+    );
+  }
+  return null;
 }
 
 function DualName({ child, locale }: { child: RosterChild; locale: string }) {
@@ -155,7 +147,6 @@ function ChildCard({
   /** Only given when the building has more than one structure. */
   structure?: Structure | null;
 }) {
-  const t = useTranslations("children");
   // The age is spelt from common.labels' ICU plurals so Arabic gets its dual
   // and plural forms ("سنتان", "3 سنوات") instead of "2 سنوات".
   const tc = useTranslations("common.labels");
@@ -183,10 +174,9 @@ function ChildCard({
               />
             )}
             <AllergyBadge child={child} />
-            <NoFeePlanBadge child={child} />
           </div>
         </div>
-        <Badge className={childStatusClasses(child.status)}>{t(`status.${child.status}`)}</Badge>
+        <StatusCell child={child} />
       </CardContent>
     </Card>
   );
@@ -209,8 +199,11 @@ export function ChildrenRoster({
   structures = [],
   filterStructures = structures,
   isAdmin = false,
+  noun = "children",
 }: {
   rows: RosterChild[];
+  /** "pupils" when every structure in scope is a school — the page decides. */
+  noun?: RosterNoun;
   /** The classes the filter offers — narrowed to what can match a row on screen. */
   classes: ClassOption[];
   /** Every class of the building, for the move dialog: scope what you read,
@@ -229,6 +222,9 @@ export function ChildrenRoster({
   isAdmin?: boolean;
 }) {
   const t = useTranslations("children");
+  // The roster noun is a message SUBTREE, not a word swap: "Ajouter un élève"
+  // and "3 élèves" are whole strings in each language.
+  const nk = (k: string) => (noun === "pupils" ? `roster.pupils.${k}` : `roster.${k}`);
   const tc = useTranslations("common.labels");
   const locale = useLocale();
   const [query, setQuery] = useState("");
@@ -346,12 +342,9 @@ export function ChildrenRoster({
   const toggleAll = () =>
     setSelected(allVisibleSelected ? new Set() : new Set(selectable.map((c) => c.id)));
   const clearSelection = () => setSelected(new Set());
-
-  // The dialog pre-selects the structure the children are leaving only when
-  // they all share one; a mixed selection has no single "from".
-  const selectedStructureIds = new Set(selectedRows.map((c) => c.structure_id));
-  const currentStructureId =
-    selectedStructureIds.size === 1 ? (selectedRows[0]?.structure_id ?? null) : null;
+  // Hidden, not removed, while the bulk bar covers the head row — see the
+  // table below.
+  const headClass = selectedRows.length > 0 ? "invisible" : undefined;
 
   // The selection survives a cancel and clears on a move: the dialog says
   // which through onMoved, so a stale tick on a child that has just been
@@ -369,16 +362,16 @@ export function ChildrenRoster({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("roster.searchPlaceholder")}
+            placeholder={t(nk("searchPlaceholder"))}
             className="ps-8"
-            aria-label={t("roster.searchPlaceholder")}
+            aria-label={t(nk("searchPlaceholder"))}
           />
         </div>
         {/* Only once the building has more than one structure. A single-structure
             crèche should not be asked to choose between one thing. */}
         {filterStructures.length > 1 && (
           <Select value={structureFilter} onValueChange={setStructureFilter}>
-            <SelectTrigger className="w-44" aria-label={t("roster.filterStructure")}>
+            <SelectTrigger className="w-48" aria-label={t("roster.filterStructure")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -419,7 +412,7 @@ export function ChildrenRoster({
           </SelectContent>
         </Select>
         <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
-          {t("roster.count", { count: active.length })}
+          {t(nk("count"), { count: active.length })}
         </span>
       </div>
 
@@ -435,34 +428,6 @@ export function ChildrenRoster({
         />
       ) : (
         <>
-          {/* The selection bar. One tint — the primary of the ticked boxes —
-              because it is the same fact: these rows are chosen. It sits
-              above the table rather than floating, so it never covers the
-              row somebody is about to tick. */}
-          {selectedRows.length > 0 && (
-            <div className="hidden items-center gap-2 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-sm md:flex">
-              <span className="font-medium tabular-nums text-primary">
-                {t("roster.bulkSelected", { count: selectedRows.length })}
-              </span>
-              <span className="text-muted-foreground" aria-hidden>
-                ·
-              </span>
-              <Button size="sm" onClick={() => setMoveOpen(true)}>
-                <ArrowRightLeft data-icon="inline-start" aria-hidden />
-                {t("roster.bulkMove")}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={clearSelection}
-                className="ms-auto text-muted-foreground"
-              >
-                <X data-icon="inline-start" aria-hidden />
-                {t("roster.bulkClear")}
-              </Button>
-            </div>
-          )}
-
           {/* Desktop table */}
           <Card
             className={cn(
@@ -470,8 +435,42 @@ export function ChildrenRoster({
               active.length === 0 && "md:hidden"
             )}
           >
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="relative overflow-x-auto">
+              {/* When rows are ticked the head row becomes the bulk bar: the
+                  column labels stay in the flow but invisible, so every
+                  column keeps its width and nothing moves under the cursor,
+                  and the bar is painted over them on the same muted ground.
+                  The checkbox column stays visible at the start. */}
+              {selectedRows.length > 0 && (
+                <div className="absolute end-0 start-10 top-0 z-10 flex h-10 items-center gap-2 px-2 text-sm">
+                  <span className="tabular-nums text-primary">
+                    {t("roster.bulkSelected", { count: selectedRows.length })}
+                  </span>
+                  <span className="text-muted-foreground" aria-hidden>
+                    ·
+                  </span>
+                  {/* Outline, not solid: the page's one primary is "Ajouter
+                      un enfant" in the header, and the count in primary
+                      text already carries the emphasis. */}
+                  <Button size="sm" variant="outline" onClick={() => setMoveOpen(true)}>
+                    <ArrowRightLeft data-icon="inline-start" aria-hidden />
+                    {t("roster.bulkMove")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={clearSelection}
+                    className="ms-auto font-normal text-muted-foreground"
+                  >
+                    <X data-icon="inline-start" aria-hidden />
+                    {t("roster.bulkClear")}
+                  </Button>
+                </div>
+              )}
+              {/* Nine columns must fit the card at 1360 without clipping the
+                  last one: cells sit a little closer than the default and
+                  the badge column is headed "Badge", not "Code badge". */}
+              <Table className="[&_td]:px-1.5 [&_th]:px-1.5">
                 <TableHeader>
                   <TableRow className="[&>th]:font-semibold">
                     {canSelect && (
@@ -483,30 +482,30 @@ export function ChildrenRoster({
                         />
                       </TableHead>
                     )}
-                    <SortableHeader columnKey="child" sort={sort} onSort={onSort}>
-                      {t("roster.columns.child")}
+                    <SortableHeader columnKey="child" sort={sort} onSort={onSort} className={headClass}>
+                      {noun === "pupils" ? t("roster.pupils.column") : t("roster.columns.child")}
                     </SortableHeader>
-                    <SortableHeader columnKey="age" sort={sort} onSort={onSort}>
+                    <SortableHeader columnKey="age" sort={sort} onSort={onSort} className={headClass}>
                       {t("roster.columns.age")}
                     </SortableHeader>
-                    <SortableHeader columnKey="klass" sort={sort} onSort={onSort}>
+                    <SortableHeader columnKey="klass" sort={sort} onSort={onSort} className={headClass}>
                       {t("roster.columns.class")}
                     </SortableHeader>
                     {multiStructure && (
-                      <SortableHeader columnKey="structure" sort={sort} onSort={onSort}>
+                      <SortableHeader columnKey="structure" sort={sort} onSort={onSort} className={headClass}>
                         {t("roster.structureColumn")}
                       </SortableHeader>
                     )}
-                    <SortableHeader columnKey="allergies" sort={sort} onSort={onSort}>
+                    <SortableHeader columnKey="allergies" sort={sort} onSort={onSort} className={headClass}>
                       {t("roster.columns.allergies")}
                     </SortableHeader>
-                    <SortableHeader columnKey="enrolled" sort={sort} onSort={onSort}>
+                    <SortableHeader columnKey="enrolled" sort={sort} onSort={onSort} className={headClass}>
                       {t("roster.columns.enrolled")}
                     </SortableHeader>
-                    <SortableHeader columnKey="tag" sort={sort} onSort={onSort}>
-                      {t("roster.columns.tag")}
+                    <SortableHeader columnKey="tag" sort={sort} onSort={onSort} className={headClass}>
+                      {t("roster.columns.badge")}
                     </SortableHeader>
-                    <SortableHeader columnKey="status" sort={sort} onSort={onSort}>
+                    <SortableHeader columnKey="status" sort={sort} onSort={onSort} className={headClass}>
                       {t("roster.columns.status")}
                     </SortableHeader>
                   </TableRow>
@@ -519,7 +518,7 @@ export function ChildrenRoster({
                       className="relative transition-colors hover:bg-primary/5 data-[state=selected]:bg-primary/5"
                     >
                       {canSelect && (
-                        <TableCell>
+                        <TableCell className="w-10">
                           {/* Lifted above the row-wide link overlay (the
                               `after:absolute after:inset-0` on the name), or
                               every tick would open the child's page. */}
@@ -561,10 +560,7 @@ export function ChildrenRoster({
                         </TableCell>
                       )}
                       <TableCell>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <AllergyBadge child={c} />
-                          <NoFeePlanBadge child={c} />
-                        </div>
+                        <AllergyBadge child={c} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
                         {c.enrollmentDate ? formatDate(c.enrollmentDate, locale) : "—"}
@@ -582,9 +578,7 @@ export function ChildrenRoster({
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge className={childStatusClasses(c.status)}>
-                          {t(`status.${c.status}`)}
-                        </Badge>
+                        <StatusCell child={c} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -654,10 +648,13 @@ export function ChildrenRoster({
         <MoveChildDialog
           open={moveOpen}
           onOpenChange={onMoveOpenChange}
-          childIds={selectedRows.map((c) => c.id)}
+          subjects={selectedRows.map((c) => ({
+            id: c.id,
+            name: childDisplayName(c, locale),
+            structureId: c.structure_id,
+          }))}
           structures={structures}
           classes={allClasses}
-          currentStructureId={currentStructureId}
           onMoved={clearSelection}
           bulk
         />

@@ -6,10 +6,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, ChevronRight, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   STEP,
@@ -27,7 +26,8 @@ import {
 } from "./types";
 import { SoftWash } from "@/components/shared/soft-wash";
 import { StepWelcome } from "./step-welcome";
-import { StepStructure } from "./step-structure";
+import { StepStructure, StructureRow } from "./step-structure";
+import { LocaleLinks, OwnName } from "./wizard-ui";
 import { StepAccount } from "./step-account";
 import { StepChild } from "./step-child";
 import { StepPhoto } from "./step-photo";
@@ -441,49 +441,89 @@ export function EnrollWizard({
   const showProgress = !submitted && step > STEP.welcome;
   const showFooterNav =
     !submitted && step >= STEP.structure && step <= STEP.activities && step !== STEP.account;
+  // Once a structure is known — the link's, or the family's answer — the
+  // running summary in the header is that structure; before that, and on a
+  // single-structure establishment, it is the establishment's name.
+  const headerStructure = structures.find((s) => s.id === structureId) ?? null;
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-background">
       <SoftWash />
-      <div ref={scrollRef} className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pt-5 pb-8">
-        {showProgress && (
-          <div className="mb-6">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="truncate text-sm font-semibold">{link.tenant_name}</p>
-              <p className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                {t("progress", { current: progressCurrent, total: progressTotal })}
-              </p>
-            </div>
-            <Progress value={(progressCurrent / progressTotal) * 100} className="h-2" />
+      <div
+        ref={scrollRef}
+        className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pt-4 pb-8 sm:pt-5"
+      >
+        {/* ── Above the card, on the welcome only: the language links — the
+               one screen where a family picks a language, page-level like
+               the auth header. ─────────────────────────────────────────── */}
+        {!showProgress && (
+          <div className="mb-3 flex min-h-8 items-center justify-end px-1">
+            <LocaleLinks className="shrink-0" />
           </div>
         )}
 
-        <div className="flex-1">
+        {/* ── The card. One quiet card on the wash, the same one the sign-in
+               page floats its form in; vertically centred when the step is
+               shorter than the screen, flowing when it is not. ─────────── */}
+        <div className="rounded-3xl bg-card/80 sm:my-auto p-5 shadow-[0_1px_2px_rgba(16,54,66,0.04),0_12px_40px_-12px_rgba(16,54,66,0.16)] ring-1 ring-border/50 backdrop-blur-sm sm:p-7">
+          {/* ── The flow's header, the first block of the card so it travels
+                 with the step it describes: the running summary — the
+                 structure once it is known, else the establishment — the
+                 step count at the end, and a hairline under them. The fill
+                 is a width-sized child, which starts at inline-start in
+                 both directions; a translateX'd indicator slid it to the
+                 left of an Arabic page. ───────────────────────────────── */}
+          {showProgress && (
+            <div className="mb-5 border-b border-border pb-4">
+              <div className="flex min-h-7 items-center justify-between gap-3">
+                {headerStructure ? (
+                  <StructureRow structure={headerStructure} className="min-w-0" />
+                ) : (
+                  <OwnName className="truncate text-sm font-semibold">{link.tenant_name}</OwnName>
+                )}
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  {t("progress", { current: progressCurrent, total: progressTotal })}
+                </span>
+              </div>
+              <div
+                className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={progressTotal}
+                aria-valuenow={progressCurrent}
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width]"
+                  style={{ width: `${(progressCurrent / progressTotal) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
           {submitted ? (
             <StepSuccess tenantName={link.tenant_name} />
           ) : step === STEP.welcome ? (
             <>
               {/* Eight steps of child-and-parent details, for someone this
-                  crèche already holds a record of, ends in a duplicate of
-                  them. The sibling form asks for the child alone. */}
+                  establishment already holds a record of, ends in a duplicate
+                  of them. The sibling form asks for the child alone. */}
               {existingFamily && (
-                <div className="mb-4 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/20">
-                  <p className="flex items-start gap-2 text-sm">
-                    <Users className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                    <span>{t("existingFamily.body", { name: existingFamily })}</span>
-                  </p>
-                  <Button asChild size="sm" className="mt-3">
+                <p className="mb-5 flex items-start gap-2 border-b border-border pb-4 text-sm">
+                  <Users className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <span>
+                    {t("existingFamily.body", { name: existingFamily })}{" "}
                     <Link
                       href={
                         link.structure_id
                           ? `/portal/children/new?structure=${link.structure_id}`
                           : "/portal/children/new"
                       }
+                      className="font-medium whitespace-nowrap text-primary"
                     >
                       {t("existingFamily.cta")}
+                      <ChevronRight className="inline size-3.5 rtl:rotate-180" aria-hidden />
                     </Link>
-                  </Button>
-                </div>
+                  </span>
+                </p>
               )}
               <StepWelcome link={link} logoUrl={logoUrl} resumed={resumed} onStart={next} />
             </>
@@ -570,36 +610,40 @@ export function EnrollWizard({
               error={error}
               goTo={goTo}
               onSubmit={submit}
+              photoPath={state.child.photo_path}
             />
           )}
+
+          {!submitted && step >= STEP.structure && step !== STEP.account && error && step !== STEP.review && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* The footer sits directly under the step, inside the card —
+              never pinned to the bottom of the screen with a gap of wash
+              between it and the last row. */}
+          {showFooterNav && (
+            <div className="mt-6 flex items-center gap-3 border-t border-border pt-5">
+              <Button variant="outline" size="lg" className="h-11" onClick={back}>
+                <ArrowLeft className="size-4 rtl:rotate-180" data-icon="inline-start" />
+                {t("nav.back")}
+              </Button>
+              <Button size="lg" className="h-11 flex-1 text-base" onClick={next}>
+                {t("nav.next")}
+              </Button>
+            </div>
+          )}
+
+          {!submitted && step === STEP.review && (
+            <div className="mt-4">
+              <Button variant="ghost" size="lg" className="h-11 w-full" onClick={back}>
+                <ArrowLeft className="size-4 rtl:rotate-180" data-icon="inline-start" />
+                {t("nav.back")}
+              </Button>
+            </div>
+          )}
         </div>
-
-        {!submitted && step >= STEP.structure && step !== STEP.account && error && step !== STEP.review && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {showFooterNav && (
-          <div className="mt-6 flex items-center gap-3">
-            <Button variant="outline" size="lg" className="h-12" onClick={back}>
-              <ArrowLeft className="size-4 rtl:rotate-180" data-icon="inline-start" />
-              {t("nav.back")}
-            </Button>
-            <Button size="lg" className="h-12 flex-1 text-base" onClick={next}>
-              {t("nav.next")}
-            </Button>
-          </div>
-        )}
-
-        {!submitted && step === STEP.review && (
-          <div className="mt-4">
-            <Button variant="ghost" size="lg" className="h-11 w-full" onClick={back}>
-              <ArrowLeft className="size-4 rtl:rotate-180" data-icon="inline-start" />
-              {t("nav.back")}
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

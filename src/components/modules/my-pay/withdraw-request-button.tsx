@@ -29,10 +29,13 @@ import { withdrawAdvanceRequest } from "./actions";
 export function WithdrawRequestButton({
   advanceId,
   amountLabel,
+  iconOnly = false,
 }: {
   advanceId: string;
   /** Already formatted with `formatDZD` by the server component. */
   amountLabel: string;
+  /** The row form: a ghost icon with the label in `aria-label` and `title`. */
+  iconOnly?: boolean;
 }) {
   const t = useTranslations("accounting");
   const tc = useTranslations("common");
@@ -49,10 +52,21 @@ export function WithdrawRequestButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Undo2 data-icon="inline-start" />
-          {t("advances.withdraw")}
-        </Button>
+        {iconOnly ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("advances.withdraw")}
+            title={t("advances.withdraw")}
+          >
+            <Undo2 />
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm">
+            <Undo2 data-icon="inline-start" />
+            {t("advances.withdraw")}
+          </Button>
+        )}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

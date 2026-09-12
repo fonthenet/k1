@@ -3,40 +3,37 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Check } from "lucide-react";
+import { Building2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/shared/section-card";
+import { StructureTile } from "@/components/shared/structure-mark";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
-import { centerTypeOption } from "@/components/modules/settings/center-types";
 import { cn } from "@/lib/utils";
 import { setMemberStructures } from "./structure-actions";
 
 /**
- * Where a member of staff works — one structure, or several.
+ * Where a member of staff works when no class says so.
  *
- * Two kinds of chip. A structure the person is assigned to DIRECTLY is a
- * toggle: tick the crèche, tick the école, tick both for the cook. A
- * structure they are in THROUGH A CLASS is shown too, ticked and locked,
- * with the class named underneath — unassigning them from the école is done
- * by taking them off the école's class, not by unticking a chip that would
- * come straight back. The union is what everything else reads.
+ * An educator's structures are the ones her classes belong to, and the
+ * Classes card already names them — so this card is for the cook, the guard
+ * and the secretary only: the people on no class, whom the director places
+ * directly. Tick the crèche, tick the école, tick both for the kitchen.
  *
+ * The chips are the settings structure tiles; a ticked one gets the one
+ * "selected" mark — the primary border — and its glyph becomes a check.
  * Renders nothing for a one-structure building: there is nothing to choose.
  */
 export function StructuresCard({
   membershipId,
   structures,
   direct,
-  viaClasses,
   canManage,
 }: {
   membershipId: string;
   structures: Structure[];
   /** Structure ids assigned directly (kg_membership_structures). */
   direct: string[];
-  /** Structure id → class names that put the person there. */
-  viaClasses: Record<string, string[]>;
   canManage: boolean;
 }) {
   const t = useTranslations("staff.structures");
@@ -47,8 +44,7 @@ export function StructuresCard({
 
   if (structures.length < 2) return null;
 
-  const dirty =
-    picked.size !== direct.length || direct.some((id) => !picked.has(id));
+  const dirty = picked.size !== direct.length || direct.some((id) => !picked.has(id));
 
   function toggle(id: string) {
     setPicked((prev) => {
@@ -72,56 +68,55 @@ export function StructuresCard({
   }
 
   return (
-    <Card className="border border-border shadow-sm ring-0">
-      <CardHeader>
-        <CardTitle className="text-base font-semibold">{t("title")}</CardTitle>
-        <p className="text-xs text-pretty text-muted-foreground">{t("hint")}</p>
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        <div className="flex flex-wrap gap-2">
-          {structures.map((s) => {
-            const { Icon } = centerTypeOption(s.center_type);
-            const classes = viaClasses[s.id] ?? [];
-            const locked = classes.length > 0;
-            const on = locked || picked.has(s.id);
-            return (
-              <button
-                key={s.id}
-                type="button"
-                disabled={!canManage || locked || pending}
-                onClick={() => toggle(s.id)}
-                aria-pressed={on}
-                className={cn(
-                  "flex items-start gap-2.5 rounded-xl border px-3 py-2 text-start transition",
-                  on ? "border-transparent" : "border-border bg-background hover:bg-muted/50",
-                  (!canManage || locked) && "cursor-default"
-                )}
-                style={on ? { backgroundColor: `${s.color}14`, boxShadow: `inset 0 0 0 1.5px ${s.color}` } : undefined}
-              >
-                <span
-                  className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: `${s.color}1f`, color: s.color }}
-                >
-                  {on ? <Check className="size-3.5" /> : <Icon className="size-3.5" />}
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">{structureName(s, locale)}</span>
-                  <span className="block text-xs text-muted-foreground">
-                    {locked ? t("viaClasses", { classes: classes.join(", ") }) : on ? t("direct") : t("notHere")}
+    <SectionCard
+      icon={Building2}
+      tone={1}
+      title={t("title")}
+      hint={t("hint")}
+      className="mb-6"
+      action={
+        canManage && dirty ? (
+          <Button size="sm" onClick={save} disabled={pending}>
+            {t("save")}
+          </Button>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-wrap gap-2">
+        {structures.map((s) => {
+          const on = picked.has(s.id);
+          return (
+            <button
+              key={s.id}
+              type="button"
+              disabled={!canManage || pending}
+              onClick={() => toggle(s.id)}
+              aria-pressed={on}
+              className={cn(
+                "relative rounded-xl border px-2.5 py-1.5 text-start transition-colors",
+                on ? "border-primary ring-1 ring-primary" : "border-border hover:bg-muted/50",
+                !canManage && "cursor-default"
+              )}
+            >
+              <StructureTile
+                structure={{ name: structureName(s, locale), color: s.color, center_type: s.center_type }}
+              />
+              {/* The tile's glyph becomes a check: painted over the tile on an
+                  opaque card-coloured square so the tint is not doubled. */}
+              {on && (
+                <span className="absolute inset-y-0 start-2.5 flex items-center bg-card" aria-hidden>
+                  <span
+                    className="flex size-7 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: `${s.color}1f`, color: s.color }}
+                  >
+                    <Check className="size-4" />
                   </span>
                 </span>
-              </button>
-            );
-          })}
-        </div>
-        {canManage && dirty && (
-          <div className="flex justify-end">
-            <Button size="sm" onClick={save} disabled={pending}>
-              {t("save")}
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </SectionCard>
   );
 }

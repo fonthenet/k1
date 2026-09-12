@@ -4,13 +4,42 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
+import { clashFromDetails, isRoomClash, type ClashRange } from "@/lib/db-clash";
 import { algiersInstant } from "./dates";
 import { PROGRAM_STATUSES, SESSION_STATUSES, SESSION_TYPES } from "./session-types";
 
-export type ActionError = "invalid" | "forbidden" | "notFound" | "error";
-export type ActionResult = { ok: true; id?: string } | { ok: false; error: ActionError };
+export type ActionError =
+  | "invalid"
+  | "forbidden"
+  | "notFound"
+  | "conflictRoom"
+  | "conflictTherapist"
+  | "error";
+export type ActionResult =
+  | { ok: true; id?: string }
+  | { ok: false; error: ActionError; at?: ClashRange };
 
-function mapDbError(error: { code?: string } | null): { ok: false; error: ActionError } {
+/**
+ * What the database refused, as a word the dialog can print.
+ *
+ * A follow-up is booked twice over: the staff ledger of 0150 refuses the
+ * therapist's double booking and the room ledger of 0155 refuses the
+ * room's. Both are exclusion refusals (23P01), and both carry the existing
+ * booking's range in their DETAIL, so the same parser reads the range for
+ * either. The room is checked FIRST because every room refusal names
+ * `room_booking` in its message, and nothing else does.
+ */
+function mapDbError(
+  error: { code?: string; message?: string; details?: string } | null,
+): { ok: false; error: ActionError; at?: ClashRange } {
+  if (error?.code === "23P01") {
+    return {
+      ok: false,
+      error: isRoomClash(error.message) ? "conflictRoom" : "conflictTherapist",
+      at: clashFromDetails(error.details),
+    };
+  }
+  if (error?.code === "23514") return { ok: false, error: "invalid" };
   if (error?.code === "42501") return { ok: false, error: "forbidden" };
   return { ok: false, error: "error" };
 }
@@ -43,6 +72,8 @@ const createSessionSchema = z.object({
   time: timeStr,
   durationMin: z.number().int().min(5).max(480),
   programId: z.uuid().nullable(),
+  /** A follow-up has no inherited room: null is a home visit, or the yard without a room record. */
+  roomId: z.uuid().nullable(),
 });
 
 export async function createSession(
@@ -76,6 +107,7 @@ export async function createSession(
       therapist_id: d.therapistId,
       scheduled_at: algiersInstant(d.date, d.time),
       duration_min: d.durationMin,
+      room_id: d.roomId,
       status: "scheduled",
       created_by: ctx.user.id,
     })
@@ -123,6 +155,9 @@ export async function saveSessionOutcome(
     .eq("tenant_id", ctx.tenant.id)
     .select("id, program_id")
     .maybeSingle();
+  // Reviving a cancelled follow-up books its therapist and its room again,
+  // and either ledger may have been taken in the meantime: the outcome form
+  // hears the same two words the scheduling dialog does.
   if (error) return mapDbError(error);
   if (!data) return { ok: false, error: "notFound" };
 

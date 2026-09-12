@@ -1,42 +1,55 @@
-// Internal task board — staff only. Three lanes (to do / in progress / done)
-// with a stat row, a mine/all switch and a status filter. Parents never see
-// this surface: kg_tasks RLS is staff-scoped and the route sits behind
-// requireStaff().
+// Internal task register — staff only. One table grouped by status (to do /
+// in progress / done) with a stat row, a mine/all switch and a status
+// filter. Parents never see this surface: kg_tasks RLS is staff-scoped and
+// the route sits behind requireStaff().
 
+import { Fragment } from "react";
 import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { AlarmClock, CircleCheck, ListChecks, Plus, Timer, TriangleAlert } from "lucide-react";
+import {
+  AlarmClock,
+  ChevronRight,
+  CircleCheck,
+  ListChecks,
+  Plus,
+  Timer,
+  TriangleAlert,
+} from "lucide-react";
 import { requireStaff } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
-import { childDisplayName } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { childDisplayName, formatDate } from "@/lib/format";
 import type { Membership } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ValueRange } from "@/components/shared/value-range";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { TaskCard } from "@/components/modules/tasks/task-card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TaskRow } from "@/components/modules/tasks/task-row";
 import { TaskDialog } from "@/components/modules/tasks/task-dialog";
 import { TaskFilters } from "@/components/modules/tasks/task-filters";
 import { algiersDate, algiersToday, weekStart } from "@/components/modules/tasks/dates";
 import {
   BOARD_STATUSES,
-  LANE_DOT,
   TASK_STATUSES,
   sortCompleted,
   sortTasks,
   type AssigneeOption,
   type ChildOption,
   type TaskCardData,
-  type TaskRow,
+  type TaskRow as TaskRecord,
   type TaskStatus,
 } from "@/components/modules/tasks/types";
 
-/** The done lane is a recent tail, not an archive — the rest sits behind the
+/** The done group is a recent tail, not an archive — the rest sits behind the
  *  status filter. */
 const DONE_LANE_LIMIT = 10;
+
+/** Columns of the register; group rows span them all. */
+const COLUMNS = 6;
 
 interface ChildLite {
   id: string;
@@ -109,7 +122,7 @@ export default async function TasksPage({
   }));
   const childLabel = new Map(childOptions.map((c) => [c.id, c.label]));
 
-  const rawTasks = (tasksRes.data ?? []) as TaskRow[];
+  const rawTasks = (tasksRes.data ?? []) as TaskRecord[];
 
   // Invoice numbers for the tasks that hang off a bill (chase-payment work).
   const invoiceIds = [...new Set(rawTasks.map((r) => r.invoice_id).filter(Boolean))] as string[];
@@ -149,8 +162,8 @@ export default async function TasksPage({
     (x) => x.status === "done" && x.completed_at && algiersDate(x.completed_at) >= weekOpensOn
   ).length;
 
-  // The board itself is the working view: cancelled work is only ever reached
-  // through the status filter, and the done lane keeps just the recent tail.
+  // The full table is the working view: cancelled work is only ever reached
+  // through the status filter, and the done group keeps just the recent tail.
   const visible =
     statusFilter === "all"
       ? scoped.filter((x) => x.status !== "cancelled")
@@ -158,24 +171,36 @@ export default async function TasksPage({
   const canDelete = ctx.isAdmin;
   const doneHref = scope === "mine" ? "/tasks?scope=mine&status=done" : "/tasks?status=done";
 
-  const newTaskButton = (
-    <TaskDialog
-      assignees={assignees}
-      childOptions={childOptions}
-      defaultAssigneeId={ctx.membership.id}
-      trigger={
-        <Button>
-          <Plus data-icon="inline-start" />
-          {t("newTask")}
-        </Button>
-      }
-    />
-  );
+  // The three workflow statuses always get their group row, count 0 included:
+  // an empty "En cours" is a fact about the week, not a missing section. A
+  // status filter narrows the table to that one group.
+  const groups: TaskStatus[] = statusFilter === "all" ? [...BOARD_STATUSES] : [statusFilter];
+  const rowsOf = (status: TaskStatus) => {
+    const inGroup = visible.filter((x) => x.status === status);
+    const closed = status === "done" || status === "cancelled";
+    const sorted = closed ? sortCompleted(inGroup) : sortTasks(inGroup);
+    // Only the unfiltered table trims the done tail; ?status=done is where
+    // the rest is read.
+    const shown =
+      status === "done" && statusFilter === "all" ? sorted.slice(0, DONE_LANE_LIMIT) : sorted;
+    return { total: inGroup.length, shown, hidden: inGroup.length - shown.length };
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* One primary per page: the thing this page creates. */}
       <PageHeader title={t("title")} description={t("description")}>
-        {newTaskButton}
+        <TaskDialog
+          assignees={assignees}
+          childOptions={childOptions}
+          defaultAssigneeId={ctx.membership.id}
+          trigger={
+            <Button>
+              <Plus data-icon="inline-start" />
+              {t("newTask")}
+            </Button>
+          }
+        />
       </PageHeader>
 
       {tasksRes.error && (
@@ -186,102 +211,113 @@ export default async function TasksPage({
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label={t("stats.open")} value={open.length} icon={<ListChecks />} />
+      {/* Three tiles, each with the scope it counts under it: the stats
+          follow the mine/all switch but not the status filter. "Tâches
+          ouvertes" is no longer a tile — the group rows say it. */}
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label={t("stats.dueToday")}
           value={dueToday}
+          hint={formatDate(today, locale)}
           icon={<AlarmClock />}
           tone="gold"
         />
         <StatCard
           label={t("stats.overdue")}
           value={overdue}
+          hint={t(scope === "mine" ? "filters.mine" : "filters.all")}
           icon={<Timer />}
-          tone={overdue > 0 ? "danger" : "default"}
         />
         <StatCard
           label={t("stats.doneThisWeek")}
           value={doneThisWeek}
+          hint={
+            <ValueRange
+              from={formatDate(weekOpensOn, locale)}
+              to={formatDate(today, locale)}
+              separator="–"
+            />
+          }
           icon={<CircleCheck />}
           tone="success"
         />
       </div>
 
-      <TaskFilters scope={scope} status={statusFilter} mineCount={mineCount} />
+      <TaskFilters
+        scope={scope}
+        status={statusFilter}
+        mineCount={mineCount}
+        count={visible.length}
+      />
 
-      {visible.length === 0 ? (
+      {allTasks.length === 0 ? (
         <EmptyState
           icon={<ListChecks />}
-          title={t(scoped.length === 0 ? "empty.title" : "empty.filteredTitle")}
-          description={t(scoped.length === 0 ? "empty.description" : "empty.filteredDescription")}
-          action={scoped.length === 0 ? newTaskButton : undefined}
+          title={t("empty.title")}
+          description={t("empty.description")}
         />
-      ) : statusFilter === "all" ? (
-        <div className="grid gap-4 lg:grid-cols-3">
-          {BOARD_STATUSES.map((lane) => {
-            const inLane = visible.filter((x) => x.status === lane);
-            const laneTasks =
-              lane === "done"
-                ? sortCompleted(inLane).slice(0, DONE_LANE_LIMIT)
-                : sortTasks(inLane);
-            const hiddenDone = lane === "done" ? inLane.length - laneTasks.length : 0;
-            return (
-              <section
-                key={lane}
-                className="rounded-2xl border border-border/70 bg-muted/40 p-3"
-                aria-label={t(`status.${lane}`)}
-              >
-                <header className="mb-3 flex items-center gap-2 px-1">
-                  <span className={cn("size-2 shrink-0 rounded-full", LANE_DOT[lane])} aria-hidden />
-                  <h3 className="text-sm font-semibold text-foreground">{t(`status.${lane}`)}</h3>
-                  <span className="rounded-full bg-card px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
-                    {inLane.length}
-                  </span>
-                </header>
-                {laneTasks.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-                    {t(`laneEmpty.${lane}`)}
-                  </p>
-                ) : (
-                  <div className="space-y-2.5">
-                    {laneTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        today={today}
-                        assignees={assignees}
-                        childOptions={childOptions}
-                        canDelete={canDelete}
-                      />
-                    ))}
-                    {hiddenDone > 0 && (
-                      <Link
-                        href={doneHref}
-                        className="block rounded-xl border border-dashed border-border px-3 py-2.5 text-center text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-                      >
-                        {t("board.moreDone", { count: hiddenDone })}
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </section>
-            );
-          })}
-        </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {(statusFilter === "done" ? sortCompleted(visible) : sortTasks(visible)).map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              today={today}
-              assignees={assignees}
-              childOptions={childOptions}
-              canDelete={canDelete}
-            />
-          ))}
-        </div>
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+              <TableHeader>
+                <TableRow className="[&>th]:font-semibold">
+                  <TableHead>{t("columns.task")}</TableHead>
+                  <TableHead>{t("form.priority")}</TableHead>
+                  <TableHead>{t("form.dueDate")}</TableHead>
+                  <TableHead>{t("columns.linkedTo")}</TableHead>
+                  <TableHead>{t("form.assignee")}</TableHead>
+                  <TableHead className="w-24">
+                    <span className="sr-only">{t("card.more")}</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groups.map((status) => {
+                  const { total, shown, hidden } = rowsOf(status);
+                  return (
+                    <Fragment key={status}>
+                      {/* One group row per status inside the one table — the
+                          status is said once, with its count, and never again
+                          as a pill on the rows beneath it. */}
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={COLUMNS} className="py-1.5 text-xs">
+                          <span className="flex items-center gap-2">
+                            <span className="font-semibold">{t(`status.${status}`)}</span>
+                            <span className="text-muted-foreground tabular-nums">{total}</span>
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                      {shown.map((task) => (
+                        <TaskRow
+                          key={task.id}
+                          task={task}
+                          today={today}
+                          assignees={assignees}
+                          childOptions={childOptions}
+                          canDelete={canDelete}
+                        />
+                      ))}
+                      {hidden > 0 && (
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell colSpan={COLUMNS} className="py-2.5">
+                            <Link
+                              href={doneHref}
+                              className="inline-flex items-center gap-1 text-sm text-primary"
+                            >
+                              {t("board.moreDone", { count: hidden })}
+                              <ChevronRight className="size-4 rtl:rotate-180" />
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

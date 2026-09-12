@@ -7,13 +7,13 @@
     "today": "Aujourd'hui",
     "history": "Historique",
     "register": "Registre du jour",
-    "closedNotice": "{day} — la crèche n'ouvre pas ce jour-là.",
+    "closedNotice": "{day} — l'établissement n'ouvre pas ce jour-là.",
     "todayLabel": "Aujourd'hui",
     "sortLabel": "Ordre",
     "sortPresent": "Présents d'abord",
     "sortUnmarked": "Non pointés d'abord",
     "sortName": "Par nom",
-    "holidayNotice": "{name} — la crèche est fermée ce jour-là.",
+    "holidayNotice": "{name} — l'établissement est fermé ce jour-là.",
     "futureNotice": "Ce jour n'est pas encore arrivé — la présence ne peut pas être saisie à l'avance."
   },
   "tabs": {
@@ -28,7 +28,10 @@
     "present": "{count, plural, =0 {0 présent} one {# présent} other {# présents}}",
     "absent": "{count, plural, =0 {0 absent} one {# absent} other {# absents}}",
     "notMarked": "{count, plural, =0 {0 non pointé} one {# non pointé} other {# non pointés}}",
-    "checkedOut": "{count, plural, =0 {0 sorti} one {# sorti} other {# sortis}}"
+    "checkedOut": "{count, plural, =0 {0 sorti} one {# sorti} other {# sortis}}",
+    "ofTotal": "{count, plural, =0 {aucun enfant inscrit} one {sur # enfant} other {sur # enfants}}",
+    "reportedByParents": "{count, plural, =0 {aucun signalé par les familles} one {# signalé par la famille} other {# signalés par les familles}}",
+    "stillHere": "{count, plural, =0 {plus personne sur place} one {# encore sur place} other {# encore sur place}}"
   },
   "status": {
     "present": "Présent",
@@ -82,7 +85,7 @@
     "bulkDone": "{count, plural, one {# enfant marqué présent} other {# enfants marqués présents}}",
     "bulkNone": "Tous les enfants sont déjà pointés",
     "error": "Une erreur est survenue. Réessayez.",
-    "closed": "La crèche est fermée ce jour-là — rien n'a été enregistré.",
+    "closed": "L'établissement est fermé ce jour-là — rien n'a été enregistré.",
     "future": "Impossible de saisir la présence d'un jour à venir."
   },
   "empty": {
@@ -104,5 +107,81 @@
     "total": "Total",
     "totalTitle": "Jours de présence dans le mois",
     "empty": "Aucune donnée de présence pour ce mois."
+  },
+  "sections": {
+    "register": "Registre",
+    "journal": "Journal",
+    "history": "Historique",
+    "label": "Sections des présences"
+  },
+  "journal": {
+    "title": "Journal du jour",
+    "description": "Humeur, repas et sieste de chaque enfant présent",
+    "columns": {
+      "child": "Enfant",
+      "mood": "Humeur",
+      "meal": "Repas",
+      "nap": "Sieste",
+      "note": "Note",
+      "photos": "Photos"
+    },
+    "moods": {
+      "happy": "Joie",
+      "calm": "Calme",
+      "tired": "Fatigue",
+      "upset": "Contrariété"
+    },
+    "eaten": {
+      "all": "Tout",
+      "half": "La moitié",
+      "little": "Un peu",
+      "none": "Rien"
+    },
+    "napFrom": "de",
+    "napTo": "à",
+    "notSlept": "Pas dormi",
+    "napMinutes": "{minutes} min",
+    "notePlaceholder": "Une ligne pour les parents",
+    "photos": {
+      "title": "<name>{child}</name> · photos du {date}",
+      "add": "Ajouter des photos",
+      "remove": "Retirer",
+      "count": "{count, plural, =0 {Aucune photo} one {# photo} other {# photos}}",
+      "noConsent": "La famille n'a pas encore répondu au consentement photos.",
+      "refused": "La famille a refusé les photos.",
+      "seeConsents": "Voir les consentements",
+      "tooLarge": "Cette photo n'a pas pu être réduite."
+    },
+    "bulkMeal": "Tout le monde a bien mangé",
+    "publish": "Publier le journal",
+    "publishTitle": "Publier le journal du {date}",
+    "publishDigest": "Visible par les familles dès maintenant ; poussé sur leurs téléphones dans le journal du jour vers <ltr>{time}</ltr>.",
+    "publishNow": "Visible par les familles dès maintenant ; envoyé sur leurs téléphones tout de suite.",
+    "publishConfirm": "Publier",
+    "published": "Publié",
+    "sentAt": "Envoyé à <ltr>{time}</ltr>",
+    "ledger": {
+      "skipped_absent": "Non envoyé · absent",
+      "skipped_unmarked": "Non envoyé · non pointé",
+      "skipped_empty": "Non envoyé · rien à raconter",
+      "skipped_no_account": "Non envoyé · pas de compte famille",
+      "failed": "Envoi en échec · nouvel essai"
+    },
+    "saved": "Enregistré",
+    "empty": "Personne n'est pointé présent",
+    "emptyDescription": "Pointez les arrivées dans le registre ; le journal se remplit ensuite.",
+    "openRegister": "Ouvrir le registre",
+    "toasts": {
+      "published": "{count, plural, one {Journal publié pour # enfant} other {Journal publié pour # enfants}}"
+    },
+    "errors": {
+      "future": "Ce jour n'est pas encore arrivé.",
+      "closed": "L'établissement est fermé ce jour-là.",
+      "absent": "Cet enfant n'est pas pointé présent.",
+      "profile": "Le journal ne concerne pas cette classe.",
+      "consent": "La famille n'a pas autorisé les photos.",
+      "forbidden": "Seule l'équipe éducative peut remplir le journal.",
+      "invalid": "Vérifiez la saisie."
+    }
   }
 }

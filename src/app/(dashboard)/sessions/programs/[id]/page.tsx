@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { childDisplayName, formatDZD } from "@/lib/format";
+import { roomName } from "@/components/modules/classes/class-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +62,8 @@ interface HistorySession {
   status: SessionStatus;
   progress_rating: number | null;
   published: boolean;
+  room_id: string | null;
+  kg_rooms: { name: string; name_ar: string | null } | null;
 }
 
 export default async function ProgramDetailPage({
@@ -116,14 +119,16 @@ export default async function ProgramDetailPage({
       .order("sort_order"),
     supabase
       .from("kg_sessions")
-      .select("id, scheduled_at, duration_min, status, progress_rating, published")
+      .select(
+        "id, scheduled_at, duration_min, status, progress_rating, published, room_id, kg_rooms(name, name_ar)"
+      )
       .eq("tenant_id", ctx.tenant.id)
       .eq("program_id", program.id)
       .order("scheduled_at", { ascending: false }),
   ]);
 
   const goals = (goalsRes.data ?? []) as ProgramGoalRecord[];
-  const history = (historyRes.data ?? []) as HistorySession[];
+  const history = (historyRes.data ?? []) as unknown as HistorySession[];
 
   let therapistName = t("schedule.noTherapist");
   // Only set once a real name resolves — it is what gates the link below.
@@ -231,6 +236,12 @@ export default async function ProgramDetailPage({
                             <span className="text-xs tabular-nums text-muted-foreground">
                               {algiersTime(s.scheduled_at, locale)} ·{" "}
                               {t("schedule.duration", { count: s.duration_min })}
+                              {s.kg_rooms && (
+                                <>
+                                  <span aria-hidden> · </span>
+                                  <bdi dir="auto">{roomName(s.kg_rooms, locale)}</bdi>
+                                </>
+                              )}
                             </span>
                           </Link>
                         </TableCell>

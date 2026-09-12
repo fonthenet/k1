@@ -3,12 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Plus, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Ellipsis, Plus, Sparkles, Square } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { ActivityLink } from "@/components/shared/entity-link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/shared/section-card";
+import { StatusPill } from "@/components/shared/status-pill";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -27,9 +27,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatDZD } from "@/lib/format";
 import type { FeePeriod } from "@/lib/types";
-import { CategoryIcon } from "@/components/modules/classes/category-icon";
 import {
   addActivityEnrollment,
   endActivityEnrollment,
@@ -80,6 +85,8 @@ export function ChildActivitiesSection({
 }) {
   const t = useTranslations("activities");
   const tc = useTranslations("common");
+  // The overflow's label lives with the child file's other "…" menus.
+  const tChildren = useTranslations("children");
   const locale = useLocale();
   const router = useRouter();
   const [adding, setAdding] = useState(false);
@@ -100,7 +107,9 @@ export function ChildActivitiesSection({
         setAdding(false);
         router.refresh();
       } else {
-        toast.error(res.error === "forbidden" ? t("toasts.forbidden") : t("toasts.error"));
+        toast.error(
+          res.error === "forbidden" ? t("toasts.forbidden") : t("toasts.error"),
+        );
       }
     });
   }
@@ -113,135 +122,166 @@ export function ChildActivitiesSection({
         row.id,
         row.enrollmentId,
         childId,
-        row.status === "requested" ? "cancelled" : "ended"
+        row.status === "requested" ? "cancelled" : "ended",
       );
       if (res.ok) {
         setEnding(null);
         // Do not claim the charge went away when the trigger left it behind.
         toast.success(
-          row.status === "active" && chargeLocked ? t("toasts.endKeptCharge") : t("toasts.ended")
+          row.status === "active" && chargeLocked
+            ? t("toasts.endKeptCharge")
+            : t("toasts.ended"),
         );
         router.refresh();
       } else {
-        toast.error(res.error === "forbidden" ? t("toasts.forbidden") : t("toasts.error"));
+        toast.error(
+          res.error === "forbidden" ? t("toasts.forbidden") : t("toasts.error"),
+        );
       }
     });
   }
 
-  return (
-    <Card className="shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle className="flex items-center gap-2.5 text-base">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Sparkles className="size-4" />
-          </span>
-          {t("list.title")}
-        </CardTitle>
-        {canManage && available.length > 0 && (
-          <Dialog open={adding} onOpenChange={setAdding}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Plus data-icon="inline-start" />
-                {t("detail.enrollments.addChild")}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-sm">
-              <DialogHeader>
-                <DialogTitle>{t("addDialog.title")}</DialogTitle>
-                {/* The money is said before the write, not after it. */}
-                <DialogDescription>
-                  {chargeLocked ? t("addDialog.billsLocked") : t("addDialog.billsHint")}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-2">
-                {available.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    disabled={pending}
-                    onClick={() => enrol(a.id)}
-                    className="flex items-center gap-3 rounded-xl border border-border p-3 text-start transition-colors hover:bg-primary/5 disabled:opacity-60"
-                  >
-                    <CategoryIcon category={a.category} className="size-9 [&>svg]:size-4" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold">{a.name}</span>
-                      <span className="block truncate text-xs tabular-nums text-muted-foreground">
-                        {feeLine(a)}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAdding(false)} disabled={pending}>
-                  {tc("actions.cancel")}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-      </CardHeader>
-
-      <CardContent className="grid gap-3">
-        {enrollments.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-6 text-center">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Sparkles className="size-6" />
-            </span>
-            <p className="text-sm text-muted-foreground">{t("detail.enrollments.empty")}</p>
+  const addDialog =
+    canManage && available.length > 0 ? (
+      <Dialog open={adding} onOpenChange={setAdding}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <Plus data-icon="inline-start" />
+            {t("detail.enrollments.addChild")}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("addDialog.title")}</DialogTitle>
+            {/* The money is said before the write, not after it. */}
+            <DialogDescription>
+              {chargeLocked
+                ? t("addDialog.billsLocked")
+                : t("addDialog.billsHint")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            {available.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                disabled={pending}
+                onClick={() => enrol(a.id)}
+                className="flex items-center gap-3 rounded-xl border border-border p-3 text-start transition-colors hover:bg-primary/5 disabled:opacity-60"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{a.name}</span>
+                  <span className="block truncate text-xs tabular-nums text-muted-foreground">
+                    {feeLine(a)}
+                  </span>
+                </span>
+              </button>
+            ))}
           </div>
-        ) : (
-          enrollments.map((e) => (
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAdding(false)}
+              disabled={pending}
+            >
+              {tc("actions.cancel")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    ) : null;
+
+  return (
+    <SectionCard
+      icon={Sparkles}
+      tone={2}
+      title={t("list.title")}
+      action={addDialog}
+      contentClassName="gap-0"
+    >
+      {enrollments.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {t("detail.enrollments.empty")}
+        </p>
+      ) : (
+        <div className="divide-y divide-border">
+          {enrollments.map((e) => (
             <div
               key={e.enrollmentId}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-3.5 transition-colors hover:bg-muted/40"
+              className="relative flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0"
             >
-              <CategoryIcon category={e.category} className="size-10 [&>svg]:size-5" />
               <div className="min-w-0 flex-1">
-                {/* The row said which activity but gave no way to it — the
-                    fees, the schedule and who else is in it are all one click
-                    away on the activity's own page. */}
-                <div className="truncate font-semibold">
-                  <ActivityLink id={e.id}>{e.name}</ActivityLink>
-                </div>
+                {/* The row IS the link: the fees, the schedule and who else
+                    is in it are one click away on the activity's own page.
+                    The name stays in the foreground colour — a coloured name
+                    would read as the important part, and the row already
+                    says where it goes. */}
+                <Link
+                  href={`/activities/${e.id}`}
+                  className="block truncate font-semibold after:absolute after:inset-0"
+                >
+                  {e.name}
+                </Link>
                 <div className="truncate text-sm tabular-nums text-muted-foreground">
                   {feeLine(e)}
                 </div>
               </div>
-              {/* Gold tint for a request nobody has answered yet; the tint takes
-                  ink, never gold-foreground (THEME.md). */}
-              <Badge
-                className={
-                  e.status === "requested" ? "border-gold/40 bg-gold-muted text-gold-ink" : undefined
-                }
-              >
-                {t(`status.${e.status}`)}
-              </Badge>
+              {/* A request nobody has answered yet needs a human — gold. An
+                  active enrolment is the expected state and carries nothing. */}
+              {e.status === "requested" && (
+                <StatusPill tone="attention">
+                  {t(`status.${e.status}`)}
+                </StatusPill>
+              )}
+              {/* Ending an enrolment is the row's one verb, behind an
+                  overflow rather than written on every row. Lifted above
+                  the row-wide link so the click opens the menu, not the
+                  activity. */}
               {canManage && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={pending}
-                  onClick={() => setEnding(e)}
-                >
-                  {t("detail.enrollments.end")}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="relative z-10"
+                      aria-label={tChildren("profile.more")}
+                      disabled={pending}
+                    >
+                      <Ellipsis className="text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => setEnding(e)}>
+                      <Square />
+                      {t("detail.enrollments.end")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
-          ))
-        )}
-      </CardContent>
+          ))}
+        </div>
+      )}
 
-      <AlertDialog open={ending !== null} onOpenChange={(o) => !o && setEnding(null)}>
+      <AlertDialog
+        open={ending !== null}
+        onOpenChange={(o) => !o && setEnding(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("detail.enrollments.endTitle")}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("detail.enrollments.endTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("detail.enrollments.endDescription", { name: ending?.name ?? "" })}
+              {t("detail.enrollments.endDescription", {
+                name: ending?.name ?? "",
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>{tc("actions.cancel")}</AlertDialogCancel>
+            <AlertDialogCancel disabled={pending}>
+              {tc("actions.cancel")}
+            </AlertDialogCancel>
             <Button
               variant="destructive"
               disabled={pending}
@@ -252,6 +292,6 @@ export function ChildActivitiesSection({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </SectionCard>
   );
 }

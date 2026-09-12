@@ -75,7 +75,11 @@ export function EnrollPoster({ data }: { data: PosterData }) {
 
       <div
         id="poster-sheet"
-        className="mx-auto flex aspect-[210/297] w-full max-w-[210mm] flex-col items-center justify-between rounded-xl border border-border bg-white p-[12mm] text-center text-black shadow-sm"
+        // Cairo for the whole sheet, whatever language the director was in
+        // when they pressed Print: it carries Latin too, and the Arabic
+        // headline — the biggest line, aimed at Arabic-first parents — must
+        // not fall back to a system serif because the UI was in French.
+        className="mx-auto flex aspect-[210/297] w-full max-w-[210mm] flex-col items-center justify-between rounded-xl border border-border bg-white p-[12mm] text-center font-[family-name:var(--font-cairo)] text-black shadow-sm"
       >
         <div className="flex flex-col items-center gap-4">
           {data.logoUrl && (
@@ -129,12 +133,14 @@ export function EnrollPoster({ data }: { data: PosterData }) {
           <p className="text-base" dir="ltr" lang="fr">
             {t("poster.instruction.fr")}
           </p>
-          <p className="mt-2 text-xs tracking-widest text-black/55 uppercase">
+          {/* Letter-spacing only on the Latin run: spaced-out Arabic breaks
+              the joins between letters. */}
+          <p className="mt-2 text-xs text-black/55">
             <span dir="rtl" lang="ar">
               {t("poster.orVisit.ar")}
             </span>
             {" · "}
-            <span dir="ltr" lang="fr">
+            <span dir="ltr" lang="fr" className="tracking-widest uppercase">
               {t("poster.orVisit.fr")}
             </span>
           </p>

@@ -1,5 +1,5 @@
 {
-  "title": "Sessions",
+  "title": "Individual follow-up",
   "description": "Individual therapy and tutoring sessions, and the programmes that track each child's progress.",
   "tabs": {
     "schedule": "Schedule",
@@ -20,7 +20,9 @@
     "allTherapists": "All therapists",
     "type": "Type",
     "allTypes": "All types",
-    "unassigned": "Unassigned"
+    "unassigned": "Unassigned",
+    "view": "View",
+    "count": "{count, plural, =0 {No sessions} one {# session} other {# sessions}}"
   },
   "types": {
     "speech": "Speech therapy",
@@ -62,7 +64,10 @@
     "emptyTitle": "Nothing scheduled",
     "emptyDescription": "No session matches this period or these filters. Change the date, or book a new session.",
     "rating": "Progress {value} out of 5",
-    "published": "Shared with the parent"
+    "published": "Shared with the parent",
+    "columns": {
+      "time": "Time"
+    }
   },
   "newSession": {
     "trigger": "New session",
@@ -163,7 +168,9 @@
       "removeGoal": "Remove goal",
       "notes": "Notes",
       "submit": "Create programme"
-    }
+    },
+    "allStatuses": "All statuses",
+    "count": "{count, plural, =0 {No programmes} one {# programme} other {# programmes}}"
   },
   "programDetail": {
     "notFound": "Programme not found",
@@ -212,5 +219,9 @@
     "goalDeleted": "Goal deleted",
     "statusSaved": "Programme status updated",
     "error": "Something went wrong. Please try again."
+  },
+  "conflicts": {
+    "conflictTherapist": "The therapist already has a session or a lesson at that time.",
+    "conflictRoom": "The room is already booked at that time."
   }
 }

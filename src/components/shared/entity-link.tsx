@@ -6,30 +6,19 @@
 // linked name looks and behaves the same everywhere instead of each page
 // inventing its own hover colour.
 //
-// Deliberately a plain inline link, NOT the whole-row overlay used by the
-// roster (`after:absolute after:inset-0`). Most of these rows already carry
-// their own controls — a call button, a WhatsApp button, an editable salary
-// input, a "mark repaid" button — and a full-row overlay would swallow them.
-// The roster's overlay stays where it belongs: on rows that do nothing else.
-//
-// The dotted underline is the tell. These names sit inside dense tables of
-// numbers where a solid underline on every row would be visual noise, but with
-// no affordance at all nobody discovers the link exists.
+// Two doors, two shapes. A row whose record has a page or a dialog of its own
+// makes its name cell the whole-row overlay (`after:absolute after:inset-0`,
+// as the classes register does) and lifts its few controls above it. These
+// wrappers are the OTHER door: the inline link to a person inside a row that
+// is about something else — a leave, an advance, a payslip line — or the
+// second door inside an overlaid row, where the primary colour is what tells
+// it apart from the row it sits in.
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 /**
  * The affordance itself, for the doors that are not one of the names below.
- *
- * The ledger needed both: a row derived from payroll goes to a route these
- * wrappers do not cover, and a row somebody typed opens a dialog rather than a
- * route, because there is no page for a transaction. Two elements — an anchor
- * and a `<button>` — in the same column, which have to look like one thing.
- * Same dotted underline, same hover, same focus ring.
- */
-/**
- * The affordance itself.
  *
  * Colour at rest, underline on hover AND focus — the standard technique for
  * identifying a link without underlining it (WCAG G183). It needs the link to

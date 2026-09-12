@@ -1,6 +1,6 @@
 {
   "title": "Comptabilité",
-  "subtitle": "Caisse, dépenses, salaires et résultat de la crèche",
+  "subtitle": "Caisse, dépenses, salaires et résultat de l'établissement",
   "monthLabel": "Mois",
   "nav": {
     "overview": "Aperçu",
@@ -44,7 +44,8 @@
     "income": "Revenus",
     "expense": "Dépenses",
     "uncategorized": "Sans catégorie",
-    "viewLedger": "Voir le journal"
+    "viewLedger": "Voir le journal",
+    "recentHint": "Les 8 dernières écritures, tous mois confondus"
   },
   "txn": {
     "title": "Journal des transactions",
@@ -125,7 +126,8 @@
     "linkedPayroll": "Versement de salaire",
     "structure": "Structure",
     "structureAll": "Tout l'établissement",
-    "structureHint": "Le loyer est à tout le bâtiment ; les fournitures de l'école sont à l'école."
+    "structureHint": "Le loyer est à tout le bâtiment ; les fournitures de l'école sont à l'école.",
+    "add": "Ajouter une écriture"
   },
   "categories": {
     "title": "Catégories",
@@ -146,7 +148,8 @@
     "deleteDesc": "Les transactions existantes de « {name} » resteront dans le journal, sans catégorie.",
     "added": "Catégorie créée",
     "updated": "Catégorie modifiée",
-    "deleted": "Catégorie supprimée"
+    "deleted": "Catégorie supprimée",
+    "count": "{count, plural, one {# catégorie} other {# catégories}}"
   },
   "payroll": {
     "title": "Paie",
@@ -295,7 +298,9 @@
     "withdraw": "Retirer",
     "withdrawDesc": "La demande de {amount} sera supprimée.",
     "withdrawTitle": "Retirer cette demande ?",
-    "withdrawn": "Demande retirée"
+    "withdrawn": "Demande retirée",
+    "requestDate": "Demandé le",
+    "decision": "Décision"
   },
   "errors": {
     "generic": "Une erreur est survenue. Réessayez.",

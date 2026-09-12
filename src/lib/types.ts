@@ -1,5 +1,7 @@
 // Domain types for the kg_* schema. Keep in sync with supabase/migrations.
 
+import type { ScheduleSlot } from "@/lib/activity-schedule";
+
 export type KgRole = "owner" | "admin" | "educator" | "staff" | "accountant" | "parent";
 export type ChildStatus = "pending" | "enrolled" | "waitlist" | "withdrawn" | "alumni";
 export type Gender = "male" | "female";
@@ -95,8 +97,16 @@ export interface ChildAllergy {
 export interface Activity {
   id: string; tenant_id: string; name: string; name_ar: string | null;
   description: string | null; category: string; fee_amount: number;
-  fee_period: FeePeriod; schedule: { day: string; time: string }[];
+  fee_period: FeePeriod;
+  /**
+   * Weekly slots. The column is jsonb and has been stored in three spellings
+   * (0155 reads all of them, 0156 rewrites every row into this one), so a
+   * row is read through `normaliseSchedule` before the type is trusted.
+   */
+  schedule: ScheduleSlot[];
   capacity: number | null; photo_path: string | null; active: boolean;
+  /** The one room the activity meets in (0155); null for "Sans salle". */
+  room_id: string | null;
 }
 
 export interface Attendance {

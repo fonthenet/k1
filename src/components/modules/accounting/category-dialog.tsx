@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
@@ -27,24 +26,35 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { TxnKind } from "@/lib/types";
 import { deleteCategory, saveCategory } from "./actions";
 import { CATEGORY_COLORS, type CategoryOption } from "./types";
 
-/** Create or rename/recolor a transaction category. */
+/**
+ * Create or rename/recolor a transaction category.
+ *
+ * A new category picks its kind on the dialog's first row, so the page needs
+ * one primary rather than one add button per kind. An existing category keeps
+ * its kind — the description states it — because the transactions already
+ * filed under it were filed as that kind. Deleting a custom category lives in
+ * this footer, next to the record; a system category simply does not offer it.
+ */
 export function CategoryDialog({
-  kind,
+  kind: initialKind = "expense",
   category,
   trigger,
 }: {
-  kind: TxnKind;
+  /** The kind a new category starts on; ignored when editing. */
+  kind?: TxnKind;
   category?: CategoryOption;
   trigger: React.ReactNode;
 }) {
   const t = useTranslations("accounting");
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<TxnKind>(category?.kind ?? initialKind);
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(CATEGORY_COLORS[0]);
   const [pending, startTransition] = useTransition();
@@ -52,8 +62,9 @@ export function CategoryDialog({
   function onOpenChange(next: boolean) {
     setOpen(next);
     if (next) {
+      setKind(category?.kind ?? initialKind);
       setName(category?.name ?? "");
-      setColor(category?.color ?? CATEGORY_COLORS[kind === "income" ? 0 : 6]);
+      setColor(category?.color ?? CATEGORY_COLORS[(category?.kind ?? initialKind) === "income" ? 0 : 6]);
     }
   }
 
@@ -70,18 +81,48 @@ export function CategoryDialog({
     });
   }
 
+  function remove() {
+    if (!category) return;
+    startTransition(async () => {
+      const res = await deleteCategory(category.id);
+      if (res.ok) {
+        toast.success(t("categories.deleted"));
+        setOpen(false);
+      } else {
+        toast.error(t(`errors.${res.error}`));
+      }
+    });
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      {/* No description while creating — the kind track is the first row —
+          and an explicit undefined is how Radix is told so, rather than
+          warning about a description it cannot find. Editing keeps the
+          automatic link to the kind line below the title. */}
+      <DialogContent
+        className="sm:max-w-sm"
+        {...(category ? {} : { "aria-describedby": undefined })}
+      >
         <DialogHeader>
           <DialogTitle>{category ? t("categories.editTitle") : t("categories.addTitle")}</DialogTitle>
-          <DialogDescription>
-            {t("categories.kind")} : {t(`kinds.${kind}`)}
-          </DialogDescription>
+          {category && (
+            <DialogDescription>
+              {t("categories.kind")} : {t(`kinds.${category.kind}`)}
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         <div className="grid gap-4">
+          {!category && (
+            <Tabs value={kind} onValueChange={(v) => setKind(v as TxnKind)}>
+              <TabsList className="w-full" aria-label={t("categories.kind")}>
+                <TabsTrigger value="income">{t("kinds.income")}</TabsTrigger>
+                <TabsTrigger value="expense">{t("kinds.expense")}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="cat-name">{t("categories.name")}</Label>
             <Input
@@ -114,6 +155,38 @@ export function CategoryDialog({
         </div>
 
         <DialogFooter>
+          {category && !category.is_system && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={pending}
+                  className="text-destructive hover:text-destructive sm:me-auto"
+                >
+                  {tc("actions.delete")}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("categories.deleteTitle")}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("categories.deleteDesc", { name: category.name })}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={pending}
+                    onClick={remove}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {tc("actions.delete")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button variant="outline" onClick={() => setOpen(false)}>
             {tc("actions.cancel")}
           </Button>
@@ -123,53 +196,5 @@ export function CategoryDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/** Delete a non-system category (existing transactions become uncategorized). */
-export function CategoryDeleteButton({ category }: { category: CategoryOption }) {
-  const t = useTranslations("accounting");
-  const tc = useTranslations("common");
-  const [pending, startTransition] = useTransition();
-
-  function remove() {
-    startTransition(async () => {
-      const res = await deleteCategory(category.id);
-      if (res.ok) toast.success(t("categories.deleted"));
-      else toast.error(t(`errors.${res.error}`));
-    });
-  }
-
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="text-muted-foreground hover:text-destructive"
-          aria-label={tc("actions.delete")}
-        >
-          <Trash2 />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t("categories.deleteTitle")}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {t("categories.deleteDesc", { name: category.name })}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
-          <AlertDialogAction
-            disabled={pending}
-            onClick={remove}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            {tc("actions.delete")}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Pencil, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/shared/date-picker";
 import { TimePicker } from "@/components/shared/time-picker";
 import { saveTimesheetEntry } from "./actions";
+import { TimesheetApprove } from "./timesheet-approve";
 
 interface EntryProps {
   membershipId: string;
@@ -24,6 +25,7 @@ interface EntryProps {
     clock_out_at: string | null;
     break_minutes: number | null;
     notes: string | null;
+    approved: boolean;
   };
   defaultDate: string;
 }
@@ -71,9 +73,13 @@ export function TimesheetEntryDialog({ membershipId, entry, defaultDate }: Entry
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {entry ? (
-          <Button variant="ghost" size="icon-sm" aria-label={tc("actions.edit")}>
-            <Pencil />
-          </Button>
+          // Stretched over the whole table row (the row is `relative`): the
+          // row itself opens the entry, the way a roster row is its link.
+          <button
+            type="button"
+            aria-label={t("timesheets.editTitle")}
+            className="absolute inset-0 cursor-pointer rounded-none focus-visible:outline-2 focus-visible:outline-primary"
+          />
         ) : (
           <Button variant="outline" size="sm">
             <Plus data-icon="inline-start" />
@@ -121,6 +127,14 @@ export function TimesheetEntryDialog({ membershipId, entry, defaultDate }: Entry
             <Label htmlFor="ts-notes">{t("timesheets.notes")}</Label>
             <Textarea id="ts-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
+          {/* Approval is a decision on the saved day, not a field of it, so it
+              saves on its own the moment it is ticked. */}
+          {entry && (
+            <label className="flex items-center gap-2 text-sm">
+              <TimesheetApprove id={entry.id} membershipId={membershipId} approved={entry.approved} />
+              {t("timesheets.columns.approved")}
+            </label>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>{tc("actions.cancel")}</Button>

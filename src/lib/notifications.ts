@@ -1,5 +1,6 @@
-import { formatDZD } from "@/lib/format";
+import { formatDZD, formatTime, intlLocale } from "@/lib/format";
 import type { Locale } from "@/i18n/request";
+import { blocksNounKey, sectionsFor, toLearningProfile } from "@/lib/child-day";
 
 /** Every event the platform can notify about. Keep in sync with the DB triggers
  *  in supabase/migrations/0012_kg_notifications.sql and 0049_kg_parent_notifications.sql. */
@@ -33,6 +34,8 @@ export interface KgNotification {
   created_at: string;
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 /** Where tapping a notification should land the reader. */
 export function notificationHref(n: Pick<KgNotification, "type" | "data">, isParent: boolean): string {
   const d = n.data ?? {};
@@ -60,8 +63,21 @@ export function notificationHref(n: Pick<KgNotification, "type" | "data">, isPar
       return s("applicationId") ? `/applications/${s("applicationId")}` : "/applications";
     case "checkin":
     case "checkout":
-    case "daily_report":
       return isParent && s("childId") ? `/portal/children/${s("childId")}` : "/attendance";
+    // The journal row lands on the DAY it tells about — the family on the
+    // child's day page, the staff on the Journal screen of that date — so a
+    // digest read on Sunday morning still opens Thursday. A row written before
+    // the payload carried a date keeps the child's record.
+    case "daily_report": {
+      const day = s("date");
+      const date = day && ISO_DATE.test(day) ? day : undefined;
+      if (isParent) {
+        const child = s("childId");
+        if (!child) return "/portal";
+        return date ? `/portal/children/${child}/day/${date}` : `/portal/children/${child}`;
+      }
+      return date ? `/attendance/journal?date=${date}` : "/attendance";
+    }
     case "attendance_flagged":
       return isParent && s("childId")
         ? `/portal/children/${s("childId")}?tab=attendance`
@@ -129,7 +145,9 @@ export function renderNotification(
   locale: Locale
 ): { title: string; body: string } {
   const m = messages as {
-    types?: Record<string, { title: string; body: string }>;
+    types?: Record<string, { title: string; body: string; parts?: DigestParts }>;
+    // The daily journal digest: a mood is a word the reader's language picks.
+    moods?: Record<string, string>;
     consentTypes?: Record<string, string>;
     consentStates?: Record<string, string>;
     // 0049 — every enum a payload can carry has a map here. Nothing that the
@@ -194,7 +212,12 @@ export function renderNotification(
   const previousRaw = typeof d.previousAmount === "number" ? d.previousAmount : NaN;
 
   const vars: Record<string, string> = {
-    child: str("childName"),
+    // A child is named in both scripts on the record; a payload that carries
+    // the Arabic name (`childNameAr`) shows it to an Arabic reader, so the row
+    // above "آدم عمراني" reads "يوميات آدم عمراني", never "يوميات Adam Amrani".
+    // A payload written before the sender carried it keeps the Latin name,
+    // the same fallback className and structure below already use.
+    child: (locale === "ar" && str("childNameAr")) || str("childName"),
     activity: str("activityName"),
     name: n.title,
     text: n.body ?? "",
@@ -248,5 +271,113 @@ export function renderNotification(
       .replace(/\s*·\s*(?=·)/g, "")
       .replace(/^\s*·\s*|\s*·\s*$/g, "")
       .replace(/\s{2,}/g, " ");
+  // The automatic daily journal (0152) carries counts and enums, never a
+  // sentence; its body is assembled here from flat keys, one part per fact,
+  // in the order the child's day page lays its sections out. A row the
+  // educator published by hand (`source: 'journal'`) and every row written
+  // before the sender existed keep the template body.
+  if (n.type === "daily_report" && d.source === "digest") {
+    const body = digestParts(d, tpl.parts, m.moods, locale).join(" · ");
+    return { title: fill(tpl.title).trim(), body: fill(body).trim() };
+  }
   return { title: fill(tpl.title).trim(), body: fill(tpl.body).trim() };
+}
+
+/** The six CLDR categories, all present in every locale (the merge script
+ *  enforces key parity; fr and en repeat `other`). */
+type PluralForms = Record<"zero" | "one" | "two" | "few" | "many" | "other", string>;
+
+/** `notifications.types.daily_report.parts` — see messages/_pending or the
+ *  merged notifications.json. Optional throughout: a reader whose bundle
+ *  predates the keys gets a shorter row, never a crash. */
+interface DigestParts {
+  arrived?: string;
+  lessons?: Partial<Record<"academic" | "therapy" | "other", Partial<PluralForms>>>;
+  menu?: string;
+  eaten?: Partial<Record<"all" | "half" | "little" | "none", string>>;
+  nap?: string;
+  noNap?: string;
+  photos?: Partial<PluralForms>;
+  incidents?: Partial<PluralForms>;
+}
+
+/**
+ * The digest body, part by part, in the profile's section order (D7/D15).
+ *
+ * Plurals go through Intl.PluralRules rather than ICU: the payload is a
+ * handful of integers, and Arabic needs its dual and its 3–10 form for
+ * "حصتان" and "3 حصص" — categories a `{n} x` template cannot express. A part
+ * is rendered only when its fact exists, so `zero` is never read and a day
+ * with no nap recorded says nothing about naps. Arrival and incidents were
+ * pushed the moment they happened; here they are context, and incidents come
+ * last so a serious one is the word the eye stops on.
+ */
+function digestParts(
+  d: Record<string, unknown>,
+  parts: DigestParts | undefined,
+  moods: Record<string, string> | undefined,
+  locale: Locale
+): string[] {
+  if (!parts) return [];
+  const profile = toLearningProfile(d.profile);
+  const rules = new Intl.PluralRules(intlLocale(locale));
+  const num = (k: string): number => {
+    const v = d[k];
+    const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const text = (k: string): string | null => (typeof d[k] === "string" ? (d[k] as string) : null);
+  const counted = (forms: Partial<PluralForms> | undefined, n: number): string | null => {
+    const s = forms?.[rules.select(n) as keyof PluralForms] ?? forms?.other;
+    return s ? s.replace("{n}", String(n)) : null;
+  };
+  const eatsHere = profile === "care" || profile === "development" || profile === "activities";
+
+  const out: string[] = [];
+  const push = (s: string | null | undefined) => { if (s) out.push(s); };
+  for (const section of sectionsFor(profile)) {
+    switch (section) {
+      case "presence": {
+        const arrivedAt = text("arrivedAt");
+        if (arrivedAt && parts.arrived) push(parts.arrived.replace("{time}", formatTime(arrivedAt, locale)));
+        break;
+      }
+      case "blocks": {
+        const n = num("lessons");
+        if (n > 0) push(counted(parts.lessons?.[blocksNounKey(profile)], n));
+        break;
+      }
+      case "meals": {
+        const eaten = text("eaten");
+        if (eatsHere && eaten && parts.eaten?.[eaten as keyof NonNullable<DigestParts["eaten"]>]) {
+          push(parts.eaten[eaten as keyof NonNullable<DigestParts["eaten"]>]);
+        } else if (d.menu === true || d.menu === "true") {
+          push(parts.menu);
+        }
+        break;
+      }
+      case "napMood": {
+        const nap = num("napMinutes");
+        if (nap > 0 && parts.nap) push(parts.nap.replace("{min}", String(nap)));
+        else if (nap === 0) push(parts.noNap);
+        const mood = text("mood");
+        if (mood) push(moods?.[mood]);
+        break;
+      }
+      case "photos": {
+        const n = num("photos");
+        if (n > 0) push(counted(parts.photos, n));
+        break;
+      }
+      case "incidents": {
+        const n = num("incidents");
+        if (n > 0) push(counted(parts.incidents, n));
+        break;
+      }
+      // Sessions and the educator's notes are text the payload never carries.
+      default:
+        break;
+    }
+  }
+  return out;
 }

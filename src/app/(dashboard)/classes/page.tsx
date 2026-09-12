@@ -1,43 +1,58 @@
 import Link from "next/link";
-import { DoorOpen, School, Users } from "lucide-react";
+import { Fragment } from "react";
+import { School, Users } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { StructureGroupRow } from "@/components/shared/structure-group-row";
 import { StaffLink } from "@/components/shared/entity-link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, scoped } from "@/lib/tenant";
-import { initialsFromName } from "@/lib/format";
+import { formatDate, initialsFromName } from "@/lib/format";
 import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
+import { groupClassesByStructure } from "@/lib/structure-groups";
 import { cn } from "@/lib/utils";
+import { dayKeyOfStr, toOpeningHours } from "@/lib/week";
 import type { KgClass } from "@/lib/types";
+import type { WeekGridDay } from "@/components/shared/week-grid";
+import { readRoomChoices, readRoomOccupancy } from "@/components/modules/rooms/occupancy-data";
+import type { BusySlot, HomeClass } from "@/components/modules/rooms/room-state";
+import { addDays, date as dateSchema, weekStart } from "@/components/modules/learning/domain";
 import {
   AssignStaffDialog,
   type AssignableStaff,
   type StaffPlace,
 } from "@/components/modules/classes/assign-staff-dialog";
 import { ClassDialog } from "@/components/modules/classes/class-dialog";
-import { DeleteClassButton } from "@/components/modules/classes/delete-class-button";
+import { ClassesTabs } from "@/components/modules/classes/classes-tabs";
+import { FillBar } from "@/components/modules/classes/fill-bar";
 import {
   ageRangeLabel,
+  algiersToday,
+  roomName,
   structureName,
   type AssignedStaff,
   type Room,
+  type RoomChoice,
   type Structure,
 } from "@/components/modules/classes/class-types";
 import { RoomsPanel, type RoomWithUsage } from "@/components/modules/classes/rooms-panel";
 import { RoomDialog } from "@/components/modules/classes/room-dialog";
-import { ClassGlyph } from "@/components/modules/classes/class-icons";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /** One kg_class_staff row with the person on it — every class, every member. */
 type ClassStaffRow = {
   class_id: string;
   is_main: boolean;
-  kg_classes: { id: string; name: string; name_ar: string | null; structure_id: string | null } | null;
+  kg_classes: {
+    id: string;
+    name: string;
+    name_ar: string | null;
+    color: string;
+    structure_id: string | null;
+  } | null;
   kg_memberships: {
     id: string;
     user_id: string | null;
@@ -56,14 +71,50 @@ type MemberRow = {
   job_title: string | null;
 };
 
+/** One row of kg_room_usage (0155): what still uses a room, in four counts. */
+type UsageRow = {
+  room_id: string;
+  class_count: number;
+  activity_count: number;
+  upcoming_count: number;
+  history_count: number;
+};
+
+/** A tenant-wide closure touching the sheet's week. */
+type Closure = {
+  date: string;
+  end_date: string | null;
+  name: string;
+  name_ar: string | null;
+  tentative: boolean;
+};
+
 /** How many faces a card shows before it says "+N". */
 const AVATARS_SHOWN = 3;
 
-export default async function ClassesPage() {
+export default async function ClassesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; day?: string }>;
+}) {
   const ctx = await requireStaff();
   const t = await getTranslations("classes");
+  const tc = await getTranslations("common");
   const locale = await getLocale();
   const supabase = await createClient();
+  const { tab, day: dayParam } = await searchParams;
+  const showRooms = tab === "rooms";
+
+  // The occupancy sheet reads the WEEK around ?day (D7) so its chevrons step
+  // through the week without a round trip; the day itself is resolved
+  // below, once the week's open days are known. The window is the building's
+  // — the ledger is establishment-wide (D13), whatever the switcher shows.
+  const today = algiersToday();
+  const wantedDay = dateSchema.safeParse(dayParam).success ? (dayParam as string) : today;
+  const week = weekStart(wantedDay);
+  const weekEnd = addDays(week, 6);
+  const weekFrom = `${week}T00:00:00+01:00`;
+  const weekTo = `${addDays(week, 7)}T00:00:00+01:00`;
 
   const [
     { data: classRows, error },
@@ -72,6 +123,10 @@ export default async function ClassesPage() {
     { data: roomRows },
     { data: structureRows },
     { data: memberRows },
+    occupancy,
+    { data: usageRows },
+    { data: activityRows },
+    { data: closureRows },
   ] =
     await Promise.all([
       scoped(
@@ -94,7 +149,7 @@ export default async function ClassesPage() {
       supabase
         .from("kg_class_staff")
         .select(
-          "class_id, is_main, kg_classes!inner(id, name, name_ar, structure_id, tenant_id), kg_memberships!inner(id, user_id, full_name, role, job_title, status)"
+          "class_id, is_main, kg_classes!inner(id, name, name_ar, color, structure_id, tenant_id), kg_memberships!inner(id, user_id, full_name, role, job_title, status)"
         )
         .eq("kg_classes.tenant_id", ctx.tenant.id),
       // Rooms (0123). Read by any member; only an admin sees the write
@@ -123,25 +178,130 @@ export default async function ClassesPage() {
             .eq("status", "active")
             .neq("role", "parent")
         : Promise.resolve({ data: [] as MemberRow[] }),
+      // Every room with the classes that live in it — the class dialog's
+      // tails — and, on the rooms tab, the week's bookings for the sheet.
+      // Unscoped on purpose: "Aussi salle de 1re année" is true whichever
+      // structure the switcher shows, and a room is booked by the whole
+      // building. Always the signed-in member's client (kg_bookings is
+      // authenticated-only).
+      showRooms
+        ? readRoomOccupancy(supabase, ctx, locale, weekFrom, weekTo)
+        : readRoomChoices(supabase, ctx, locale).then((choices) => ({
+            ...choices,
+            busy: [] as BusySlot[],
+          })),
+      // The four counts per room (0155): the table's "Utilisée par" tail,
+      // the delete sentence, the retire line. Rooms tab only.
+      showRooms
+        ? supabase.rpc("kg_room_usage", { p_tenant: ctx.tenant.id })
+        : Promise.resolve({ data: [] as UsageRow[] }),
+      // Active activities that meet in a room, by name, for the same cell.
+      showRooms
+        ? supabase
+            .from("kg_activities")
+            .select("id, name, name_ar, room_id")
+            .eq("tenant_id", ctx.tenant.id)
+            .eq("active", true)
+            .not("room_id", "is", null)
+            .order("name")
+        : Promise.resolve({ data: [] as { id: string; name: string; name_ar: string | null; room_id: string }[] }),
+      // Tenant-wide closures touching the week shut the sheet's day; a
+      // structure's own closure does not, since the other structures still
+      // book the same rooms.
+      showRooms
+        ? supabase
+            .from("kg_holidays")
+            .select("date,end_date,name,name_ar,tentative")
+            .eq("tenant_id", ctx.tenant.id)
+            .eq("closure", true)
+            .is("structure_id", null)
+            .lte("date", weekEnd)
+            .or(`end_date.gte.${week},and(end_date.is.null,date.gte.${week})`)
+        : Promise.resolve({ data: [] as Closure[] }),
     ]);
 
   if (error) throw new Error(error.message);
   const classes = (classRows ?? []) as KgClass[];
   const rooms = (roomRows ?? []) as Room[];
   const structures = (structureRows ?? []) as Structure[];
+  const roomById = new Map(rooms.map((r) => [r.id, r] as const));
+  const { homeClasses } = occupancy;
 
+  // The rooms as the class dialog offers them: every room, with the classes
+  // that already live in it, so the option tail can say "· 1re année".
+  const roomChoices: (RoomChoice & { classes: HomeClass[] })[] = occupancy.rooms.map((r) => ({
+    ...r,
+    classes: homeClasses[r.id] ?? [],
+  }));
 
-  // Which classes sit in which room — the card names them, because "can I
-  // delete this room?" is answered by that list and nothing else.
+  // Which classes sit in which room, which activities meet there, and the
+  // four counts the database refuses a delete on — the table names them,
+  // because "can I delete this room?" is answered by that cell.
+  const usageByRoom = new Map(((usageRows ?? []) as UsageRow[]).map((u) => [u.room_id, u] as const));
+  const activitiesByRoom = new Map<string, string[]>();
+  for (const a of (activityRows ?? []) as { name: string; name_ar: string | null; room_id: string }[]) {
+    const list = activitiesByRoom.get(a.room_id) ?? [];
+    list.push(locale === "ar" && a.name_ar ? a.name_ar : a.name);
+    activitiesByRoom.set(a.room_id, list);
+  }
   const roomsWithUsage: RoomWithUsage[] = rooms.map((r) => {
-    const inRoom = classes.filter((c) => c.room_id === r.id);
+    const inRoom = homeClasses[r.id] ?? [];
+    const u = usageByRoom.get(r.id);
     return {
       ...r,
-      classCount: inRoom.length,
-      classNames: inRoom.map((c) => (locale === "ar" && c.name_ar ? c.name_ar : c.name)),
+      classes: inRoom,
+      activities: activitiesByRoom.get(r.id) ?? [],
+      usage: {
+        classCount: u?.class_count ?? inRoom.length,
+        activityCount: u?.activity_count ?? (activitiesByRoom.get(r.id)?.length ?? 0),
+        upcomingCount: u?.upcoming_count ?? 0,
+        historyCount: u?.history_count ?? 0,
+      },
     };
   });
 
+  // ---- the sheet's week -------------------------------------------------
+  // The building's own hours, the days it opens this week, and any day a
+  // booking already falls on: a room booked on a Saturday is on the sheet
+  // even when the doors are officially shut. A building shut every day still
+  // gets Sunday–Thursday, greyed, rather than an empty card.
+  const hours = toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours);
+  const closures = (closureRows ?? []) as Closure[];
+  const closureOn = (date: string) =>
+    closures.find((c) => c.date <= date && (c.end_date ?? c.date) >= date);
+  const sheetBusy = occupancy.busy.filter((b) => b.roomId !== null);
+  const busyDays = new Set(sheetBusy.map((b) => b.date));
+  let weekDates = Array.from({ length: 7 }, (_, i) => addDays(week, i)).filter(
+    (date) => hours[dayKeyOfStr(date)] !== null || busyDays.has(date),
+  );
+  if (weekDates.length === 0) weekDates = Array.from({ length: 5 }, (_, i) => addDays(week, i));
+  const hoursByDate: Record<string, { open: string; close: string } | null> = {};
+  const days: WeekGridDay[] = weekDates.map((date) => {
+    const at = new Date(`${date}T12:00:00Z`);
+    const closure = closureOn(date);
+    const weekly = hours[dayKeyOfStr(date)];
+    hoursByDate[date] = closure ? null : weekly;
+    const isToday = date === today;
+    const fullLabel = formatDate(at, locale, { weekday: "long", day: "numeric", month: "long", year: undefined });
+    return {
+      date,
+      weekday: formatDate(at, locale, { weekday: "short", day: undefined, month: undefined, year: undefined }),
+      dayNumber: String(at.getUTCDate()),
+      fullLabel: isToday ? `${fullLabel}, ${tc("labels.today")}` : fullLabel,
+      isToday,
+      closed: weekly === null || closure !== undefined,
+      closedLabel: closure ? (locale === "ar" && closure.name_ar ? closure.name_ar : closure.name) : undefined,
+      tentative: closure?.tentative,
+      hours: closure ? null : weekly,
+    };
+  });
+  // The day on the sheet: the one asked for when it is a sheet day, else the
+  // last sheet day before it (a Saturday asked for lands on Thursday — how
+  // "previous day" from a Sunday works), else the week's first.
+  const day =
+    days.find((d) => d.date === wantedDay)?.date ??
+    [...days].reverse().find((d) => d.date < wantedDay)?.date ??
+    days[0].date;
 
   const enrolledByClass = new Map<string, number>();
   for (const row of enrolledRows ?? []) {
@@ -150,7 +310,7 @@ export default async function ClassesPage() {
   }
 
   const structureById = new Map(structures.map((str) => [str.id, str] as const));
-  /** Only worth showing a structure on a class card once there is more than one. */
+  /** Only worth grouping by structure once there is more than one. */
   const manyStructures = structures.length > 1;
 
   const staffLinks = ((staffRows ?? []) as unknown as ClassStaffRow[]).filter(
@@ -191,6 +351,7 @@ export default async function ClassesPage() {
     list.push({
       classId: klass.id,
       className: locale === "ar" && klass.name_ar ? klass.name_ar : klass.name,
+      classColor: klass.color,
       isMain: r.is_main,
       // A class with no structure belongs to the whole building — said so.
       structure: !manyStructures
@@ -226,225 +387,192 @@ export default async function ClassesPage() {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-  const ageRange = (c: KgClass) =>
-    ageRangeLabel(c.age_min_months, c.age_max_months, t);
+  // The classes under their structure, in the building's own order, with a
+  // trailing group for the ones that belong to the whole building. A
+  // one-structure crèche gets a single group and no heading.
+  const { groups, single } = groupClassesByStructure(classes, structures);
+
+  // One row per class, the way the roster draws children: the class is the
+  // link, the facts are columns, the team is a row of faces. Cards were a
+  // 3-column grid per structure, which left four classes as three-and-one
+  // and a single-class structure as a card alone on a line — a layout that
+  // changes shape with every count. A table reads the same at seven and
+  // at seventeen.
+  const classRow = (c: KgClass) => {
+    const enrolled = enrolledByClass.get(c.id) ?? 0;
+    const team = teamByClass.get(c.id) ?? [];
+    const main = team.find((s) => s.isMain);
+    const displayName = locale === "ar" && c.name_ar ? c.name_ar : c.name;
+    const room = c.room_id ? roomById.get(c.room_id) : undefined;
+    // The room's stored name, once, in the reader's script — never behind a
+    // translated "Salle" that the name already contains.
+    const roomLabel = room ? roomName(room, locale) : c.room;
+    const ages = ageRangeLabel(c.age_min_months, c.age_max_months, t);
+
+    return (
+      <TableRow key={c.id} className="relative transition-colors hover:bg-primary/5">
+        <TableCell>
+          {/* The whole row is the link: the name's overlay reaches every
+              cell, and the few controls (assign, pencil) are lifted above
+              it. The class colour appears once, as the dot before the name
+              — the same dot the roster's class chip carries. */}
+          <Link
+            href={`/classes/${c.id}`}
+            className="flex items-center gap-2.5 font-semibold after:absolute after:inset-0"
+          >
+            <span
+              className="size-2.5 shrink-0 rounded-full ring-1 ring-inset ring-foreground/10"
+              style={{ backgroundColor: c.color }}
+              aria-hidden
+            />
+            <bdi dir="auto" className="truncate">{displayName}</bdi>
+          </Link>
+        </TableCell>
+        <TableCell className="text-muted-foreground">
+          {roomLabel ? <bdi dir="auto">{roomLabel}</bdi> : "—"}
+        </TableCell>
+        <TableCell className="whitespace-nowrap text-muted-foreground">{ages || "—"}</TableCell>
+        <TableCell className="w-40">
+          <FillBar enrolled={enrolled} capacity={c.capacity} className="min-w-28" />
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2.5">
+            {team.length > 0 ? (
+              <>
+                {/* Faces, main educator first and drawn on top, so the gold
+                    ring — the one signal for "leads this class" — is never
+                    covered by the next face. */}
+                <span className="flex shrink-0 items-center -space-x-2 rtl:space-x-reverse">
+                  {team.slice(0, AVATARS_SHOWN).map((s, i) => (
+                    <Avatar
+                      key={s.membershipId}
+                      className={cn("size-8 ring-2", s.isMain ? "ring-gold" : "ring-card")}
+                      style={{ zIndex: s.isMain ? 10 : AVATARS_SHOWN - i }}
+                      title={s.name}
+                    >
+                      <AvatarFallback className="bg-secondary text-[11px] font-semibold text-primary">
+                        {initialsFromName(s.name) || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {team.length > AVATARS_SHOWN && (
+                    <span
+                      dir="ltr"
+                      className="flex size-8 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground ring-2 ring-card tabular-nums"
+                    >
+                      +{team.length - AVATARS_SHOWN}
+                    </span>
+                  )}
+                </span>
+                {/* The name that matters is the main educator's — the ring
+                    already says why. A team with no main says so rather than
+                    promoting someone. */}
+                <span className="relative z-10 min-w-0 truncate text-sm">
+                  {main ? (
+                    <StaffLink id={main.membershipId} className="font-medium">
+                      <bdi dir="auto">{main.name}</bdi>
+                    </StaffLink>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      {t("list.staffCount", { count: team.length })}
+                    </span>
+                  )}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <Users className="size-3.5" />
+                </span>
+                <span className="text-sm text-muted-foreground">{t("list.noTeacher")}</span>
+              </>
+            )}
+          </div>
+        </TableCell>
+        {ctx.isAdmin && (
+          <TableCell className="w-20">
+            <span className="relative z-10 flex items-center justify-end gap-0.5">
+              <AssignStaffDialog
+                classId={c.id}
+                className={displayName}
+                staff={staffForDialog(c.id)}
+                assigned={team}
+                trigger="icon"
+              />
+              <ClassDialog klass={c} rooms={roomChoices} structures={structures} />
+            </span>
+          </TableCell>
+        )}
+      </TableRow>
+    );
+  };
 
   return (
     <div>
-      <PageHeader title={t("list.title")} description={t("list.description")} />
+      {/* One primary per page: the thing this tab creates. */}
+      <PageHeader title={t("list.title")} description={t("list.description")}>
+        {ctx.isAdmin &&
+          (showRooms ? <RoomDialog /> : <ClassDialog rooms={roomChoices} structures={structures} />)}
+      </PageHeader>
 
       {/* Rooms live beside the classes, not in Settings: a room only means
           anything in relation to a class, and the person creating classes on
           their first day is the person who has to create the rooms. */}
-      <Tabs defaultValue="classes" className="gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <TabsList>
-            <TabsTrigger value="classes">
-              <School data-icon="inline-start" />
-              {t("list.tabClasses")}
-              <span className="ms-1 tabular-nums opacity-60">{classes.length}</span>
-            </TabsTrigger>
-            <TabsTrigger value="rooms">
-              <DoorOpen data-icon="inline-start" />
-              {t("list.tabRooms")}
-              <span className="ms-1 tabular-nums opacity-60">{rooms.length}</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      <ClassesTabs classCount={classes.length} roomCount={rooms.length} />
 
-        <TabsContent value="rooms">
-          <div className="mb-4 flex justify-end">{ctx.isAdmin && <RoomDialog />}</div>
-          <RoomsPanel rooms={roomsWithUsage} isAdmin={ctx.isAdmin} />
-        </TabsContent>
-
-        <TabsContent value="classes">
-      <div className="mb-4 flex justify-end">
-        {ctx.isAdmin && <ClassDialog rooms={rooms} structures={structures} />}
-      </div>
-
-      {classes.length === 0 ? (
+      {showRooms ? (
+        <RoomsPanel
+          rooms={roomsWithUsage}
+          isAdmin={ctx.isAdmin}
+          sheet={{ day, today, days, hoursByDate, busy: sheetBusy, locale }}
+        />
+      ) : classes.length === 0 ? (
         <EmptyState
-          icon={
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary [&>svg]:size-7">
-              <School />
-            </span>
-          }
+          icon={<School />}
           title={t("list.empty")}
           description={t("list.emptyDescription")}
-          action={ctx.isAdmin ? <ClassDialog /> : undefined}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {classes.map((c) => {
-            const enrolled = enrolledByClass.get(c.id) ?? 0;
-            const full = enrolled >= c.capacity;
-            const pct = c.capacity > 0 ? Math.min((enrolled / c.capacity) * 100, 100) : 0;
-            // Emerald while there's room, gold once it's nearly full, red when full.
-            const nearlyFull = !full && pct >= 80;
-            const team = teamByClass.get(c.id) ?? [];
-            const main = team.find((s) => s.isMain);
-            const displayName = locale === "ar" && c.name_ar ? c.name_ar : c.name;
-
-            return (
-              <Card
-                key={c.id}
-                className="shadow-sm transition-shadow duration-200 hover:shadow-md"
-              >
-                <CardContent className="flex flex-1 flex-col gap-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 items-start gap-3">
-                      {/* The class colour lives on the tile that stands for the
-                          class, not on a band across the top of the card. It
-                          identifies rather than decorates, and a tint with an
-                          ink glyph stays legible whatever colour a crèche
-                          picks — a solid fill would not.
-                          kg_classes.color is user data, hence inline styles. */}
-                      <span
-                        className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl text-foreground"
-                        style={{
-                          backgroundColor: `color-mix(in oklch, ${c.color} 20%, transparent)`,
-                          boxShadow: `inset 0 0 0 1px color-mix(in oklch, ${c.color} 45%, transparent)`,
-                        }}
-                        aria-hidden
-                      >
-                        <ClassGlyph icon={c.icon} className="size-5" />
-                      </span>
-                      <div className="min-w-0">
-                        <Link
-                          href={`/classes/${c.id}`}
-                          className="block truncate text-base font-semibold hover:underline"
-                        >
-                          {displayName}
-                        </Link>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
-                          <span>{ageRange(c)}</span>
-                          {c.room && (
-                            <>
-                              <span aria-hidden>·</span>
-                              <span>{t("list.room", { room: c.room })}</span>
-                            </>
-                          )}
-                          {/* Which structure — only once the building has more than
-                              one, otherwise it is the same word on every card. */}
-                          {manyStructures && c.structure_id && structureById.has(c.structure_id) && (
-                            <>
-                              <span aria-hidden>·</span>
-                              <span>
-                                {structureName(structureById.get(c.structure_id)!, locale)}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {ctx.isAdmin && (
-                      <div className="flex shrink-0 items-center">
-                        <ClassDialog klass={c} rooms={rooms} structures={structures} />
-                        <DeleteClassButton classId={c.id} childCount={enrolled} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-muted-foreground">{t("list.occupancy")}</span>
-                      <span className="flex items-center gap-2">
-                        {full && <Badge variant="destructive">{t("list.full")}</Badge>}
-                        <span
-                          className={cn(
-                            "text-base font-bold tabular-nums",
-                            full ? "text-destructive" : "text-foreground"
-                          )}
-                        >
-                          {enrolled}
-                          <span className="text-sm font-medium text-muted-foreground">
-                            {" / "}
-                            {c.capacity}
-                          </span>
-                        </span>
-                      </span>
-                    </div>
-                    <Progress
-                      value={pct}
-                      className={cn(
-                        "h-2",
-                        full && "[&_[data-slot=progress-indicator]]:bg-destructive",
-                        nearlyFull && "[&_[data-slot=progress-indicator]]:bg-gold"
-                      )}
-                    />
-                  </div>
-
-                  <div className="mt-auto flex items-center gap-2.5 border-t border-border pt-3 text-sm">
-                    {team.length > 0 ? (
-                      <>
-                        {/* Faces, main educator first. The gold ring is the
-                            one signal for "leads this class" — no star, no
-                            badge repeating it. */}
-                        <span className="flex shrink-0 items-center -space-x-2 rtl:space-x-reverse">
-                          {team.slice(0, AVATARS_SHOWN).map((s) => (
-                            <Avatar
-                              key={s.membershipId}
-                              className={cn(
-                                "size-8 ring-2 ring-card",
-                                s.isMain && "ring-gold"
-                              )}
-                              title={s.name}
-                            >
-                              <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
-                                {initialsFromName(s.name) || "?"}
-                              </AvatarFallback>
-                            </Avatar>
-                          ))}
-                          {team.length > AVATARS_SHOWN && (
-                            <span className="flex size-8 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground ring-2 ring-card tabular-nums">
-                              +{team.length - AVATARS_SHOWN}
-                            </span>
-                          )}
-                        </span>
-                        {/* The name that matters is the main educator's; the
-                            rest are the faces. A class with a team but no
-                            main says so rather than promoting someone. */}
-                        <span className="min-w-0 flex-1 text-pretty">
-                          {main ? (
-                            <>
-                              <span className="text-muted-foreground">{t("list.mainTeacher")}</span>{" "}
-                              <span className="font-semibold">
-                                <StaffLink id={main.membershipId}>{main.name}</StaffLink>
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">
-                              {t("list.staffCount", { count: team.length })}
-                            </span>
-                          )}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                          <Users className="size-3.5" />
-                        </span>
-                        <span className="min-w-0 flex-1 text-muted-foreground">{t("list.noTeacher")}</span>
-                      </>
-                    )}
-                    {ctx.isAdmin && (
-                      <AssignStaffDialog
-                        classId={c.id}
-                        className={displayName}
-                        staff={staffForDialog(c.id)}
-                        assigned={team}
-                        trigger="icon"
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+              <TableHeader>
+                <TableRow className="[&>th]:font-semibold">
+                  <TableHead>{t("list.columns.class")}</TableHead>
+                  <TableHead>{t("list.columns.room")}</TableHead>
+                  <TableHead>{t("list.columns.ages")}</TableHead>
+                  <TableHead>{t("list.occupancy")}</TableHead>
+                  <TableHead>{t("list.columns.team")}</TableHead>
+                  {ctx.isAdmin && <TableHead className="w-20"><span className="sr-only">{t("list.columns.actions")}</span></TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groups.map((g) => (
+                  <Fragment key={g.structure?.id ?? "building"}>
+                    {/* Group rows inside the one table, never a card per
+                        structure: the structure is said once, as its mark,
+                        and the count beside it. A one-structure crèche gets
+                        no group row at all. */}
+                    {!single && (
+                      <StructureGroupRow
+                        structure={
+                          g.structure
+                            ? { name: structureName(g.structure, locale), color: g.structure.color ?? "#19819a" }
+                            : null
+                        }
+                        label={t("assignStaff.wholeBuilding")}
+                        count={t("structures.classCount", { count: g.classes.length })}
+                        colSpan={ctx.isAdmin ? 6 : 5}
                       />
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                    {g.classes.map(classRow)}
+                  </Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

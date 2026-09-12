@@ -12,7 +12,13 @@ import {
 
 const emptyOption = "__empty_option__";
 
-/** Themed selection with the same FormData and reset contract as other fields. */
+/**
+ * Themed selection with the same FormData and reset contract as other fields.
+ *
+ * The trigger is the same 32px control as Input, DatePicker and TimePicker,
+ * so a filter bar or a two-up form row lines up on one baseline; it used to
+ * be the one field 8px taller than its neighbours.
+ */
 export function FormSelect({
   name,
   options,
@@ -56,7 +62,7 @@ export function FormSelect({
           onValueChange?.(resolved);
         }}
       >
-        <SelectTrigger className="h-10 w-full">
+        <SelectTrigger className="h-8 w-full">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent position="popper" align="start">

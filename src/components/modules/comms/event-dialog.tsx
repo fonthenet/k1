@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Check, Plus, Trash2, Users } from "lucide-react";
+import { Building2, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,8 +27,23 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DateTimePicker } from "@/components/shared/datetime-picker";
-import { structureName, type Structure } from "@/components/modules/classes/class-types";
+import {
+  structureName,
+  type RoomChoice,
+  type Structure,
+} from "@/components/modules/classes/class-types";
+import { StructureTile } from "@/components/shared/structure-mark";
+import { roomOccupancy } from "@/components/modules/rooms/occupancy";
+import { RoomSelect, RoomStatusLine } from "@/components/modules/rooms/room-select";
+import {
+  roomStates,
+  type BusySlot,
+  type HomeClass,
+  type RoomWindow,
+} from "@/components/modules/rooms/room-state";
+import { algiersClock, algiersDate, algiersInstant } from "@/lib/algiers";
 import { deleteEvent, eventAudienceCount, saveEvent } from "./actions";
+import { addDaysStr } from "./dates";
 import { dateAtTimeInput } from "./datetime";
 import {
   audiencesFor,
@@ -44,19 +59,10 @@ function toLocalInput(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/**
- * Create/edit dialog for a calendar event.
- * Pass `children` to use a custom trigger (a day-cell chip); otherwise a
- * "new event" button is rendered.
- */
-export function EventDialog({
-  event,
-  classes,
-  structures = [],
-  defaultDate,
-  defaultTime = "09:00",
-  children,
-}: {
+/** The ledger is read for at most a week of a long event; the database covers the rest. */
+const OCCUPANCY_DAYS = 7;
+
+export interface EventDialogProps {
   event: EventRow | null;
   classes: ClassOption[];
   /** The structures of the building (0125). Empty or single, and the audience
@@ -79,8 +85,34 @@ export function EventDialog({
    * event's own.
    */
   defaultTime?: string;
+  /** Every room of the building: the picker is never narrowed by the rail. */
+  rooms: RoomChoice[];
+  homeClasses: Record<string, HomeClass[]>;
   children?: ReactNode;
-}) {
+}
+
+/**
+ * Create/edit dialog for a calendar event.
+ * Pass `children` to use a custom trigger (a day-cell chip); otherwise a
+ * "new event" button is rendered.
+ *
+ * An event may book a room — the yard for a sports day, a hall for the
+ * parents' meeting — and a booked room is a row in the ledger of 0155, so
+ * the dialog reads who is in it on the event's day(s) and names the
+ * occupant under the field before Save: red when the database will refuse,
+ * gold when it will tolerate. A room needs an end: the ledger holds spans,
+ * not instants, so the dialog asks for the end before it will book.
+ */
+export function EventDialog({
+  event,
+  classes,
+  structures = [],
+  defaultDate,
+  defaultTime = "09:00",
+  rooms,
+  homeClasses,
+  children,
+}: EventDialogProps) {
   const t = useTranslations("comms");
   const tc = useTranslations("common");
   const locale = useLocale();
@@ -99,7 +131,16 @@ export function EventDialog({
   const [audience, setAudience] = useState<CommsAudience>(event?.audience ?? "all");
   const [classId, setClassId] = useState(event?.class_id ?? "");
   const [structureId, setStructureId] = useState(event?.structure_id ?? "");
-  const [color, setColor] = useState<string>(event?.color ?? EVENT_COLORS[0]);
+  const [roomId, setRoomId] = useState(event?.room_id ?? "");
+  // Who is in which room on the event's day(s); `reads` bumps after a
+  // refusal so the line under the field names the booking the read missed.
+  const [busy, setBusy] = useState<BusySlot[]>([]);
+  const [reads, setReads] = useState(0);
+  // The colour column is data the parent portal still reads, so an edit keeps
+  // the row's value; a new event gets the first swatch. Nobody picks one any
+  // more: on the calendar an event is drawn in one tint, and the only colour
+  // it carries is its structure's dot.
+  const color = event?.color ?? EVENT_COLORS[0];
   // Who this reaches, resolved by the same rule that will actually fan it out.
   // Stamped with the scope it was fetched for, so a count for "all" is never
   // left on screen after the author switches to a class.
@@ -127,6 +168,62 @@ export function EventDialog({
     };
   }, [open, scopeKey, audience, classId, structureId, startAt]);
 
+  // The event's span in Algiers, from the same instants the save will send.
+  // The picker's value is a local input, so the instant is the browser's —
+  // exactly what saveEvent stores, and what the ledger will compare.
+  const startMs = startAt ? Date.parse(startAt) : NaN;
+  const endMs = endAt ? Date.parse(endAt) : NaN;
+  const startDay = Number.isNaN(startMs) ? null : algiersDate(new Date(startMs));
+  const endDay = Number.isNaN(endMs) ? null : algiersDate(new Date(endMs));
+
+  useEffect(() => {
+    if (!open || !startDay) return;
+    let live = true;
+    // A multi-day event reads its first week only: the line checks the
+    // first day, the ledger checks the whole span.
+    const lastDay = endDay && endDay > startDay ? endDay : startDay;
+    const cappedLast = addDaysStr(startDay, OCCUPANCY_DAYS - 1);
+    const to = addDaysStr(lastDay < cappedLast ? lastDay : cappedLast, 1);
+    void roomOccupancy({
+      from: algiersInstant(startDay, "00:00"),
+      to: algiersInstant(to, "00:00"),
+    })
+      .then((r) => {
+        if (live) setBusy(r.busy);
+      })
+      // A failed read must never block saving: the line stays silent and
+      // the database keeps the last word.
+      .catch(() => {
+        if (live) setBusy([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [open, startDay, endDay, reads]);
+
+  // The draft's window is its first day: the whole day when the end is on a
+  // later one, an instant when there is no end yet.
+  const window: RoomWindow | null = startDay
+    ? {
+        date: startDay,
+        start: algiersClock(new Date(startMs)),
+        end:
+          endDay === null || endMs <= startMs
+            ? algiersClock(new Date(startMs))
+            : endDay === startDay
+              ? algiersClock(new Date(endMs))
+              : "24:00",
+      }
+    : null;
+  const states = roomStates(rooms, busy, window, {
+    explicit: true,
+    excludeKind: "event",
+    excludeId: event?.id,
+    homeClasses,
+    currentRoomId: roomId,
+  });
+  const roomState = roomId ? states.find((s) => s.room.id === roomId) : undefined;
+
   // Only ever the number for the scope currently on screen, and only when the
   // count actually succeeded — a failed lookup must not block saving an event.
   const current = reach && reach.key === scopeKey ? reach : null;
@@ -136,11 +233,16 @@ export function EventDialog({
   const willNotify = current && current.n >= 0 ? current.n : null;
 
   const endBeforeStart = !!endAt && !!startAt && Date.parse(endAt) < Date.parse(startAt);
+  // A room is booked for a span: without an end the ledger cannot hold it.
+  // Said under Fin and Save waits, so clearing the end never silently drops
+  // the room.
+  const roomNeedsEnd = !!roomId && (!endAt || Number.isNaN(endMs) || endMs <= startMs);
   const audiences = audiencesFor(structures.length);
   const canSubmit =
     !!title.trim() &&
     !!startAt &&
     !endBeforeStart &&
+    !roomNeedsEnd &&
     (audience !== "class" || !!classId) &&
     (audience !== "structure" || !!structureId) &&
     !pending;
@@ -161,6 +263,7 @@ export function EventDialog({
         audience,
         classId: audience === "class" && classId ? classId : null,
         structureId: audience === "structure" && structureId ? structureId : null,
+        roomId: roomId || null,
         color,
       });
       if (res.ok) {
@@ -173,9 +276,14 @@ export function EventDialog({
           setAudience("all");
           setClassId("");
           setStructureId("");
-          setColor(EVENT_COLORS[0]);
+          setRoomId("");
         }
         router.refresh();
+      } else if (res.error === "conflictRoom") {
+        // The room was taken since the read: say so, and read the days
+        // again so the line under the field names the booking.
+        toast.error(t("calendar.toasts.conflictRoom"));
+        setReads((n) => n + 1);
       } else {
         toast.error(t("calendar.toasts.error"));
       }
@@ -210,7 +318,7 @@ export function EventDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? t("calendar.editDialog.title") : t("calendar.createDialog.title")}
@@ -239,7 +347,9 @@ export function EventDialog({
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          {/* items-start: the line under Fin must not stretch Début's cell
+              and drift its label and pickers down the row. */}
+          <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
             <div className="grid gap-1.5">
               <Label htmlFor="ev-start">{t("calendar.form.startAt")}</Label>
               <DateTimePicker id="ev-start" value={startAt} onChange={setStartAt} />
@@ -252,14 +362,43 @@ export function EventDialog({
                 </span>
               </Label>
               <DateTimePicker id="ev-end" value={endAt} onChange={setEndAt} />
+              {roomNeedsEnd && (
+                <p role="status" className="text-xs text-muted-foreground">
+                  {t("calendar.form.roomNeedsEnd")}
+                </p>
+              )}
             </div>
           </div>
+
+          {/* Half-width, paired with nothing: the room is the one fact of
+              its row, and a second field here would be decoration. */}
+          {rooms.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="ev-room">
+                  {tc("rooms.room")}{" "}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    ({t("calendar.form.optional")})
+                  </span>
+                </Label>
+                <RoomSelect
+                  id="ev-room"
+                  value={roomId}
+                  onChange={setRoomId}
+                  states={states}
+                  emptyOption={{ label: tc("rooms.noRoom") }}
+                  describedBy={roomState?.occupant ? "ev-room-status" : undefined}
+                />
+                <RoomStatusLine id="ev-room-status" state={roomState} window={window} />
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label>{t("calendar.form.audience")}</Label>
               <Select value={audience} onValueChange={(v) => setAudience(v as CommsAudience)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -271,37 +410,11 @@ export function EventDialog({
                 </SelectContent>
               </Select>
             </div>
-            {audience === "structure" && (
-              <div className="grid gap-1.5">
-                <Label>{t("calendar.form.structure")}</Label>
-                <Select value={structureId} onValueChange={setStructureId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("calendar.form.chooseStructure")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {structures
-                      .filter((s) => s.active || s.id === structureId)
-                      .map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {/* The structure's own colour, the same dot the
-                              sidebar switcher and the comms picker give it. */}
-                          <span
-                            className="size-2 rounded-full ring-1 ring-inset ring-foreground/10"
-                            style={{ backgroundColor: s.color }}
-                            aria-hidden
-                          />
-                          {structureName(s, locale)}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
             {audience === "class" && (
               <div className="grid gap-1.5">
                 <Label>{t("calendar.form.class")}</Label>
                 <Select value={classId} onValueChange={setClassId}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder={t("calendar.form.chooseClass")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -315,6 +428,66 @@ export function EventDialog({
               </div>
             )}
           </div>
+
+          {/* Which part of the building. "Everyone" and "one structure" are
+              the same question asked of the same tiles, so the row stays on
+              screen for both answers: the whole establishment is the first
+              tile, and picking a structure is what makes the audience one.
+              Selected = the 2px primary border, nothing else. */}
+          {structures.length > 1 && (audience === "all" || audience === "structure") && (
+            <div className="grid gap-1.5">
+              <Label>{t("calendar.form.structure")}</Label>
+              <div role="radiogroup" aria-label={t("calendar.form.structure")} className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={audience === "all"}
+                  onClick={() => {
+                    setAudience("all");
+                    setStructureId("");
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border-2 px-2.5 py-2 text-start transition-colors hover:bg-muted/50",
+                    audience === "all" ? "border-primary" : "border-border",
+                  )}
+                >
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-hidden>
+                    <Building2 className="size-4" />
+                  </span>
+                  <span className="truncate text-sm font-medium">{t("audience.all")}</span>
+                </button>
+                {structures
+                  .filter((s) => s.active || s.id === structureId)
+                  .map((s) => {
+                    const selected = audience === "structure" && structureId === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => {
+                          setAudience("structure");
+                          setStructureId(s.id);
+                        }}
+                        className={cn(
+                          "rounded-lg border-2 px-2.5 py-2 text-start transition-colors hover:bg-muted/50",
+                          selected ? "border-primary" : "border-border",
+                        )}
+                      >
+                        <StructureTile
+                          structure={{
+                            name: structureName(s, locale),
+                            color: s.color,
+                            center_type: s.center_type,
+                          }}
+                        />
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
 
           {/* The consequence of the audience choice, in people. Saving an event
               now notifies them, and "all" is the default nobody thinks about. */}
@@ -331,33 +504,16 @@ export function EventDialog({
               </p>
             )
           )}
-
-          <div className="grid gap-1.5">
-            <Label>{t("calendar.form.color")}</Label>
-            <div className="flex flex-wrap items-center gap-2">
-              {EVENT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  aria-label={c}
-                  aria-pressed={color === c}
-                  className={cn(
-                    "flex size-7 items-center justify-center rounded-full ring-offset-2 ring-offset-background transition-all",
-                    color === c && "ring-2 ring-ring"
-                  )}
-                  style={{ backgroundColor: c }}
-                >
-                  {color === c && <Check className="size-4 text-white" />}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         <DialogFooter className="sm:justify-between">
           {isEdit ? (
-            <Button variant="destructive" onClick={remove} disabled={pending}>
+            <Button
+              variant="ghost"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={remove}
+              disabled={pending}
+            >
               <Trash2 data-icon="inline-start" />
               {confirmDelete ? t("calendar.deleteConfirm") : t("calendar.deleteEvent")}
             </Button>

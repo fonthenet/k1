@@ -47,6 +47,11 @@ function DialogOverlay({
   )
 }
 
+// A dialog always fits what it holds. Grid children default to min-width:auto,
+// so one unbreakable value inside a field could widen the whole box past its
+// max-width and grow a horizontal scrollbar; `*:min-w-0` lets every child
+// shrink and truncate instead, and overflow-x-hidden is the last resort for a
+// string nothing could break.
 function DialogContent({
   className,
   children,
@@ -70,7 +75,7 @@ function DialogContent({
         // dvh, not vh: on mobile Safari and Chrome the URL bar is part of vh,
         // so a vh-based cap still overflows while the bar is showing.
         className={cn(
-          "max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain fixed top-1/2 start-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden overscroll-contain *:min-w-0 fixed top-1/2 start-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}

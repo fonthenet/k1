@@ -9,7 +9,7 @@ educational-center type.
 ## Database activation
 
 Applied and verified on the connected Rawdatik project on 2026-09-10:
-`migrations/20260910195848_kg_private_school_types.sql`.
+`migrations/0146_kg_private_school_types.sql`.
 The application never applies migrations. The migration adds enum values and
 an authenticated, security-invoker metadata RPC. It does not change tenant
 rows, memberships, RLS policies, or subscriptions.

@@ -7,13 +7,14 @@
 // which one they mean BEFORE the form shows a class list, so every later
 // step (class, tariff, admission fee, activities) is already narrowed to the
 // side of the building they chose. The class step used to make them guess
-// from a flat list of five rooms; here the answer is one large card each.
+// from a flat list of five rooms; here the answer is one row each.
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowRight, Building2, Check } from "lucide-react";
+import { BookOpen, Building2, Shapes, type LucideIcon } from "lucide-react";
 import { centerTypeOption } from "@/components/modules/settings/center-types";
 import { structureName, yearsLabel } from "@/components/modules/classes/class-types";
 import { suggestClassPerStructure } from "@/lib/class-fit";
+import { ValueRange } from "@/components/shared/value-range";
 import { cn } from "@/lib/utils";
 import type { EnrollClass, EnrollStructure } from "./types";
 import { BigChoice, StepHeader } from "./wizard-ui";
@@ -23,11 +24,20 @@ import { BigChoice, StepHeader } from "./wizard-ui";
  * unit a crèche would say it in. Not ageBandLabel, which picks ONE unit for
  * both ends and would print the infant room's 4 months as "0,3 ans".
  * Null when no class in the structure carries a band.
+ *
+ * Passed one class, it prints that class's band in the same form — the
+ * class step reads "6 – 7 ans" under the structure step's "6 – 8 ans", one
+ * range format on two consecutive screens.
+ *
+ * When both ends share a unit the pair is a ValueRange — an LTR island, as
+ * every other pair of numbers in the product — with the unit said once
+ * after it. When the ends differ ("4 mois – 5 ans") each number already
+ * carries its own word, so the sentence reads in the paragraph's direction.
  */
 export function structureAgeRange(
   classes: readonly EnrollClass[],
   t: (key: string, values?: Record<string, string | number>) => string,
-): string | null {
+): React.ReactNode {
   const mins = classes.map((c) => c.age_min_months).filter((m): m is number => m !== null);
   const maxs = classes.map((c) => c.age_max_months).filter((m): m is number => m !== null);
   if (mins.length === 0 && maxs.length === 0) return null;
@@ -42,50 +52,90 @@ export function structureAgeRange(
   const min = mins.length > 0 ? Math.min(...mins) : null;
   const max = maxs.length > 0 ? Math.max(...maxs) : null;
   if (min !== null && max !== null) {
-    // Same unit both ends → say it once: "5 – 6 ans", not "5 ans – 6 ans".
-    const sameUnit = (min < 24) === (max < 24);
-    const lo = sameUnit ? (min < 24 ? String(min) : yearsLabel(min)) : age(min);
-    return t("structure.ageRange", { min: lo, max: age(max) });
+    const inMonths = max < 24;
+    if ((min < 24) === inMonths) {
+      // Same unit both ends → the pair as one island, the unit once: "5 – 6
+      // ans", not "5 ans – 6 ans". The unit takes its plural from the top.
+      const lo = inMonths ? String(min) : yearsLabel(min);
+      const hi = inMonths ? String(max) : yearsLabel(max);
+      const unit = inMonths
+        ? t("structure.unitMonths", { n: max })
+        : t("structure.unitYears", { n: years(max) });
+      return (
+        <>
+          <ValueRange separator="–" from={lo} to={hi} /> {unit}
+        </>
+      );
+    }
+    return t("structure.ageRange", { min: age(min), max: age(max) });
   }
   if (min !== null) return t("structure.ageFrom", { min: age(min) });
   return t("structure.ageUpTo", { max: age(max as number) });
 }
 
+/** The classes a structure offers: its own plus the building-wide ones. */
+export function classesOf(classes: readonly EnrollClass[], structureId: string): EnrollClass[] {
+  return classes.filter((c) => c.structure_id === structureId || c.structure_id === null);
+}
+
 /**
- * The structure's chip: its own colour behind its centre-type glyph, and its
- * name in the reader's script. The one signal on the welcome screen and on
- * the review — the same one the director sees in the sidebar switcher.
+ * The glyph of a structure, as the family sees it.
+ *
+ * The shared icon map draws a crèche and an école primaire with the same
+ * school-house, so on a whole-building link three tiles differed only by
+ * tint and a parent could not tell the crèche from the school by looking.
+ * Until that map gives each vertical its own glyph, the two verticals a
+ * family meets on this form are overridden here: blocks for the jardin
+ * d'enfants, an open book for the école. Everything else keeps the shared
+ * glyph, so a nursery stays the Baby it is everywhere.
  */
-export function StructureChip({
+const FAMILY_GLYPHS: Partial<Record<string, LucideIcon>> = {
+  kindergarten: Shapes,
+  private_primary: BookOpen,
+};
+
+function structureGlyph(centerType: string): { Icon: LucideIcon } {
+  return { Icon: FAMILY_GLYPHS[centerType] ?? centerTypeOption(centerType).Icon };
+}
+
+/**
+ * The standalone structure mark — the shared StructureTile's anatomy (a
+ * 28px tile tinted from the structure's colour, the type's glyph in that
+ * colour, the name beside it) with the family-facing glyph above. The one
+ * way a structure is drawn on the welcome, the structure step, the progress
+ * header and the review.
+ */
+export function StructureRow({
   structure,
+  trailing,
   className,
 }: {
   structure: EnrollStructure;
+  /** Muted text at the end of the row — the age range, a class list. */
+  trailing?: React.ReactNode;
   className?: string;
 }) {
   const locale = useLocale();
-  const { Icon } = centerTypeOption(structure.center_type);
+  const { Icon } = structureGlyph(structure.center_type);
+  const tinted = Boolean(structure.color);
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border bg-card py-1 ps-1 pe-3 text-sm font-medium",
-        className,
-      )}
-    >
+    <span className={cn("flex min-w-0 items-center gap-3", className)}>
       <span
         className={cn(
-          "flex size-6 shrink-0 items-center justify-center rounded-full",
-          !structure.color && "bg-muted text-muted-foreground",
+          "flex size-7 shrink-0 items-center justify-center rounded-lg",
+          !tinted && "bg-muted text-muted-foreground",
         )}
-        style={
-          structure.color
-            ? { backgroundColor: `${structure.color}1f`, color: structure.color }
-            : undefined
-        }
+        style={tinted ? { backgroundColor: `${structure.color}1f`, color: structure.color } : undefined}
+        aria-hidden
       >
-        <Icon className="size-3.5" aria-hidden />
+        <Icon className="size-4" />
       </span>
-      {structureName(structure, locale)}
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+        {structureName(structure, locale)}
+      </span>
+      {trailing && (
+        <span className="shrink-0 text-sm text-muted-foreground tabular-nums">{trailing}</span>
+      )}
     </span>
   );
 }
@@ -97,7 +147,7 @@ export function StepStructure({
   onChange,
 }: {
   structures: EnrollStructure[];
-  /** Every class the link publishes; each card computes its own age range from them. */
+  /** Every class the link publishes; each row computes its own age range from them. */
   classes: EnrollClass[];
   structureId: string;
   onChange: (id: string) => void;
@@ -109,65 +159,19 @@ export function StepStructure({
       <StepHeader
         icon={Building2}
         title={t("structure.title")}
-        subtitle={t("structure.subtitle")}
+        subtitle={t("structure.subtitle", { count: structures.length })}
       />
       <div className="space-y-3" role="radiogroup" aria-label={t("structure.title")}>
         {structures.map((s) => {
           const selected = structureId === s.id;
-          const range = structureAgeRange(
-            // The building's own classes (structure_id null) are offered
-            // in every structure, so they widen every card's range.
-            classes.filter((c) => c.structure_id === s.id || c.structure_id === null),
-            t,
-          );
           return (
-            <StructureCard key={s.id} structure={s} selected={selected} range={range} onClick={() => onChange(s.id)} />
+            <BigChoice key={s.id} selected={selected} onClick={() => onChange(s.id)}>
+              <StructureRow structure={s} trailing={structureAgeRange(classesOf(classes, s.id), t)} />
+            </BigChoice>
           );
         })}
       </div>
     </div>
-  );
-}
-
-function StructureCard({
-  structure,
-  selected,
-  range,
-  onClick,
-}: {
-  structure: EnrollStructure;
-  selected: boolean;
-  range: string | null;
-  onClick: () => void;
-}) {
-  const locale = useLocale();
-  const { Icon } = centerTypeOption(structure.center_type);
-  return (
-    <BigChoice selected={selected} onClick={onClick} className="p-5">
-      <div className="flex items-center gap-4">
-        {/* The structure's colour is the whole identity of the card; the
-            selected state borrows the wizard's primary border like every
-            other choice, so the two never compete. */}
-        <span
-          className="flex size-12 shrink-0 items-center justify-center rounded-2xl"
-          style={{ backgroundColor: `${structure.color}1f`, color: structure.color }}
-        >
-          <Icon className="size-6" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-base font-semibold">{structureName(structure, locale)}</p>
-          {range && <p className="mt-0.5 text-sm text-muted-foreground">{range}</p>}
-        </div>
-        <span
-          className={cn(
-            "flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-            selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30",
-          )}
-        >
-          {selected && <Check className="size-4" />}
-        </span>
-      </div>
-    </BigChoice>
   );
 }
 
@@ -185,8 +189,9 @@ function StructureCard({
  *     crèche decides at approval; a warning here would only stop a family
  *     the director may well accept.
  *
- * Returns null whenever there is nothing worth a sentence, so callers can
- * drop it in unconditionally.
+ * Both outcomes are the same muted line of help, never a box: the switch is
+ * a text link inside the sentence. Returns null whenever there is nothing
+ * worth a sentence, so callers can drop it in unconditionally.
  */
 export function AgeFitNotice({
   dob,
@@ -220,8 +225,9 @@ export function AgeFitNotice({
     if (!cls) return null;
     const name = locale === "ar" && cls.name_ar ? cls.name_ar : cls.name;
     return (
-      <p className={cn("text-xs text-muted-foreground", className)}>
-        {t("structure.fitsHere", { className: name })}
+      <p className={cn("text-sm text-muted-foreground", className)}>
+        {t("structure.fromDob")}{" "}
+        <span className="font-medium text-foreground">{name}</span>
       </p>
     );
   }
@@ -232,26 +238,16 @@ export function AgeFitNotice({
   );
   if (!elsewhere || !onSwitchStructure) return null;
 
-  const { Icon } = centerTypeOption(elsewhere.center_type);
   return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-muted/60 px-3 py-2.5 text-sm",
-        className,
-      )}
-    >
-      <span className="flex items-center gap-1.5">
-        <Icon className="size-4 shrink-0" style={{ color: elsewhere.color }} aria-hidden />
-        <span>{t("structure.fitsElsewhere", { structure: structureName(elsewhere, locale) })}</span>
-      </span>
+    <p className={cn("text-sm text-muted-foreground", className)}>
+      {t("structure.fitsElsewhere", { structure: structureName(elsewhere, locale) })}{" "}
       <button
         type="button"
         onClick={() => onSwitchStructure(elsewhere.id)}
-        className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none rounded"
+        className="rounded font-medium text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {t("structure.switch")}
-        <ArrowRight className="size-3.5 rtl:rotate-180" aria-hidden />
       </button>
-    </div>
+    </p>
   );
 }

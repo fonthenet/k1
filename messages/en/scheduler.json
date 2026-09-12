@@ -37,5 +37,49 @@
     "order": "End time must be later than start time on the same day.",
     "weeks": "Enter a whole number from 1 to 16.",
     "recurrence": "Every session must fall within the program dates. Change the first date or reduce the number of weeks."
+  },
+  "lesson": {
+    "add": "{profile, select, academic {Add a lesson} therapy {Add a workshop} other {Add an activity}}",
+    "new": "{profile, select, academic {New lesson} therapy {New workshop} other {New activity}}",
+    "fields": {
+      "class": "Class",
+      "program": "Program",
+      "title": "Title",
+      "type": "Type",
+      "date": "Date",
+      "start": "Start",
+      "end": "End",
+      "teacher": "Teacher",
+      "repeat": "Repeat every week",
+      "weeks": "{count, plural, one {week} other {weeks}}"
+    },
+    "chooseClassFirst": "Choose a class first.",
+    "noPrograms": "First create an active program for a class you can teach.",
+    "noStaff": "No team member is assigned to this class.",
+    "assignStaff": "Assign the team on the class page",
+    "series": "{profile, select, academic {{count, plural, one {# lesson} other {# lessons}}} therapy {{count, plural, one {# workshop} other {# workshops}}} other {{count, plural, one {# activity} other {# activities}}}}, {from} to {to}",
+    "outsideRange": "The series runs past the program dates.",
+    "save": "{profile, select, academic {{count, plural, one {Save} other {Save # lessons}}} therapy {{count, plural, one {Save} other {Save # workshops}}} other {{count, plural, one {Save} other {Save # activities}}}}",
+    "validation": {
+      "class": "Choose a class.",
+      "program": "Choose an active program.",
+      "staff": "Choose a member of this class’s team.",
+      "title": "Enter a title of 1 to 200 characters.",
+      "kind": "Choose a type.",
+      "date": "Choose a valid date.",
+      "range": "The date must fall within the program dates.",
+      "time": "Choose a valid time.",
+      "order": "The end time must be after the start time.",
+      "weeks": "Enter a number from 1 to 16.",
+      "recurrence": "{profile, select, academic {Every lesson must fall within the program dates.} therapy {Every workshop must fall within the program dates.} other {Every activity must fall within the program dates.}}"
+    },
+    "edit": "{profile, select, academic {Edit lesson} therapy {Edit workshop} other {Edit activity}}",
+    "busy": "Already booked",
+    "onlyThis": "{profile, select, academic {Only this lesson changes; the other weeks stay as they are.} therapy {Only this workshop changes; the other weeks stay as they are.} other {Only this activity changes; the other weeks stay as they are.}}",
+    "noProgram": "No program",
+    "titleIdeas": {
+      "care": "Arrival, Discovery, Motor skills, Meal, Nap, Snack, Outing",
+      "therapy": "Workshop"
+    }
   }
 }

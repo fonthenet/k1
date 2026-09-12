@@ -14,11 +14,10 @@
 // placement.
 
 import { useLocale, useTranslations } from "next-intl";
-import { Check } from "lucide-react";
-import { BigChoice } from "@/components/modules/enroll/wizard-ui";
 import { groupClassesByStructure, structureLabel } from "@/lib/structure-groups";
 import { suggestClassPerStructure } from "@/lib/class-fit";
-import { ageBandLabel, type Structure } from "@/components/modules/classes/class-types";
+import type { Structure } from "@/components/modules/classes/class-types";
+import { ageBandText } from "./age-band";
 import type { PortalClassOption } from "./portal-types";
 import { cn } from "@/lib/utils";
 
@@ -37,18 +36,43 @@ export function classesForStructure(
   return classes.filter((c) => c.structure_id === null || c.structure_id === structureId);
 }
 
-/** The radio dot of a card, in the wizard's selected-state language. */
+/**
+ * The radio mark of a row: an empty ring, or a ring with the primary dot
+ * inside it. The row itself carries no wash or border — one fact, one mark.
+ */
 function Dot({ selected }: { selected: boolean }) {
   return (
     <span
       className={cn(
-        "flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-        selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
+        "flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+        selected ? "border-primary" : "border-muted-foreground/30"
       )}
       aria-hidden
     >
-      {selected && <Check className="size-4" />}
+      {selected && <span className="size-2.5 rounded-full bg-primary" />}
     </span>
+  );
+}
+
+function Row({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onClick}
+      className="flex min-h-12 w-full items-center gap-3 px-3 py-2.5 text-start outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -73,7 +97,6 @@ export function ClassChoice({
 }) {
   const locale = useLocale();
   const t = useTranslations("portal.classChoice");
-  const tClasses = useTranslations("classes");
   const tCommon = useTranslations("common");
 
   const offered = classesForStructure(classes, structureId);
@@ -88,46 +111,46 @@ export function ClassChoice({
     suggestion?.get(structureId)?.classId ?? suggestion?.get(null)?.classId ?? null;
 
   return (
-    <div className="space-y-3" role="radiogroup" aria-label={ariaLabel}>
+    <div
+      className="divide-y divide-border rounded-xl border border-border bg-card"
+      role="radiogroup"
+      aria-label={ariaLabel}
+    >
       {groups.map((g) => (
-        <div key={g.structure?.id ?? "building"} className="space-y-3">
+        <div key={g.structure?.id ?? "building"} className="divide-y divide-border">
           {!single && (
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {structureLabel(g.structure, locale, tCommon("structures.all"))}
             </p>
           )}
           {g.classes.map((c) => {
             const selected = value === c.id;
             const name = locale === "ar" && c.name_ar ? c.name_ar : c.name;
-            const band = ageBandLabel(c.age_min_months, c.age_max_months, tClasses);
+            const band = ageBandText(c.age_min_months, c.age_max_months, tCommon);
             return (
-              <BigChoice key={c.id} selected={selected} onClick={() => onChange(c.id)}>
-                <div className="flex items-center gap-3">
-                  <Dot selected={selected} />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">{name}</p>
-                    {band && <p className="mt-0.5 text-xs text-muted-foreground">{band}</p>}
-                  </div>
-                  {c.id === suggestedId && (
-                    <span className="shrink-0 rounded-full bg-success/12 px-2.5 py-1 text-xs font-medium text-success">
-                      {t("forAge")}
-                    </span>
-                  )}
-                </div>
-              </BigChoice>
+              <Row key={c.id} selected={selected} onClick={() => onChange(c.id)}>
+                <Dot selected={selected} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">{name}</span>
+                  {band && <span className="block text-xs text-muted-foreground">{band}</span>}
+                </span>
+                {/* The room the birth date points to, said in words at the
+                    end of its row — the one hint the family needs. */}
+                {c.id === suggestedId && (
+                  <span className="shrink-0 text-xs font-medium text-success">{t("forAge")}</span>
+                )}
+              </Row>
             );
           })}
         </div>
       ))}
-      <BigChoice selected={value === CLASS_UNDECIDED} onClick={() => onChange(CLASS_UNDECIDED)}>
-        <div className="flex items-center gap-3">
-          <Dot selected={value === CLASS_UNDECIDED} />
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">{t("undecided")}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{t("undecidedHint")}</p>
-          </div>
-        </div>
-      </BigChoice>
+      <Row selected={value === CLASS_UNDECIDED} onClick={() => onChange(CLASS_UNDECIDED)}>
+        <Dot selected={value === CLASS_UNDECIDED} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium">{t("undecided")}</span>
+          <span className="block text-xs text-muted-foreground">{t("undecidedHint")}</span>
+        </span>
+      </Row>
     </div>
   );
 }

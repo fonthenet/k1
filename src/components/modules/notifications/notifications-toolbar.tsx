@@ -1,17 +1,40 @@
 "use client";
 
-// Header actions for /notifications: the all/unread switch (mirrored in the URL
-// so a refresh or a shared link keeps the view) and "mark all as read".
+// The two controls of /notifications: "mark all as read" for the header, and
+// the all/unread switch for the filter card — mirrored in the URL so a
+// refresh or a shared link keeps the view.
 
 import { useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { CheckCheck } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { markNotificationsRead } from "./read-sync";
 
-export function NotificationsToolbar({
+/** The header's one action — outline, because nothing on this page is created. */
+export function MarkAllReadButton({ unreadCount }: { unreadCount: number }) {
+  const t = useTranslations("notifications");
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  function markAll() {
+    startTransition(async () => {
+      await markNotificationsRead(null);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Button variant="outline" onClick={markAll} disabled={unreadCount === 0 || pending}>
+      <CheckCheck data-icon="inline-start" />
+      {t("markAllRead")}
+    </Button>
+  );
+}
+
+/** Tout | Non lues as a segmented track, the unread count as muted digits. */
+export function NotificationsFilter({
   unreadOnly,
   unreadCount,
 }: {
@@ -22,59 +45,29 @@ export function NotificationsToolbar({
   const tc = useTranslations("common");
   const router = useRouter();
   const pathname = usePathname();
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
-  function setFilter(unread: boolean) {
+  function setFilter(value: string) {
     startTransition(() => {
-      router.replace(unread ? `${pathname}?filter=unread` : pathname, { scroll: false });
+      router.replace(value === "unread" ? `${pathname}?filter=unread` : pathname, {
+        scroll: false,
+      });
     });
   }
-
-  function markAll() {
-    startTransition(async () => {
-      await markNotificationsRead(null);
-      router.refresh();
-    });
-  }
-
-  const tab = "rounded-md px-3 py-1 text-xs font-medium transition-colors";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="inline-flex items-center rounded-lg bg-muted p-0.5" role="group">
-        <button
-          type="button"
-          aria-pressed={!unreadOnly}
-          onClick={() => setFilter(false)}
-          className={cn(
-            tab,
-            unreadOnly ? "text-muted-foreground hover:text-foreground" : "bg-card text-foreground shadow-xs"
-          )}
-        >
+    <Tabs value={unreadOnly ? "unread" : "all"} onValueChange={setFilter}>
+      <TabsList>
+        <TabsTrigger value="all" className="px-3">
           {tc("labels.all")}
-        </button>
-        <button
-          type="button"
-          aria-pressed={unreadOnly}
-          onClick={() => setFilter(true)}
-          className={cn(
-            tab,
-            "flex items-center gap-1.5",
-            unreadOnly ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
+        </TabsTrigger>
+        <TabsTrigger value="unread" className="px-3">
           {t("unreadOnly")}
           {unreadCount > 0 && (
-            <span className="rounded-full bg-primary/10 px-1.5 text-[10px] leading-4 font-semibold text-primary tabular-nums">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
+            <span className="text-xs text-muted-foreground tabular-nums">{unreadCount}</span>
           )}
-        </button>
-      </div>
-
-      <Button variant="outline" size="sm" onClick={markAll} disabled={unreadCount === 0 || pending}>
-        <CheckCheck /> {t("markAllRead")}
-      </Button>
-    </div>
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
   );
 }

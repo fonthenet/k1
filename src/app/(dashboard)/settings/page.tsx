@@ -1,4 +1,4 @@
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/shared/page-header";
 import type { Tenant } from "@/lib/types";
 import { requireAdmin, signedMediaUrl } from "@/lib/tenant";
@@ -15,16 +15,15 @@ import { toOpeningHours } from "@/lib/week";
 export default async function SettingsSchoolPage() {
   const ctx = await requireAdmin();
   const t = await getTranslations("settings");
-  const locale = await getLocale();
   const logoUrl = await signedMediaUrl(ctx.tenant.logo_url);
   // center_type landed in migration 0009; the shared Tenant type is lead-owned.
   const centerType = toCenterType(
     (ctx.tenant as Tenant & { center_type?: string | null }).center_type
   );
 
-  // The structures, with what each holds — the delete guard needs both counts, and
-  // the card names the classes because "can I remove this structure?" is answered
-  // by that list and nothing else.
+  // The structures, with what each holds — the delete guard needs both counts,
+  // and the row prints them so "can I remove this structure?" is answered
+  // before the dialog opens.
   const supabase = await createClient();
   const [{ data: structureRows }, { data: classRows }, { data: childRows }] = await Promise.all([
     supabase
@@ -35,7 +34,7 @@ export default async function SettingsSchoolPage() {
       .order("name"),
     supabase
       .from("kg_classes")
-      .select("id, name, name_ar, structure_id")
+      .select("id, structure_id")
       .eq("tenant_id", ctx.tenant.id),
     supabase
       .from("kg_children")
@@ -44,22 +43,16 @@ export default async function SettingsSchoolPage() {
       .eq("status", "enrolled"),
   ]);
 
-  const classesByStructure = (classRows ?? []) as {
-    id: string; name: string; name_ar: string | null; structure_id: string | null;
-  }[];
+  const classesByStructure = (classRows ?? []) as { id: string; structure_id: string | null }[];
   const childrenByStructure = (childRows ?? []) as { id: string; structure_id: string | null }[];
 
   const structureList = (structureRows ?? []) as (Structure & { opening_hours: unknown })[];
 
-  const structures: StructureWithUsage[] = structureList.map((str) => {
-    const inStructure = classesByStructure.filter((c) => c.structure_id === str.id);
-    return {
-      ...str,
-      classCount: inStructure.length,
-      childCount: childrenByStructure.filter((c) => c.structure_id === str.id).length,
-      classNames: inStructure.map((c) => (locale === "ar" && c.name_ar ? c.name_ar : c.name)),
-    };
-  });
+  const structures: StructureWithUsage[] = structureList.map((str) => ({
+    ...str,
+    classCount: classesByStructure.filter((c) => c.structure_id === str.id).length,
+    childCount: childrenByStructure.filter((c) => c.structure_id === str.id).length,
+  }));
 
   const openingHours = toOpeningHours(
     (ctx.tenant as Tenant & { opening_hours?: unknown }).opening_hours
@@ -72,6 +65,7 @@ export default async function SettingsSchoolPage() {
     id: str.id,
     name: str.name,
     name_ar: str.name_ar,
+    color: str.color,
     hours: str.opening_hours ? toOpeningHours(str.opening_hours) : null,
   }));
 

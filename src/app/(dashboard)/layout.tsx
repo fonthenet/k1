@@ -46,7 +46,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
           userId={ctx.user.id}
           userName={profile?.full_name || displayIdentity(ctx.user.email) || ""}
           roleLabel={ctx.membership.job_title ?? ctx.role}
-          title={ctx.tenant.name}
           isPlatformAdmin={!!platform}
           role={ctx.role}
           tenantName={ctx.tenant.name}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Pencil, Plus } from "lucide-react";
@@ -39,6 +39,7 @@ export function PlanDialog({
   description,
   structureId,
   structures = [],
+  trigger,
 }: {
   plan?: PlanOption;
   description?: string | null;
@@ -46,6 +47,12 @@ export function PlanDialog({
   structureId?: string | null;
   /** The structures of the establishment. The picker hides itself under two. */
   structures?: Structure[];
+  /**
+   * What opens the dialog, when it is not the default button: the plans
+   * register makes the plan's name the trigger, so the row is the editor and
+   * no pencil is needed beside it.
+   */
+  trigger?: ReactNode;
 }) {
   const t = useTranslations("billing");
   const tc = useTranslations("common");
@@ -94,7 +101,9 @@ export function PlanDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {plan ? (
+        {trigger ? (
+          trigger
+        ) : plan ? (
           <Button variant="ghost" size="icon" aria-label={tc("actions.edit")}>
             <Pencil />
           </Button>

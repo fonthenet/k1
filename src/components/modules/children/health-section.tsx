@@ -4,11 +4,18 @@ import { formatPhone, telHref } from "@/lib/format";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, HeartPulse, Pencil, Phone, Plus, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  HeartPulse,
+  Pencil,
+  Phone,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/shared/section-card";
 import {
   Dialog,
   DialogContent,
@@ -58,7 +65,8 @@ function toLines(items: HealthListItem[]): string {
  */
 function fromLines(text: string, original: HealthListItem[]): HealthListItem[] {
   const bySource = new Map<string, Record<string, unknown>>();
-  for (const item of original) if (item.source) bySource.set(item.label, item.source);
+  for (const item of original)
+    if (item.source) bySource.set(item.label, item.source);
 
   return text
     .split("\n")
@@ -68,7 +76,8 @@ function fromLines(text: string, original: HealthListItem[]): HealthListItem[] {
 }
 
 function ChipList({ items }: { items: HealthListItem[] }) {
-  if (items.length === 0) return <span className="text-sm text-muted-foreground">—</span>;
+  if (items.length === 0)
+    return <span className="text-sm text-muted-foreground">—</span>;
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((item, i) => (
@@ -93,7 +102,13 @@ function healthFormFrom(health: ChildHealthRow | null) {
   };
 }
 
-function HealthEditDialog({ childId, health }: { childId: string; health: ChildHealthRow | null }) {
+function HealthEditDialog({
+  childId,
+  health,
+}: {
+  childId: string;
+  health: ChildHealthRow | null;
+}) {
   const t = useTranslations("children");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -116,7 +131,10 @@ function HealthEditDialog({ childId, health }: { childId: string; health: ChildH
     if (pending) return;
     startTransition(async () => {
       const res = await saveHealth(childId, {
-        conditions: fromLines(form.conditions, health?.medical_conditions ?? []),
+        conditions: fromLines(
+          form.conditions,
+          health?.medical_conditions ?? [],
+        ),
         medications: fromLines(form.medications, health?.medications ?? []),
         vaccinations: fromLines(form.vaccinations, health?.vaccinations ?? []),
         dietary: form.dietary || undefined,
@@ -226,7 +244,11 @@ function HealthEditDialog({ childId, health }: { childId: string; health: ChildH
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={pending}
+          >
             {tc("actions.cancel")}
           </Button>
           <Button onClick={submit} disabled={pending}>
@@ -292,7 +314,9 @@ function AllergyDialog({
         // 0061 made a second row for the same allergen impossible. Saying
         // "an error occurred" for a list that already holds it is how someone
         // ends up trying three times.
-        toast.error(res.error === "duplicate" ? t("toasts.duplicate") : t("toasts.error"));
+        toast.error(
+          res.error === "duplicate" ? t("toasts.duplicate") : t("toasts.error"),
+        );
       }
     });
   }
@@ -302,7 +326,9 @@ function AllergyDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{allergy ? t("allergies.editTitle") : t("allergies.addTitle")}</DialogTitle>
+          <DialogTitle>
+            {allergy ? t("allergies.editTitle") : t("allergies.addTitle")}
+          </DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
           <div className="grid gap-1.5">
@@ -317,7 +343,9 @@ function AllergyDialog({
             <Label>{t("allergies.severity")}</Label>
             <Select
               value={form.severity}
-              onValueChange={(v) => setForm((f) => ({ ...f, severity: v as AllergySeverity }))}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, severity: v as AllergySeverity }))
+              }
             >
               <SelectTrigger>
                 <SelectValue />
@@ -347,12 +375,18 @@ function AllergyDialog({
               id="a-plan"
               rows={3}
               value={form.actionPlan}
-              onChange={(e) => setForm((f) => ({ ...f, actionPlan: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, actionPlan: e.target.value }))
+              }
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={pending}
+          >
             {tc("actions.cancel")}
           </Button>
           <Button onClick={submit} disabled={!form.allergen.trim() || pending}>
@@ -402,17 +436,15 @@ export function HealthSection({
 
   return (
     <div className="grid gap-4">
-      {/* Allergies.
-          Red used to run five deep here — icon tile, title, banner, card tint,
-          card border — for a fact the severity badge already states. Colour
-          that is everywhere marks nothing, so it now sits on the one word that
-          decides what staff do: the severity. */}
-      <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <AlertTriangle className="size-4 shrink-0 text-destructive" aria-hidden />
-            {t("allergies.title")}
-          </CardTitle>
+      {/* Allergies. Red used to run five deep here — icon tile, title,
+          banner, card tint, card border — for a fact the severity pill
+          already states. Colour that is everywhere marks nothing, so it now
+          sits on the one word that decides what staff do: the severity. */}
+      <SectionCard
+        icon={AlertTriangle}
+        tone={1}
+        title={t("allergies.title")}
+        action={
           <AllergyDialog
             childId={childId}
             allergy={null}
@@ -423,165 +455,181 @@ export function HealthSection({
               </Button>
             }
           />
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          {allergies.length === 0 ? (
-            <p className="py-2 text-sm text-muted-foreground">{t("allergies.empty")}</p>
-          ) : (
-            <>
-              {allergies.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex flex-wrap items-start justify-between gap-3 rounded-xl border p-3.5"
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-base font-semibold">{allergenLabel(a.allergen, tc)}</span>
-                      <Badge className={severityClasses(a.severity)}>
-                        {t(`severity.${a.severity}`)}
-                      </Badge>
-                    </div>
-                    {a.reaction && (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">
-                          {t("allergies.reaction")}:
-                        </span>{" "}
-                        {a.reaction}
-                      </p>
-                    )}
-                    {a.action_plan && (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">
-                          {t("allergies.actionPlan")}:
-                        </span>{" "}
-                        {a.action_plan}
-                      </p>
-                    )}
+        }
+        contentClassName="gap-0"
+      >
+        {allergies.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {t("allergies.empty")}
+          </p>
+        ) : (
+          <div className="divide-y divide-border">
+            {allergies.map((a) => (
+              <div
+                key={a.id}
+                className="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-base font-semibold">
+                      {allergenLabel(a.allergen, tc)}
+                    </span>
+                    <Badge className={severityClasses(a.severity)}>
+                      {t(`severity.${a.severity}`)}
+                    </Badge>
                   </div>
-                  <div className="flex gap-1">
-                    <AllergyDialog
-                      childId={childId}
-                      allergy={a}
-                      trigger={
-                        <Button variant="ghost" size="icon-sm" aria-label={tc("actions.edit")}>
-                          <Pencil className="text-muted-foreground" />
-                        </Button>
-                      }
-                    />
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon-sm" aria-label={tc("actions.delete")}>
-                          <Trash2 className="text-muted-foreground" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{t("allergies.deleteTitle")}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t("allergies.deleteDescription")}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => removeAllergy(a.id)}>
-                            {tc("actions.confirm")}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                  {a.reaction && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {t("allergies.reaction")}:
+                      </span>{" "}
+                      {a.reaction}
+                    </p>
+                  )}
+                  {a.action_plan && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {t("allergies.actionPlan")}:
+                      </span>{" "}
+                      {a.action_plan}
+                    </p>
+                  )}
                 </div>
-              ))}
-            </>
-          )}
-        </CardContent>
-      </Card>
+                <div className="flex gap-1">
+                  <AllergyDialog
+                    childId={childId}
+                    allergy={a}
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={tc("actions.edit")}
+                      >
+                        <Pencil className="text-muted-foreground" />
+                      </Button>
+                    }
+                  />
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={tc("actions.delete")}
+                      >
+                        <Trash2 className="text-muted-foreground" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {t("allergies.deleteTitle")}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t("allergies.deleteDescription")}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>
+                          {tc("actions.cancel")}
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={() => removeAllergy(a.id)}>
+                          {tc("actions.confirm")}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
       {/* Health record */}
-      <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <HeartPulse className="size-4 shrink-0 text-primary" aria-hidden />
-            {t("health.title")}
-          </CardTitle>
-          <HealthEditDialog childId={childId} health={health} />
-        </CardHeader>
-        <CardContent>
-          {!hasHealthInfo ? (
-            <p className="py-2 text-sm text-muted-foreground">{t("health.empty")}</p>
-          ) : (
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("health.conditions")}
+      <SectionCard
+        icon={HeartPulse}
+        tone={0}
+        title={t("health.title")}
+        action={<HealthEditDialog childId={childId} health={health} />}
+      >
+        {!hasHealthInfo ? (
+          <p className="text-sm text-muted-foreground">{t("health.empty")}</p>
+        ) : (
+          <dl className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt className="mb-1 text-xs text-muted-foreground">
+                {t("health.conditions")}
+              </dt>
+              <dd>
+                <ChipList items={health?.medical_conditions ?? []} />
+              </dd>
+            </div>
+            <div>
+              <dt className="mb-1 text-xs text-muted-foreground">
+                {t("health.medications")}
+              </dt>
+              <dd>
+                <ChipList items={health?.medications ?? []} />
+              </dd>
+            </div>
+            <div>
+              <dt className="mb-1 text-xs text-muted-foreground">
+                {t("health.vaccinations")}
+              </dt>
+              <dd>
+                <ChipList items={health?.vaccinations ?? []} />
+              </dd>
+            </div>
+            <div>
+              <dt className="mb-1 text-xs text-muted-foreground">
+                {t("health.dietary")}
+              </dt>
+              <dd className="text-sm">
+                {health?.dietary_restrictions ?? t("health.none")}
+              </dd>
+            </div>
+            <div>
+              <dt className="mb-1 text-xs text-muted-foreground">
+                {t("health.specialNeeds")}
+              </dt>
+              <dd className="text-sm">
+                {health?.special_needs ?? t("health.none")}
+              </dd>
+            </div>
+            <div>
+              <dt className="mb-1 text-xs text-muted-foreground">
+                {t("health.doctor")}
+              </dt>
+              <dd className="text-sm">
+                {health?.doctor_name ?? t("health.none")}
+                {health?.doctor_phone && (
+                  <a
+                    href={telHref(health.doctor_phone)}
+                    className="ms-2 inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                    dir="ltr"
+                  >
+                    <Phone className="size-3.5" />
+                    {formatPhone(health.doctor_phone)}
+                  </a>
+                )}
+              </dd>
+            </div>
+            {health?.emergency_notes && (
+              <div className="sm:col-span-2">
+                <dt className="mb-1 text-xs text-muted-foreground">
+                  {t("health.emergencyNotes")}
                 </dt>
-                <dd>
-                  <ChipList items={health?.medical_conditions ?? []} />
+                {/* Plain words: the label already says these are the
+                      emergency instructions, and a gold frame would say it
+                      a second time. */}
+                <dd className="text-sm text-start" dir="auto">
+                  {health.emergency_notes}
                 </dd>
               </div>
-              <div>
-                <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("health.medications")}
-                </dt>
-                <dd>
-                  <ChipList items={health?.medications ?? []} />
-                </dd>
-              </div>
-              <div>
-                <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("health.vaccinations")}
-                </dt>
-                <dd>
-                  <ChipList items={health?.vaccinations ?? []} />
-                </dd>
-              </div>
-              <div>
-                <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("health.dietary")}
-                </dt>
-                <dd className="text-sm">{health?.dietary_restrictions ?? t("health.none")}</dd>
-              </div>
-              <div>
-                <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("health.specialNeeds")}
-                </dt>
-                <dd className="text-sm">{health?.special_needs ?? t("health.none")}</dd>
-              </div>
-              <div>
-                <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("health.doctor")}
-                </dt>
-                <dd className="text-sm">
-                  {health?.doctor_name ?? t("health.none")}
-                  {health?.doctor_phone && (
-                    <a
-                      href={telHref(health.doctor_phone)}
-                      className="ms-2 inline-flex items-center gap-1 font-medium text-primary hover:underline"
-                      dir="ltr"
-                    >
-                      <Phone className="size-3.5" />
-                      {formatPhone(health.doctor_phone)}
-                    </a>
-                  )}
-                </dd>
-              </div>
-              {health?.emergency_notes && (
-                <div className="sm:col-span-2">
-                  <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {t("health.emergencyNotes")}
-                  </dt>
-                  <dd className="flex items-start gap-2.5 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2.5 text-sm">
-                    <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-gold text-gold-foreground">
-                      <AlertTriangle className="size-3" />
-                    </span>
-                    <span>{health.emergency_notes}</span>
-                  </dd>
-                </div>
-              )}
-            </dl>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </dl>
+        )}
+      </SectionCard>
     </div>
   );
 }

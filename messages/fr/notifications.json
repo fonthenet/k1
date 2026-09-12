@@ -1,9 +1,9 @@
 {
   "title": "Notifications",
-  "description": "Tout ce qui se passe dans la crèche, du plus récent au plus ancien.",
+  "description": "Tout ce qui se passe dans l'établissement, du plus récent au plus ancien.",
   "empty": "Aucune notification",
   "emptyUnread": "Vous êtes à jour",
-  "emptyHint": "Les nouvelles de la crèche apparaîtront ici.",
+  "emptyHint": "Les nouvelles de l'établissement apparaîtront ici.",
   "markAllRead": "Tout marquer comme lu",
   "unreadCount": "{count, plural, =0 {Rien de nouveau} one {# nouvelle notification} other {# nouvelles notifications}}",
   "seeAll": "Voir toutes les notifications",
@@ -29,16 +29,70 @@
       "body": "{child}"
     },
     "checkin": {
-      "title": "{child} est arrivé(e)",
+      "title": "Arrivée de {child}",
       "body": "Arrivée enregistrée à {time}"
     },
     "checkout": {
-      "title": "{child} est parti(e)",
+      "title": "Départ de {child}",
       "body": "Départ enregistré à {time}"
     },
     "daily_report": {
       "title": "Journal de {child}",
-      "body": "Le journal du jour a été publié."
+      "body": "Le journal du jour a été publié.",
+      "parts": {
+        "arrived": "Arrivée {time}",
+        "lessons": {
+          "academic": {
+            "zero": "{n} cours",
+            "one": "1 cours",
+            "two": "{n} cours",
+            "few": "{n} cours",
+            "many": "{n} cours",
+            "other": "{n} cours"
+          },
+          "therapy": {
+            "zero": "{n} ateliers",
+            "one": "1 atelier",
+            "two": "{n} ateliers",
+            "few": "{n} ateliers",
+            "many": "{n} ateliers",
+            "other": "{n} ateliers"
+          },
+          "other": {
+            "zero": "{n} activités",
+            "one": "1 activité",
+            "two": "{n} activités",
+            "few": "{n} activités",
+            "many": "{n} activités",
+            "other": "{n} activités"
+          }
+        },
+        "menu": "menu du jour",
+        "eaten": {
+          "all": "a tout mangé",
+          "half": "a mangé la moitié",
+          "little": "a peu mangé",
+          "none": "n'a rien mangé"
+        },
+        "nap": "sieste {min} min",
+        "noNap": "pas de sieste",
+        "photos": {
+          "zero": "{n} photos",
+          "one": "1 photo",
+          "two": "{n} photos",
+          "few": "{n} photos",
+          "many": "{n} photos",
+          "other": "{n} photos"
+        },
+        "incidents": {
+          "zero": "{n} incidents",
+          "one": "1 incident",
+          "two": "{n} incidents",
+          "few": "{n} incidents",
+          "many": "{n} incidents",
+          "other": "{n} incidents"
+        }
+      }
     },
     "task": {
       "title": "Nouvelle tâche",
@@ -113,8 +167,8 @@
       "body": "{text}"
     },
     "application_status": {
-      "title": "{status, select, approved{Place confirmée} offered{Une place vous est proposée} interview{Entretien} waitlist{Sur la liste d'attente} rejected{Nous ne pouvons pas proposer de place} under_review{Demande reçue} other{Mise à jour de la demande}}",
-      "body": "{status, select, approved{{childName} est inscrit. Bienvenue !} offered{Nous pouvons proposer une place à {childName}. Merci de nous contacter pour confirmer.} interview{Nous souhaitons vous rencontrer au sujet de la demande de {childName}.} waitlist{{childName} est sur la liste d'attente. Nous vous contacterons dès qu'une place se libère.} rejected{Nous sommes désolés : nous ne pouvons pas proposer de place à {childName} pour le moment.} under_review{Nous étudions la demande de {childName}.} other{{childName}}}"
+      "title": "{status}",
+      "body": "{child}"
     },
     "advance_approved": {
       "body": "Elle sera déduite de votre prochaine paie.",
@@ -227,6 +281,22 @@
     "other": "autre"
   },
   "applicationStatuses": {
-    "approved": "Inscription acceptée 🎉"
+    "approved": "Place confirmée",
+    "offered": "Une place vous est proposée",
+    "interview": "Entretien proposé",
+    "waitlist": "Sur la liste d'attente",
+    "rejected": "Nous ne pouvons pas proposer de place",
+    "under_review": "Demande reçue"
+  },
+  "count": "{count, plural, =0 {Aucune notification} one {# notification} other {# notifications}}",
+  "unread": "Non lue",
+  "moods": {
+    "happy": "humeur joyeuse",
+    "calm": "humeur calme",
+    "energetic": "humeur énergique",
+    "tired": "humeur fatiguée",
+    "sad": "humeur triste",
+    "upset": "humeur contrariée",
+    "sick": "pas en forme"
   }
 }

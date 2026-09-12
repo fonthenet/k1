@@ -85,7 +85,7 @@ export interface ThreadListItem {
   id: string;
   subject: string;
   childName: string | null;
-  /** For linking the child badge to the profile. Null on threads with no child. */
+  /** Whose face opens the row, and whose file the inbox panel links to. Null on threads with no child. */
   childId: string | null;
   lastMessageAt: string;
   preview: string | null;
@@ -107,6 +107,8 @@ export interface EventRow {
   class_id: string | null;
   /** Which structure this is addressed to; null = the whole building. */
   structure_id: string | null;
+  /** Where it takes place; null = no room (the yard without a room record, an outing). An event's class is its audience, never its place. */
+  room_id: string | null;
   color: string;
 }
 

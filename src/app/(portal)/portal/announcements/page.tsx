@@ -1,8 +1,10 @@
+import { Fragment } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Megaphone, Pin } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ClassChip } from "@/components/shared/class-chip";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/tenant";
 import { formatDate, formatTime } from "@/lib/format";
@@ -66,6 +68,42 @@ export default async function PortalAnnouncementsPage() {
       (a.audience === "class" && !!a.class_id && myClassIds.has(a.class_id))
   );
 
+  // Pinned first, then the rest, each newest first — the query's own order.
+  // The two group rows only exist once something is pinned: with nothing
+  // pinned the list is simply the notices, and a lone "recent" heading over
+  // the whole list would be a heading that says nothing.
+  const pinnedRows = announcements.filter((a) => a.pinned);
+  const recentRows = announcements.filter((a) => !a.pinned);
+  const sections = (
+    [
+      { key: "pinned", rows: pinnedRows },
+      { key: "recent", rows: recentRows },
+    ] as const
+  ).filter((section) => section.rows.length > 0);
+
+  // The audience as the one mark on a row: the class chip or the structure
+  // mark a family already knows the thing by, or a muted word for everyone.
+  const audience = (a: AnnouncementRow) => {
+    const cls = a.class_id ? classById.get(a.class_id) : undefined;
+    const structure = a.structure_id ? structureById.get(a.structure_id) : undefined;
+    if (a.audience === "class" && cls) {
+      return <ClassChip name={locale === "ar" && cls.name_ar ? cls.name_ar : cls.name} color={cls.color} />;
+    }
+    if (a.audience === "structure" && structure) {
+      return (
+        <StructureMark
+          structure={{ name: structureName(structure, locale), color: structure.color }}
+          className="text-xs"
+        />
+      );
+    }
+    return (
+      <span className="text-xs text-muted-foreground">
+        {t(`announcements.audience.${a.audience}`)}
+      </span>
+    );
+  };
+
   return (
     <div className="grid gap-4">
       <div>
@@ -82,72 +120,47 @@ export default async function PortalAnnouncementsPage() {
           description={t("announcements.emptyDescription")}
         />
       ) : (
-        <div className="grid gap-3">
-          {announcements.map((a) => {
-            const cls = a.class_id ? classById.get(a.class_id) : undefined;
-            const structure = a.structure_id ? structureById.get(a.structure_id) : undefined;
-            // The badge names the class or the structure it was written for,
-            // in the reader's script, and borrows that thing's own colour —
-            // the one signal a family already knows it by.
-            const audienceLabel =
-              a.audience === "class" && cls
-                ? locale === "ar" && cls.name_ar
-                  ? cls.name_ar
-                  : cls.name
-                : a.audience === "structure" && structure
-                  ? structureName(structure, locale)
-                  : t(`announcements.audience.${a.audience}`);
-            const audienceColor =
-              a.audience === "class" && cls
-                ? cls.color
-                : a.audience === "structure" && structure
-                  ? structure.color
-                  : null;
-            return (
-              <Card
-                key={a.id}
-                className={
-                  a.pinned ? "bg-gold-muted/50 shadow-sm ring-gold/25" : "shadow-sm"
-                }
-              >
-                <CardContent className="flex gap-3">
-                  {a.pinned && (
-                    <span
-                      aria-label={t("announcements.pinned")}
-                      className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gold text-gold-foreground"
-                    >
-                      <Pin className="size-4" />
-                    </span>
-                  )}
-                  <div className="grid min-w-0 flex-1 gap-2">
-                    <h3 className="min-w-0 font-semibold leading-snug text-start" dir="auto">{a.title}</h3>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <Badge
-                        variant="outline"
-                        className="font-semibold"
-                        style={
-                          audienceColor
-                            ? { borderColor: audienceColor, color: audienceColor }
-                            : undefined
-                        }
-                      >
-                        {audienceLabel}
-                      </Badge>
-                      <span className="tabular-nums">
-                        {formatDate(a.publish_at, locale)} · {formatTime(a.publish_at, locale)}
+        // One card, one list: a notice is a row, and "pinned" is a group row
+        // above the pinned ones — never a gold card with a solid tile.
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            <ul className="divide-y divide-border">
+              {sections.map(({ key, rows }) => (
+                <Fragment key={key}>
+                  {pinnedRows.length > 0 && (
+                    <li className="bg-muted/30 px-5 py-1.5 text-xs">
+                      <span className="flex items-center gap-2">
+                        {key === "pinned" && (
+                          <Pin className="size-3.5 text-muted-foreground" aria-hidden />
+                        )}
+                        <span className="font-semibold">{t(`announcements.${key}`)}</span>
+                        <span className="text-muted-foreground tabular-nums">{rows.length}</span>
                       </span>
-                    </div>
-                    {a.body && (
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground text-start" dir="auto">
-                        {a.body}
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                    </li>
+                  )}
+                  {rows.map((a) => (
+                    <li key={a.id} className="grid gap-1.5 px-5 py-4">
+                      <div className="flex items-baseline gap-3">
+                        <h3 className="min-w-0 flex-1 font-semibold leading-snug">
+                          <bdi dir="auto" className="text-start">{a.title}</bdi>
+                        </h3>
+                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                          {formatDate(a.publish_at, locale)} · {formatTime(a.publish_at, locale)}
+                        </span>
+                      </div>
+                      <div className="flex items-center">{audience(a)}</div>
+                      {a.body && (
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                          <bdi dir="auto" className="text-start">{a.body}</bdi>
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </Fragment>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

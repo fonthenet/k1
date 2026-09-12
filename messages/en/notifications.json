@@ -1,9 +1,9 @@
 {
   "title": "Notifications",
-  "description": "Everything happening across the kindergarten, newest first.",
+  "description": "Everything happening in the establishment, newest first.",
   "empty": "No notifications",
   "emptyUnread": "You're all caught up",
-  "emptyHint": "Updates from the kindergarten will appear here.",
+  "emptyHint": "News from the establishment will appear here.",
   "markAllRead": "Mark all as read",
   "unreadCount": "{count, plural, =0 {Nothing new} one {# new notification} other {# new notifications}}",
   "seeAll": "See all notifications",
@@ -38,7 +38,61 @@
     },
     "daily_report": {
       "title": "{child}'s daily journal",
-      "body": "Today's journal has been published."
+      "body": "Today's journal has been published.",
+      "parts": {
+        "arrived": "Arrived {time}",
+        "lessons": {
+          "academic": {
+            "zero": "{n} lessons",
+            "one": "1 lesson",
+            "two": "{n} lessons",
+            "few": "{n} lessons",
+            "many": "{n} lessons",
+            "other": "{n} lessons"
+          },
+          "therapy": {
+            "zero": "{n} workshops",
+            "one": "1 workshop",
+            "two": "{n} workshops",
+            "few": "{n} workshops",
+            "many": "{n} workshops",
+            "other": "{n} workshops"
+          },
+          "other": {
+            "zero": "{n} activities",
+            "one": "1 activity",
+            "two": "{n} activities",
+            "few": "{n} activities",
+            "many": "{n} activities",
+            "other": "{n} activities"
+          }
+        },
+        "menu": "today's menu",
+        "eaten": {
+          "all": "ate everything",
+          "half": "ate half",
+          "little": "ate a little",
+          "none": "ate nothing"
+        },
+        "nap": "nap {min} min",
+        "noNap": "no nap",
+        "photos": {
+          "zero": "{n} photos",
+          "one": "1 photo",
+          "two": "{n} photos",
+          "few": "{n} photos",
+          "many": "{n} photos",
+          "other": "{n} photos"
+        },
+        "incidents": {
+          "zero": "{n} incidents",
+          "one": "1 incident",
+          "two": "{n} incidents",
+          "few": "{n} incidents",
+          "many": "{n} incidents",
+          "other": "{n} incidents"
+        }
+      }
     },
     "task": {
       "title": "New task",
@@ -113,8 +167,8 @@
       "body": "{text}"
     },
     "application_status": {
-      "title": "{status, select, approved{Place confirmed} offered{A place is offered} interview{Interview} waitlist{On the waiting list} rejected{We cannot offer a place} under_review{Application received} other{Application update}}",
-      "body": "{status, select, approved{{childName} is enrolled. Welcome!} offered{We can offer {childName} a place. Please get in touch to confirm.} interview{We would like to meet you about {childName}'s application.} waitlist{{childName} is on the waiting list. We will contact you as soon as a place comes free.} rejected{We are sorry — we cannot offer {childName} a place at the moment.} under_review{We are looking at {childName}'s application.} other{{childName}}}"
+      "title": "{status}",
+      "body": "{child}"
     },
     "advance_approved": {
       "body": "It will be deducted from your next payslip.",
@@ -227,6 +281,22 @@
     "other": "other"
   },
   "applicationStatuses": {
-    "approved": "Enrolment accepted 🎉"
+    "approved": "Place confirmed",
+    "offered": "A place is offered",
+    "interview": "Interview proposed",
+    "waitlist": "On the waiting list",
+    "rejected": "We cannot offer a place",
+    "under_review": "Application received"
+  },
+  "count": "{count, plural, =0 {No notifications} one {# notification} other {# notifications}}",
+  "unread": "Unread",
+  "moods": {
+    "happy": "happy",
+    "calm": "calm",
+    "energetic": "energetic",
+    "tired": "tired",
+    "sad": "sad",
+    "upset": "upset",
+    "sick": "unwell"
   }
 }

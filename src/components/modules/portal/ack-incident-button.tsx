@@ -24,12 +24,16 @@ export function AckIncidentButton({ incidentId }: { incidentId: string }) {
   }
 
   return (
+    // Ghost, not red: the severity pill beside the child's name is the row's
+    // one red, and a second red control read as a second alarm. The label
+    // keeps the button honest as the one thing a parent can do on the row.
     <Button
+      type="button"
       size="sm"
-      variant="outline"
+      variant="ghost"
       onClick={acknowledge}
       disabled={pending}
-      className="h-9 rounded-lg border-destructive/30 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+      className="h-9 rounded-lg px-3"
     >
       <CircleCheck data-icon="inline-start" />
       {t("ack")}

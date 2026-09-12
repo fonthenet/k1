@@ -1,8 +1,17 @@
 {
   "workspace": {
-    "private_primary": {"title":"Private primary school · class life","description":"Organize classes, pupil records, attendance and the school calendar."},
-    "private_middle": {"title":"Private middle school · school day","description":"Start with the calendar, class groups and attendance, then open individual pupil records."},
-    "private_secondary": {"title":"Private secondary school · pupil follow-up","description":"Organize the school calendar, classes and pupil records, with daily attendance close at hand."},
+    "private_primary": {
+      "title": "Private primary school · class life",
+      "description": "Organize classes, pupil records, attendance and the school calendar."
+    },
+    "private_middle": {
+      "title": "Private middle school · school day",
+      "description": "Start with the calendar, class groups and attendance, then open individual pupil records."
+    },
+    "private_secondary": {
+      "title": "Private secondary school · pupil follow-up",
+      "description": "Organize the school calendar, classes and pupil records, with daily attendance close at hand."
+    },
     "schoolUnavailable": "Private-school registration is not available yet.",
     "pupils": "Pupils",
     "schoolScope": "Classes, attendance and the calendar are available. Subjects, marks and report cards are not included yet.",
@@ -16,23 +25,23 @@
     },
     "kindergarten": {
       "title": "Kindergarten · classroom life",
-      "description": "Organize groups, prepare activities and follow attendance throughout the day."
+      "description": "Organize classes, prepare activities and follow attendance throughout the day."
     },
     "montessori": {
       "title": "Montessori · learning journeys",
-      "description": "Start with activities, individual child records and groups. Use sessions to record follow-up."
+      "description": "Start with activities, individual child records and classes. Record each child's individual follow-up."
     },
     "edu_center": {
       "title": "Educational center · lessons",
-      "description": "Organize lessons, groups and attendance. This profile is for tutoring and learning centers, not primary or secondary school administration."
+      "description": "Organize lessons, classes and attendance. This profile is for tutoring and learning centers, not primary or secondary school administration."
     },
     "therapy_center": {
       "title": "Specialized center · follow-up",
-      "description": "Start with sessions, individual records and the calendar to organize each child's follow-up."
+      "description": "Start with individual follow-up, records and the calendar to organize each child's support."
     },
     "activity_center": {
       "title": "Activity club · workshops",
-      "description": "Plan workshops, organize groups and track participant attendance."
+      "description": "Plan workshops, organize classes and track participant attendance."
     },
     "camp": {
       "title": "Holiday camp · daily program",
@@ -67,7 +76,12 @@
     "inBuildingNow": "In the building now",
     "goneHome": "Gone home",
     "goneHomeHint": "checked out today",
-    "staffPresent2": "Staff on duty"
+    "staffPresent2": "Staff on duty",
+    "lessonsToday": "{profile, select, academic {Lessons today} therapy {Workshops today} other {Activities today}}",
+    "nextLesson": "{profile, select, academic {Next:} therapy {Next:} other {Next:}}",
+    "noLessonToday": "{profile, select, academic {no lesson scheduled} therapy {no workshop scheduled} other {no activity scheduled}}",
+    "inEstablishmentNow": "In the establishment",
+    "teamOnDuty": "Team on duty"
   },
   "today": {
     "title": "Today",
@@ -88,7 +102,18 @@
     "arrived": "Arrived ({count})",
     "nobodyYet": "{count, plural, one {Nobody has arrived yet — # child expected today} other {Nobody has arrived yet — # children expected today}}",
     "absentWithReason": "Reported absences ({count})",
-    "notArrivedYet": "{count, plural, one {# child has not arrived yet} other {# children have not arrived yet}}"
+    "notArrivedYet": "{count, plural, one {# child has not arrived yet} other {# children have not arrived yet}}",
+    "journalSent": {
+      "children": "Daily journal sent at <ltr>{time}</ltr> · {count, plural, one {# child} other {# children}}",
+      "pupils": "Daily journal sent at <ltr>{time}</ltr> · {count, plural, one {# pupil} other {# pupils}}"
+    },
+    "journalNothing": {
+      "skipped_unmarked": "Nothing sent today: the register was not taken.",
+      "skipped_absent": "Nothing sent today: every child was absent.",
+      "skipped_empty": "Nothing sent today: no activity, no menu, no journal.",
+      "skipped_no_account": "Nothing sent today: {count, plural, one {# family without an account} other {# families without an account}}.",
+      "failed": "Nothing sent today: {count, plural, one {# send failed} other {# sends failed}} — retried on the next quarter hour."
+    }
   },
   "finance": {
     "title": "Finances",
@@ -108,7 +133,8 @@
     "invoices": "{count, plural, one {# unpaid invoice} other {# unpaid invoices}}",
     "nextHoliday": "Next: {name} ({date})",
     "empty": "You're all caught up!",
-    "emptyHint": "Nothing pending right now."
+    "emptyHint": "Nothing pending right now.",
+    "assessments": "{count, plural, one {# draft assessment to publish} other {# draft assessments to publish}}"
   },
   "announcements": {
     "title": "Announcements",
@@ -123,5 +149,6 @@
   },
   "viewIcons": "Icons",
   "viewLabel": "View",
-  "viewList": "List"
+  "viewList": "List",
+  "dateLine": "{date} — the day's activity at a glance."
 }

@@ -1,24 +1,37 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { Check, Clock, Palette, School } from "lucide-react";
+import { Clock, Palette, School, type LucideIcon } from "lucide-react";
 import { formatDZD } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { suggestClassPerStructure } from "@/lib/class-fit";
-import { ageBandLabel } from "@/components/modules/classes/class-types";
 import type { EnrollActivity, EnrollClass, EnrollFeePlan, EnrollStructure } from "./types";
-import { BigChoice, StepHeader } from "./wizard-ui";
-import { AgeFitNotice } from "./step-structure";
+import { BigChoice, ChoiceMark, GroupLabel, OwnName, StepHeader } from "./wizard-ui";
+import { AgeFitNotice, structureAgeRange } from "./step-structure";
 
-function PlanDot({ selected }: { selected: boolean }) {
+/**
+ * The heading of one question on this step. The step is ONE section — a
+ * single tinted tile at the top — so the first question gets the
+ * SectionCard header and the rest get the small-caps group row the review
+ * groups its rows under, each with one 12px muted line where the question
+ * needs a word of help.
+ */
+function Heading({
+  tile,
+  icon,
+  title,
+  hint,
+}: {
+  /** True for the step's first question, which carries the tile. */
+  tile: boolean;
+  icon: LucideIcon;
+  title: string;
+  hint: string;
+}) {
+  if (tile) return <StepHeader icon={icon} title={title} subtitle={hint} />;
   return (
-    <div
-      className={cn(
-        "flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-        selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
-      )}
-    >
-      {selected && <Check className="size-4" />}
+    <div className="mb-3">
+      <GroupLabel>{title}</GroupLabel>
+      <p className="mt-0.5 text-xs leading-snug text-pretty text-muted-foreground">{hint}</p>
     </div>
   );
 }
@@ -65,7 +78,6 @@ export function StepActivities({
   onToggle: (id: string) => void;
 }) {
   const t = useTranslations("enroll");
-  const tClasses = useTranslations("classes");
   const locale = useLocale();
 
   /**
@@ -87,6 +99,12 @@ export function StepActivities({
   const suggestedId =
     perStructure?.get(structureId)?.classId ?? perStructure?.get(null)?.classId ?? null;
 
+  // The step's one header is its first question: the class when the link
+  // publishes any, else the schedule, else the activities. Whatever comes
+  // after is a group inside the same section.
+  const header: "class" | "schedule" | "activities" =
+    classes.length > 0 ? "class" : feePlans.length > 0 ? "schedule" : "activities";
+
   return (
     <div>
       {/* Only the "this age is the école's — switch?" case earns a line here;
@@ -104,29 +122,33 @@ export function StepActivities({
         />
       )}
       {classes.length > 0 && (
-        <div className="mb-8">
-          <StepHeader
-            icon={School}
-            title={t("classChoice.title")}
-            subtitle={t("classChoice.subtitle")}
-          />
+        <div className="mb-7">
+          <Heading tile icon={School} title={t("classChoice.title")} hint={t("classChoice.subtitle")} />
+          {/* The suggestion is one line of help above the choices, not a
+              field and not a pill on a row: the row it names is already the
+              one with the primary border. */}
+          {childDob && suggestedId && (
+            <AgeFitNotice
+              dob={childDob}
+              classes={allClasses}
+              structures={structures}
+              structureId={structureId}
+              className="mb-3"
+            />
+          )}
           <div className="space-y-3" role="radiogroup" aria-label={t("classChoice.title")}>
             {classes.map((c) => {
               const selected = classId === c.id;
               const name = locale === "ar" && c.name_ar ? c.name_ar : c.name;
-              const band = ageBandLabel(c.age_min_months, c.age_max_months, tClasses);
+              // The band in the structure step's form ("6 – 7 ans"), so the
+              // two screens print one range format.
+              const band = structureAgeRange([c], t);
               return (
                 <BigChoice key={c.id} selected={selected} onClick={() => onClassChange(c.id)}>
                   <div className="flex items-center gap-3">
-                    <PlanDot selected={selected} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{name}</p>
-                      {band && <p className="mt-0.5 text-xs text-muted-foreground">{band}</p>}
-                    </div>
-                    {c.id === suggestedId && (
-                      <span className="shrink-0 rounded-full bg-success/12 px-2.5 py-1 text-xs font-medium text-success">
-                        {t("classChoice.forAge")}
-                      </span>
+                    <p className="min-w-0 flex-1 font-medium">{name}</p>
+                    {band && (
+                      <p className="shrink-0 text-sm text-muted-foreground tabular-nums">{band}</p>
                     )}
                   </div>
                 </BigChoice>
@@ -138,15 +160,8 @@ export function StepActivities({
               selected={classId === "undecided"}
               onClick={() => onClassChange("undecided")}
             >
-              <div className="flex items-center gap-3">
-                <PlanDot selected={classId === "undecided"} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{t("classChoice.undecided")}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {t("classChoice.undecidedHint")}
-                  </p>
-                </div>
-              </div>
+              <p className="font-medium">{t("classChoice.undecided")}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{t("classChoice.undecidedHint")}</p>
             </BigChoice>
           </div>
         </div>
@@ -156,11 +171,12 @@ export function StepActivities({
           the old form never asked, so staff guessed at approval. Lives on the
           same screen as the activities so every cost decision is one step. ── */}
       {feePlans.length > 0 && (
-        <div className="mb-8">
-          <StepHeader
+        <div className="mb-7">
+          <Heading
+            tile={header === "schedule"}
             icon={Clock}
             title={t("schedule.title")}
-            subtitle={t("schedule.subtitle")}
+            hint={t("schedule.subtitle")}
           />
           <div className="space-y-3" role="radiogroup" aria-label={t("schedule.title")}>
             {feePlans.map((f) => {
@@ -169,12 +185,11 @@ export function StepActivities({
               return (
                 <BigChoice key={f.id} selected={selected} onClick={() => onPlanChange(f.id)}>
                   <div className="flex items-center gap-3">
-                    <PlanDot selected={selected} />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{name}</p>
                       {f.description && (
                         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                          {f.description}
+                          <OwnName>{f.description}</OwnName>
                         </p>
                       )}
                     </div>
@@ -193,26 +208,22 @@ export function StepActivities({
               selected={feePlanId === "undecided"}
               onClick={() => onPlanChange("undecided")}
             >
-              <div className="flex items-center gap-3">
-                <PlanDot selected={feePlanId === "undecided"} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{t("schedule.undecided")}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {t("schedule.undecidedHint")}
-                  </p>
-                </div>
-              </div>
+              <p className="font-medium">{t("schedule.undecided")}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{t("schedule.undecidedHint")}</p>
             </BigChoice>
           </div>
         </div>
       )}
 
-      <StepHeader icon={Palette} title={t("activities.title")} subtitle={t("activities.subtitle")} />
+      <Heading
+        tile={header === "activities"}
+        icon={Palette}
+        title={t("activities.title")}
+        hint={t("activities.subtitle")}
+      />
 
       {activities.length === 0 ? (
-        <p className="rounded-2xl border border-dashed bg-card p-6 text-center text-sm text-muted-foreground">
-          {t("activities.none")}
-        </p>
+        <p className="text-sm text-muted-foreground">{t("activities.none")}</p>
       ) : (
         <>
           <div className="space-y-3" role="group" aria-label={t("activities.title")}>
@@ -227,21 +238,12 @@ export function StepActivities({
                   onClick={() => onToggle(a.id)}
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                        selected
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-muted-foreground/30"
-                      )}
-                    >
-                      {selected && <Check className="size-4" />}
-                    </div>
+                    <ChoiceMark selected={selected} />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{name}</p>
                       {a.description && (
                         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                          {a.description}
+                          <OwnName>{a.description}</OwnName>
                         </p>
                       )}
                     </div>

@@ -1,13 +1,11 @@
 import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ChevronLeft, ChevronRight, Target } from "lucide-react";
+import { Target } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { childDisplayName, formatDZD } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import type { Membership } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -18,23 +16,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
-import { PageHeader } from "@/components/shared/page-header";
 import { StaffLink } from "@/components/shared/entity-link";
+import { PageHeader } from "@/components/shared/page-header";
+import { StatusPill as Pill, type StatusTone } from "@/components/shared/status-pill";
 import { ProgramDialog } from "@/components/modules/sessions/program-dialog";
+import { ProgramStatusFilter } from "@/components/modules/sessions/program-status-filter";
 import { SessionsTabs } from "@/components/modules/sessions/sessions-tabs";
-import {
-  MeterRow,
-  Monogram,
-  ProgramStatusPill,
-  TypeChip,
-} from "@/components/modules/sessions/session-ui";
+import { Monogram, TypeChip } from "@/components/modules/sessions/session-ui";
 import { algiersToday } from "@/components/modules/sessions/dates";
 import {
-  PROGRAM_STATUSES,
   isProgramStatus,
   type ChildLite,
   type ChildOption,
   type ProgramRecord,
+  type ProgramStatus,
   type TherapistOption,
 } from "@/components/modules/sessions/session-types";
 
@@ -43,6 +38,32 @@ export const dynamic = "force-dynamic";
 interface ProgramRow extends ProgramRecord {
   kg_children: ChildLite | null;
 }
+
+/**
+ * The shared pill's tone for a programme in the register. Active is the
+ * expected state and renders nothing — the list is mostly active programmes,
+ * and a green pill on each would say nothing. The three exceptions get one
+ * pill each, by meaning: done, waiting on someone, or dropped.
+ */
+const PROGRAM_PILL_TONE: Record<ProgramStatus, StatusTone | null> = {
+  active: null,
+  completed: "success",
+  paused: "attention",
+  cancelled: "muted",
+};
+
+/**
+ * Active programmes first — the ones being worked on are read first. Within a
+ * rank the query's order holds (newest first): the sort is stable, and no
+ * second key is given, so a programme opened this week stays at the top of
+ * its group instead of sinking to wherever its name falls in the alphabet.
+ */
+const PROGRAM_RANK: Record<ProgramStatus, number> = {
+  active: 0,
+  paused: 1,
+  completed: 2,
+  cancelled: 3,
+};
 
 export default async function ProgramsPage({
   searchParams,
@@ -125,33 +146,22 @@ export default async function ProgramsPage({
     goalsByProgram.set(g.program_id, agg);
   }
 
-  const counts = new Map<string, number>();
-  for (const p of programs) counts.set(p.status, (counts.get(p.status) ?? 0) + 1);
-
-  const visible =
-    statusFilter === "all" ? programs : programs.filter((p) => p.status === statusFilter);
-
-  const Chevron = locale === "ar" ? ChevronLeft : ChevronRight;
-
-  const chips: { value: string; label: string; count: number }[] = [
-    { value: "all", label: t("programs.all"), count: programs.length },
-    ...PROGRAM_STATUSES.map((s) => ({
-      value: s,
-      label: t(`programStatus.${s}`),
-      count: counts.get(s) ?? 0,
-    })),
-  ];
+  const visible = (
+    statusFilter === "all" ? programs : programs.filter((p) => p.status === statusFilter)
+  ).sort((a, b) => PROGRAM_RANK[a.status] - PROGRAM_RANK[b.status]);
 
   return (
     <div>
+      {/* One primary per page: the thing this tab creates. */}
       <PageHeader title={t("programs.title")} description={t("programs.description")}>
-        <SessionsTabs active="programs" />
         <ProgramDialog
           childrenOptions={childrenOptions}
           therapists={therapists}
           defaultDate={algiersToday()}
         />
       </PageHeader>
+
+      <SessionsTabs />
 
       {programs.length === 0 ? (
         <EmptyState
@@ -161,60 +171,31 @@ export default async function ProgramsPage({
         />
       ) : (
         <>
-          <div className="mb-4 flex flex-wrap items-center gap-1.5">
-            {chips.map((c) => {
-              const active = statusFilter === c.value;
-              return (
-                <Link
-                  key={c.value}
-                  href={c.value === "all" ? "/sessions/programs" : `/sessions/programs?status=${c.value}`}
-                  scroll={false}
-                  className="rounded-4xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
-                  <Badge
-                    variant={active ? "default" : "outline"}
-                    className={cn(
-                      "h-7 gap-1.5 px-3 text-xs font-medium transition-colors",
-                      active
-                        ? "shadow-sm"
-                        : "bg-card text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground"
-                    )}
-                  >
-                    {c.label}
-                    <span
-                      className={cn(
-                        "rounded-4xl px-1.5 tabular-nums",
-                        active ? "bg-primary-foreground/20" : "bg-muted"
-                      )}
-                    >
-                      {c.count}
-                    </span>
-                  </Badge>
-                </Link>
-              );
-            })}
+          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
+            <ProgramStatusFilter value={statusFilter} />
+            <span className="ms-auto rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+              {t("programs.count", { count: visible.length })}
+            </span>
           </div>
 
+          {/* One register: the child is the door, the facts are columns.
+              The status chips above used to be a row of pill buttons with a
+              solid active one; a select and a count say the same thing. */}
           <Card className="border border-border py-0 shadow-sm ring-0">
-            <CardContent className="p-0">
+            <CardContent className="px-0">
               {visible.length === 0 ? (
-                <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-                  {t("programs.noMatch")}
-                </p>
+                <p className="px-5 py-4 text-sm text-muted-foreground">{t("programs.noMatch")}</p>
               ) : (
-                <Table>
+                <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-start">{t("programs.table.child")}</TableHead>
-                      <TableHead className="text-start">{t("programs.table.program")}</TableHead>
-                      <TableHead className="text-start">{t("programs.table.therapist")}</TableHead>
-                      <TableHead className="w-44 text-start">
-                        {t("programs.table.progress")}
-                      </TableHead>
-                      <TableHead className="w-44 text-start">{t("programs.table.goals")}</TableHead>
+                    <TableRow className="[&>th]:font-semibold">
+                      <TableHead>{t("programs.table.child")}</TableHead>
+                      <TableHead>{t("programs.table.program")}</TableHead>
+                      <TableHead>{t("programs.table.therapist")}</TableHead>
+                      <TableHead className="w-36">{t("programs.table.progress")}</TableHead>
+                      <TableHead>{t("programs.table.goals")}</TableHead>
                       <TableHead className="text-end">{t("programs.table.fee")}</TableHead>
-                      <TableHead className="text-start">{t("programs.table.status")}</TableHead>
-                      <TableHead className="w-10" />
+                      <TableHead>{t("programs.table.status")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -227,85 +208,86 @@ export default async function ProgramsPage({
                         : undefined;
                       const done = doneByProgram.get(p.id) ?? 0;
                       const planned = p.sessions_planned;
-                      const pct = planned && planned > 0 ? (done / planned) * 100 : 0;
+                      const pct = planned && planned > 0 ? Math.min((done / planned) * 100, 100) : 0;
                       const goals = goalsByProgram.get(p.id);
+                      const tone = PROGRAM_PILL_TONE[p.status];
                       return (
-                        <TableRow key={p.id} className="hover:bg-primary/5">
+                        <TableRow key={p.id} className="relative h-14 transition-colors hover:bg-primary/5">
                           <TableCell>
                             <Link
                               href={`/sessions/programs/${p.id}`}
-                              className="flex items-center gap-2.5"
+                              className="flex items-center gap-2.5 font-semibold after:absolute after:inset-0"
                             >
                               <Monogram name={childName} className="size-8" />
-                              <span className="truncate font-medium text-foreground">
-                                {childName}
-                              </span>
+                              <bdi dir="auto" className="truncate">{childName}</bdi>
                             </Link>
                           </TableCell>
                           <TableCell>
-                            <Link href={`/sessions/programs/${p.id}`} className="grid gap-1.5">
-                              <span className="truncate font-medium text-foreground">
-                                {p.name}
-                              </span>
-                              <TypeChip
-                                type={p.session_type}
-                                label={t(`types.${p.session_type}`)}
-                                className="w-fit"
-                              />
-                            </Link>
+                            <span className="grid justify-items-start gap-1">
+                              <bdi dir="auto" className="truncate font-medium">{p.name}</bdi>
+                              <TypeChip type={p.session_type} label={t(`types.${p.session_type}`)} />
+                            </span>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
+                            {/* The second door in an overlaid row: the child's
+                                cell covers the row, so the colleague's name is
+                                lifted above it to reach their file. */}
                             {p.therapist_id && therapistName ? (
-                              <StaffLink id={p.therapist_id}>{therapistName}</StaffLink>
+                              <StaffLink id={p.therapist_id} className="relative z-10">
+                                <bdi dir="auto">{therapistName}</bdi>
+                              </StaffLink>
                             ) : (
                               t("schedule.noTherapist")
                             )}
                           </TableCell>
                           <TableCell>
-                            <MeterRow
-                              label={t("programs.table.progress")}
-                              value={
-                                planned
-                                  ? t("programs.sessionsDone", { done, planned })
-                                  : t("programs.sessionsOpen", { done })
-                              }
-                              pct={pct}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {goals && goals.total > 0 ? (
-                              <MeterRow
-                                label={t("programs.goalsDone", {
-                                  done: goals.achieved,
-                                  total: goals.total,
-                                })}
-                                value={`${Math.round(goals.sum / goals.total)}%`}
-                                pct={goals.sum / goals.total}
-                                tone="success"
-                              />
+                            {/* Sessions done against the plan, in the fill bar's
+                                shape: the pair as one ltr island over a 4px track
+                                filled from the inline start. Always primary — a
+                                programme running late is not a class running full,
+                                and the number already says how far along it is. */}
+                            {planned ? (
+                              <span className="grid min-w-24 gap-1.5">
+                                <span
+                                  dir="ltr"
+                                  className="justify-self-start text-sm font-semibold tabular-nums"
+                                >
+                                  {done}
+                                  <span className="font-normal text-muted-foreground"> / {planned}</span>
+                                </span>
+                                <span className="block h-1 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
+                                  <span
+                                    className="block h-full rounded-full bg-primary"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </span>
+                              </span>
                             ) : (
-                              <span className="text-xs text-muted-foreground">
-                                {t("programs.noGoals")}
+                              <span className="text-muted-foreground tabular-nums">
+                                {t("programs.sessionsOpen", { done })}
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-end font-medium tabular-nums">
+                          <TableCell className="whitespace-nowrap">
+                            {goals && goals.total > 0 ? (
+                              <>
+                                <span dir="ltr" className="tabular-nums">
+                                  {goals.achieved} / {goals.total}
+                                </span>
+                                <span className="text-muted-foreground tabular-nums">
+                                  {" · "}
+                                  <span dir="ltr">{Math.round(goals.sum / goals.total)} %</span>
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-end tabular-nums">
                             {formatDZD(p.fee_per_session, locale)}
                           </TableCell>
                           <TableCell>
-                            <ProgramStatusPill
-                              status={p.status}
-                              label={t(`programStatus.${p.status}`)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Link
-                              href={`/sessions/programs/${p.id}`}
-                              className="grid place-items-center text-muted-foreground hover:text-primary"
-                              aria-label={p.name}
-                            >
-                              <Chevron className="size-4" />
-                            </Link>
+                            {tone && <Pill tone={tone}>{t(`programStatus.${p.status}`)}</Pill>}
                           </TableCell>
                         </TableRow>
                       );

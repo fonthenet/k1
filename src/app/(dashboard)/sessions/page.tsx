@@ -1,18 +1,20 @@
 import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
+import { Fragment } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { CalendarClock, CalendarX2, CheckCircle2, Target } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { isOpenDayStr, toOpeningHours } from "@/lib/week";
 import { childDisplayName } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import type { Membership } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { NewSessionDialog } from "@/components/modules/sessions/new-session-dialog";
+import { roomName } from "@/components/modules/classes/class-types";
+import { readRoomChoices } from "@/components/modules/rooms/occupancy-data";
 import { ScheduleToolbar } from "@/components/modules/sessions/schedule-toolbar";
 import { SessionRow } from "@/components/modules/sessions/session-row";
 import { SessionsTabs } from "@/components/modules/sessions/sessions-tabs";
@@ -21,10 +23,7 @@ import {
   algiersRange,
   algiersToday,
   isValidDateStr,
-  longDateLabel,
   shortDayLabel,
-  weekDays,
-  weekRangeLabel,
   weekStartStr,
 } from "@/components/modules/sessions/dates";
 import {
@@ -50,12 +49,15 @@ interface ScheduleSession {
   status: SessionStatus;
   progress_rating: number | null;
   published: boolean;
+  room_id: string | null;
   kg_children: ChildLite | null;
+  kg_rooms: { name: string; name_ar: string | null } | null;
 }
 
 const SESSION_SELECT =
-  "id, child_id, program_id, session_type, therapist_id, scheduled_at, duration_min, status, progress_rating, published, " +
-  "kg_children(id, first_name, last_name, first_name_ar, last_name_ar, kg_classes(name, name_ar))";
+  "id, child_id, program_id, session_type, therapist_id, scheduled_at, duration_min, status, progress_rating, published, room_id, " +
+  "kg_children(id, first_name, last_name, first_name_ar, last_name_ar, kg_classes(name, name_ar)), " +
+  "kg_rooms(name, name_ar)";
 
 export default async function SessionsPage({
   searchParams,
@@ -105,6 +107,7 @@ export default async function SessionsPage({
     completedRes,
     noShowRes,
     activeProgramsRes,
+    roomChoices,
   ] = await Promise.all([
     scheduleQuery,
     supabase
@@ -151,6 +154,10 @@ export default async function SessionsPage({
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "active"),
+    // The building's rooms for the dialog, which reads the ledger for its
+    // own day once it opens. Never narrowed by the rail: a room is the same
+    // room to every structure.
+    readRoomChoices(supabase, ctx, locale),
   ]);
 
   if (scheduleRes.error) throw new Error(scheduleRes.error.message);
@@ -173,21 +180,25 @@ export default async function SessionsPage({
   }));
   const programs = (programsRes.data ?? []) as ProgramOption[];
 
-  const days = view === "week" ? weekDays(rangeStart) : [rangeStart];
-  const byDay = new Map<string, ScheduleSession[]>(days.map((d) => [d, []]));
+  // The sessions of the range under their day, in order. Only days that
+  // hold a session are kept: a week is drawn as group rows inside one table,
+  // and an empty day — a weekend or a quiet Tuesday — is not a row worth
+  // reading. Today gets its word next to the date, not an empty group.
+  const byDay = new Map<string, ScheduleSession[]>();
   for (const s of sessions) {
     const key = algiersDate(s.scheduled_at);
-    byDay.get(key)?.push(s);
+    const list = byDay.get(key) ?? [];
+    list.push(s);
+    byDay.set(key, list);
   }
-
-  const label = view === "week" ? weekRangeLabel(rangeStart, locale) : longDateLabel(date, locale);
+  const days = [...byDay.keys()].sort();
 
   const renderRow = (s: ScheduleSession, muted: boolean) => {
     const cls = s.kg_children?.kg_classes;
     return (
       <SessionRow
         key={s.id}
-        session={s}
+        session={{ ...s, room: s.kg_rooms ? roomName(s.kg_rooms, locale) : null }}
         childName={s.kg_children ? childDisplayName(s.kg_children, locale) : "—"}
         classLabel={
           cls ? (locale === "ar" && cls.name_ar ? cls.name_ar : cls.name) : t("schedule.noClass")
@@ -202,15 +213,19 @@ export default async function SessionsPage({
 
   return (
     <div>
+      {/* One primary per page: the thing this tab creates. */}
       <PageHeader title={t("title")} description={t("description")}>
-        <SessionsTabs active="schedule" />
         <NewSessionDialog
           childrenOptions={childrenOptions}
           therapists={therapists}
           programs={programs}
           defaultDate={date}
+          rooms={roomChoices.rooms}
+          homeClasses={roomChoices.homeClasses}
         />
       </PageHeader>
+
+      <SessionsTabs />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -245,11 +260,11 @@ export default async function SessionsPage({
       <ScheduleToolbar
         view={view}
         date={date}
-        label={label}
         today={today}
         therapists={therapists}
         therapist={therapistFilter}
         type={typeFilter}
+        count={sessions.length}
       />
 
       {sessions.length === 0 ? (
@@ -258,68 +273,53 @@ export default async function SessionsPage({
           title={t("schedule.emptyTitle")}
           description={t("schedule.emptyDescription")}
         />
-      ) : view === "day" ? (
+      ) : (
+        // One register for both views. A day is the rows alone — the date
+        // is already said once, in the filter card. A week adds a group row
+        // per day, inside the same table, where a card per day used to leave
+        // five empty frames around two sessions.
         <Card className="border border-border py-0 shadow-sm ring-0">
-          <CardContent className="grid gap-2 p-3">
-            {(byDay.get(rangeStart) ?? []).map((s) => renderRow(s, false))}
+          <CardContent className="px-0">
+            <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+              <TableHeader>
+                <TableRow className="[&>th]:font-semibold">
+                  <TableHead className="w-28">{t("schedule.columns.time")}</TableHead>
+                  <TableHead>{t("programs.table.child")}</TableHead>
+                  <TableHead>{t("programs.table.therapist")}</TableHead>
+                  <TableHead>{t("detail.type")}</TableHead>
+                  <TableHead>{t("detail.duration")}</TableHead>
+                  <TableHead>{t("programs.table.status")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {days.map((day) => {
+                  const rows = byDay.get(day) ?? [];
+                  const closed = !isOpenDayStr(openingHours, day);
+                  return (
+                    <Fragment key={day}>
+                      {view === "week" && (
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell colSpan={6} className="py-1.5 text-xs">
+                            <span className="flex items-center gap-2">
+                              <span className="font-semibold">{shortDayLabel(day, locale)}</span>
+                              {day === today && (
+                                <span className="text-muted-foreground">· {t("dates.today")}</span>
+                              )}
+                              <span className="text-muted-foreground tabular-nums">
+                                {t("filters.count", { count: rows.length })}
+                              </span>
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {rows.map((s) => renderRow(s, closed))}
+                    </Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-4">
-          {days.map((day) => {
-            const rows = byDay.get(day) ?? [];
-            const weekend = !isOpenDayStr(openingHours, day);
-            return (
-              <section
-                key={day}
-                className={cn(
-                  "overflow-hidden rounded-2xl border",
-                  weekend ? "border-dashed border-border bg-muted/20" : "border-border bg-card"
-                )}
-              >
-                <header
-                  className={cn(
-                    "flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5",
-                    weekend ? "bg-transparent" : "bg-muted/40"
-                  )}
-                >
-                  <h3
-                    className={cn(
-                      "text-sm font-semibold",
-                      weekend ? "text-muted-foreground" : "text-foreground"
-                    )}
-                  >
-                    {shortDayLabel(day, locale)}
-                  </h3>
-                  {day === today && (
-                    <Badge className="border-transparent bg-primary/10 font-medium text-primary">
-                      {t("dates.today")}
-                    </Badge>
-                  )}
-                  {weekend && (
-                    <Badge className="border-transparent bg-muted font-medium text-muted-foreground">
-                      {t("dates.weekend")}
-                    </Badge>
-                  )}
-                  {rows.length > 0 && (
-                    <span className="ms-auto rounded-4xl bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground">
-                      {rows.length}
-                    </span>
-                  )}
-                </header>
-                <div className="grid gap-2 p-3">
-                  {rows.length === 0 ? (
-                    <p className="px-1 py-2 text-xs text-muted-foreground">
-                      {t("schedule.noSessions")}
-                    </p>
-                  ) : (
-                    rows.map((s) => renderRow(s, weekend))
-                  )}
-                </div>
-              </section>
-            );
-          })}
-        </div>
       )}
     </div>
   );

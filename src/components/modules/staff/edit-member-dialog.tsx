@@ -63,8 +63,9 @@ export function EditMemberDialog({ member, name }: { member: Membership; name: s
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label={tc("actions.edit")}>
-          <Pencil />
+        <Button variant="outline">
+          <Pencil data-icon="inline-start" />
+          {tc("actions.edit")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -130,7 +131,7 @@ export function EditMemberDialog({ member, name }: { member: Membership; name: s
                 min={0}
                 step={payType === "monthly" ? 1000 : 50}
                 dir="ltr"
-                className="tabular-nums"
+                className="text-end tabular-nums"
                 value={payType === "monthly" ? baseSalary : hourlyRate}
                 onChange={(e) =>
                   payType === "monthly"

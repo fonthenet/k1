@@ -7,13 +7,13 @@
     "today": "Today",
     "history": "History",
     "register": "Today's register",
-    "closedNotice": "{day} — the kindergarten does not open on this day.",
+    "closedNotice": "{day} — the establishment does not open on this day.",
     "todayLabel": "Today",
     "sortLabel": "Order",
     "sortPresent": "Present first",
     "sortUnmarked": "Not marked first",
     "sortName": "By name",
-    "holidayNotice": "{name} — the kindergarten is closed on this day.",
+    "holidayNotice": "{name} — the establishment is closed on this day.",
     "futureNotice": "This day has not come yet — attendance cannot be recorded in advance."
   },
   "tabs": {
@@ -28,7 +28,10 @@
     "present": "{count, plural, =0 {0 present} one {# present} other {# present}}",
     "absent": "{count, plural, =0 {0 absent} one {# absent} other {# absent}}",
     "notMarked": "{count, plural, =0 {0 not marked} one {# not marked} other {# not marked}}",
-    "checkedOut": "{count, plural, =0 {0 checked out} one {# checked out} other {# checked out}}"
+    "checkedOut": "{count, plural, =0 {0 checked out} one {# checked out} other {# checked out}}",
+    "ofTotal": "{count, plural, =0 {no children enrolled} one {of # child} other {of # children}}",
+    "reportedByParents": "{count, plural, =0 {none reported by families} one {# reported by the family} other {# reported by families}}",
+    "stillHere": "{count, plural, =0 {nobody still here} one {# still here} other {# still here}}"
   },
   "status": {
     "present": "Present",
@@ -82,7 +85,7 @@
     "bulkDone": "{count, plural, one {# child marked present} other {# children marked present}}",
     "bulkNone": "All children are already marked",
     "error": "Something went wrong. Please try again.",
-    "closed": "The kindergarten is closed on this day — nothing was recorded.",
+    "closed": "The establishment is closed on this day — nothing was recorded.",
     "future": "Attendance cannot be recorded for a day that has not come yet."
   },
   "empty": {
@@ -104,5 +107,81 @@
     "total": "Total",
     "totalTitle": "Days present in the month",
     "empty": "No attendance data for this month."
+  },
+  "sections": {
+    "register": "Register",
+    "journal": "Journal",
+    "history": "History",
+    "label": "Attendance sections"
+  },
+  "journal": {
+    "title": "Daily journal",
+    "description": "Mood, meal and nap of every child present",
+    "columns": {
+      "child": "Child",
+      "mood": "Mood",
+      "meal": "Meal",
+      "nap": "Nap",
+      "note": "Note",
+      "photos": "Photos"
+    },
+    "moods": {
+      "happy": "Happy",
+      "calm": "Calm",
+      "tired": "Tired",
+      "upset": "Upset"
+    },
+    "eaten": {
+      "all": "All",
+      "half": "Half",
+      "little": "A little",
+      "none": "Nothing"
+    },
+    "napFrom": "from",
+    "napTo": "to",
+    "notSlept": "Did not sleep",
+    "napMinutes": "{minutes} min",
+    "notePlaceholder": "One line for the parents",
+    "photos": {
+      "title": "<name>{child}</name> · photos of {date}",
+      "add": "Add photos",
+      "remove": "Remove",
+      "count": "{count, plural, =0 {No photos} one {# photo} other {# photos}}",
+      "noConsent": "The family has not answered the photo consent yet.",
+      "refused": "The family declined photos.",
+      "seeConsents": "See consents",
+      "tooLarge": "This photo could not be reduced."
+    },
+    "bulkMeal": "Everyone ate well",
+    "publish": "Publish the journal",
+    "publishTitle": "Publish the journal of {date}",
+    "publishDigest": "Visible to the families right away; pushed to their phones inside the daily journal around <ltr>{time}</ltr>.",
+    "publishNow": "Visible to the families right away; sent to their phones now.",
+    "publishConfirm": "Publish",
+    "published": "Published",
+    "sentAt": "Sent at <ltr>{time}</ltr>",
+    "ledger": {
+      "skipped_absent": "Not sent · absent",
+      "skipped_unmarked": "Not sent · not marked",
+      "skipped_empty": "Not sent · nothing to tell",
+      "skipped_no_account": "Not sent · no family account",
+      "failed": "Send failed · retrying"
+    },
+    "saved": "Saved",
+    "empty": "Nobody is marked present",
+    "emptyDescription": "Mark arrivals in the register; the journal fills in after.",
+    "openRegister": "Open the register",
+    "toasts": {
+      "published": "{count, plural, one {Journal published for # child} other {Journal published for # children}}"
+    },
+    "errors": {
+      "future": "That day has not come yet.",
+      "closed": "The establishment is closed that day.",
+      "absent": "This child is not marked present.",
+      "profile": "The journal does not apply to this class.",
+      "consent": "The family has not allowed photos.",
+      "forbidden": "Only the teaching team can fill in the journal.",
+      "invalid": "Check the entry."
+    }
   }
 }

@@ -10,6 +10,9 @@
  *
  *   node scripts/merge-message-fragments.mjs            # merge + delete fragments
  *   node scripts/merge-message-fragments.mjs --dry-run  # report only
+ *   node scripts/merge-message-fragments.mjs --override # a fragment may CHANGE an
+ *        existing value (a vocabulary decision); every change is printed so a
+ *        renamed button is a deliberate act, never a side effect
  */
 import { readdirSync, readFileSync, writeFileSync, unlinkSync, existsSync } from "node:fs";
 import path from "node:path";
@@ -18,13 +21,14 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pending = path.join(root, "messages", "_pending");
 const dry = process.argv.includes("--dry-run");
+const override = process.argv.includes("--override");
 const LOCALES = ["fr", "en", "ar"];
 
 if (!existsSync(pending)) { console.log("no messages/_pending — nothing to merge"); process.exit(0); }
 const fragments = readdirSync(pending).filter((f) => f.endsWith(".json")).sort();
 if (fragments.length === 0) { console.log("no fragments"); process.exit(0); }
 
-let added = 0, conflicts = 0, same = 0;
+let added = 0, conflicts = 0, same = 0, changed = 0;
 const touched = new Set();
 
 function merge(target, source, trail, file) {
@@ -41,6 +45,9 @@ function merge(target, source, trail, file) {
       target[k] = v; added++;
     } else if (target[k] === v) {
       same++;
+    } else if (override) {
+      console.log(`  ~ ${file}: ${here}\n      was: ${JSON.stringify(target[k])}\n      now: ${JSON.stringify(v)}`);
+      target[k] = v; changed++;
     } else {
       console.error(`  ✗ ${file}: ${here} already exists with a different value\n      have: ${JSON.stringify(target[k])}\n      want: ${JSON.stringify(v)}`);
       conflicts++;
@@ -77,6 +84,6 @@ for (const f of fragments) {
   }
 }
 
-console.log(`\n${added} keys added, ${same} identical, ${conflicts} conflicts, files: ${[...touched].sort().join(", ")}`);
+console.log(`\n${added} keys added, ${changed} changed, ${same} identical, ${conflicts} conflicts, files: ${[...touched].sort().join(", ")}`);
 if (conflicts > 0) { console.error("\nconflicts — nothing deleted; fix the fragments and re-run"); process.exit(1); }
 if (!dry) { for (const f of fragments) unlinkSync(path.join(pending, f)); console.log("fragments folded in and removed"); }

@@ -3,9 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { isWithinHours, toOpeningHours } from "@/lib/week";
 import { requireStaff } from "@/lib/tenant";
-import { ACTIVITY_CATEGORIES, SCHEDULE_DAYS, algiersToday } from "./class-types";
+import { algiersToday } from "./class-types";
 import { CLASS_ICON_KEYS } from "./class-icons";
 import { CENTER_TYPES } from "@/components/modules/settings/center-types";
 
@@ -377,108 +376,12 @@ export async function setClassStaff(
   return { ok: true };
 }
 
-// ===== Activities (RLS: admin) =====
-
-const scheduleSlotSchema = z.object({
-  day: z.enum(SCHEDULE_DAYS),
-  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-});
-
-const activitySchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  nameAr: optionalText,
-  description: z
-    .string()
-    .trim()
-    .max(2000)
-    .optional()
-    .transform((v) => (v ? v : null)),
-  category: z.enum(ACTIVITY_CATEGORIES),
-  feeAmount: z.number().min(0).max(10_000_000),
-  feePeriod: z.enum(["once", "monthly", "quarterly", "yearly", "per_session"]),
-  capacity: z.number().int().min(1).max(500).nullable(),
-  schedule: z.array(scheduleSlotSchema).max(14),
-  active: z.boolean(),
-});
-
-export async function saveActivity(
-  activityId: string | null,
-  input: z.input<typeof activitySchema>
-): Promise<ActionResult> {
-  const ctx = await requireStaff();
-  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
-  const parsed = activitySchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "invalid" };
-  const d = parsed.data;
-
-  // A slot on a day the crèche does not open is refused here, not just hidden
-  // in the picker. The dialog offers the open days, but the day list travels in
-  // the request, and a schedule that survives a later change of opening days
-  // would put children in a room on a day nobody is there to receive them.
-  const hours = toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours);
-  // Both halves of the same rule: the day must be one the crèche opens, and the
-  // time must fall inside that day's hours. A session booked for 18:00 when the
-  // doors shut at 16:30 is a room with nobody in it and a parent arriving to
-  // collect a child who was never there.
-  if (d.schedule.some((slot) => !isWithinHours(hours, slot.day, slot.time))) {
-    return { ok: false, error: "invalid" };
-  }
-
-  const row = {
-    name: d.name,
-    name_ar: d.nameAr,
-    description: d.description,
-    category: d.category,
-    fee_amount: d.feeAmount,
-    fee_period: d.feePeriod,
-    capacity: d.capacity,
-    schedule: d.schedule,
-    active: d.active,
-  };
-
-  const supabase = await createClient();
-  if (activityId) {
-    if (!z.uuid().safeParse(activityId).success) return { ok: false, error: "invalid" };
-    const { error } = await supabase
-      .from("kg_activities")
-      .update(row)
-      .eq("id", activityId)
-      .eq("tenant_id", ctx.tenant.id);
-    if (error) return mapDbError(error);
-    revalidateActivity(activityId);
-    return { ok: true, id: activityId };
-  }
-
-  const { data, error } = await supabase
-    .from("kg_activities")
-    .insert({ ...row, tenant_id: ctx.tenant.id })
-    .select("id")
-    .single();
-  if (error) return mapDbError(error);
-  revalidateActivity(data.id);
-  return { ok: true, id: data.id };
-}
-
-export async function setActivityActive(
-  activityId: string,
-  active: boolean
-): Promise<ActionResult> {
-  const ctx = await requireStaff();
-  if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
-  if (!z.uuid().safeParse(activityId).success) return { ok: false, error: "invalid" };
-
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("kg_activities")
-    .update({ active })
-    .eq("id", activityId)
-    .eq("tenant_id", ctx.tenant.id);
-  if (error) return mapDbError(error);
-  revalidateActivity(activityId);
-  return { ok: true };
-}
-
 // ===== Activity enrollments (RLS: educator) =====
+// Saving an activity and switching it on or off live with the activities
+// pages (src/app/(dashboard)/activities/actions.ts) since 0155: an activity
+// now books a room, so its save maps the room refusals the way the lesson
+// and follow-up saves do, and that mapping belongs beside the schedule
+// normaliser that reads the row. Only the enrolments stay here.
 
 /** Enroll a child. Re-activates a previous ended/cancelled enrollment if one exists. */
 export async function addActivityEnrollment(
@@ -616,10 +519,16 @@ const roomSchema = z.object({
 function revalidateRooms(classId?: string) {
   // A room's name is shown on every class card and on each class page, so a
   // rename has to invalidate those too — the trigger already rewrote the
-  // mirrored text, but Next has the old HTML cached.
+  // mirrored text, but Next has the old HTML cached. Since 0155 the name is
+  // also a fact on the timetable, the follow-ups, the calendar and the
+  // activities, each of which prints it from kg_rooms.
   revalidatePath("/classes");
   if (classId) revalidatePath(`/classes/${classId}`);
   revalidatePath("/incidents");
+  revalidatePath("/learning/timetable");
+  revalidatePath("/sessions");
+  revalidatePath("/calendar");
+  revalidatePath("/activities");
 }
 
 export async function saveRoom(
@@ -665,11 +574,17 @@ export async function saveRoom(
 }
 
 /**
- * Delete a room — refused while any class still sits in it.
+ * Delete a room — refused by the database while anything still names it.
  *
- * The FK is ON DELETE SET NULL, so the database would happily accept this and
- * quietly unassign every class in the room. Same shape as the class delete
- * guard: say what is in the way instead of doing something surprising.
+ * Every room reference is ON DELETE RESTRICT since 0155, and the guard
+ * (`kg_room_refuse_orphaning`) raises `room_in_use` with four counts —
+ * classes, activities, upcoming bookings, past bookings — the moment one of
+ * them is above zero. Counting classes here beforehand would only repeat
+ * the first of the four, so the action asks the database and translates
+ * its answer: a room that held a follow-up last spring is as in use as one
+ * a class sits in today, and the dialog already said so from the same
+ * counts (kg_room_usage) before the button was offered. Retiring the room
+ * (`active = false`) is the way out; history keeps its room that way.
  */
 export async function deleteRoom(roomId: string): Promise<ActionResult> {
   const ctx = await requireStaff();
@@ -677,18 +592,14 @@ export async function deleteRoom(roomId: string): Promise<ActionResult> {
   if (!z.uuid().safeParse(roomId).success) return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("kg_classes")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", ctx.tenant.id)
-    .eq("room_id", roomId);
-  if ((count ?? 0) > 0) return { ok: false, error: "inUse" };
-
   const { error } = await supabase
     .from("kg_rooms")
     .delete()
     .eq("id", roomId)
     .eq("tenant_id", ctx.tenant.id);
+  // 23503 is the guard's own code (foreign_key_violation): the room is
+  // still used, and the dialog has the counts to say by what.
+  if (error?.code === "23503") return { ok: false, error: "inUse" };
   if (error) return mapDbError(error);
   revalidateRooms();
   return { ok: true };

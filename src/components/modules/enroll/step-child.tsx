@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { DatePicker, toISODate } from "@/components/shared/date-picker";
 import { BLOOD_TYPES, type EnrollClass, type EnrollStructure, type WizardChild } from "./types";
 import { Baby } from "lucide-react";
-import { BigChoice, Field, StepHeader } from "./wizard-ui";
+import { BigChoice, Field, GroupLabel, StepHeader } from "./wizard-ui";
 import { AgeFitNotice } from "./step-structure";
 import { cn } from "@/lib/utils";
 
@@ -41,12 +41,11 @@ export function StepChild({
     <div>
       <StepHeader icon={Baby} title={t("child.title")} subtitle={t("child.subtitle")} />
 
-      <div className="space-y-4">
-        {/* Latin-script names */}
-        <fieldset className="rounded-2xl border bg-card p-3.5">
-          <legend className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            {t("child.latin")}
-          </legend>
+      <div className="space-y-5">
+        {/* Latin-script names. A group label, not a bordered fieldset — a
+            box inside the card was a card inside a card. */}
+        <div className="space-y-2.5">
+          <GroupLabel>{t("child.latin")}</GroupLabel>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("child.firstName")} required>
               <Input
@@ -67,13 +66,13 @@ export function StepChild({
               />
             </Field>
           </div>
-        </fieldset>
+        </div>
 
         {/* Arabic-script names */}
-        <fieldset className="rounded-2xl border bg-card p-3.5">
-          <legend className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <div className="space-y-2.5">
+          <GroupLabel>
             {t("child.arabic")} <span className="normal-case">({tc("labels.optional")})</span>
-          </legend>
+          </GroupLabel>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("child.firstNameAr")}>
               <Input
@@ -96,41 +95,52 @@ export function StepChild({
               />
             </Field>
           </div>
-        </fieldset>
-
-        <div className="space-y-2">
-          <Field label={t("child.dob")} required>
-            <DatePicker
-              className="h-11 text-base"
-              maxDate={today}
-              fromYear={new Date().getFullYear() - 12}
-              value={child.dob}
-              onChange={(v) => onChange({ dob: v })}
-            />
-          </Field>
-          {fit && child.dob && (
-            <AgeFitNotice
-              dob={child.dob}
-              classes={fit.classes}
-              structures={fit.structures}
-              structureId={fit.structureId}
-              onSwitchStructure={fit.onSwitchStructure}
-            />
-          )}
         </div>
 
-        <div className="space-y-1.5">
-          <span className="text-sm font-medium">
-            {t("child.gender")}
-            <span className="text-destructive"> *</span>
-          </span>
-          <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label={t("child.gender")}>
-            <BigChoice selected={child.gender === "male"} onClick={() => onChange({ gender: "male" })}>
-              <span className="block py-1 text-center font-medium">{t("child.male")}</span>
-            </BigChoice>
-            <BigChoice selected={child.gender === "female"} onClick={() => onChange({ gender: "female" })}>
-              <span className="block py-1 text-center font-medium">{t("child.female")}</span>
-            </BigChoice>
+        {/* Birth date and gender, paired on a wide screen. */}
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-3">
+          <div className="space-y-2">
+            <Field label={t("child.dob")} required>
+              <DatePicker
+                className="h-11 text-base"
+                maxDate={today}
+                fromYear={new Date().getFullYear() - 12}
+                value={child.dob}
+                onChange={(v) => onChange({ dob: v })}
+              />
+            </Field>
+            {fit && child.dob && (
+              <AgeFitNotice
+                dob={child.dob}
+                classes={fit.classes}
+                structures={fit.structures}
+                structureId={fit.structureId}
+                onSwitchStructure={fit.onSwitchStructure}
+              />
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-sm font-medium">
+              {t("child.gender")}
+              <span className="text-destructive"> *</span>
+            </span>
+            <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label={t("child.gender")}>
+              <BigChoice
+                selected={child.gender === "male"}
+                onClick={() => onChange({ gender: "male" })}
+                className="p-0"
+              >
+                <span className="flex h-11 items-center justify-center font-medium">{t("child.male")}</span>
+              </BigChoice>
+              <BigChoice
+                selected={child.gender === "female"}
+                onClick={() => onChange({ gender: "female" })}
+                className="p-0"
+              >
+                <span className="flex h-11 items-center justify-center font-medium">{t("child.female")}</span>
+              </BigChoice>
+            </div>
           </div>
         </div>
 
@@ -200,10 +210,8 @@ function BloodChip({
       aria-checked={selected}
       onClick={onClick}
       className={cn(
-        "flex h-11 items-center justify-center rounded-xl border-2 bg-card px-2 text-base font-medium tabular-nums transition-all outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.98]",
-        selected
-          ? "border-primary bg-primary/5 text-primary shadow-sm"
-          : "border-border text-foreground hover:border-primary/40",
+        "flex h-11 items-center justify-center rounded-xl border-2 bg-card px-2 text-base font-medium tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        selected ? "border-primary" : "border-border hover:border-primary/40",
         className,
       )}
     >

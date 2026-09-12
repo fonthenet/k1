@@ -4,6 +4,7 @@
 // RLS (policy n_sel: user_id = auth.uid()) is the whole access story here —
 // the query needs no tenant or role filter of its own.
 
+import { Fragment } from "react";
 import { BellOff } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatDate } from "@/lib/format";
@@ -12,10 +13,13 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { algiersDay, shiftDay } from "@/components/modules/notifications/dates";
 import { NotificationLink } from "@/components/modules/notifications/notification-row";
-import { NotificationsToolbar } from "@/components/modules/notifications/notifications-toolbar";
+import {
+  MarkAllReadButton,
+  NotificationsFilter,
+} from "@/components/modules/notifications/notifications-toolbar";
 
 /** A history, not an archive: older rows stay reachable from where they live. */
 const HISTORY_LIMIT = 100;
@@ -79,10 +83,19 @@ export default async function NotificationsPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader title={t("title")} description={t("description")}>
-        <NotificationsToolbar unreadOnly={unreadOnly} unreadCount={unreadCount} />
+        <MarkAllReadButton unreadCount={unreadCount} />
       </PageHeader>
+
+      {/* The roster's filter card: the switch at the start, the count of
+          rows on screen at the end. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
+        <NotificationsFilter unreadOnly={unreadOnly} unreadCount={unreadCount} />
+        <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+          {t("count", { count: rows.length })}
+        </span>
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -91,20 +104,32 @@ export default async function NotificationsPage({
           description={t("emptyHint")}
         />
       ) : (
-        <div className="space-y-6">
-          {groups.map((g) => (
-            <section key={g.key} aria-label={g.label}>
-              <h3 className="mb-2 px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                {g.label}
-              </h3>
-              <Card className="gap-0 divide-y divide-border py-0">
-                {g.items.map((n) => (
-                  <NotificationLink key={n.id} n={n} />
-                ))}
-              </Card>
-            </section>
-          ))}
-        </div>
+        /* One list in one card, the days as group rows inside it — never a
+           card per day. The unread tint went with the cards: the dot at the
+           end of a row is the one mark for "not read yet". */
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            <ul className="divide-y divide-border">
+              {groups.map((g) => (
+                <Fragment key={g.key}>
+                  <li className="bg-muted/30 px-5 py-1.5 text-xs">
+                    <span className="flex items-center gap-2">
+                      <span className="font-semibold">{g.label}</span>
+                      <span className="text-muted-foreground tabular-nums">
+                        {t("count", { count: g.items.length })}
+                      </span>
+                    </span>
+                  </li>
+                  {g.items.map((n) => (
+                    <li key={n.id}>
+                      <NotificationLink n={n} />
+                    </li>
+                  ))}
+                </Fragment>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

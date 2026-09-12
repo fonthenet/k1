@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Baby, ChevronLeft, ChevronRight, Plus, Wallet } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Baby, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StatusPill } from "@/components/shared/status-pill";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, signedMediaUrl } from "@/lib/tenant";
 import { ageFromDob, childDisplayName, formatDZD, initials } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { algiersToday, monthLabel } from "@/components/modules/billing/dates";
 import { getDuesByChild } from "@/components/modules/portal/dues";
 import {
@@ -17,9 +16,10 @@ import {
   getMyChildren,
   getMyGuardianBadge,
   getStructures,
-  toCheckinDialogChildren,
 } from "@/components/modules/portal/data";
-import { StructureChip } from "@/components/modules/portal/structure-chip";
+import { StructureMark } from "@/components/shared/structure-mark";
+import { FactsLine } from "@/components/modules/portal/facts-line";
+import { structureName } from "@/components/modules/classes/class-types";
 import {
   getMyOpenApplications,
   PendingApplications,
@@ -35,8 +35,8 @@ export default async function PortalChildrenPage() {
 
   // The enrolled children and the requests still waiting on the office — a
   // family that has just applied for a sibling must see both on one screen.
-  // The door badge is per guardian, so it is fetched once here and shared by
-  // every card below rather than re-queried per child.
+  // The door badge is per guardian, so it is fetched once here and raised by
+  // the one trigger in the header rather than by a button per child.
   const [children, badge, structures] = await Promise.all([
     getMyChildren(supabase, ctx),
     getMyGuardianBadge(supabase, ctx, locale),
@@ -56,178 +56,182 @@ export default async function PortalChildrenPage() {
     today
   );
   const photoUrls = await Promise.all(children.map((c) => signedMediaUrl(c.photo_path)));
-  // One list for every card's badge: the code is the guardian's, so the dialog
-  // opened from any card can switch between all of them. Assembled from what
-  // this page already loaded — no card queries anything of its own. Today's
-  // attendance is not loaded here, so the tabs carry faces and names only.
-  const checkinChildren = toCheckinDialogChildren(
-    children,
-    locale,
-    new Map(children.map((c, i) => [c.id, photoUrls[i]]))
-  );
   const ForwardIcon = locale === "ar" ? ChevronLeft : ChevronRight;
+  const hasRows = children.length > 0 || applications.length > 0;
 
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-bold tracking-tight">{t("children.title")}</h2>
+      {/* One header row that must hold at 420px: the title, the way to the
+          programmes, and the family's ONE door badge. The badge is issued
+          per guardian — one code for every child — so it is raised once,
+          here, with no child named, instead of once per card. */}
+      <div className="flex items-center justify-between gap-1.5">
+        <h2 className="whitespace-nowrap text-2xl font-bold tracking-tight">{t("children.title")}</h2>
+        {children.length > 0 && (
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* Tertiary: a see-more link with its chevron, not a button — the
+                badge beside it is the row's one button. */}
+            <Link
+              href="/portal/learning"
+              className="inline-flex min-h-11 items-center gap-1 text-sm text-primary hover:underline hover:underline-offset-4"
+            >
+              {t("learning.title")}
+              <ForwardIcon className="size-4" aria-hidden />
+            </Link>
+            {/* Slightly tighter than the card trigger so that title, link and
+                badge hold one line in French at 420px — "Mes enfants",
+                "Programmes" and "Pointer l'arrivée" are the longest of the
+                three languages. */}
+            <CheckinDialog badge={badge} className="px-2.5" />
+          </div>
+        )}
+      </div>
 
       {/* "Nobody is linked to your account" is only true when there is also no
           request in flight — a family whose first request is still being
-          reviewed is not unlinked, it is waiting. */}
-      {children.length === 0 && applications.length === 0 && (
+          reviewed is not unlinked, it is waiting. The portal has no page
+          primary, so the empty state carries the one action itself. */}
+      {!hasRows ? (
         <EmptyState
           icon={<Baby />}
           title={t("home.emptyChildren")}
           description={t("home.emptyChildrenDescription")}
+          action={
+            <Button asChild>
+              <Link href="/portal/children/new">
+                <Plus data-icon="inline-start" />
+                {tAdd("trigger")}
+              </Link>
+            </Button>
+          }
         />
-      )}
-
-      {children.length > 0 && (
-        <div className="grid gap-3">
-          {children.map((child, i) => {
-            const name = childDisplayName(child, locale);
-            const secondaryName =
-              locale === "ar"
-                ? `${child.first_name} ${child.last_name}`
-                : child.first_name_ar && child.last_name_ar
-                  ? `${child.first_name_ar} ${child.last_name_ar}`
-                  : null;
-            const cls = classLabel(child, locale);
-            const structure =
-              multiStructure && child.structure_id ? structureById.get(child.structure_id) : undefined;
-            return (
-              // The card used to BE the link. It cannot stay one: the door-badge
-              // action below is an interactive control of its own, and neither
-              // an anchor nor a button may nest inside another anchor. So the
-              // link moved inward to the card body — face, name, age, class and
-              // chevron are still one tap, and the footer carries the second,
-              // separate action.
-              <Card key={child.id} className="shadow-sm transition-shadow hover:shadow-md">
-                <CardContent>
-                  <Link
-                    href={`/portal/children/${child.id}`}
-                    className="-m-1 flex items-center gap-3.5 rounded-xl p-1 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  >
-                    <Avatar className="size-12 ring-1 ring-primary/15">
-                      {photoUrls[i] && <AvatarImage src={photoUrls[i]!} alt={name} />}
-                      <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
-                        {initials(child.first_name, child.last_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="font-semibold">{name}</span>
-                        {secondaryName && (
-                          <span className="text-sm text-muted-foreground text-start" dir="auto">
-                            {secondaryName}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                        <span>{ageFromDob(child.dob, locale)}</span>
-                        {/* Only ever shown when the answer is not "enrolled".
-                            A badge reading "enrolled" on every card is noise;
-                            a child who has been withdrawn, or is still on the
-                            waiting list, is the whole point of showing it —
-                            withdrawal silently kills the badge at the door. */}
-                        {child.status !== "enrolled" && (
-                          <Badge
-                            variant={child.status === "withdrawn" ? "destructive" : "secondary"}
-                            className="text-[0.6875rem]"
+      ) : (
+        <>
+          {/* One register for the family: a row per child, and the requests
+              still with the office as rows of the same list under their own
+              group row. A card per child made two children look like two
+              sections of the page and hid the third under a fold of
+              buttons; a row reads the same at one child and at four. */}
+          <Card className="border border-border py-0 shadow-sm ring-0">
+            <CardContent className="px-0">
+              <ul className="divide-y divide-border">
+                {children.map((child, i) => {
+                  const name = childDisplayName(child, locale);
+                  const secondaryName =
+                    locale === "ar"
+                      ? `${child.first_name} ${child.last_name}`
+                      : child.first_name_ar && child.last_name_ar
+                        ? `${child.first_name_ar} ${child.last_name_ar}`
+                        : null;
+                  const cls = classLabel(child, locale);
+                  const structure =
+                    multiStructure && child.structure_id
+                      ? structureById.get(child.structure_id)
+                      : undefined;
+                  const due = dues.get(child.id);
+                  // What the money is FOR. An amount on its own leaves a
+                  // parent guessing whether it is the admission fee or the
+                  // month — different conversations to have with the office.
+                  const dueWhat = due
+                    ? due.hasRegistration
+                      ? t("children.due.admission")
+                      : due.months.length > 0
+                        ? monthLabel(due.months[0].slice(0, 7), locale)
+                        : null
+                    : null;
+                  return (
+                    <li
+                      key={child.id}
+                      className="relative flex min-h-14 items-center gap-3 px-5 py-3 transition-colors hover:bg-primary/5"
+                    >
+                      <Avatar className="size-10 shrink-0">
+                        {photoUrls[i] && <AvatarImage src={photoUrls[i]!} alt={name} />}
+                        <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                          {initials(child.first_name, child.last_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="min-w-0 flex-1">
+                        {/* The name is the door: its overlay covers the row,
+                            and nothing else in the row is clickable. */}
+                        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                          <Link
+                            href={`/portal/children/${child.id}`}
+                            className="font-medium after:absolute after:inset-0"
                           >
-                            {t(`children.status.${child.status}`)}
-                          </Badge>
-                        )}
-                        {cls && (
-                          <span className="inline-flex items-center gap-1.5">
-                            <span
-                              className="size-2 rounded-full"
-                              style={{ backgroundColor: child.kg_classes?.color ?? "var(--gold)" }}
-                              aria-hidden
-                            />
-                            {cls}
+                            <bdi dir="auto">{name}</bdi>
+                          </Link>
+                          {secondaryName && (
+                            <bdi dir="auto" className="truncate text-xs text-muted-foreground">
+                              {secondaryName}
+                            </bdi>
+                          )}
+                        </span>
+                        {/* Where the child is, said once: the class as plain
+                            text, the structure as the one coloured mark. */}
+                        <FactsLine
+                          className="mt-0.5"
+                          facts={[
+                            <span key="age">{ageFromDob(child.dob, locale)}</span>,
+                            cls && <span key="class">{cls}</span>,
+                            structure && (
+                              <StructureMark
+                                key="structure"
+                                structure={{
+                                  name: structureName(structure, locale),
+                                  color: structure.color,
+                                }}
+                                className="text-xs"
+                              />
+                            ),
+                          ]}
+                        />
+                      </span>
+                      {/* Only ever shown when the answer is not "enrolled".
+                          A pill reading "enrolled" on every row is noise; a
+                          child who has been withdrawn, or is still on the
+                          waiting list, is the whole point of showing it —
+                          withdrawal silently kills the badge at the door. */}
+                      {child.status !== "enrolled" && (
+                        <StatusPill tone={child.status === "withdrawn" ? "danger" : "muted"}>
+                          {t(`children.status.${child.status}`)}
+                        </StatusPill>
+                      )}
+                      {due && (
+                        <span className="flex shrink-0 flex-col items-end gap-0.5 text-end">
+                          <span className="whitespace-nowrap text-sm font-medium tabular-nums">
+                            {formatDZD(due.balance, locale)}
                           </span>
-                        )}
-                        {structure && <StructureChip structure={structure} locale={locale} />}
-                      </div>
+                          {dueWhat && (
+                            <span className="text-xs text-muted-foreground">{dueWhat}</span>
+                          )}
+                          {/* Red only once the money is genuinely late —
+                              owed inside its terms is a plain number. */}
+                          {due.overdue && (
+                            <StatusPill tone="danger">{t("payments.statuses.overdue")}</StatusPill>
+                          )}
+                        </span>
+                      )}
+                      <ForwardIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    </li>
+                  );
+                })}
+                <PendingApplications rows={applications} structures={structures} />
+              </ul>
+            </CardContent>
+          </Card>
 
-                      {/* What is outstanding, and what it is FOR. An amount on
-                          its own leaves a parent guessing whether it is the
-                          admission fee or the month — which are different
-                          conversations to have with the office. */}
-                      {(() => {
-                        const due = dues.get(child.id);
-                        if (!due) return null;
-                        const what = due.hasRegistration
-                          ? t("children.due.admission")
-                          : due.months.length > 0
-                            ? monthLabel(due.months[0].slice(0, 7), locale)
-                            : null;
-                        return (
-                          <div className="mt-1.5">
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium",
-                                due.overdue
-                                  ? "bg-destructive/10 text-destructive"
-                                  : "bg-gold-muted text-gold-ink"
-                              )}
-                            >
-                              <Wallet className="size-3" aria-hidden />
-                              {what
-                                ? t("children.due.forWhat", {
-                                    amount: formatDZD(due.balance, locale),
-                                    what,
-                                  })
-                                : t("children.due.amount", {
-                                    amount: formatDZD(due.balance, locale),
-                                  })}
-                            </span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                      <ForwardIcon className="size-4" />
-                    </span>
-                  </Link>
-                </CardContent>
-                {/* The badge is issued per guardian, not per child, so every
-                    card raises the same QR — the child only decides whose name
-                    is printed under it, and with siblings the dialog lets the
-                    parent move between them without closing. It is here because
-                    a parent at the gate reaches for the child, not for a menu,
-                    and it opens in place so they never lose this list
-                    mid-queue. */}
-                <CardFooter className="p-0">
-                  <CheckinDialog
-                    badge={badge}
-                    child={checkinChildren[i]}
-                    trigger="block"
-                    className="rounded-none"
-                  />
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
+          {/* Tertiary on purpose: the children are what this page is about,
+              and enrolling another one is something a family does once every
+              few years. */}
+          <Link
+            href="/portal/children/new"
+            className="inline-flex w-fit items-center gap-1.5 px-1 text-sm text-primary hover:underline hover:underline-offset-4"
+          >
+            <Plus className="size-4" aria-hidden />
+            {tAdd("trigger")}
+          </Link>
+        </>
       )}
-
-      <PendingApplications rows={applications} structures={structures} />
-
-      {/* Secondary on purpose: the children are what this page is about, and
-          enrolling another one is something a family does once every few years. */}
-      <Button
-        asChild
-        variant="outline"
-        size="lg"
-        className="mt-1 h-12 w-full border-dashed text-base"
-      >
-        <Link href="/portal/children/new">
-          <Plus className="size-4" data-icon="inline-start" />
-          {tAdd("trigger")}
-        </Link>
-      </Button>
     </div>
   );
 }

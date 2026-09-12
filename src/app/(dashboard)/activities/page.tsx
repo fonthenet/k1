@@ -1,28 +1,32 @@
 import Link from "next/link";
-import { Clock, Sparkles, Users } from "lucide-react";
+import { Fragment } from "react";
+import { Sparkles } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { StatusPill } from "@/components/shared/status-pill";
+import { StructureGroupRow } from "@/components/shared/structure-group-row";
+import { ValueRange } from "@/components/shared/value-range";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, scoped } from "@/lib/tenant";
 import { toOpeningHours } from "@/lib/week";
 import { formatDZD } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { groupClassesByStructure } from "@/lib/structure-groups";
 import type { Activity } from "@/lib/types";
-import { ActivityActiveToggle } from "@/components/modules/classes/activity-active-toggle";
 import { ACTIVITY_CATEGORIES } from "@/components/modules/classes/class-types";
 import { ActivityDialog } from "@/components/modules/classes/activity-dialog";
 import { ActivityStructureFilter } from "@/components/modules/classes/activity-structure-filter";
-import { CategoryIcon } from "@/components/modules/classes/category-icon";
+import { FillBar } from "@/components/modules/classes/fill-bar";
 import {
   asScheduleSlots,
-  sortSchedule,
+  roomName,
   structureName,
   type ActivityFormValues,
   type Structure,
 } from "@/components/modules/classes/class-types";
+import { readRoomChoices } from "@/components/modules/rooms/occupancy-data";
 
 type EnrollmentCountRow = { activity_id: string; status: string };
 
@@ -42,6 +46,7 @@ function toFormValues(a: Activity): ActivityFormValues {
     schedule: asScheduleSlots(a.schedule),
     capacity: a.capacity,
     active: a.active,
+    room_id: a.room_id ?? null,
   };
 }
 
@@ -59,8 +64,12 @@ export default async function ActivitiesPage({
   const locale = await getLocale();
   const supabase = await createClient();
 
-  const [{ data: activityRows, error }, { data: enrollmentRows }, { data: structureRows }] =
-    await Promise.all([
+  const [
+    { data: activityRows, error },
+    { data: enrollmentRows },
+    { data: structureRows },
+    { rooms, homeClasses },
+  ] = await Promise.all([
       scoped(
         supabase
           .from("kg_activities")
@@ -83,13 +92,19 @@ export default async function ActivitiesPage({
         .eq("tenant_id", ctx.tenant.id)
         .order("sort_order")
         .order("name"),
-    ]);
+    // Every room of the building and who lives in each, for the table's
+    // room tail and the dialog's picker. The occupancy itself is read by
+    // the dialog when it opens: twelve weeks of bookings are not worth
+    // fetching for a list that only names the room.
+    readRoomChoices(supabase, ctx, locale),
+  ]);
 
   if (error) throw new Error(error.message);
   const activities = (activityRows ?? []) as ActivityRow[];
   const structures = (structureRows ?? []) as Structure[];
   const structureById = new Map(structures.map((s) => [s.id, s] as const));
-  /** Neither the filter nor the structure on a card is worth showing under two. */
+  const roomById = new Map(rooms.map((r) => [r.id, r] as const));
+  /** Neither the filter nor a group row is worth showing under two structures. */
   const manyStructures = structures.length > 1;
 
   // An id this building does not have is ignored rather than emptying the grid
@@ -118,180 +133,204 @@ export default async function ActivitiesPage({
     bucket.set(row.activity_id, (bucket.get(row.activity_id) ?? 0) + 1);
   }
 
+  // The activities under their structure, in the building's own order, with
+  // a trailing group for the ones open to the whole building. Only the
+  // unfiltered list of a two-structure building is grouped: once a structure
+  // is chosen the filter has already said which one, and a single group
+  // needs no heading. The query order (active first, then name) holds
+  // inside each group.
+  const grouped = manyStructures && structureFilter === "all";
+  const { groups } = groupClassesByStructure(shown, structures);
+  const showGroupRows = grouped && groups.length > 1;
+  const columns = ctx.isAdmin ? 7 : 6;
+
+  // One row per activity, the way the classes page draws classes: the name
+  // is the link, the facts are columns, the capacity is the same fill bar.
+  // Cards were a 3-column grid that left five activities as three-and-two,
+  // with the category as a tinted tile, the fee in bold, the requests in
+  // solid gold and the schedule as a run of chips — four colours for four
+  // facts. A row says each once and reads the same at five and at fifteen.
+  const activityRow = (a: ActivityRow) => {
+    const enrolled = activeByActivity.get(a.id) ?? 0;
+    const requested = requestedByActivity.get(a.id) ?? 0;
+    // Read through the normaliser (sorted on the way out), so the rows
+    // still stored as integer days print their slots before 0156 has run.
+    const slots = asScheduleSlots(a.schedule);
+    const room = a.room_id ? roomById.get(a.room_id) : undefined;
+    const fee = Number(a.fee_amount);
+    const displayName = locale === "ar" && a.name_ar ? a.name_ar : a.name;
+    // A category the messages do not carry would throw MISSING_MESSAGE and
+    // take the page with it. The edit dialog already guards this way.
+    const category = (ACTIVITY_CATEGORIES as readonly string[]).includes(a.category)
+      ? a.category
+      : "general";
+
+    return (
+      <TableRow key={a.id} className="relative transition-colors hover:bg-primary/5">
+        <TableCell>
+          {/* The whole row is the link: the name's overlay reaches every
+              cell, and the admin's pencil at the end is lifted above it.
+              An inactive activity is said by its pill, not by fading the
+              row. */}
+          <Link href={`/activities/${a.id}`} className="font-semibold after:absolute after:inset-0">
+            <bdi dir="auto" className="truncate">{displayName}</bdi>
+          </Link>
+        </TableCell>
+        <TableCell className="text-muted-foreground">{t(`categories.${category}`)}</TableCell>
+        <TableCell className="whitespace-nowrap text-end tabular-nums">
+          {fee > 0 ? (
+            <>
+              <span className="font-medium">{formatDZD(fee, locale)}</span>
+              <span className="text-muted-foreground"> · {t(`periods.${a.fee_period}`)}</span>
+            </>
+          ) : (
+            <span className="text-muted-foreground">{t("list.free")}</span>
+          )}
+        </TableCell>
+        <TableCell className="min-w-40 whitespace-normal text-muted-foreground">
+          {/* One unit per line — "Dim 11:00 – 12:00" / "Mer 11:00 – 12:00" /
+              "Salle 4": each slot as its day and its range, then the room
+              once, because it is one room for the whole activity, not one
+              per slot. Stacked rather than joined with a separator: the
+              column cannot hold two slots and a room on one line, and a
+              separator that trails the unit before a forced break read as a
+              bare dot ending every line. A slot never splits its day from
+              its range. */}
+          {slots.length === 0 && !room
+            ? "—"
+            : slots.map((s, i) => (
+                <span key={`${s.day}-${s.start}-${i}`} className="block whitespace-nowrap">
+                  <span className="font-semibold">{t(`days.${s.day}`)}</span>{" "}
+                  <ValueRange from={s.start} to={s.end} separator="–" className="tabular-nums" />
+                </span>
+              ))}
+          {room && (
+            <bdi dir="auto" className="block whitespace-nowrap">{roomName(room, locale)}</bdi>
+          )}
+        </TableCell>
+        <TableCell className="w-40">
+          {a.capacity != null ? (
+            <FillBar enrolled={enrolled} capacity={a.capacity} className="min-w-28" />
+          ) : (
+            <span className="tabular-nums">
+              <span className="font-semibold">{enrolled}</span>
+              <span className="text-muted-foreground"> · {t("list.noCapacity")}</span>
+            </span>
+          )}
+        </TableCell>
+        <TableCell>
+          {/* One mark: a parent waiting on an answer outranks "inactive",
+              and an active activity with nothing pending says nothing. */}
+          {requested > 0 ? (
+            <StatusPill tone="attention">{t("list.requests", { count: requested })}</StatusPill>
+          ) : !a.active ? (
+            <StatusPill tone="muted">{t("list.inactive")}</StatusPill>
+          ) : null}
+        </TableCell>
+        {ctx.isAdmin && (
+          <TableCell className="w-12">
+            {/* The pencil alone: the edit dialog already holds the active
+                switch, so a second one in every row was five solid primaries
+                beside the page's one button, repeating what the muted pill
+                says. */}
+            <span className="relative z-10 flex items-center justify-end">
+              <ActivityDialog
+                activity={toFormValues(a)}
+                openingHours={openingHours}
+                structures={structures}
+                structureId={a.structure_id}
+                rooms={rooms}
+                homeClasses={homeClasses}
+                enrolled={enrolled}
+              />
+            </span>
+          </TableCell>
+        )}
+      </TableRow>
+    );
+  };
+
   return (
     <div>
+      {/* One primary per page: the thing this page creates. */}
       <PageHeader title={t("list.title")} description={t("list.description")}>
         {ctx.isAdmin && (
-          <ActivityDialog openingHours={openingHours} structures={structures} />
+          <ActivityDialog
+            openingHours={openingHours}
+            structures={structures}
+            rooms={rooms}
+            homeClasses={homeClasses}
+            enrolled={0}
+          />
         )}
       </PageHeader>
 
-      {manyStructures && activities.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {!ctx.structureId && (
-            <ActivityStructureFilter structures={structures} value={structureFilter} />
-          )}
+      {/* The roster's filter card, only when there is a structure to choose:
+          a bar holding nothing but the count would be a box for a number. */}
+      {manyStructures && !ctx.structureId && activities.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
+          <ActivityStructureFilter structures={structures} value={structureFilter} />
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+            {t("list.count", { count: shown.length })}
+          </span>
         </div>
       )}
 
       {activities.length === 0 ? (
         <EmptyState
-          icon={
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-gold text-gold-foreground [&>svg]:size-7">
-              <Sparkles />
-            </span>
-          }
+          icon={<Sparkles />}
           title={t("list.empty")}
           description={t("list.emptyDescription")}
-          action={
-            ctx.isAdmin ? (
-              <ActivityDialog openingHours={openingHours} structures={structures} />
-            ) : undefined
-          }
-        />
-      ) : shown.length === 0 ? (
-        <EmptyState
-          icon={
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground [&>svg]:size-7">
-              <Sparkles />
-            </span>
-          }
-          title={t("structures.empty")}
-          description={t("structures.emptyDescription")}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {shown.map((a) => {
-            const enrolled = activeByActivity.get(a.id) ?? 0;
-            const requested = requestedByActivity.get(a.id) ?? 0;
-            const full = a.capacity != null && enrolled >= a.capacity;
-            const slots = sortSchedule(asScheduleSlots(a.schedule));
-            const fee = Number(a.fee_amount);
-            const displayName = locale === "ar" && a.name_ar ? a.name_ar : a.name;
-            const structure = a.structure_id ? structureById.get(a.structure_id) : null;
-
-            return (
-              <Card
-                key={a.id}
-                className={cn(
-                  "shadow-sm transition-shadow duration-200 hover:shadow-md",
-                  !a.active && "opacity-65"
-                )}
-              >
-                <CardContent className="flex flex-1 flex-col gap-3.5">
-                  <div className="flex items-start gap-3">
-                    <CategoryIcon category={a.category} />
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        href={`/activities/${a.id}`}
-                        className="block truncate text-base font-semibold hover:underline"
-                      >
-                        {displayName}
-                      </Link>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
-                        <span>
-                          {/* A category the messages do not carry would throw
-                              MISSING_MESSAGE and take the page with it. The edit
-                              dialog already guards this way; the list did not. */}
-                          {t(`categories.${
-                            (ACTIVITY_CATEGORIES as readonly string[]).includes(a.category)
-                              ? a.category
-                              : "general"
-                          }`)}
-                        </span>
-                        <span aria-hidden>·</span>
-                        {fee > 0 ? (
-                          <>
-                            <span className="font-semibold tabular-nums text-foreground">
-                              {formatDZD(fee, locale)}
-                            </span>
-                            <span aria-hidden>·</span>
-                            <span>{t(`periods.${a.fee_period}`)}</span>
-                          </>
-                        ) : (
-                          <span className="font-medium text-success">{t("list.free")}</span>
-                        )}
-                        {/* Which structure — and "the whole building" is a
-                            statement, not a blank: it says the jardin's
-                            children may enrol too. Both only once there is
-                            more than one structure to tell apart. */}
-                        {manyStructures && (
-                          <>
-                            <span aria-hidden>·</span>
-                            <span>
-                              {structure
-                                ? structureName(structure, locale)
-                                : t("structures.wholeBuilding")}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            {shown.length === 0 ? (
+              <p className="px-5 py-4 text-sm text-muted-foreground">{t("structures.empty")}</p>
+            ) : (
+              <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+                <TableHeader>
+                  <TableRow className="[&>th]:font-semibold">
+                    <TableHead>{t("list.columns.activity")}</TableHead>
+                    <TableHead>{t("dialog.category")}</TableHead>
+                    <TableHead className="text-end">{t("list.columns.fee")}</TableHead>
+                    <TableHead>{t("detail.schedule.title")}</TableHead>
+                    <TableHead>{t("list.enrolled")}</TableHead>
+                    <TableHead>{t("detail.enrollments.status")}</TableHead>
                     {ctx.isAdmin && (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <ActivityDialog
-                          activity={toFormValues(a)}
-                          openingHours={openingHours}
-                          structures={structures}
-                          structureId={a.structure_id}
+                      <TableHead className="w-12">
+                        <span className="sr-only">{t("detail.enrollments.actions")}</span>
+                      </TableHead>
+                    )}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {groups.map((g) => (
+                    <Fragment key={g.structure?.id ?? "building"}>
+                      {/* Group rows inside the one table, never a card per
+                          structure: the structure is said once, as its mark,
+                          and "the whole building" is a statement — it says
+                          the jardin's children may enrol too. */}
+                      {showGroupRows && (
+                        <StructureGroupRow
+                          structure={
+                            g.structure
+                              ? { name: structureName(g.structure, locale), color: g.structure.color ?? "#19819a" }
+                              : null
+                          }
+                          label={t("structures.wholeBuilding")}
+                          count={t("list.count", { count: g.classes.length })}
+                          colSpan={columns}
                         />
-                        <ActivityActiveToggle activityId={a.id} active={a.active} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {slots.length === 0 ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock className="size-3.5" />
-                        {t("list.noSchedule")}
-                      </span>
-                    ) : (
-                      slots.map((s, i) => (
-                        <Badge
-                          key={`${s.day}-${s.time}-${i}`}
-                          variant="outline"
-                          className="bg-muted/50"
-                        >
-                          <span className="font-semibold">{t(`days.${s.day}`)}</span>
-                          <span className="tabular-nums text-muted-foreground">
-                            {s.time.slice(0, 5)}
-                          </span>
-                        </Badge>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3 text-sm">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Users className="size-3.5" />
-                    </span>
-                    <span className="text-muted-foreground">{t("list.enrolled")}</span>
-                    <span
-                      className={cn(
-                        "font-bold tabular-nums",
-                        full ? "text-destructive" : "text-foreground"
                       )}
-                    >
-                      {a.capacity != null ? `${enrolled} / ${a.capacity}` : enrolled}
-                    </span>
-                    {a.capacity == null && (
-                      <span className="text-xs text-muted-foreground">{t("list.noCapacity")}</span>
-                    )}
-                    <div className="ms-auto flex items-center gap-1.5">
-                      {requested > 0 && (
-                        <Badge className="border-transparent bg-gold font-medium text-gold-foreground">
-                          {t("list.requests", { count: requested })}
-                        </Badge>
-                      )}
-                      {!a.active && <Badge variant="outline">{t("list.inactive")}</Badge>}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                      {g.classes.map(activityRow)}
+                    </Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

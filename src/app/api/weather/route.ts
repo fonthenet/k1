@@ -40,8 +40,12 @@ export async function GET() {
   if (!point) return NextResponse.json({ weather: null });
 
   const weather = await getWeather(point);
+  // The place the forecast is for, said on the panel: the crèche's commune
+  // and wilaya as stored in Settings — the pin's coordinates would mean
+  // nothing to a director, the town's name does.
+  const place = { commune: ctx.tenant.commune ?? null, wilaya: ctx.tenant.wilaya ?? null };
   return NextResponse.json(
-    { weather },
+    { weather: weather ? { ...weather, place } : weather },
     {
       // Matches the upstream revalidate. The browser may hold it briefly;
       // a stale current temperature is the one thing users notice.

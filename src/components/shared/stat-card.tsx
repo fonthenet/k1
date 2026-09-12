@@ -8,7 +8,7 @@ const TONE_TILE = {
   success: "bg-success/10 text-success",
   warning: "bg-warning text-warning-foreground",
   danger: "bg-destructive/10 text-destructive",
-  gold: "bg-gold text-gold-foreground",
+  gold: "bg-gold-muted text-gold-ink",
 } as const;
 
 export type StatCardTone = keyof typeof TONE_TILE;
@@ -22,7 +22,7 @@ export function StatCard({
 }: {
   label: string;
   value: React.ReactNode;
-  hint?: string;
+  hint?: React.ReactNode;
   icon?: React.ReactNode;
   tone?: StatCardTone;
 }) {

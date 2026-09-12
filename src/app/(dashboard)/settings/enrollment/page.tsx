@@ -1,13 +1,14 @@
 import { AlertCircle, Building2, LinkIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { StatusPill } from "@/components/shared/status-pill";
+import { StructureMark } from "@/components/shared/structure-mark";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/tenant";
 import { formatDate } from "@/lib/format";
@@ -17,6 +18,9 @@ import {
 } from "@/components/modules/settings/enroll-link-actions";
 import type { EnrollLinkRow } from "@/components/modules/settings/settings-types";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
+
+/** The roster's head style: sentence case, muted, never uppercase. */
+const HEAD = "text-sm font-medium text-muted-foreground";
 
 export default async function EnrollmentLinksPage() {
   const ctx = await requireAdmin();
@@ -43,7 +47,7 @@ export default async function EnrollmentLinksPage() {
   const links = (data ?? []) as EnrollLinkRow[];
   const structures = (structureRows ?? []) as Structure[];
   // Active ones only, the same count the link dialog uses: a retired
-  // structure must not bring the chips back on its own.
+  // structure must not bring the column back on its own.
   const manyStructures = structures.filter((s) => s.active).length > 1;
   const structureById = new Map(structures.map((s) => [s.id, s]));
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
@@ -71,28 +75,21 @@ export default async function EnrollmentLinksPage() {
       ) : (
         <Card className="overflow-hidden border border-border py-0 shadow-sm ring-0">
           <CardContent className="overflow-x-auto p-0">
+            {/* No URL column: nobody reads a forty-character token, and the
+                copy button carries the link. Without it the table fits the
+                card at 1360 instead of clipping its own actions. */}
             <Table>
               <TableHeader>
                 <TableRow>
-                  {[
-                    t("enrollment.columns.label"),
-                    // Which structure the applications land in — only once the
-                    // building runs more than one.
-                    ...(manyStructures ? [t("enrollment.columns.structure")] : []),
-                    t("enrollment.columns.url"),
-                    t("enrollment.columns.uses"),
-                    t("enrollment.columns.expires"),
-                    t("enrollment.columns.active"),
-                  ].map((label, i) => (
-                    <TableHead
-                      key={i}
-                      className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                    >
-                      {label}
-                    </TableHead>
-                  ))}
-                  <TableHead className="text-end text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    {t("enrollment.columns.actions")}
+                  <TableHead className={HEAD}>{t("enrollment.columns.label")}</TableHead>
+                  {manyStructures && (
+                    <TableHead className={HEAD}>{t("enrollment.columns.structure")}</TableHead>
+                  )}
+                  <TableHead className={HEAD}>{t("enrollment.columns.uses")}</TableHead>
+                  <TableHead className={HEAD}>{t("enrollment.columns.expires")}</TableHead>
+                  <TableHead className={HEAD}>{t("enrollment.columns.active")}</TableHead>
+                  <TableHead className="w-28">
+                    <span className="sr-only">{t("enrollment.columns.actions")}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -115,25 +112,26 @@ export default async function EnrollmentLinksPage() {
                       })
                     : t("enrollment.shareText", { name: ctx.tenant.name });
                   return (
-                    <TableRow key={link.id} className="transition-colors hover:bg-muted/40">
-                      <TableCell className="font-semibold text-foreground">{link.label}</TableCell>
+                    <TableRow key={link.id} className="h-14 transition-colors hover:bg-muted/40">
+                      <TableCell>
+                        {/* A label a director typed, in either script, with a
+                            year in it: without its own direction the digits
+                            jump to the front of an Arabic label on a French
+                            page. */}
+                        <span className="block text-start font-semibold text-foreground">
+                          <bdi dir="auto">{link.label}</bdi>
+                        </span>
+                      </TableCell>
                       {manyStructures && (
                         <TableCell>
-                          {/* The structure's own colour as a dot, the same chip
-                              the sidebar switcher and the comms picker use. The
-                              building has no colour of its own — a grey glyph,
-                              not a structure's hue borrowed at random. */}
                           {structure ? (
-                            <span className="inline-flex items-center gap-2 text-foreground">
-                              <span
-                                className="size-2.5 shrink-0 rounded-full ring-1 ring-inset ring-foreground/10"
-                                style={{ backgroundColor: structure.color }}
-                                aria-hidden
-                              />
-                              {structureName(structure, locale)}
-                            </span>
+                            <StructureMark
+                              structure={{ ...structure, name: structureName(structure, locale) }}
+                            />
                           ) : (
-                            <span className="inline-flex items-center gap-2 text-muted-foreground">
+                            // The building has no colour of its own — a grey
+                            // glyph, not a structure's hue borrowed at random.
+                            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                               <Building2 className="size-3.5 shrink-0" aria-hidden />
                               {t("enrollment.wholeBuilding")}
                             </span>
@@ -141,34 +139,21 @@ export default async function EnrollmentLinksPage() {
                         </TableCell>
                       )}
                       <TableCell>
-                        <span
-                          dir="ltr"
-                          className="block max-w-[22rem] truncate rounded-md bg-muted px-2 py-1 font-mono text-xs text-muted-foreground"
-                        >
-                          {url}
-                        </span>
-                      </TableCell>
-                      <TableCell className="tabular-nums">
-                        {link.max_uses !== null ? (
-                          <span className="flex items-center gap-2">
-                            {t("enrollment.usesOf", {
-                              used: link.use_count,
-                              max: link.max_uses,
-                            })}
-                            {full && (
-                              <Badge className="border-transparent bg-gold font-medium text-gold-foreground">
-                                {t("enrollment.full")}
-                              </Badge>
-                            )}
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            {link.use_count}
-                            <span className="text-xs text-muted-foreground">
-                              {t("enrollment.unlimited")}
+                        <span className="inline-flex items-center gap-2">
+                          {link.max_uses !== null ? (
+                            <span dir="ltr" className="tabular-nums">
+                              {link.use_count} / {link.max_uses}
                             </span>
-                          </span>
-                        )}
+                          ) : (
+                            <>
+                              <span className="tabular-nums">{link.use_count}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {t("enrollment.unlimited")}
+                              </span>
+                            </>
+                          )}
+                          {full && <StatusPill tone="attention">{t("enrollment.full")}</StatusPill>}
+                        </span>
                       </TableCell>
                       <TableCell>
                         {!link.expires_at ? (
@@ -176,9 +161,7 @@ export default async function EnrollmentLinksPage() {
                             {t("enrollment.noExpiry")}
                           </span>
                         ) : expired ? (
-                          <Badge className="border-transparent bg-destructive/10 font-medium text-destructive">
-                            {t("enrollment.expired")}
-                          </Badge>
+                          <StatusPill tone="danger">{t("enrollment.expired")}</StatusPill>
                         ) : (
                           <span className="text-muted-foreground">
                             {formatDate(link.expires_at, locale)}
@@ -188,7 +171,7 @@ export default async function EnrollmentLinksPage() {
                       <TableCell>
                         <LinkActiveSwitch id={link.id} active={link.active} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-end">
                         <LinkRowActions
                           id={link.id}
                           label={link.label}

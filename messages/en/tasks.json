@@ -13,7 +13,8 @@
     "mine": "My tasks",
     "all": "Whole team",
     "status": "Status",
-    "board": "Full board"
+    "board": "Full board",
+    "count": "{count, plural, =0 {No tasks} one {# task} other {# tasks}}"
   },
   "status": {
     "todo": "To do",
@@ -81,5 +82,9 @@
   },
   "board": {
     "moreDone": "{count, plural, one {Show 1 more completed task} other {Show # more completed tasks}}"
+  },
+  "columns": {
+    "task": "Task",
+    "linkedTo": "Linked to"
   }
 }

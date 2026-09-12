@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Trash2 } from "lucide-react";
+import { Ellipsis, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -16,18 +16,33 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { deleteClass } from "./actions";
 
-/** Delete a class (refused while children are still assigned to it). */
+/**
+ * Delete a class (refused while children are still assigned to it).
+ *
+ * On the class page the destructive action lives behind a "…" menu, as every
+ * record page keeps it: the identity band carries one primary and an outline
+ * or two, never a red icon beside them.
+ */
 export function DeleteClassButton({
   classId,
   childCount,
   redirectTo,
+  variant = "icon",
 }: {
   classId: string;
   childCount: number;
   /** When set, navigate here after a successful delete (used on the detail page). */
   redirectTo?: string;
+  /** "icon" is the plain trash button; "menu" is the record page's "…" overflow. */
+  variant?: "icon" | "menu";
 }) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -51,11 +66,27 @@ export function DeleteClassButton({
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={tc("actions.delete")}>
-          <Trash2 className="text-destructive" />
-        </Button>
-      </AlertDialogTrigger>
+      {variant === "menu" ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={t("detail.more")}>
+              <Ellipsis />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem variant="destructive" onSelect={() => setOpen(true)}>
+              <Trash2 />
+              {tc("actions.delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <AlertDialogTrigger asChild>
+          <Button variant="ghost" size="icon" aria-label={tc("actions.delete")}>
+            <Trash2 className="text-destructive" />
+          </Button>
+        </AlertDialogTrigger>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{t("delete.title")}</AlertDialogTitle>

@@ -1,6 +1,7 @@
 import { DAY_KEYS, type DayKey } from "@/lib/week";
 // Shared types & constants for the classes + activities module.
 
+import type { ScheduleSlot } from "@/lib/activity-schedule";
 import type { AllergySeverity, FeePeriod } from "@/lib/types";
 
 // ----- Classes -----
@@ -76,10 +77,16 @@ export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number];
 export const SCHEDULE_DAYS = DAY_KEYS;
 export type ScheduleDay = DayKey;
 
-export interface ScheduleSlot {
-  day: string;
-  time: string;
-}
+/**
+ * A slot is `{day, start, end}` and lives in src/lib/activity-schedule.ts,
+ * where the reader that understands every stored spelling lives too. The
+ * old `{day, time}` type and its `asScheduleSlots` filter kept only rows in
+ * that one spelling, which is how four demo activities read as "no
+ * schedule"; `asScheduleSlots` is now the normaliser under its old name so
+ * every importer of this hub gets the full schedule without changing a line.
+ */
+export type { ScheduleSlot } from "@/lib/activity-schedule";
+export { normaliseSchedule as asScheduleSlots, sortSchedule } from "@/lib/activity-schedule";
 
 export const FEE_PERIODS: FeePeriod[] = ["once", "monthly", "quarterly", "yearly", "per_session"];
 
@@ -91,36 +98,18 @@ export interface ActivityFormValues {
   category: string;
   fee_amount: number;
   fee_period: FeePeriod;
+  /** Read through `asScheduleSlots` (normaliseSchedule): canonical whatever the row stores. */
   schedule: ScheduleSlot[];
   capacity: number | null;
   active: boolean;
+  /** The one room the activity meets in (0155), null for "Sans salle". */
+  room_id: string | null;
 }
 
 /** Candidate child for the activity add-enrollment dialog. */
 export interface EnrollCandidate {
   id: string;
   name: string;
-}
-
-/** Coerce the jsonb `schedule` column into a safe list of slots. */
-export function asScheduleSlots(v: unknown): ScheduleSlot[] {
-  if (!Array.isArray(v)) return [];
-  return v.filter(
-    (s): s is ScheduleSlot =>
-      typeof s === "object" && s !== null &&
-      typeof (s as ScheduleSlot).day === "string" &&
-      typeof (s as ScheduleSlot).time === "string"
-  );
-}
-
-/** Sort schedule slots Sunday → Thursday, then by time. */
-export function sortSchedule(slots: ScheduleSlot[]): ScheduleSlot[] {
-  const rank = new Map<string, number>(SCHEDULE_DAYS.map((d, i) => [d, i]));
-  return [...slots].sort((a, b) => {
-    const ra = rank.get(a.day) ?? 99;
-    const rb = rank.get(b.day) ?? 99;
-    return ra !== rb ? ra - rb : a.time.localeCompare(b.time);
-  });
 }
 
 /**
@@ -152,6 +141,20 @@ export interface Room {
   capacity: number | null;
   floor: string | null;
   notes: string | null;
+  active: boolean;
+}
+
+/**
+ * A room as every picker sees it (0155): what RoomSelect needs to name it,
+ * size it and offer it — the floor and the notes stay on the rooms tab. A
+ * retired room (`active` false) is offered only while it is the current
+ * choice, so history keeps its room and nobody books a room that is gone.
+ */
+export interface RoomChoice {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  capacity: number | null;
   active: boolean;
 }
 

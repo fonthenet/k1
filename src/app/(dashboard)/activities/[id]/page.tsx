@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ArrowLeft, Clock, Inbox, Sparkles, Users, Wallet } from "lucide-react";
+import { ArrowLeft, Clock, DoorOpen, Inbox, Sparkles, Users, Wallet } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -13,7 +13,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SectionCard } from "@/components/shared/section-card";
 import { StatCard } from "@/components/shared/stat-card";
+import { StatusPill, type StatusTone } from "@/components/shared/status-pill";
+import { ValueRange } from "@/components/shared/value-range";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { toOpeningHours } from "@/lib/week";
@@ -32,12 +35,13 @@ import { ACTIVITY_CATEGORIES } from "@/components/modules/classes/class-types";
 import {
   algiersToday,
   asScheduleSlots,
-  sortSchedule,
+  roomName,
   structureName,
   type ActivityFormValues,
   type EnrollCandidate,
   type Structure,
 } from "@/components/modules/classes/class-types";
+import { readRoomChoices } from "@/components/modules/rooms/occupancy-data";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -85,16 +89,20 @@ function toFormValues(a: Activity): ActivityFormValues {
     schedule: asScheduleSlots(a.schedule),
     capacity: a.capacity,
     active: a.active,
+    room_id: a.room_id ?? null,
   };
 }
 
-const STATUS_VARIANT: Record<EnrollmentStatus, "default" | "secondary" | "destructive" | "outline"> =
-  {
-    requested: "secondary",
-    active: "default",
-    ended: "outline",
-    cancelled: "destructive",
-  };
+// By meaning, not by module: an active enrolment is the expected state and
+// carries no pill — six solid "Inscrit" badges said nothing — a request waits
+// on a person (gold), an ended one is history (muted), a cancelled one was
+// refused (red).
+const STATUS_TONE: Record<EnrollmentStatus, StatusTone | null> = {
+  requested: "attention",
+  active: null,
+  ended: "muted",
+  cancelled: "danger",
+};
 
 export default async function ActivityDetailPage({
   params,
@@ -107,6 +115,7 @@ export default async function ActivityDetailPage({
     (ctx.tenant as { opening_hours?: unknown }).opening_hours
   );
   const t = await getTranslations("activities");
+  const tc = await getTranslations("common");
   const locale = await getLocale();
   const supabase = await createClient();
 
@@ -169,6 +178,7 @@ export default async function ActivityDetailPage({
     { data: candidateRows },
     { data: paidRows },
     { data: structureRows },
+    { rooms, homeClasses },
   ] = await Promise.all([
     supabase
       .from("kg_activity_enrollments")
@@ -201,9 +211,13 @@ export default async function ActivityDetailPage({
       .eq("tenant_id", ctx.tenant.id)
       .order("sort_order")
       .order("name"),
+    // The building's rooms, to name this activity's own and to fill the
+    // edit dialog's picker; the dialog reads the occupancy itself on open.
+    readRoomChoices(supabase, ctx, locale),
   ]);
 
   const structures = (structureRows ?? []) as Structure[];
+  const room = activity.room_id ? rooms.find((r) => r.id === activity.room_id) ?? null : null;
   const structure = activity.structure_id
     ? structures.find((s) => s.id === activity.structure_id) ?? null
     : null;
@@ -228,7 +242,8 @@ export default async function ActivityDetailPage({
     ...new Set(((paidRows ?? []) as { child_id: string }[]).map((r) => r.child_id)),
   ];
 
-  const slots = sortSchedule(asScheduleSlots(activity.schedule));
+  // Sorted by the normaliser; both stored spellings read whole before 0156.
+  const slots = asScheduleSlots(activity.schedule);
   const fee = Number(activity.fee_amount);
   const displayName = locale === "ar" && activity.name_ar ? activity.name_ar : activity.name;
   const full = activity.capacity != null && activeCount >= activity.capacity;
@@ -265,7 +280,7 @@ export default async function ActivityDetailPage({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-2xl font-bold tracking-tight">{displayName}</h2>
-              {!activity.active && <Badge variant="outline">{t("list.inactive")}</Badge>}
+              {!activity.active && <StatusPill tone="muted">{t("list.inactive")}</StatusPill>}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{headerMeta}</p>
             {activity.description && (
@@ -290,6 +305,9 @@ export default async function ActivityDetailPage({
                 openingHours={openingHours}
                 structures={structures}
                 structureId={activity.structure_id}
+                rooms={rooms}
+                homeClasses={homeClasses}
+                enrolled={activeCount}
               />
               <ActivityActiveToggle activityId={activity.id} active={activity.active} />
             </>
@@ -310,11 +328,35 @@ export default async function ActivityDetailPage({
               {t("detail.schedule.title")}
             </span>
             {slots.map((s, i) => (
-              <Badge key={`${s.day}-${s.time}-${i}`} variant="outline" className="bg-muted/50">
+              <Badge key={`${s.day}-${s.start}-${i}`} variant="outline" className="bg-muted/50">
                 <span className="font-semibold">{t(`daysFull.${s.day}`)}</span>
-                <span className="tabular-nums text-muted-foreground">{s.time.slice(0, 5)}</span>
+                <ValueRange
+                  from={s.start}
+                  to={s.end}
+                  separator="–"
+                  className="tabular-nums text-muted-foreground"
+                />
               </Badge>
             ))}
+          </>
+        )}
+        {/* The room is one fact for the whole activity, said once beside the
+            slots. The stored name already says "Salle 2", so the visible
+            label is the door icon alone — "Salle Salle 2" is the one thing
+            this line must never read — and the fact's name stays for a
+            screen reader. */}
+        {room && (
+          <>
+            <span aria-hidden className="text-muted-foreground">
+              ·
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-sm">
+              <DoorOpen className="size-4 text-muted-foreground" aria-hidden />
+              <span className="sr-only">{tc("rooms.room")}</span>
+              <bdi dir="auto" className="font-medium">
+                {roomName(room, locale)}
+              </bdi>
+            </span>
           </>
         )}
       </div>
@@ -355,45 +397,39 @@ export default async function ActivityDetailPage({
         />
       </div>
 
+      {/* The one section card, gold tile because it waits on a person; the
+          requests are a divided list inside it, not a tinted frame each —
+          the stat tile above already said "1" in gold, and a card in a
+          gold ring around gold boxes said the same fact three more times. */}
       {requests.length > 0 && (
-        <Card className="mb-4 shadow-sm ring-gold/40">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2.5 text-base">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-gold text-gold-foreground">
-                <Inbox className="size-4" />
-              </span>
-              {t("detail.pending.title")}
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">{t("detail.pending.description")}</p>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {requests.map((e) => {
-              const child = e.kg_children as ChildJoin;
-              const cls = className(child);
-              return (
-                <div
-                  key={e.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold/40 bg-gold/10 p-3.5"
-                >
-                  <div className="min-w-0">
-                    <Link
-                      href={`/children/${child.id}`}
-                      className="block truncate text-sm font-semibold hover:underline"
-                    >
-                      {childDisplayName(child, locale)}
-                    </Link>
-                    <div className="text-xs text-muted-foreground">
-                      {cls ?? t("detail.enrollments.noClass")}
-                      {" · "}
-                      {t("detail.pending.requestedOn")} {formatDate(e.created_at, locale)}
-                    </div>
+        <SectionCard
+          icon={Inbox}
+          tone={1}
+          title={t("detail.pending.title")}
+          hint={t("detail.pending.description")}
+          className="mb-4"
+          contentClassName="gap-0 divide-y divide-border"
+        >
+          {requests.map((e) => {
+            const child = e.kg_children as ChildJoin;
+            const cls = className(child);
+            return (
+              <div key={e.id} className="flex min-h-14 flex-wrap items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <Link href={`/children/${child.id}`} className="block truncate text-sm font-semibold">
+                    <bdi dir="auto">{childDisplayName(child, locale)}</bdi>
+                  </Link>
+                  <div className="text-xs text-muted-foreground">
+                    {cls ?? t("detail.enrollments.noClass")}
+                    {" · "}
+                    {t("detail.pending.requestedOn")} {formatDate(e.created_at, locale)}
                   </div>
-                  {canEnroll && <RequestActions activityId={activity.id} enrollmentId={e.id} />}
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+                {canEnroll && <RequestActions activityId={activity.id} enrollmentId={e.id} />}
+              </div>
+            );
+          })}
+        </SectionCard>
       )}
 
       {roster.length === 0 ? (
@@ -437,6 +473,7 @@ export default async function ActivityDetailPage({
                   const child = e.kg_children as ChildJoin;
                   const cls = className(child);
                   const name = childDisplayName(child, locale);
+                  const tone = STATUS_TONE[e.status];
                   return (
                     <TableRow
                       key={e.id}
@@ -457,7 +494,7 @@ export default async function ActivityDetailPage({
                         {e.start_date ? formatDate(e.start_date, locale) : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={STATUS_VARIANT[e.status]}>{t(`status.${e.status}`)}</Badge>
+                        {tone && <StatusPill tone={tone}>{t(`status.${e.status}`)}</StatusPill>}
                       </TableCell>
                       <TableCell className="text-end">
                         {canEnroll && e.status === "active" && (

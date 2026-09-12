@@ -1,96 +1,44 @@
 "use client";
 
-import { useTransition } from "react";
-import { Pencil, Trash2 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
-import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Pencil } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { formatDZD } from "@/lib/format";
-import { deleteTransaction } from "./actions";
 import { TxnDialog } from "./txn-dialog";
 import type { Structure } from "@/components/modules/classes/class-types";
-import type { LedgerRow } from "./types";
+import type { CategoryOption, LedgerRow } from "./types";
 
-/** Edit + delete controls for an editable ledger row (admin, current month). */
+/**
+ * The one control on an editable ledger row: a ghost pencil that opens the
+ * entry for editing. Deleting is inside that dialog's footer, so the row
+ * itself carries nothing red.
+ */
 export function TxnRowActions({
   txn,
   categories,
   structures = [],
 }: {
   txn: LedgerRow;
-  categories: { id: string; name: string; color: string }[];
+  categories: { income: CategoryOption[]; expense: CategoryOption[] };
   structures?: Structure[];
 }) {
-  const t = useTranslations("accounting");
   const tc = useTranslations("common");
-  const locale = useLocale();
-  const [pending, startTransition] = useTransition();
-
-  function remove() {
-    startTransition(async () => {
-      const res = await deleteTransaction(txn.id);
-      if (res.ok) toast.success(t("txn.deleted"));
-      else toast.error(t(`errors.${res.error}`));
-    });
-  }
 
   return (
-    <div className="flex items-center justify-end gap-1">
-      <TxnDialog
-        kind={txn.kind}
-        categories={categories}
-        structures={structures}
-        txn={txn}
-        trigger={
-          <Button variant="ghost" size="icon-sm" aria-label={tc("actions.edit")}>
-            <Pencil />
-          </Button>
-        }
-      />
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-muted-foreground hover:text-destructive"
-            aria-label={tc("actions.delete")}
-          >
-            <Trash2 />
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("txn.deleteTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("txn.deleteDesc", {
-                description: txn.description,
-                amount: formatDZD(txn.amount, locale),
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={pending}
-              onClick={remove}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {tc("actions.delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    <TxnDialog
+      kind={txn.kind}
+      categories={categories}
+      structures={structures}
+      txn={txn}
+      trigger={
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={tc("actions.edit")}
+          title={tc("actions.edit")}
+        >
+          <Pencil />
+        </Button>
+      }
+    />
   );
 }

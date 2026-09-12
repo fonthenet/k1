@@ -73,7 +73,7 @@ export function AssignChildrenDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button>
           <UserPlus data-icon="inline-start" />
           {t("detail.children.assign")}
         </Button>

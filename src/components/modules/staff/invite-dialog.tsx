@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Check, Copy, KeyRound, UserPlus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
-import { centerTypeOption } from "@/components/modules/settings/center-types";
+import { StructureTile } from "@/components/shared/structure-mark";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,7 @@ export function InviteDialog({ structures = [] }: { structures?: Structure[] }) 
   // path costs nothing extra.
   const [members, setMembers] = useState<UnlinkedMember[] | null>(null);
   const [attachTo, setAttachTo] = useState<string>(NEW_MEMBER);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   useEffect(() => {
     if (!open || mode !== "invite" || members !== null) return;
@@ -97,6 +98,8 @@ export function InviteDialog({ structures = [] }: { structures?: Structure[] }) 
       setIssued(null);
       setMembers(null);
       setAttachTo(NEW_MEMBER);
+      setAttachOpen(false);
+      setStructureIds(new Set());
     }
   }
 
@@ -166,26 +169,31 @@ export function InviteDialog({ structures = [] }: { structures?: Structure[] }) 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("invite.addTitle")}</DialogTitle>
-          <DialogDescription>
-            {issued
-              ? t("local.handOver", { name: fullName })
-              : link
-                ? boundTo
+          {(link || issued) && (
+            <DialogDescription>
+              {issued
+                ? t("local.handOver", { name: fullName })
+                : boundTo
                   ? t("invite.linkHelpBound", { identity: boundTo })
-                  : t("invite.linkHelpOpen", { role: roleLabel })
-                : mode === "local"
-                  ? t("local.description")
-                  : t("invite.description")}
-          </DialogDescription>
+                  : t("invite.linkHelpOpen", { role: roleLabel })}
+            </DialogDescription>
+          )}
         </DialogHeader>
 
+        {/* The mode picker, with its one-line explanation directly under it —
+            one explanation, in one place, next to the choice it explains. */}
         {!link && !issued && (
-          <Tabs value={mode} onValueChange={(v) => setMode(v as "invite" | "local")}>
-            <TabsList className="w-full">
-              <TabsTrigger value="local" className="flex-1">{t("invite.modeLocal")}</TabsTrigger>
-              <TabsTrigger value="invite" className="flex-1">{t("invite.modeInvite")}</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="grid gap-2">
+            <Tabs value={mode} onValueChange={(v) => setMode(v as "invite" | "local")}>
+              <TabsList className="w-full">
+                <TabsTrigger value="local" className="flex-1">{t("invite.modeLocal")}</TabsTrigger>
+                <TabsTrigger value="invite" className="flex-1">{t("invite.modeInvite")}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <DialogDescription className="text-xs">
+              {mode === "local" ? t("local.description") : t("invite.description")}
+            </DialogDescription>
+          </div>
         )}
 
         {issued ? (
@@ -231,34 +239,6 @@ export function InviteDialog({ structures = [] }: { structures?: Structure[] }) 
               </div>
             ) : (
               <>
-                {members && members.length > 0 && (
-                  <div className="grid gap-2">
-                    <Label>{t("invite.attachTo")}</Label>
-                    <Select value={attachTo} onValueChange={setAttachTo}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NEW_MEMBER}>{t("invite.attachNone")}</SelectItem>
-                        {members.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            <div className="flex flex-col items-start gap-0.5 text-start">
-                              <span>{m.fullName}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {m.jobTitle ?? t(`roles.${m.role}`)}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {attached && (
-                      <p className="text-xs leading-relaxed text-muted-foreground">
-                        {t("invite.attachHint", { name: attached.fullName })}
-                      </p>
-                    )}
-                  </div>
-                )}
                 <div className="grid gap-2">
                   <Label htmlFor="invite-identifier">
                     {t("invite.identifier")}{" "}
@@ -286,44 +266,48 @@ export function InviteDialog({ structures = [] }: { structures?: Structure[] }) 
                 hold, so role and title are read from their record instead. */}
             {!attached && (
               <>
-                <div className="grid gap-2">
-                  <Label>{t("invite.role")}</Label>
-                  <Select value={role} onValueChange={(v) => setRole(v as StaffRole)}>
-                    <SelectTrigger className="w-full">
-                      {/* Only the role name collapses into the trigger — the
-                          descriptions live in the list, where they help you choose. */}
-                      <SelectValue>{t(`roles.${role}`)}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INVITABLE_ROLES.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          <div className="flex flex-col items-start gap-0.5 text-start">
-                            <span>{t(`roles.${r}`)}</span>
-                            <span className="text-xs text-muted-foreground">{t(`roleDescriptions.${r}`)}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-2">
+                    <Label>{t("invite.role")}</Label>
+                    <Select value={role} onValueChange={(v) => setRole(v as StaffRole)}>
+                      <SelectTrigger className="w-full">
+                        {/* Only the role name collapses into the trigger — the
+                            descriptions live in the list, where they help you choose. */}
+                        <SelectValue>{t(`roles.${role}`)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INVITABLE_ROLES.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            <div className="flex flex-col items-start gap-0.5 text-start">
+                              <span>{t(`roles.${r}`)}</span>
+                              <span className="text-xs text-muted-foreground">{t(`roleDescriptions.${r}`)}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="invite-job">
+                      {t("invite.jobTitle")}{" "}
+                      <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
+                    </Label>
+                    <Input
+                      id="invite-job"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      placeholder={t("invite.jobTitlePlaceholder")}
+                    />
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="invite-job">
-                    {t("invite.jobTitle")}{" "}
-                    <span className="font-normal text-muted-foreground">({tc("labels.optional")})</span>
-                  </Label>
-                  <Input
-                    id="invite-job"
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    placeholder={t("invite.jobTitlePlaceholder")}
-                  />
-                </div>
+                {/* The settings structure tiles as toggles: a ticked one gets
+                    the primary border and its glyph becomes a check. Nothing
+                    ticked means the whole building, which the label says. */}
                 {placeable.length > 1 && (
                   <div className="grid gap-2">
                     <Label>{t("invite.structures")}</Label>
                     <div className="flex flex-wrap gap-2">
                       {placeable.map((s) => {
-                        const { Icon } = centerTypeOption(s.center_type);
                         const on = structureIds.has(s.id);
                         return (
                           <button
@@ -332,25 +316,77 @@ export function InviteDialog({ structures = [] }: { structures?: Structure[] }) 
                             aria-pressed={on}
                             onClick={() => toggleStructure(s.id)}
                             className={cn(
-                              "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm transition",
-                              on ? "border-transparent" : "border-border hover:bg-muted/50"
+                              "relative rounded-xl border px-2.5 py-1.5 text-start transition-colors",
+                              on ? "border-primary ring-1 ring-primary" : "border-border hover:bg-muted/50"
                             )}
-                            style={
-                              on
-                                ? { backgroundColor: `${s.color}14`, boxShadow: `inset 0 0 0 1.5px ${s.color}` }
-                                : undefined
-                            }
                           >
-                            <Icon className="size-3.5" style={{ color: s.color }} aria-hidden />
-                            {structureName(s, locale)}
+                            <StructureTile
+                              size="sm"
+                              structure={{
+                                name: structureName(s, locale),
+                                color: s.color,
+                                center_type: s.center_type,
+                              }}
+                            />
+                            {on && (
+                              <span className="absolute inset-y-0 start-2.5 flex items-center bg-card" aria-hidden>
+                                <span
+                                  className="flex size-6 items-center justify-center rounded-md"
+                                  style={{ backgroundColor: `${s.color}1f`, color: s.color }}
+                                >
+                                  <Check className="size-3.5" />
+                                </span>
+                              </span>
+                            )}
                           </button>
                         );
                       })}
                     </div>
-                    <p className="text-xs text-pretty text-muted-foreground">{t("invite.structuresHint")}</p>
                   </div>
                 )}
               </>
+            )}
+            {/* "Already on the team?" — the rare case, folded away under the
+                form so the common hire is one short screen. */}
+            {mode === "invite" && members && members.length > 0 && (
+              <div className="grid gap-2">
+                {attachOpen || attached ? (
+                  <>
+                    <Label>{t("invite.attachTo")}</Label>
+                    <Select value={attachTo} onValueChange={setAttachTo}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NEW_MEMBER}>{t("invite.attachNone")}</SelectItem>
+                        {members.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            <div className="flex flex-col items-start gap-0.5 text-start">
+                              <span>{m.fullName}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {m.jobTitle ?? t(`roles.${m.role}`)}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {attached && (
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {t("invite.attachHint", { name: attached.fullName })}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAttachOpen(true)}
+                    className="justify-self-start text-sm text-primary"
+                  >
+                    {t("invite.attachToggle")}
+                  </button>
+                )}
+              </div>
             )}
             {mode === "local" && (
               <div className="grid grid-cols-2 gap-3">
@@ -376,7 +412,7 @@ export function InviteDialog({ structures = [] }: { structures?: Structure[] }) 
                     min={0}
                     step={payType === "monthly" ? 1000 : 50}
                     dir="ltr"
-                    className="tabular-nums"
+                    className="text-end tabular-nums"
                     value={rate}
                     onChange={(e) => setRate(e.target.value)}
                   />

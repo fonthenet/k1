@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Pencil, Plus } from "lucide-react";
@@ -25,28 +25,59 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { monthsInWords } from "@/lib/format";
+import { algiersInstant, algiersToday } from "@/lib/algiers";
 import { CLASS_ICONS, CLASS_ICON_KEYS, DEFAULT_CLASS_ICON } from "./class-icons";
 import { cn } from "@/lib/utils";
 import { saveClass } from "./actions";
+import { addDays } from "@/components/modules/learning/domain";
+import { roomOccupancy } from "@/components/modules/rooms/occupancy";
+import { RoomSelect, RoomStatusLine } from "@/components/modules/rooms/room-select";
+import {
+  roomStates,
+  type BusySlot,
+  type HomeClass,
+} from "@/components/modules/rooms/room-state";
 import {
   ageBandLabel,
   CLASS_COLORS,
-  roomName,
   structureName,
   type ClassFormValues,
-  type Room,
+  type RoomChoice,
   type Structure,
 } from "./class-types";
 
-/** Create/edit dialog for a class. Pass `klass` to edit. */
+/**
+ * How far ahead the standing arrangement is judged: twelve weeks of this
+ * class's cours against everything else booked in the chosen room.
+ */
+const HORIZON_DAYS = 12 * 7;
+
+/**
+ * A stand-in for the one argument of `common.rooms.sharedWith`, so the
+ * translated sentence can be cut around it and the class names set inside
+ * it as their own `<bdi>` runs. A private-use character: never in a message.
+ */
+const NAMES_SLOT = "\uE000";
+
+/**
+ * Create/edit dialog for a class. Pass `klass` to edit.
+ *
+ * The Salle field is where the standing arrangement is judged, once (D6):
+ * the option tail names the classes that already live in a room, and under
+ * the field one muted sentence says so again for the chosen room, then ONE
+ * gold line — how many of this class's cours over the next twelve weeks
+ * would fall on other bookings there (co-tenants' inherited cours included;
+ * this is the one place they count), or, failing that, a room too small for
+ * the class. Never a clock in this dialog: a class has no window.
+ */
 export function ClassDialog({
   klass,
   rooms = [],
   structures = [],
 }: {
   klass?: ClassFormValues;
-  /** The crèche's configured rooms (0123). Empty until one is created. */
-  rooms?: Room[];
+  /** Every room of the building with the classes that live in it. Empty until one is created. */
+  rooms?: (RoomChoice & { classes: HomeClass[] })[];
   /** The structures of the establishment (0125). One for most crèches. */
   structures?: Structure[];
 }) {
@@ -56,6 +87,7 @@ export function ClassDialog({
   const tSettings = useTranslations("settings");
   const tc = useTranslations("common");
   const locale = useLocale();
+  const roomLineId = useId();
 
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -74,6 +106,32 @@ export function ClassDialog({
     structureId: klass?.structure_id ?? (structures.length === 1 ? structures[0].id : ""),
   });
   const [pending, startTransition] = useTransition();
+
+  // Every booking of the building over the horizon, read once when an
+  // existing class's dialog opens: the count under Salle is client-side, so
+  // switching rooms in the list re-counts without a round trip. A new class
+  // has no cours yet and reads nothing. A failed read leaves the count at
+  // zero rather than blocking the form — the line is a courtesy.
+  const [busy, setBusy] = useState<BusySlot[]>([]);
+  useEffect(() => {
+    if (!open || !klass) return;
+    let live = true;
+    const today = algiersToday();
+    void roomOccupancy({
+      from: algiersInstant(today, "00:00"),
+      to: algiersInstant(addDays(today, HORIZON_DAYS), "00:00"),
+    }).then(
+      (r) => {
+        if (live) setBusy(r.busy);
+      },
+      () => {
+        if (live) setBusy([]);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [open, klass]);
 
   const toInt = (v: string): number | null => {
     if (v.trim() === "") return null;
@@ -151,20 +209,61 @@ export function ClassDialog({
   /** Says where the number came from, so it never looks like it changed itself. */
   const capacityFromRoom =
     !!selectedRoom && selectedRoom.capacity != null && capacity === selectedRoom.capacity;
+
+  // The shared picker rule with no window: in-service rooms plus the one
+  // this class is already in (retiring a room must not silently blank the
+  // classes sitting in it), each with its size against the class and the
+  // OTHER classes that live there — this class never reads as its own
+  // co-tenant. Nothing is an occupant here: the count below is this
+  // dialog's own way of looking at the calendar.
+  const homeClasses = Object.fromEntries(rooms.map((r) => [r.id, r.classes]));
+  const states = roomStates(rooms, [], null, {
+    groupSize: capacity,
+    explicit: false,
+    homeClasses,
+    excludeClassId: klass?.id,
+    currentRoomId: form.roomId,
+  });
+  const chosenState = form.roomId ? states.find((s) => s.room.id === form.roomId) : undefined;
+  const sharedWith = chosenState?.homeClasses ?? [];
+
   /**
-   * In-service rooms, plus the one this class is already in.
-   *
-   * Retiring a room must not silently blank the classes sitting in it: without
-   * the second half, opening such a class would show an empty Salle and saving
-   * would clear it — the crèche loses the record of where the class actually
-   * meets as a side effect of taking a room off the menu.
+   * How many of this class's cours over the horizon would fall on another
+   * booking in the chosen room — any other booking, a co-tenant's inherited
+   * cours included, because two classes living in one hall and teaching at
+   * 08:30 is exactly what this dialog is for judging. The editors never say
+   * it again on each cours (D5); it is said here, once, as a count. Only
+   * the cours that would actually be held there count: the ones that follow
+   * the class (inherited) and the ones already pinned to that room, which
+   * the move unpins (D2) — a cours held in the gym stays in the gym.
    */
-  const offeredRooms = rooms.filter(
-    (r) => r.active || r.id === form.roomId,
-  );
-  const roomTooSmall =
-    !!selectedRoom && selectedRoom.capacity != null && capacity !== null &&
-    capacity > selectedRoom.capacity;
+  const ownLessons = klass
+    ? busy.filter(
+        (b) =>
+          b.kind === "lesson" &&
+          b.classId === klass.id &&
+          (!b.explicit || b.roomId === form.roomId),
+      )
+    : [];
+  const roomClashes = form.roomId
+    ? ownLessons.filter((lesson) =>
+        busy.some(
+          (other) =>
+            other.roomId === form.roomId &&
+            !(other.kind === "lesson" && other.classId === klass?.id) &&
+            other.date === lesson.date &&
+            lesson.start < other.end &&
+            lesson.end > other.start,
+        ),
+      ).length
+    : 0;
+
+  // The translated sentence cut around its one argument, so each class name
+  // sits in the sentence as its own bidi run (an Arabic name in a French
+  // sentence, two French names in an Arabic one) instead of being glued
+  // into a string the paragraph's direction would reorder.
+  const [sharedBefore, sharedAfter] = tc("rooms.sharedWith", { classes: NAMES_SLOT }).split(NAMES_SLOT);
+  const listSeparator = locale === "ar" ? "، " : ", ";
 
   function submit() {
     if (!canSubmit || capacity === null) return;
@@ -314,50 +413,57 @@ export function ClassDialog({
                 </Select>
               </div>
             )}
-            <div className="grid gap-1.5">
+            {/* The cell spans the row while the select keeps a half-width
+                column: the two sentences under it run the dialog's full
+                width, so a count of clashes is one line, not a paragraph
+                folded three times into half a row beside empty space. */}
+            <div className="grid gap-1.5 sm:col-span-2">
               <Label htmlFor="class-room">{t("dialog.room")}</Label>
               {/* Chosen, not typed. The free-text box produced "القاعة 1" and
                   "قاعة 1" as two different rooms and gave the door nowhere to
                   carry its own capacity. A crèche with no rooms yet is told
-                  where to make them rather than shown an empty menu. */}
-              {offeredRooms.length === 0 ? (
+                  where to make them rather than shown an empty menu. The
+                  picker is the product's one room control; here its tail is
+                  who lives in the room, since a class has no hour to check. */}
+              {states.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-border px-2.5 py-2 text-xs text-muted-foreground">
                   {t("dialog.roomsEmpty")}
                 </p>
               ) : (
-                <Select
-                  value={form.roomId || "none"}
-                  onValueChange={(v) => pickRoom(v === "none" ? "" : v)}
-                >
-                  <SelectTrigger id="class-room" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t("dialog.noRoom")}</SelectItem>
-                    {offeredRooms.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        {roomName(r, locale)}
-                        {r.capacity != null && (
-                          <span className="text-muted-foreground tabular-nums" dir="ltr">
-                            {" "}
-                            ({r.capacity})
-                          </span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <RoomSelect
+                  id="class-room"
+                  value={form.roomId}
+                  onChange={pickRoom}
+                  states={states}
+                  emptyOption={{ label: tc("rooms.noRoom") }}
+                  homeTail
+                  describedBy={roomLineId}
+                  className="sm:max-w-[calc(50%-0.375rem)]"
+                />
               )}
-              {/* A class sized above the room it sits in is worth saying out
-                  loud — and only saying, because the crèche knows the building
-                  and we know a number somebody typed. */}
-              {roomTooSmall && (
-                <p className="text-xs text-gold-ink">
-                  {t("dialog.roomTooSmall", {
-                    room: String(selectedRoom?.capacity ?? ""),
-                    capacity: String(capacity ?? ""),
-                  })}
+              {/* Under the field, in this order and each one sentence: who
+                  else lives here, muted; then ONE gold line — the cours that
+                  would collide over the next twelve weeks, or else a room too
+                  small for the class. Both only said, never refused: the
+                  director knows her building, we know numbers people typed. */}
+              {sharedWith.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {sharedBefore}
+                  {sharedWith.map((c, i) => (
+                    <Fragment key={c.id}>
+                      {i > 0 && listSeparator}
+                      <bdi dir="auto">{c.name}</bdi>
+                    </Fragment>
+                  ))}
+                  {sharedAfter}
                 </p>
+              )}
+              {roomClashes > 0 ? (
+                <p id={roomLineId} role="status" className="text-xs text-gold-ink">
+                  {t("dialog.roomClashes", { count: roomClashes })}
+                </p>
+              ) : (
+                <RoomStatusLine id={roomLineId} state={chosenState} window={null} />
               )}
             </div>
           </div>

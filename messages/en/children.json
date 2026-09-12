@@ -21,7 +21,8 @@
       "allergies": "Allergies",
       "enrolled": "Enrolled",
       "tag": "Badge code",
-      "status": "Status"
+      "status": "Status",
+      "badge": "Badge"
     },
     "former": "Former children",
     "formerHint": "Withdrawn or archived. Their records are kept.",
@@ -36,7 +37,15 @@
     "bulkMove": "Move to…",
     "bulkClear": "Clear selection",
     "bulkSelectAll": "Select every child shown",
-    "bulkSelectOne": "Select {name}"
+    "bulkSelectOne": "Select {name}",
+    "pupils": {
+      "title": "Pupils",
+      "description": "Pupil records, families and health information",
+      "count": "{count, plural, =0 {No pupils} one {# pupil} other {# pupils}}",
+      "searchPlaceholder": "Search for a pupil (Latin or Arabic)…",
+      "addChild": "Add a pupil",
+      "column": "Pupil"
+    }
   },
   "status": {
     "pending": "Pending",
@@ -78,7 +87,8 @@
     "structureFollowsClass": "Follows the class.",
     "structureNone": "No structure",
     "structureMoveHint": "To change structure, use \"{button}\" on the child's file: the tariff and the history follow.",
-    "structureUnfiledHint": "This child is not filed under any structure. Choose one here — this is not a move, nothing is closed or announced."
+    "structureUnfiledHint": "This child is not filed under any structure. Choose one here — this is not a move, nothing is closed or announced.",
+    "noClassIn": "No class — {structure}"
   },
   "addDialog": {
     "title": "Add a child",
@@ -126,10 +136,11 @@
       "tagCode": "Badge code",
       "notes": "Notes",
       "none": "—"
-    }
+    },
+    "more": "More actions"
   },
   "guardians": {
-    "title": "Guardians / parents",
+    "title": "Parents and guardians",
     "empty": "No guardian linked to this record",
     "add": "Add a guardian",
     "addTitle": "Add a guardian",
@@ -155,11 +166,11 @@
     "address": "Address",
     "workplace": "Workplace",
     "canPickup": "Authorized to collect the child",
-    "isFinancial": "Financially responsible",
+    "isFinancial": "Responsible for payments",
     "isPrimary": "Primary contact",
     "primaryBadge": "Primary",
     "canPickupBadge": "Pickup",
-    "financialBadge": "Financial",
+    "financialBadge": "Pays the fees",
     "unlink": "Remove",
     "unlinkTitle": "Remove this guardian?",
     "unlinkDescription": "The link to this child will be removed. The guardian's own record is kept.",
@@ -246,7 +257,7 @@
     "notLinkedDescription": "Check the child's record — this guardian is not listed among their guardians."
   },
   "pickups": {
-    "title": "Authorized pickup contacts",
+    "title": "Authorised people",
     "description": "Other people allowed to collect the child, with ID details.",
     "empty": "No additional pickup contacts",
     "add": "Add a person",
@@ -447,7 +458,8 @@
       "continues": "Continues",
       "newPlan": "New plan",
       "noNewPlan": "No new plan",
-      "newPlanHint": "Optional. The chosen plan starts on the effective date; building-wide plans carry on by themselves."
+      "newPlanHint": "Optional. The chosen plan starts on the effective date; building-wide plans carry on by themselves.",
+      "continuesBuilding": "Continues (whole-establishment plan)"
     },
     "reason": "Reason",
     "reasonHint": "Optional — shown in the child's history",
@@ -469,7 +481,12 @@
       "noChange": "The child is already there.",
       "feePlanNotInStructure": "This plan is not offered in the chosen structure.",
       "error": "The move could not be saved. Please try again."
-    }
+    },
+    "effectiveFrom": "From",
+    "alreadyHere": "{count, plural, one {# already here} other {# already here}}",
+    "moreNames": "{count, plural, one {and # more} other {and # more}}",
+    "toStructure": "Move to {structure}",
+    "toStructureBulk": "Move {count, plural, one {# child} other {# children}} to {structure}"
   },
   "transfers": {
     "title": "History",
@@ -477,6 +494,7 @@
     "nowhere": "No structure",
     "parentRequest": "Parents' request",
     "by": "By {name}",
-    "byUnknown": "By a deleted account"
+    "byUnknown": "By a deleted account",
+    "byLabel": "By"
   }
 }

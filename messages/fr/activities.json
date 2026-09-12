@@ -11,8 +11,13 @@
     "noCapacity": "Illimitée",
     "noSchedule": "Planning non défini",
     "free": "Gratuite",
-    "requests": "{count} demandes en attente",
-    "view": "Voir l'activité"
+    "requests": "{count, plural, one {# demande en attente} other {# demandes en attente}}",
+    "view": "Voir l'activité",
+    "count": "{count, plural, =0 {Aucune activité} one {# activité} other {# activités}}",
+    "columns": {
+      "activity": "Activité",
+      "fee": "Tarif"
+    }
   },
   "categories": {
     "religion": "Éducation islamique",
@@ -33,7 +38,9 @@
     "mon": "Lun",
     "tue": "Mar",
     "wed": "Mer",
-    "thu": "Jeu"
+    "thu": "Jeu",
+    "fri": "Ven",
+    "sat": "Sam"
   },
   "daysFull": {
     "sun": "Dimanche",
@@ -55,7 +62,7 @@
   "dialog": {
     "newTitle": "Nouvelle activité",
     "editTitle": "Modifier l'activité",
-    "description": "Définissez le nom, la catégorie, le tarif et le planning hebdomadaire (dimanche à jeudi).",
+    "description": "Définissez le nom, la catégorie, le tarif, la salle et les créneaux de la semaine.",
     "name": "Nom",
     "nameAr": "Nom en arabe",
     "category": "Catégorie",
@@ -65,10 +72,13 @@
     "period": "Périodicité",
     "activityDescription": "Description",
     "schedule": "Planning hebdomadaire",
-    "addSlot": "Ajouter une séance",
+    "addSlot": "Ajouter un créneau",
     "day": "Jour",
     "time": "Heure",
-    "active": "Activité active"
+    "active": "Activité active",
+    "start": "Début",
+    "end": "Fin",
+    "slotOrder": "L’heure de fin doit être après l’heure de début."
   },
   "addDialog": {
     "title": "Inscrire un enfant à l'activité",
@@ -140,7 +150,9 @@
     "ended": "Inscription terminée",
     "approved": "Demande acceptée",
     "declined": "Demande refusée",
-    "endKeptCharge": "Inscription terminée. Le montant du mois reste — la facture est déjà partiellement payée."
+    "endKeptCharge": "Inscription terminée. Le montant du mois reste — la facture est déjà partiellement payée.",
+    "conflictRoom": "La salle est déjà réservée sur un des créneaux. L’activité n’a pas été enregistrée.",
+    "conflictRoomActivate": "La salle est déjà réservée sur un des créneaux. L’activité reste inactive."
   },
   "error": {
     "title": "Impossible de charger les activités",

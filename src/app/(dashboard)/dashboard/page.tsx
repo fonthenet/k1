@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { WorkspaceStart } from "@/components/modules/dashboard/workspace-start";
-import { SetupChecklist } from "@/components/modules/learning/setup-checklist";
-import { SchoolDashboard } from "@/components/modules/learning/school-dashboard";
-import { learningProfile } from "@/components/modules/learning/domain";
-import { workspaceType } from "@/components/modules/settings/workspace-profile";
+import {
+  learningProfile,
+  lessonNounProfile,
+  scopeProfile,
+} from "@/components/modules/learning/domain";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
   Baby,
+  BookOpen,
   CalendarDays,
+  ClipboardCheck,
   ChevronRight,
   CircleCheckBig,
   ClipboardList,
@@ -20,6 +22,9 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, scoped } from "@/lib/tenant";
+import { algiersToday } from "@/lib/algiers";
+import { rosterNoun } from "@/lib/vocabulary";
+import { scopedCenterTypes } from "@/components/shell/nav-items";
 import { childDisplayName, formatDZD, formatDate, formatTime, initials, intlLocale } from "@/lib/format";
 import type {
   AttendanceStatus,
@@ -48,6 +53,7 @@ import {
   fetchArrears,
   type ArrearsFamily,
 } from "@/components/modules/dashboard/arrears-data";
+import { JournalSentLine } from "@/components/modules/dashboard/journal-sent-line";
 import { ChildLink } from "@/components/shared/entity-link";
 import { isAway } from "@/components/modules/attendance/status-config";
 
@@ -65,6 +71,7 @@ interface ClassLite {
   name: string;
   name_ar: string | null;
   color: string;
+  structure_id: string | null;
 }
 
 interface AttRow {
@@ -112,11 +119,15 @@ function AllergyMark({ label }: { label: string }) {
 
 const LIST_LIMIT = 8;
 
+interface LessonLite {
+  id: string;
+  title: string;
+  class_id: string;
+  starts_at: string;
+}
+
 export default async function DashboardPage() {
   const ctx = await requireStaff();
-  if (learningProfile(workspaceType(ctx.structures, ctx.structureId)) === "academic") {
-    return <SchoolDashboard ctx={ctx} />;
-  }
   const supabase = await createClient();
   const [t, locale] = await Promise.all([
     getTranslations("dashboard"),
@@ -129,6 +140,10 @@ export default async function DashboardPage() {
     new Date(now.getFullYear(), now.getMonth() - 5, 1),
   );
 
+  // The noun the Aujourd'hui line counts in: pupils only when every scoped
+  // structure is a school, children otherwise — the same word as the nav.
+  const noun = rosterNoun(scopedCenterTypes(ctx.structures, ctx.structureId));
+
   const [
     statsRes,
     attRes,
@@ -140,6 +155,7 @@ export default async function DashboardPage() {
     holidayRes,
     annRes,
     arrearsRes,
+    journalSentLine,
   ] = await Promise.all([
     // Both arguments always, so PostgREST picks the two-argument overload
     // rather than having to choose between two that a defaulted parameter
@@ -165,7 +181,7 @@ export default async function DashboardPage() {
     scoped(
       supabase
         .from("kg_classes")
-        .select("id, name, name_ar, color")
+        .select("id, name, name_ar, color, structure_id")
         .eq("tenant_id", tid),
       ctx
     ),
@@ -212,7 +228,58 @@ export default async function DashboardPage() {
     ctx.isFinance
       ? fetchArrears(tid)
       : Promise.resolve({ rows: [] as ArrearsFamily[], error: null }),
+    // Whether today's journal reached the families, as one muted line at the
+    // foot of the Aujourd'hui card: read here, with everything else, and
+    // rendered where the register's facts end.
+    JournalSentLine({ tenantId: tid, structureId: ctx.structureId, day: algiersToday(), noun }),
   ]);
+
+  // ----- The day's timetable -----
+  // Every scoped class has a week since 0153 — the école's cours, the
+  // crèche's Accueil and Sieste — so the day's blocks are read for all of
+  // them, and the draft assessments of a préscolaire count as much as an
+  // école's. The tile below decides for itself when to show them.
+  const scopedClasses = (classRes.data ?? []) as ClassLite[];
+  const scopedClassIds = scopedClasses.map((c) => c.id);
+  const [lessonRes, draftRes] = scopedClassIds.length
+    ? await Promise.all([
+        supabase
+          .from("kg_learning_lessons")
+          .select("id, title, class_id, starts_at")
+          .eq("tenant_id", tid)
+          .in("class_id", scopedClassIds)
+          .eq("status", "scheduled")
+          .gte("starts_at", `${today}T00:00:00+01:00`)
+          .lt("starts_at", `${isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))}T00:00:00+01:00`)
+          .order("starts_at"),
+        supabase
+          .from("kg_learning_assessments")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tid)
+          .in("class_id", scopedClassIds)
+          .eq("published", false),
+      ])
+    : [{ data: [] as LessonLite[], error: null }, { count: 0, error: null }];
+  const lessonsToday = (lessonRes.data ?? []) as LessonLite[];
+  const nextLesson = lessonsToday.find((l) => new Date(l.starts_at) > now) ?? null;
+  const draftAssessments = draftRes.count ?? 0;
+  // Reading one structure, the shape of its day is its week — cours for an
+  // école, activités for a crèche or a préscolaire, ateliers for a therapy
+  // centre — so that is the middle tile, in that structure's noun (spec
+  // D12). Reading the whole building the three headcount tiles stand: the
+  // building's blocks belong to the calendar, and its structures speak here
+  // only through the draft-assessment line below.
+  const scopedStructure = ctx.structures.find((s) => s.id === ctx.structureId);
+  const showTimetableTile = scopedStructure !== undefined;
+  const profile = lessonNounProfile(
+    scopedStructure
+      ? learningProfile(scopedStructure.center_type)
+      : scopeProfile(
+          scopedClasses.map(
+            (c) => ctx.structures.find((s) => s.id === c.structure_id)?.center_type ?? "",
+          ),
+        ),
+  );
 
   const stats = (statsRes.data ?? null) as DashboardStats | null;
   const children = (childrenRes.data ?? []) as ChildLite[];
@@ -292,7 +359,7 @@ export default async function DashboardPage() {
   }[];
   const nextHoliday = holidays[0] ?? null;
   const todoItems: {
-    key: "applications" | "incidents" | "holidays";
+    key: "applications" | "incidents" | "assessments" | "holidays";
     count: number;
     href: string;
     icon: React.ReactNode;
@@ -304,7 +371,7 @@ export default async function DashboardPage() {
       count: stats?.pending_applications ?? 0,
       href: "/applications",
       icon: <ClipboardList className="size-4" />,
-      tone: "bg-gold text-gold-foreground",
+      tone: "bg-gold-muted text-gold-ink",
     },
     {
       key: "incidents" as const,
@@ -312,6 +379,16 @@ export default async function DashboardPage() {
       href: "/incidents",
       icon: <TriangleAlert className="size-4" />,
       tone: "bg-destructive/10 text-destructive",
+    },
+    // An assessment sits in draft until somebody publishes it to the families;
+    // that is a signature the director owes, so it is a line here and not a
+    // card of its own.
+    {
+      key: "assessments" as const,
+      count: draftAssessments,
+      href: "/learning/assessments",
+      icon: <ClipboardCheck className="size-4" />,
+      tone: "bg-primary/10 text-primary",
     },
     {
       key: "holidays" as const,
@@ -346,20 +423,18 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* The tenant is named once, in the brand block; the scope once, in the
+          switcher. The subtitle says the one thing the title does not: the day. */}
       <PageHeader
         title={t("title")}
-        description={t("subtitle", {
+        description={t("dateLine", {
           date: formatDate(now, locale, {
             weekday: "long",
             day: "numeric",
             month: "long",
           }),
-          name: ctx.tenant.name,
         })}
       />
-
-      <WorkspaceStart type={workspaceType(ctx.structures, ctx.structureId)} role={ctx.role} />
-      <SetupChecklist ctx={ctx} />
 
       {statsRes.error && (
         <Alert variant="destructive">
@@ -389,7 +464,7 @@ export default async function DashboardPage() {
           head. */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label={t("stats.inBuildingNow")}
+          label={t("stats.inEstablishmentNow")}
           value={stats?.children_present ?? 0}
           hint={t("stats.ofEnrolled", { count: stats?.children_enrolled ?? 0 })}
           icon={<Baby className="size-5" />}
@@ -399,14 +474,30 @@ export default async function DashboardPage() {
             end of the day "8 present" alone reads as though half the crèche has
             gone missing; with "8 gone home" beside it, the day is accounted
             for. */}
+        {showTimetableTile ? (
+          /* The structure's tile: how many blocks run today and which is next. */
+          <StatCard
+            label={t("stats.lessonsToday", { profile })}
+            value={lessonsToday.length}
+            /* The clock only. The block's title is a person-typed string
+               that must not sit mid-sentence, and the calendar carries it. */
+            hint={
+              nextLesson
+                ? `${t("stats.nextLesson", { profile })} ${formatTime(nextLesson.starts_at, locale)}`
+                : t("stats.noLessonToday", { profile })
+            }
+            icon={<BookOpen className="size-5" />}
+          />
+        ) : (
+          <StatCard
+            label={t("stats.goneHome")}
+            value={stats?.children_checked_out ?? 0}
+            hint={t("stats.goneHomeHint")}
+            icon={<DoorOpen className="size-5" />}
+          />
+        )}
         <StatCard
-          label={t("stats.goneHome")}
-          value={stats?.children_checked_out ?? 0}
-          hint={t("stats.goneHomeHint")}
-          icon={<DoorOpen className="size-5" />}
-        />
-        <StatCard
-          label={t("stats.staffPresent2")}
+          label={t("stats.teamOnDuty")}
           value={stats?.staff_present ?? 0}
           hint={t("stats.staffHint")}
           icon={<UserRoundCheck className="size-5" />}
@@ -596,6 +687,10 @@ export default async function DashboardPage() {
                   />
                 </Link>
               )}
+
+              {/* Whether today's journal reached the families — one muted
+                  line, no link, no icon; nothing at all before the send. */}
+              {journalSentLine}
             </CardContent>
           </Card>
 
@@ -663,16 +758,12 @@ export default async function DashboardPage() {
 
         <div className="min-w-0 space-y-6">
           {/* ----- À traiter ----- */}
-          <Card
-            className={
-              todoItems.length > 0
-                ? "border border-gold/35 shadow-sm ring-0"
-                : "border border-border shadow-sm ring-0"
-            }
-          >
+          {/* The card's one gold is its icon tile, a tint: no gold frame and
+              no solid fill, so "there is work here" is said once. */}
+          <Card className="border border-border shadow-sm ring-0">
             <CardHeader className="border-b pb-4">
               <CardTitle className="flex items-center gap-2.5 text-lg font-semibold">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gold text-gold-foreground">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gold-muted text-gold-ink">
                   <ListChecks className="size-4" />
                 </span>
                 {t("todo.title")}

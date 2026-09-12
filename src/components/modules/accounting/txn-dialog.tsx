@@ -5,6 +5,17 @@ import { useLocale, useTranslations } from "next-intl";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { centerTypeOption } from "@/components/modules/settings/center-types";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,10 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from "@/components/shared/date-picker";
 import { Plus, X } from "lucide-react";
+import { formatDZD } from "@/lib/format";
 import type { PaymentMethod, TxnKind } from "@/lib/types";
-import { saveTransaction } from "./actions";
+import { deleteTransaction, saveTransaction } from "./actions";
 import { PAYMENT_METHODS, isoDate, type LedgerRow } from "./types";
 
 const NONE = "none";
@@ -47,17 +60,29 @@ const lineTotal = (i: ItemDraft) => {
   return Number.isFinite(q) && Number.isFinite(u) ? q * u : 0;
 };
 
-/** Add or edit a ledger entry. `kind` is fixed per dialog; pass `txn` to edit. */
+type CategoryChoice = { id: string; name: string; color: string };
+
+/**
+ * Add or edit a ledger entry. Pass `txn` to edit.
+ *
+ * One dialog for both kinds. A new entry starts on `kind` and the first row
+ * is a Recette | Dépense track, so the page needs one primary rather than an
+ * income button beside an expense button. An existing entry keeps the kind
+ * it was written with — the track is not drawn — because a receipt turned
+ * into a bill is a different transaction, not an edit of this one.
+ */
 export function TxnDialog({
-  kind,
+  kind: initialKind,
   categories,
   txn,
   trigger,
   structures = [],
   defaultStructureId = null,
 }: {
+  /** The kind to open on; fixed when editing. */
   kind: TxnKind;
-  categories: { id: string; name: string; color: string }[];
+  /** Both lists, because the track swaps between them. */
+  categories: { income: CategoryChoice[]; expense: CategoryChoice[] };
   txn?: LedgerRow;
   trigger: React.ReactNode;
   /** The building's active structures; the picker hides itself under two. */
@@ -73,6 +98,7 @@ export function TxnDialog({
   const tc = useTranslations("common");
   const locale = useLocale();
   const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<TxnKind>(txn?.kind ?? initialKind);
   const [structureId, setStructureId] = useState<string>(NONE);
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState<string>(NONE);
@@ -86,6 +112,7 @@ export function TxnDialog({
   function onOpenChange(next: boolean) {
     setOpen(next);
     if (next) {
+      setKind(txn?.kind ?? initialKind);
       setAmount(txn ? String(txn.amount) : "");
       setCategoryId(txn?.category?.id ?? NONE);
       setDate(txn?.date ?? isoDate(new Date()));
@@ -101,6 +128,34 @@ export function TxnDialog({
         }))
       );
     }
+  }
+
+  const kindCategories = categories[kind];
+
+  // Switching the kind drops a category chosen under the other one: an
+  // "Alimentation" bill cannot be a receipt, and leaving it selected would
+  // save a pairing the categories page never offers.
+  function switchKind(next: TxnKind) {
+    setKind(next);
+    if (categoryId !== NONE && !categories[next].some((c) => c.id === categoryId)) {
+      setCategoryId(NONE);
+    }
+  }
+
+  // Deleting lives here, in the footer of the entry being edited, rather than
+  // as a trash icon in every row: the row is for reading the ledger, and the
+  // one destructive action belongs next to the record it destroys.
+  function remove() {
+    if (!txn) return;
+    startTransition(async () => {
+      const res = await deleteTransaction(txn.id);
+      if (res.ok) {
+        toast.success(t("txn.deleted"));
+        setOpen(false);
+      } else {
+        toast.error(t(`errors.${res.error}`));
+      }
+    });
   }
 
   const parsedAmount = Number(amount);
@@ -148,7 +203,7 @@ export function TxnDialog({
     });
   }
 
-  const title = txn ? t("txn.editTitle") : t(kind === "expense" ? "txn.addExpense" : "txn.addIncome");
+  const title = txn ? t("txn.editTitle") : t("txn.add");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -162,6 +217,15 @@ export function TxnDialog({
         </DialogHeader>
 
         <div className="grid gap-4">
+          {!txn && (
+            <Tabs value={kind} onValueChange={(v) => switchKind(v as TxnKind)}>
+              <TabsList className="w-full" aria-label={t("txn.filters.kind")}>
+                <TabsTrigger value="income">{t("kinds.income")}</TabsTrigger>
+                <TabsTrigger value="expense">{t("kinds.expense")}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="txn-amount">
@@ -216,7 +280,7 @@ export function TxnDialog({
                   <SelectItem value={NONE}>
                     <span className="text-muted-foreground">{t("txn.noCategory")}</span>
                   </SelectItem>
-                  {categories.map((c) => (
+                  {kindCategories.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       <span className="flex items-center gap-2">
                         <span
@@ -379,6 +443,41 @@ export function TxnDialog({
         </div>
 
         <DialogFooter>
+          {txn && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={pending}
+                  className="text-destructive hover:text-destructive sm:me-auto"
+                >
+                  {tc("actions.delete")}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("txn.deleteTitle")}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("txn.deleteDesc", {
+                      description: txn.description,
+                      amount: formatDZD(txn.amount, locale),
+                    })}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={pending}
+                    onClick={remove}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {tc("actions.delete")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button variant="outline" onClick={() => setOpen(false)}>
             {tc("actions.cancel")}
           </Button>

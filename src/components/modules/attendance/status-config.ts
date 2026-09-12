@@ -2,7 +2,7 @@
 // Every colour is a theme token (see THEME.md) so the segmented control, the history grid
 // and dark mode all stay in sync:
 //   present → success (green)   late → warning (amber)   absent → destructive (red)
-//   sick    → destructive (red) excused → muted-foreground (neutral "filed / authorised")
+//   sick    → destructive at 60%   excused → muted-foreground (neutral "filed / authorised")
 //
 // The tones are the parent portal's and the mobile app's, not a third opinion: a family
 // reading "sick" in red while the educator who typed it sees amber is one fact wearing two
@@ -10,12 +10,13 @@
 // two resolve to the same amber today, so this rename costs nothing and stops the next
 // palette edit from moving a status by accident.
 //
-// KNOWN, needs a lead call: sick and absent are now the same red, so the history grid and
-// its legend cannot separate them at a glance (the cell `title` still names the status).
-// That is not new — --chart-4 stopped being blue when the palette moved to
-// teal → cyan → mint → amber → coral, and `sick` has been rendering identically to `late`
-// ever since, which is the worse collision: it crossed the present/away line. A fifth
-// distinguishable hue for this grid is a palette decision, not a module one.
+// Sick and absent share the red family — both are "away, and somebody should know why" —
+// but the history grid and its legend still have to tell them apart, and two identical
+// swatches with two names read as a mistake. So the grid swatch for `sick` is the same red
+// at 60%: one tone for the fact, two weights for the two words. A fifth hue would be a
+// palette decision, not a module one; --chart-4 stopped being blue when the palette moved
+// to teal → cyan → mint → amber → coral, and `sick` once rendered identically to `late`,
+// which was the worse collision because it crossed the present/away line.
 import type { AttendanceStatus } from "@/lib/types";
 import { Check, Clock, X, Thermometer, FileText, type LucideIcon } from "lucide-react";
 
@@ -65,7 +66,7 @@ export const STATUS_STYLES: Record<AttendanceStatus, StatusStyle> = {
     icon: Thermometer,
     activeClass: "bg-destructive-solid text-[var(--destructive-foreground)] shadow-sm",
     idleClass: "text-muted-foreground hover:bg-destructive/15 hover:text-foreground",
-    cellClass: "bg-destructive",
+    cellClass: "bg-destructive/60",
     tintClass: "bg-destructive/15",
   },
   excused: {

@@ -11,8 +11,13 @@
     "noCapacity": "Unlimited",
     "noSchedule": "No schedule set",
     "free": "Free",
-    "requests": "{count} pending requests",
-    "view": "View activity"
+    "requests": "{count, plural, one {# pending request} other {# pending requests}}",
+    "view": "View activity",
+    "count": "{count, plural, =0 {No activities} one {# activity} other {# activities}}",
+    "columns": {
+      "activity": "Activity",
+      "fee": "Fee"
+    }
   },
   "categories": {
     "religion": "Islamic studies",
@@ -33,7 +38,9 @@
     "mon": "Mon",
     "tue": "Tue",
     "wed": "Wed",
-    "thu": "Thu"
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat"
   },
   "daysFull": {
     "sun": "Sunday",
@@ -55,7 +62,7 @@
   "dialog": {
     "newTitle": "New activity",
     "editTitle": "Edit activity",
-    "description": "Set the name, category, fee and weekly schedule (Sunday to Thursday).",
+    "description": "Set the name, category, fee, room and weekly slots.",
     "name": "Name",
     "nameAr": "Arabic name",
     "category": "Category",
@@ -65,10 +72,13 @@
     "period": "Billing period",
     "activityDescription": "Description",
     "schedule": "Weekly schedule",
-    "addSlot": "Add a session",
+    "addSlot": "Add a slot",
     "day": "Day",
     "time": "Time",
-    "active": "Activity active"
+    "active": "Activity active",
+    "start": "Start",
+    "end": "End",
+    "slotOrder": "The end time must be after the start time."
   },
   "addDialog": {
     "title": "Enrol a child in the activity",
@@ -140,7 +150,9 @@
     "ended": "Enrolment ended",
     "approved": "Request approved",
     "declined": "Request declined",
-    "endKeptCharge": "Enrolment ended. This month's charge stays — the invoice is already part-paid."
+    "endKeptCharge": "Enrolment ended. This month's charge stays — the invoice is already part-paid.",
+    "conflictRoom": "The room is already booked on one of the slots. The activity was not saved.",
+    "conflictRoomActivate": "The room is already booked on one of the slots. The activity stays inactive."
   },
   "error": {
     "title": "Could not load the activities",

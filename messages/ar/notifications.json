@@ -1,9 +1,9 @@
 {
   "title": "الإشعارات",
-  "description": "كل ما يجري في الروضة، من الأحدث إلى الأقدم.",
+  "description": "كل ما يجري في المؤسسة، من الأحدث إلى الأقدم.",
   "empty": "لا توجد إشعارات",
   "emptyUnread": "اطّلعتم على كل شيء",
-  "emptyHint": "ستصلكم هنا آخر أخبار الروضة.",
+  "emptyHint": "ستصلكم هنا آخر أخبار المؤسسة.",
   "markAllRead": "تعليم الكل كمقروء",
   "unreadCount": "{count, plural, =0 {لا جديد} one {إشعار جديد} two {إشعاران جديدان} few {# إشعارات جديدة} other {# إشعاراً جديداً}}",
   "seeAll": "عرض كل الإشعارات",
@@ -29,16 +29,70 @@
       "body": "{child}"
     },
     "checkin": {
-      "title": "وصل {child}",
+      "title": "وصول {child}",
       "body": "تم تسجيل الدخول على الساعة {time}"
     },
     "checkout": {
-      "title": "غادر {child}",
+      "title": "مغادرة {child}",
       "body": "تم تسجيل الخروج على الساعة {time}"
     },
     "daily_report": {
       "title": "يوميات {child}",
-      "body": "نُشرت يوميات اليوم."
+      "body": "نُشرت يوميات اليوم.",
+      "parts": {
+        "arrived": "الوصول {time}",
+        "lessons": {
+          "academic": {
+            "zero": "{n} حصة",
+            "one": "حصة واحدة",
+            "two": "حصتان",
+            "few": "{n} حصص",
+            "many": "{n} حصة",
+            "other": "{n} حصة"
+          },
+          "therapy": {
+            "zero": "{n} ورشة",
+            "one": "ورشة واحدة",
+            "two": "ورشتان",
+            "few": "{n} ورشات",
+            "many": "{n} ورشة",
+            "other": "{n} ورشة"
+          },
+          "other": {
+            "zero": "{n} نشاط",
+            "one": "نشاط واحد",
+            "two": "نشاطان",
+            "few": "{n} أنشطة",
+            "many": "{n} نشاطا",
+            "other": "{n} نشاط"
+          }
+        },
+        "menu": "قائمة اليوم",
+        "eaten": {
+          "all": "الأكل: كل شيء",
+          "half": "الأكل: النصف",
+          "little": "الأكل: قليل",
+          "none": "الأكل: لا شيء"
+        },
+        "nap": "قيلولة {min} دقيقة",
+        "noNap": "بدون قيلولة",
+        "photos": {
+          "zero": "{n} صورة",
+          "one": "صورة واحدة",
+          "two": "صورتان",
+          "few": "{n} صور",
+          "many": "{n} صورة",
+          "other": "{n} صورة"
+        },
+        "incidents": {
+          "zero": "{n} حادث",
+          "one": "حادث واحد",
+          "two": "حادثان",
+          "few": "{n} حوادث",
+          "many": "{n} حادثا",
+          "other": "{n} حادث"
+        }
+      }
     },
     "task": {
       "title": "مهمة جديدة",
@@ -113,8 +167,8 @@
       "body": "{text}"
     },
     "application_status": {
-      "title": "{status, select, approved{تم تأكيد المقعد} offered{نعرض عليكم مقعدًا} interview{مقابلة} waitlist{على قائمة الانتظار} rejected{لا يمكننا تقديم مقعد} under_review{تم استلام الطلب} other{تحديث بشأن الطلب}}",
-      "body": "{status, select, approved{{childName} مسجَّل. أهلاً بكم!} offered{يمكننا تقديم مقعد لـ {childName}. يُرجى الاتصال بنا للتأكيد.} interview{نودّ لقاءكم بخصوص طلب {childName}.} waitlist{{childName} على قائمة الانتظار. سنتصل بكم فور توفّر مقعد.} rejected{نأسف، لا يمكننا تقديم مقعد لـ {childName} في الوقت الحالي.} under_review{ندرس طلب {childName}.} other{{childName}}}"
+      "title": "{status}",
+      "body": "{child}"
     },
     "advance_approved": {
       "body": "ستُخصم من راتبك القادم.",
@@ -227,6 +281,22 @@
     "other": "أخرى"
   },
   "applicationStatuses": {
-    "approved": "قُبل التسجيل 🎉"
+    "approved": "تم تأكيد المقعد",
+    "offered": "نعرض عليكم مقعدًا",
+    "interview": "دعوة إلى مقابلة",
+    "waitlist": "على قائمة الانتظار",
+    "rejected": "لا يمكننا تقديم مقعد",
+    "under_review": "تم استلام الطلب"
+  },
+  "count": "{count, plural, =0 {لا توجد إشعارات} one {إشعار واحد} two {إشعاران} few {# إشعارات} many {# إشعارًا} other {# إشعار}}",
+  "unread": "غير مقروء",
+  "moods": {
+    "happy": "مزاج مرح",
+    "calm": "مزاج هادئ",
+    "energetic": "مزاج نشيط",
+    "tired": "مزاج متعب",
+    "sad": "مزاج حزين",
+    "upset": "مزاج منزعج",
+    "sick": "متوعّك"
   }
 }

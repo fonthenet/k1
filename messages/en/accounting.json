@@ -1,6 +1,6 @@
 {
   "title": "Accounting",
-  "subtitle": "Cash box, expenses, payroll and the nursery's bottom line",
+  "subtitle": "Cash box, expenses, payroll and the establishment's bottom line",
   "monthLabel": "Month",
   "nav": {
     "overview": "Overview",
@@ -44,7 +44,8 @@
     "income": "Income",
     "expense": "Expenses",
     "uncategorized": "Uncategorized",
-    "viewLedger": "Open the ledger"
+    "viewLedger": "Open the ledger",
+    "recentHint": "The last 8 entries, whatever the month"
   },
   "txn": {
     "title": "Transaction ledger",
@@ -125,7 +126,8 @@
     "linkedPayroll": "Salary payout",
     "structure": "Structure",
     "structureAll": "The whole establishment",
-    "structureHint": "Rent belongs to the whole building; the school's supplies belong to the school."
+    "structureHint": "Rent belongs to the whole building; the school's supplies belong to the school.",
+    "add": "Add an entry"
   },
   "categories": {
     "title": "Categories",
@@ -146,7 +148,8 @@
     "deleteDesc": "Existing \"{name}\" transactions will stay in the ledger, uncategorized.",
     "added": "Category created",
     "updated": "Category updated",
-    "deleted": "Category deleted"
+    "deleted": "Category deleted",
+    "count": "{count, plural, one {# category} other {# categories}}"
   },
   "payroll": {
     "title": "Payroll",
@@ -295,7 +298,9 @@
     "withdraw": "Withdraw",
     "withdrawDesc": "The {amount} request will be removed.",
     "withdrawTitle": "Withdraw this request?",
-    "withdrawn": "Request withdrawn"
+    "withdrawn": "Request withdrawn",
+    "requestDate": "Requested on",
+    "decision": "Decision"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",

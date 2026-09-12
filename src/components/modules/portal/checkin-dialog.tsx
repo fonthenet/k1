@@ -51,7 +51,7 @@ export interface CheckinDialogChild {
  * the same size and tone — and so no caller can shrink one below the 44px a
  * thumb needs at a crowded gate.
  */
-type TriggerShape = "inline" | "block" | "corner";
+type TriggerShape = "inline" | "corner";
 
 const TRIGGER: Record<
   TriggerShape,
@@ -63,14 +63,9 @@ const TRIGGER: Record<
     iconOnly?: boolean;
   }
 > = {
-  // Sits in a row of per-child actions next to "report an absence".
+  // Sits in a row of per-child actions next to "report an absence", or at
+  // the end of a page's header row as the one badge for the whole family.
   inline: { variant: "outline", size: "sm", className: "h-11 rounded-lg px-3" },
-  // Fills the width of a card, as the one action that card offers.
-  block: {
-    variant: "ghost",
-    size: "default",
-    className: "h-12 w-full justify-center text-primary hover:text-primary",
-  },
   // Tucked into a card corner opposite the child's face. It reads as a small
   // glyph but is a full 44px of tap target, because a parent hits this one
   // while walking.

@@ -31,7 +31,11 @@
     "start": "Start enrollment",
     "resume": "Resume my enrollment",
     "resumeNotice": "Your progress was saved on this phone.",
-    "introStructure": "This enrollment is for {structure}. Enroll your child in a few minutes, right from your phone. Your progress is saved so you can come back later."
+    "introStructure": "This enrollment is for {structure}. Enroll your child in a few minutes, right from your phone. Your progress is saved so you can come back later.",
+    "greeting": "Welcome to",
+    "lead": "A few minutes, from your phone. You can come back later.",
+    "needAccount": "A phone number or an e-mail to create your account",
+    "classes": "Classes:"
   },
   "account": {
     "title": "Your parent account",
@@ -175,18 +179,18 @@
     "edit": "Edit",
     "submit": "Send the enrollment application",
     "submitting": "Sending…",
-    "note": "By sending this application you agree to be contacted by the kindergarten.",
+    "note": "By sending this application you agree to be contacted by the establishment.",
     "schedule": "Schedule",
-    "scheduleUndecided": "To decide with the crèche",
+    "scheduleUndecided": "To decide with the establishment",
     "firstMonth": {
       "title": "First-month estimate",
       "total": "Total",
-      "hint": "Indicative only: the exact invoice is drawn up by the crèche at admission. Per-session activities are billed as used."
+      "hint": "Indicative only: the exact invoice is drawn up by the establishment at admission. Per-session activities are billed as used."
     },
     "placement": "Structure and class",
     "structure": "Structure",
     "class": "Preferred class",
-    "classUndecided": "To decide with the crèche"
+    "classUndecided": "To decide with the establishment"
   },
   "success": {
     "title": "Application sent!",
@@ -241,7 +245,46 @@
     "transferNotEnrolled": "This child is no longer enrolled ({status}): a transfer only applies to an enrolled child.",
     "transferChildMissing": "The child this transfer is about could not be found.",
     "duplicateTitle": "A child with this name and date of birth already exists",
-    "duplicateHint": "If {name}'s family wants to change structure, make a transfer from the child's file rather than a second application: approving this one would create a second child, with a second badge and new admission fees."
+    "duplicateHint": "If {name}'s family wants to change structure, make a transfer from the child's file rather than a second application: approving this one would create a second child, with a second badge and new admission fees.",
+    "rowActions": "Actions",
+    "sourceLink": "Enrolment link",
+    "sourceSibling": "Sibling",
+    "sourceTransfer": "Transfer",
+    "interviewToSchedule": "Slot to set",
+    "waitlistRank": "Rank {rank}",
+    "approvedCount": "{count, plural, one {# application approved} other {# applications approved}}",
+    "seeChildren": "See the children",
+    "columns": {
+      "child": "Child",
+      "age": "Age",
+      "structure": "Structure",
+      "requestedClass": "Requested class",
+      "source": "Source",
+      "received": "Received",
+      "followUp": "Follow-up"
+    },
+    "stages": {
+      "submitted": "Received",
+      "under_review": "Under review",
+      "interview": "Interview",
+      "offered": "Offer",
+      "waitlist": "Waitlist",
+      "rejected": "Refused"
+    },
+    "transferHint": "Approving moves the child instead of creating a new one.",
+    "duplicateSentence": "<child></child> already exists ({where}): for a change of structure, make a transfer from their file rather than a second application.",
+    "childHint": "What the family declared on the form",
+    "guardiansHint": "The first contact is the applicant",
+    "noGuardians": "No parent or guardian given",
+    "marks": {
+      "applicant": "Applicant",
+      "financial": "Pays the fees",
+      "noPickup": "Does not pick up the child"
+    },
+    "healthHint": "Allergies, treatments and doctor",
+    "billingSection": "Fees and activities",
+    "billingHint": "What the family asked for on the form",
+    "monthlyPlan": "per month"
   },
   "detail": {
     "back": "All applications",
@@ -271,7 +314,7 @@
     "badges": {
       "applicant": "Applicant",
       "primary": "Primary contact",
-      "financial": "Financially responsible",
+      "financial": "Responsible for payments",
       "pickup": "Pick-up allowed",
       "noPickup": "Pick-up not allowed"
     },
@@ -381,16 +424,16 @@
   },
   "schedule": {
     "title": "Which schedule suits you?",
-    "subtitle": "This sets your monthly fee — you can change it with the crèche later.",
+    "subtitle": "This sets your monthly fee — it can be changed later with the establishment.",
     "perMonth": "/ month",
-    "undecided": "I'll decide with the crèche",
-    "undecidedHint": "The office will advise you when your file is reviewed."
+    "undecided": "I'll decide with the establishment",
+    "undecidedHint": "The office will advise you when the file is validated."
   },
   "classChoice": {
     "title": "Preferred class",
-    "subtitle": "We suggest the one that matches your child's age. The crèche confirms.",
+    "subtitle": "The establishment confirms the class at admission.",
     "forAge": "Their age",
-    "undecided": "Let the crèche decide",
+    "undecided": "Let the establishment decide",
     "undecidedHint": "You'll discuss it together."
   },
   "existingFamily": {
@@ -410,11 +453,31 @@
     "transferTariffStops": "The old structure's own tariff stops on approval; tariffs valid for the whole establishment continue. Choose the new structure's tariff here.",
     "confirmTransfer": "Confirm the transfer",
     "transferred": "Transfer approved — the child has changed structure",
-    "keepRequestedClass": "Keep the class the family asked for"
+    "keepRequestedClass": "Keep the class the family asked for",
+    "title": "Enrol {name}",
+    "titleTransfer": "Transfer {name}",
+    "familyAsked": "The family asked for {place}.",
+    "familyAskedNothing": "The family did not name a class.",
+    "transferLine": "Today in {from}; the family asks for {to}.",
+    "ageFits": "{age} · <band></band>: {class} fits their age.",
+    "ageSuggests": "{age} · the age points to {class} (<band></band>).",
+    "ageSuggestsIn": "{age} · the age points to {class} (<band></band>), in {structure}.",
+    "ageOutside": "{age} · no age band matches.",
+    "discount": "Discount (%)",
+    "transferVerb": "Transfer",
+    "summary": {
+      "place": "Enrolment in <b>{place}</b>",
+      "rehomed": "the family had asked for {from}",
+      "transfer": "Leaves <b>{from}</b>, joins <b>{to}</b>; the old tariff stops the day before",
+      "plan": "<b>{amount}</b> per month",
+      "discount": "{pct}% discount",
+      "admission": "admission fees {amount}",
+      "tariffStops": "the old structure's own tariff stops, establishment-wide ones continue"
+    }
   },
   "structure": {
     "title": "Which structure?",
-    "subtitle": "This establishment runs more than one. Choose the one your child will join.",
+    "subtitle": "{count, plural, one {One structure} other {# structures}} in the same building — each enrolment goes on a different register.",
     "required": "Choose a structure to continue.",
     "ageMonths": "{n} months",
     "ageYears": "{n} years",
@@ -423,6 +486,9 @@
     "ageUpTo": "Up to {max}",
     "fitsHere": "At this age your child would join: {className}.",
     "fitsElsewhere": "This age belongs to {structure}.",
-    "switch": "Switch structure"
+    "switch": "Switch structure",
+    "fromDob": "From the date of birth:",
+    "unitMonths": "months",
+    "unitYears": "{n, plural, one {year} other {years}}"
   }
 }

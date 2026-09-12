@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaff, scoped, signedMediaUrl } from "@/lib/tenant";
 import type { AllergySeverity, Child, ChildStatus, Gender } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
+import { rosterNoun } from "@/lib/vocabulary";
+import { scopedCenterTypes } from "@/components/shell/nav-items";
 import { EmptyState } from "@/components/shared/empty-state";
 import { AddChildDialog } from "@/components/modules/children/add-child-dialog";
 import { ChildrenRoster } from "@/components/modules/children/roster";
@@ -23,6 +25,10 @@ type ChildRow = Child & {
 
 export default async function ChildrenPage() {
   const ctx = await requireStaff();
+  // One noun for the page, the nav and the button: a school calls them
+  // pupils, a crèche calls them children, and a mixed building keeps the
+  // broader word. Same helper the sidebar uses.
+  const noun = rosterNoun(scopedCenterTypes(ctx.structures, ctx.structureId));
   const t = await getTranslations("children");
   const supabase = await createClient();
 
@@ -48,7 +54,9 @@ export default async function ChildrenPage() {
       // own class filter is narrowed below, in memory.
       supabase
         .from("kg_classes")
-        .select("id, name, name_ar, color, structure_id")
+        // The age bands ride along so the add dialog can list the rooms
+        // youngest first, as the move dialog does.
+        .select("id, name, name_ar, color, structure_id, age_min_months, age_max_months")
         .eq("tenant_id", ctx.tenant.id)
         .order("name"),
       supabase
@@ -140,8 +148,11 @@ export default async function ChildrenPage() {
 
   return (
     <div>
-      <PageHeader title={t("roster.title")} description={t("roster.description")}>
-        <AddChildDialog classes={allClasses} structures={structures} />
+      <PageHeader
+        title={t(noun === "pupils" ? "roster.pupils.title" : "roster.title")}
+        description={t(noun === "pupils" ? "roster.pupils.description" : "roster.description")}
+      >
+        <AddChildDialog noun={noun} classes={allClasses} structures={structures} />
       </PageHeader>
 
       {rows.length === 0 ? (
@@ -153,7 +164,7 @@ export default async function ChildrenPage() {
           }
           title={t("roster.empty")}
           description={t("roster.emptyDescription")}
-          action={<AddChildDialog classes={allClasses} structures={structures} />}
+          action={<AddChildDialog noun={noun} classes={allClasses} structures={structures} />}
         />
       ) : (
         <ChildrenRoster

@@ -1,15 +1,47 @@
 "use client";
 
-import { useTransition } from "react";
-import { Check, Undo2, X } from "lucide-react";
+import { useTransition, type ReactNode } from "react";
+import { Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { cancelLeave, decideLeave } from "./actions";
 
-/** Approve / reject buttons for admins on a pending request. */
-export function LeaveDecisionButtons({ id }: { id: string }) {
+/**
+ * Approve / reject for an admin on a pending request.
+ *
+ * The same idiom as the advances page, so one act reads one way across the
+ * two registers: an outline verb says "yes", a ghost verb says "no", both in
+ * the neutral colour — the page's one red is the "Refusé" pill in the history
+ * rows, and a decision that has not been taken yet earns no colour of its own.
+ * Each verb opens a confirm that names the person and the period, then says
+ * in one sentence what changes. The verbs carry no glyph: they share the last
+ * cell of a seven-column register, and the two icons were the width that
+ * pushed the French table past its card.
+ */
+export function LeaveDecisionButtons({
+  id,
+  memberName,
+  period,
+}: {
+  id: string;
+  memberName: string;
+  /** The formatted range with its day count, as the row prints it. */
+  period: ReactNode;
+}) {
   const t = useTranslations("staff");
+  const tc = useTranslations("common");
   const [pending, startTransition] = useTransition();
 
   function decide(decision: "approved" | "rejected") {
@@ -23,22 +55,66 @@ export function LeaveDecisionButtons({ id }: { id: string }) {
     });
   }
 
+  // The name is person-typed, so it sits on its own line in its own
+  // direction rather than inside the translated sentence.
+  const fact = (
+    <span className="block text-foreground">
+      <bdi dir="auto" className="block text-start font-medium">
+        {memberName}
+      </bdi>
+      <span className="block">{period}</span>
+    </span>
+  );
+
   return (
-    <div className="flex items-center justify-end gap-1.5">
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={pending}
-        className="border-success/40 text-success hover:bg-success/10 hover:text-success"
-        onClick={() => decide("approved")}
-      >
-        <Check data-icon="inline-start" />
-        {t("leaves.approve")}
-      </Button>
-      <Button size="sm" variant="destructive" disabled={pending} onClick={() => decide("rejected")}>
-        <X data-icon="inline-start" />
-        {t("leaves.reject")}
-      </Button>
+    <div className="flex items-center justify-end gap-1">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" size="sm" disabled={pending}>
+            {t("leaves.approve")}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("leaves.approveTitle")}</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              {fact}
+              <span className="block">{t("leaves.approveDesc")}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
+            <AlertDialogAction disabled={pending} onClick={() => decide("approved")}>
+              {t("leaves.approve")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="ghost" size="sm" disabled={pending}>
+            {t("leaves.reject")}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("leaves.rejectTitle")}</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              {fact}
+              <span className="block">{t("leaves.rejectDesc")}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("actions.cancel")}</AlertDialogCancel>
+            {/* Not destructive: the description promises the person can ask
+                again, and the page has already spent its red on "Refusé". */}
+            <AlertDialogAction disabled={pending} onClick={() => decide("rejected")}>
+              {t("leaves.reject")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

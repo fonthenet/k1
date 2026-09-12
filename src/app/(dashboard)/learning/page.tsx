@@ -1,377 +1,82 @@
-import Link from "next/link";
-import { LearningDateField } from "@/components/modules/learning/date-field";
-import { FormSelect } from "@/components/shared/form-select";
-import { SessionEditor } from "@/components/modules/learning/session-editor";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { requireStaff } from "@/lib/tenant";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ValueRange } from "@/components/shared/value-range";
-import { learningContext } from "@/components/modules/learning/data";
-import {
-  ProgramForm,
-  AssessmentForm,
-  StateButton,
-} from "@/components/modules/learning/forms";
-import {
-  date,
-  algiersToday,
-  weekStart,
-  addDays,
-  learningProfile,
-  type Program,
-  type Lesson,
-  type Assessment,
-} from "@/components/modules/learning/domain";
+import { LearningTabs } from "@/components/modules/learning/learning-tabs";
+import { ProgramDialog } from "@/components/modules/learning/program-dialog";
+import { ProgramsTable } from "@/components/modules/learning/programs-table";
+import { programsOverview } from "@/components/modules/learning/programs-data";
+import { learningProfile, scopeProfile } from "@/components/modules/learning/domain";
 import { workspaceType } from "@/components/modules/settings/workspace-profile";
 
+/**
+ * Pédagogie › Programmes — the overview of every class's programme: over
+ * which dates, how many lessons were held, what comes next. The timetable and
+ * the assessments are their own routes under /learning, reached through the
+ * tab bar; this page reads programmes only.
+ *
+ * A crèche or a camp never lands here (spec D16): its day is a week of
+ * moments, not a course of study, so /learning sends it to the timetable
+ * and the tab bar hides Programmes. A préscolaire, an école and a therapy
+ * centre keep the programmes landing — a programme is their tool too — and
+ * the whole building resolves to one of those, so it never redirects.
+ */
 export default async function LearningPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; class?: string; tab?: string }>;
+  searchParams: Promise<{ class?: string }>;
 }) {
-  const { ctx, db, locale, classes, staff } = await learningContext();
-  const t = await getTranslations("learning");
+  // The rail's structure decides on its own, before any programme is read:
+  // a whole-building scope can only resolve to academic or development, so
+  // the one case that redirects needs nothing but the context.
+  const staff = await requireStaff();
+  const scopedStructure = staff.structures.find((s) => s.id === staff.structureId);
+  if (scopedStructure) {
+    const scopedProfile = learningProfile(scopedStructure.center_type);
+    if (scopedProfile === "care" || scopedProfile === "activities") redirect("/learning/timetable");
+  }
+
   const params = await searchParams;
-  const start = weekStart(
-    date.safeParse(params.week).success ? params.week! : algiersToday(),
-  );
-  const selected = classes.find((c) => c.id === params.class);
-  const ids = selected ? [selected.id] : classes.map((c) => c.id);
-  const tab = ["programs", "assessments"].includes(params.tab ?? "")
-    ? params.tab!
-    : "week";
-  const profile = learningProfile(
-    selected?.type ?? workspaceType(ctx.structures, ctx.structureId),
-  );
+  const { ctx, structures, classes, programs, assessmentCount } = await programsOverview();
+  const t = await getTranslations("learning");
+  const tc = await getTranslations("common");
+  const type = workspaceType(ctx.structures, ctx.structureId);
+  // A mixed building gets the neutral sentence; one structure — narrowed to
+  // or the only one there is — gets the sentence written for its kind.
+  const description =
+    type === "mixed" ? t("description") : t(`programs.descriptions.${learningProfile(type)}`);
+  // The same resolution the timetable makes (spec D12): the scoped
+  // structure's profile, else the building's — academic when any scoped class
+  // is, development otherwise.
+  const profile = scopedStructure
+    ? learningProfile(scopedStructure.center_type)
+    : scopeProfile(classes.map((c) => c.type));
   const canTeach = classes.some((c) => c.canTeach);
-  const [programRead, lessonRead, assessmentRead] = ids.length
-    ? await Promise.all([
-        db
-          .from("kg_learning_programs")
-          .select("*")
-          .eq("tenant_id", ctx.tenant.id)
-          .in("class_id", ids)
-          .order("starts_on", { ascending: false }),
-        db
-          .from("kg_learning_lessons")
-          .select("*")
-          .eq("tenant_id", ctx.tenant.id)
-          .in("class_id", ids)
-          .gte("starts_at", `${start}T00:00:00+01:00`)
-          .lt("starts_at", `${addDays(start, 7)}T00:00:00+01:00`)
-          .order("starts_at"),
-        db
-          .from("kg_learning_assessments")
-          .select("*")
-          .eq("tenant_id", ctx.tenant.id)
-          .in("class_id", ids)
-          .order("scheduled_on", { ascending: false }),
-      ])
-    : [
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-      ];
-  if (programRead.error || lessonRead.error || assessmentRead.error)
-    throw new Error("Learning records unavailable");
-  const programs = programRead.data as Program[];
-  const lessons = lessonRead.data as Lesson[];
-  const assessments = assessmentRead.data as Assessment[];
-  const href = (week: string, nextTab = tab) =>
-    `/learning?${new URLSearchParams({ week, tab: nextTab, ...(selected ? { class: selected.id } : {}) })}`;
-  const dateLabel = (day: string) =>
-    new Intl.DateTimeFormat(locale, {
-      weekday: "long",
-      day: "numeric",
-      month: "short",
-      timeZone: "Africa/Algiers",
-    }).format(new Date(`${day}T12:00:00Z`));
-  const timeLabel = (instant: string) =>
-    new Intl.DateTimeFormat(locale, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: "Africa/Algiers",
-    }).format(new Date(instant));
+  const dialog = canTeach ? (
+    <ProgramDialog classes={classes} structures={structures} programs={programs} />
+  ) : null;
+
   return (
-    <div className="space-y-6">
-      <PageHeader title={t("title")} description={t("description")} />
-      <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-background p-5">
-        <h2 className="text-xl font-semibold">{t(`profiles.${profile}`)}</h2>
-        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          {t(`profileHints.${profile}`)}
-        </p>
-        <nav className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
-          {[
-            "classes",
-            "children",
-            ...(ctx.isFinance ? ["staff"] : []),
-            "activities",
-            ...(profile === "therapy" ? ["sessions"] : []),
-          ].map((path) => (
-            <Link
-              className="rounded-lg border bg-background px-3 py-2 hover:border-primary"
-              href={`/${path}`}
-              key={path}
-            >
-              {t(path === "children" ? "students" : path)}
-            </Link>
-          ))}
-        </nav>
-      </section>
-      <form className="flex flex-wrap items-end gap-3">
-        <input type="hidden" name="tab" value={tab} />
-        <label className="space-y-1 text-sm">
-          <span className="block">{t("fields.class")}</span>
-          <FormSelect
-            key={selected?.id ?? "all"}
-            name="class"
-            defaultValue={selected?.id ?? ""}
-            options={[
-              { value: "", label: t("allClasses") },
-              ...classes.map((c) => ({ value: c.id, label: c.name })),
-            ]}
-          />
-        </label>
-        <label className="space-y-1 text-sm">
-          <span className="block">{t("week")}</span>
-          <LearningDateField key={start} name="week" defaultValue={start} />
-        </label>
-        <button className="h-10 rounded-md bg-primary px-4 text-sm text-primary-foreground">
-          {t("filter")}
-        </button>
-      </form>
-      <nav
-        className="flex flex-wrap gap-2 border-b pb-3"
-        aria-label={t("title")}
-      >
-        {["week", "programs", "assessments"].map((key) => (
-          <Link
-            aria-current={tab === key ? "page" : undefined}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === key ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-            href={href(start, key)}
-            key={key}
-          >
-            {t(key)}
-          </Link>
-        ))}
-      </nav>
-      <div
-        className={`grid items-start gap-6 ${canTeach && tab === "assessments" ? "xl:grid-cols-[minmax(0,1fr)_420px]" : ""}`}
-      >
-        <div className="space-y-4">
-          {tab === "week" && (
-            <>
-              <div className="flex justify-between text-sm font-medium">
-                <Link href={href(addDays(start, -7))}>{t("previous")}</Link>
-                <Link href={href(addDays(start, 7))}>{t("next")}</Link>
-              </div>
-              {Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(
-                (day) => (
-                  <Card key={day}>
-                    <CardHeader className="flex flex-wrap items-center justify-between gap-3">
-                      <CardTitle className="text-base">
-                        {dateLabel(day)}
-                      </CardTitle>
-                      {canTeach && (
-                        <SessionEditor
-                          key={day}
-                          date={day}
-                          programs={programs}
-                          classes={selected ? [selected] : classes}
-                          staff={staff}
-                        />
-                      )}
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {!lessons.some(
-                        (l) =>
-                          new Date(l.starts_at).toLocaleDateString("en-CA", {
-                            timeZone: "Africa/Algiers",
-                          }) === day,
-                      ) && (
-                        <p className="text-sm text-muted-foreground">
-                          {t("empty")}
-                        </p>
-                      )}
-                      {lessons
-                        .filter(
-                          (l) =>
-                            new Date(l.starts_at).toLocaleDateString("en-CA", {
-                              timeZone: "Africa/Algiers",
-                            }) === day,
-                        )
-                        .map((l) => (
-                          <article
-                            key={l.id}
-                            className={`rounded-xl border p-4 ${l.status === "cancelled" ? "opacity-60" : "border-s-4 border-s-primary"}`}
-                          >
-                            <div className="flex flex-wrap justify-between gap-2">
-                              <h3
-                                dir="auto"
-                                className="text-start font-semibold"
-                              >
-                                {l.title}
-                              </h3>
-                              <Badge variant="secondary">{t(l.status)}</Badge>
-                            </div>
-                            <div className="mt-2 text-sm">
-                              <ValueRange
-                                from={timeLabel(l.starts_at)}
-                                to={timeLabel(l.ends_at)}
-                              />
-                            </div>
-                            <p className="mt-2 text-sm">
-                              <Link
-                                className="underline"
-                                href={`/classes/${l.class_id}`}
-                              >
-                                {classes.find((c) => c.id === l.class_id)?.name}
-                              </Link>{" "}
-                              ·{" "}
-                              {
-                                staff.find((s) => s.id === l.membership_id)
-                                  ?.name
-                              }{" "}
-                              · {t(`kinds.${l.kind}`)}
-                            </p>
-                            {classes.find((c) => c.id === l.class_id)
-                              ?.canTeach && (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {l.status === "scheduled" && (
-                                  <StateButton
-                                    entity="lesson"
-                                    id={l.id}
-                                    value="completed"
-                                    label={t("complete")}
-                                  />
-                                )}
-                                <StateButton
-                                  entity="lesson"
-                                  id={l.id}
-                                  value={
-                                    l.status === "cancelled"
-                                      ? "scheduled"
-                                      : "cancelled"
-                                  }
-                                  label={t(
-                                    l.status === "cancelled"
-                                      ? "reschedule"
-                                      : "cancel",
-                                  )}
-                                />
-                              </div>
-                            )}
-                          </article>
-                        ))}
-                    </CardContent>
-                  </Card>
-                ),
-              )}
-            </>
-          )}
-          {tab === "programs" && (
-            <>
-              {!programs.length && <p>{t("empty")}</p>}
-              {programs.map((p) => (
-                <Card key={p.id}>
-                  <CardHeader>
-                    <CardTitle dir="auto" className="text-start">
-                      {p.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Link
-                      className="text-sm underline"
-                      href={`/classes/${p.class_id}`}
-                    >
-                      {classes.find((c) => c.id === p.class_id)?.name}
-                    </Link>
-                    <p
-                      dir="auto"
-                      className="whitespace-pre-wrap text-start text-sm"
-                    >
-                      {p.objectives}
-                    </p>
-                    <div className="text-sm">
-                      <ValueRange
-                        from={p.starts_on}
-                        to={p.ends_on}
-                        separator="–"
-                      />
-                    </div>
-                    {p.archived && <Badge>{t("archived")}</Badge>}
-                    {classes.find((c) => c.id === p.class_id)?.canTeach && (
-                      <StateButton
-                        entity="program"
-                        id={p.id}
-                        value={String(!p.archived)}
-                        label={t(p.archived ? "restore" : "archive")}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </>
-          )}
-          {tab === "assessments" && (
-            <>
-              {!assessments.length && <p>{t("empty")}</p>}
-              {assessments.map((a) => (
-                <Link
-                  href={`/learning/assessments/${a.id}`}
-                  key={a.id}
-                  className="block rounded-xl border bg-card p-5 hover:border-primary"
-                >
-                  <div className="flex flex-wrap justify-between gap-3">
-                    <h3 dir="auto" className="text-start font-semibold">
-                      {a.title}
-                    </h3>
-                    <Badge variant="secondary">
-                      {t(a.published ? "published" : "draft")}
-                    </Badge>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {classes.find((c) => c.id === a.class_id)?.name} ·{" "}
-                    {t(`kinds.${a.kind}`)} · {dateLabel(a.scheduled_on)}
-                  </p>
-                </Link>
-              ))}
-            </>
-          )}
-        </div>
-        {canTeach && tab !== "week" && (
-          <Card className={tab === "programs" ? "order-first" : undefined}>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {t(
-                  tab === "programs"
-                    ? "newProgram"
-                    : tab === "week"
-                      ? "newLesson"
-                      : "newAssessment",
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tab === "programs" ? (
-                <ProgramForm
-                  key={selected?.id ?? "all"}
-                  classes={selected ? [selected] : classes}
-                  programs={programs}
-                />
-              ) : (
-                <AssessmentForm
-                  key={`${tab}:${selected?.id ?? "all"}`}
-                  programs={programs}
-                  classes={classes}
-                />
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
+    <div>
+      {/* The title IS the nav label, read from the same key, so the sidebar
+          and the page can never say two different things. */}
+      <PageHeader title={tc("nav.learning")} description={description}>
+        {programs.length > 0 && dialog}
+      </PageHeader>
+      <LearningTabs
+        counts={{
+          programs: programs.filter((p) => !p.archived).length,
+          assessments: assessmentCount,
+        }}
+        showPrograms={profile !== "care" && profile !== "activities"}
+      />
+      <ProgramsTable
+        programs={programs}
+        classes={classes}
+        structures={structures}
+        initialClass={params.class}
+        emptyAction={dialog}
+      />
     </div>
   );
 }

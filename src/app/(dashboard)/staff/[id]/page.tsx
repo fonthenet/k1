@@ -1,18 +1,21 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, UserX, Wallet } from "lucide-react";
+import {
+  ArrowLeft, Clock, CreditCard, HandCoins, Palmtree, Receipt, UserX, Wallet,
+} from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card, CardContent, CardHeader, CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/shared/empty-state";
+import { IdentityBand } from "@/components/shared/identity-band";
 import { PageHeader } from "@/components/shared/page-header";
+import { SectionCard } from "@/components/shared/section-card";
+import { StatusPill } from "@/components/shared/status-pill";
+import { StructureMark } from "@/components/shared/structure-mark";
+import { ValueRange } from "@/components/shared/value-range";
 import { CredentialCards } from "@/components/modules/credentials/credential-cards";
 import type { CredentialRow } from "@/components/modules/credentials/types";
 import { createClient } from "@/lib/supabase/server";
@@ -20,21 +23,20 @@ import { requireStaff } from "@/lib/tenant";
 import { formatDZD, formatDate, formatTime, initials, intlLocale } from "@/lib/format";
 import type { Membership, Timesheet } from "@/lib/types";
 import { EditMemberDialog } from "@/components/modules/staff/edit-member-dialog";
+import { MemberTabs, type MemberTabKey } from "@/components/modules/staff/member-tabs";
 import { MonthSelector } from "@/components/modules/staff/month-selector";
-import { TimesheetApprove } from "@/components/modules/staff/timesheet-approve";
 import { TimesheetEntryDialog } from "@/components/modules/staff/timesheet-entry-dialog";
 import {
   algiersMonth, algiersToday, durationMinutes, monthRange, recentMonths,
 } from "@/components/modules/staff/dates";
 import { fetchProfileNames, memberName, memberNameIn } from "@/lib/member-names";
-import { LEAVE_STATUS_BADGE, MEMBER_STATUS_BADGE, ROLE_BADGE } from "@/components/modules/staff/maps";
+import { LEAVE_STATUS_TONE, MEMBER_STATUS_TONE } from "@/components/modules/staff/maps";
 import type {
   LeaveRequest, MemberStatus, PayrollItemWithRun, ProfileLite, SalaryAdvance, StaffRole,
 } from "@/components/modules/staff/staff-types";
-import { StructureChips } from "@/components/modules/staff/structure-chips";
 import { StaffClassesCard, type StaffClassOption } from "@/components/modules/staff/classes-card";
 import { StructuresCard } from "@/components/modules/staff/structures-card";
-import type { Structure } from "@/components/modules/classes/class-types";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
 
 /** This member's own kg_class_staff rows, joined to the class. */
 type OwnClassRow = {
@@ -62,7 +64,7 @@ export default async function StaffMemberPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; tab?: string }>;
 }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const ctx = await requireStaff();
@@ -219,16 +221,6 @@ export default async function StaffMemberPage({
   const memberStructures = structures.filter(
     (s) => taughtIn.has(s.id) || directStructureIds.includes(s.id)
   );
-  // For the Structures card: which classes put the person in each structure,
-  // so a structure that comes from a class is shown locked and explained.
-  const viaClasses: Record<string, string[]> = {};
-  for (const r of ownClasses) {
-    const sid = r.kg_classes?.structure_id;
-    if (!sid) continue;
-    const cls = (classRows ?? []).find((c) => c.id === r.kg_classes?.id);
-    const label = cls ? (locale === "ar" && cls.name_ar ? cls.name_ar : cls.name) : null;
-    if (label) (viaClasses[sid] ??= []).push(label);
-  }
 
   // The Classes card: every class with its current main educator's name, so
   // the dialog can say who this person would be working under.
@@ -284,7 +276,20 @@ export default async function StaffMemberPage({
     (b.kg_payroll_runs?.month ?? "").localeCompare(a.kg_payroll_runs?.month ?? "")
   );
 
-  const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
+  const statusTone = MEMBER_STATUS_TONE[status];
+
+  // The sections under the identity, as links: the URL says which is open.
+  // Salary first when the month has nothing to show — the director came for
+  // hours, leave or pay, and an empty timesheet is the least useful landing.
+  const tabs: MemberTabKey[] = [];
+  if (canSeeTimesheets) tabs.push("timesheets");
+  if (canSeeLeaves) tabs.push("leaves");
+  if (ctx.isAdmin) tabs.push("cards");
+  if (canSeeSalary) tabs.push("salary");
+  const defaultTab: MemberTabKey =
+    canSeeTimesheets && tsRows.length === 0 && canSeeSalary ? "salary" : (tabs[0] ?? "timesheets");
+  const tab: MemberTabKey = tabs.includes(sp.tab as MemberTabKey) ? (sp.tab as MemberTabKey) : defaultTab;
+
   const monthFmt = new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     year: "numeric",
@@ -292,59 +297,79 @@ export default async function StaffMemberPage({
 
   return (
     <div>
-      <PageHeader title={name} description={member.job_title ?? t(`roles.${role}`)}>
-        <Button asChild variant="ghost">
-          <Link href="/staff">
-            <BackIcon data-icon="inline-start" />
-            {t("detail.backToTeam")}
-          </Link>
-        </Button>
-        {ctx.isAdmin && <EditMemberDialog member={member} name={name} />}
-      </PageHeader>
+      <Link
+        href="/staff"
+        className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden />
+        {t("detail.backToTeam")}
+      </Link>
 
-      <Card className="mb-6 border border-border shadow-sm ring-0">
-        <CardContent className="flex flex-wrap items-center gap-5 py-2">
-          <Avatar className="size-16 ring-2 ring-primary/15">
+      {/* One identity block. The name, the job, the role, the structures,
+          the phone, the code and the hire date each appear here and nowhere
+          else on the page; the status only when it is not "active". */}
+      <IdentityBand
+        leading={
+          <Avatar className="size-14 ring-1 ring-border">
             <AvatarImage src={profile?.avatar_url ?? undefined} alt="" />
             <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
               {initials(parts[0] ?? "", parts[1] ?? "")}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xl font-bold tracking-tight text-foreground">{name}</span>
-              <Badge className={ROLE_BADGE[role]}>{t(`roles.${role}`)}</Badge>
-              <Badge className={MEMBER_STATUS_BADGE[status]}>{t(`memberStatus.${status}`)}</Badge>
-              {manyStructures && <StructureChips structures={memberStructures} locale={locale} />}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
-              {member.job_title && <span>{member.job_title}</span>}
-              {profile?.phone && (
-                <span dir="ltr" className="tabular-nums">{profile.phone}</span>
-              )}
-              {member.hire_date && <span>{t("detail.hiredOn", { date: formatDate(member.hire_date, locale) })}</span>}
-              {member.staff_code && (
-                <span
-                  dir="ltr"
-                  className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
-                >
-                  {member.staff_code}
-                </span>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Where they work, then what they do there. The structures card hides
-          itself for a one-structure building. */}
-      <StructuresCard
-        membershipId={member.id}
-        structures={structures.filter((s) => s.active)}
-        direct={directStructureIds}
-        viaClasses={viaClasses}
-        canManage={ctx.isAdmin}
+        }
+        // The band's h1 is dir=auto, so an Arabic name on the French page
+        // would hug the far edge; the name sits where the page starts.
+        title={<span className="block ltr:text-left rtl:text-right">{name}</span>}
+        subtitle={
+          member.job_title ? (
+            <>
+              <bdi dir="auto">{member.job_title}</bdi>
+              <span aria-hidden> · </span>
+              {t(`roles.${role}`)}
+            </>
+          ) : (
+            t(`roles.${role}`)
+          )
+        }
+        facts={[
+          // No structure at all is the same fact as every structure — the
+          // whole building — and the band says it in words rather than
+          // leaving the person looking as if they work nowhere.
+          ...(manyStructures
+            ? memberStructures.length === 0
+              ? [<span key="whole">{t("classes.wholeBuilding")}</span>]
+              : memberStructures.map((s) => (
+                  <StructureMark
+                    key={s.id}
+                    structure={{ name: structureName(s, locale), color: s.color }}
+                  />
+                ))
+            : []),
+          profile?.phone ? (
+            <span key="phone" dir="ltr" className="tabular-nums">
+              {profile.phone}
+            </span>
+          ) : null,
+          member.staff_code ? (
+            <span key="code" dir="ltr" className="font-mono text-xs tracking-widest">
+              {member.staff_code}
+            </span>
+          ) : null,
+          member.hire_date ? (
+            <span key="hired">{t("detail.hiredOn", { date: formatDate(member.hire_date, locale) })}</span>
+          ) : null,
+          statusTone ? (
+            <StatusPill key="status" tone={statusTone}>
+              {t(`memberStatus.${status}`)}
+            </StatusPill>
+          ) : null,
+        ]}
+        actions={ctx.isAdmin ? <EditMemberDialog member={member} name={name} /> : undefined}
       />
+
+      {/* What they do, then — only for someone on no class — where. An
+          educator's structures are her classes' structures and the Classes
+          card names them in its group rows. */}
       <StaffClassesCard
         membershipId={member.id}
         memberName={name}
@@ -353,33 +378,41 @@ export default async function StaffMemberPage({
         structures={structures}
         canManage={ctx.isAdmin}
       />
+      {ownClasses.length === 0 && (
+        <StructuresCard
+          membershipId={member.id}
+          structures={structures.filter((s) => s.active)}
+          direct={directStructureIds}
+          canManage={ctx.isAdmin}
+        />
+      )}
 
       {hasTabs && (
-        <Tabs defaultValue={canSeeTimesheets ? "timesheets" : canSeeLeaves ? "leaves" : ctx.isAdmin ? "cards" : "salary"}>
-          <TabsList>
-            {canSeeTimesheets && <TabsTrigger value="timesheets">{t("detail.tabs.timesheets")}</TabsTrigger>}
-            {canSeeLeaves && <TabsTrigger value="leaves">{t("detail.tabs.leaves")}</TabsTrigger>}
-            {ctx.isAdmin && <TabsTrigger value="cards">{tCred("title")}</TabsTrigger>}
-            {canSeeSalary && <TabsTrigger value="salary">{t("detail.tabs.salary")}</TabsTrigger>}
-          </TabsList>
+        <>
+          <MemberTabs keys={tabs} defaultKey={defaultTab} ariaLabel={name} />
 
-          {canSeeTimesheets && (
-            <TabsContent value="timesheets" className="mt-4">
-              <Card className="overflow-hidden border border-border shadow-sm ring-0">
-                <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle className="text-base font-semibold tabular-nums">
-                    {t("timesheets.monthTotal", { total: totalLabel })}
-                  </CardTitle>
+          {tab === "timesheets" && (
+            <div>
+              <SectionCard
+                icon={Clock}
+                tone={0}
+                title={t("detail.tabs.timesheets")}
+                // The total is a fact only once there is one; a bold "0 h 0 min"
+                // over an empty month is a number that means nothing.
+                hint={totalMinutes > 0 ? t("timesheets.monthTotal", { total: totalLabel }) : undefined}
+                contentClassName={tsRows.length > 0 ? "px-0" : undefined}
+                className={tsRows.length > 0 ? "pb-0" : undefined}
+                action={
                   <div className="flex items-center gap-2">
                     <MonthSelector value={month} months={recentMonths(12)} />
                     {ctx.isAdmin && (
                       <TimesheetEntryDialog membershipId={member.id} defaultDate={algiersToday()} />
                     )}
                   </div>
-                </CardHeader>
-                <CardContent className="p-0">
+                }
+              >
                   {tsRows.length === 0 ? (
-                    <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("timesheets.empty")}</p>
+                    <p className="text-sm text-muted-foreground">{t("timesheets.empty")}</p>
                   ) : (
                     <Table>
                       <TableHeader>
@@ -389,7 +422,6 @@ export default async function StaffMemberPage({
                           <TableHead>{t("timesheets.columns.out")}</TableHead>
                           <TableHead>{t("timesheets.columns.duration")}</TableHead>
                           {ctx.isAdmin && <TableHead>{t("timesheets.columns.approved")}</TableHead>}
-                          {ctx.isAdmin && <TableHead className="w-10" />}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -402,8 +434,31 @@ export default async function StaffMemberPage({
                             lunchAllowance
                           );
                           return (
-                            <TableRow key={row.id}>
-                              <TableCell>{formatDate(row.date, locale)}</TableCell>
+                            <TableRow
+                              key={row.id}
+                              className={ctx.isAdmin ? "relative transition-colors hover:bg-primary/5" : undefined}
+                            >
+                              <TableCell>
+                                {formatDate(row.date, locale)}
+                                {/* The row is the control: one invisible full-row
+                                    trigger opens the entry's dialog, where the
+                                    approval also lives. No buttons in rows. */}
+                                {ctx.isAdmin && (
+                                  <TimesheetEntryDialog
+                                    membershipId={member.id}
+                                    defaultDate={row.date}
+                                    entry={{
+                                      id: row.id,
+                                      date: row.date,
+                                      clock_in_at: row.clock_in_at,
+                                      clock_out_at: row.clock_out_at,
+                                      break_minutes: row.break_minutes,
+                                      notes: row.notes,
+                                      approved: row.approved,
+                                    }}
+                                  />
+                                )}
+                              </TableCell>
                               <TableCell className="tabular-nums">
                                 {row.clock_in_at ? formatTime(row.clock_in_at, locale) : "—"}
                               </TableCell>
@@ -421,23 +476,11 @@ export default async function StaffMemberPage({
                               </TableCell>
                               {ctx.isAdmin && (
                                 <TableCell>
-                                  <TimesheetApprove id={row.id} membershipId={member.id} approved={row.approved} />
-                                </TableCell>
-                              )}
-                              {ctx.isAdmin && (
-                                <TableCell className="text-end">
-                                  <TimesheetEntryDialog
-                                    membershipId={member.id}
-                                    defaultDate={row.date}
-                                    entry={{
-                                      id: row.id,
-                                      date: row.date,
-                                      clock_in_at: row.clock_in_at,
-                                      clock_out_at: row.clock_out_at,
-                                      break_minutes: row.break_minutes,
-                                      notes: row.notes,
-                                    }}
-                                  />
+                                  {/* Approved is the done state; a day still waiting
+                                      shows nothing rather than a warning on every row. */}
+                                  {row.approved && (
+                                    <StatusPill tone="success">{t("timesheets.columns.approved")}</StatusPill>
+                                  )}
                                 </TableCell>
                               )}
                             </TableRow>
@@ -446,35 +489,35 @@ export default async function StaffMemberPage({
                       </TableBody>
                     </Table>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+              </SectionCard>
+            </div>
           )}
 
-          {ctx.isAdmin && (
-            <TabsContent value="cards" className="mt-4">
-              <Card className="border border-border shadow-sm ring-0">
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold">{tCred("title")}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CredentialCards
-                    subjectType="staff"
-                    subjectId={id}
-                    cards={(cardRows ?? []) as CredentialRow[]}
-                    path={`/staff/${id}`}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
+          {tab === "cards" && (
+            <div>
+              <SectionCard icon={CreditCard} tone={3} title={tCred("title")} hint={t("cards.hint")}>
+                <CredentialCards
+                  subjectType="staff"
+                  subjectId={id}
+                  cards={(cardRows ?? []) as CredentialRow[]}
+                  path={`/staff/${id}`}
+                />
+              </SectionCard>
+            </div>
           )}
 
-          {canSeeLeaves && (
-            <TabsContent value="leaves" className="mt-4">
-              <Card className="overflow-hidden border border-border py-0 shadow-sm ring-0">
-                <CardContent className="overflow-x-auto p-0">
+          {tab === "leaves" && (
+            <div>
+              <SectionCard
+                icon={Palmtree}
+                tone={2}
+                title={t("detail.tabs.leaves")}
+                hint={t("leaves.hint")}
+                contentClassName={(leaves ?? []).length > 0 ? "px-0" : undefined}
+                className={(leaves ?? []).length > 0 ? "pb-0" : undefined}
+              >
                   {(leaves ?? []).length === 0 ? (
-                    <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("leaves.empty")}</p>
+                    <p className="text-sm text-muted-foreground">{t("leaves.empty")}</p>
                   ) : (
                     <Table>
                       <TableHeader>
@@ -494,31 +537,38 @@ export default async function StaffMemberPage({
                                 : lr.leave_type}
                             </TableCell>
                             <TableCell>
-                              {formatDate(lr.start_date, locale)} — {formatDate(lr.end_date, locale)}
+                              <ValueRange
+                                from={formatDate(lr.start_date, locale)}
+                                to={formatDate(lr.end_date, locale)}
+                                separator="–"
+                              />
                             </TableCell>
                             <TableCell className="max-w-56 truncate text-muted-foreground">
                               {lr.reason ?? "—"}
                             </TableCell>
                             <TableCell>
-                              <Badge className={LEAVE_STATUS_BADGE[lr.status]}>{t(`leaves.status.${lr.status}`)}</Badge>
+                              <StatusPill tone={LEAVE_STATUS_TONE[lr.status]}>
+                                {t(`leaves.status.${lr.status}`)}
+                              </StatusPill>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+              </SectionCard>
+            </div>
           )}
 
-          {canSeeSalary && (
-            <TabsContent value="salary" className="mt-4 grid gap-4">
-              <Card className="border border-gold/40 bg-gold/5 shadow-sm ring-0">
+          {tab === "salary" && (
+            <div className="grid gap-4">
+              {/* One gold tile, one number: the pay is the one fact on this
+                  tab that deserves the accent, and the card stays plain. */}
+              <Card className="border border-border shadow-sm ring-0">
                 <CardContent className="flex flex-wrap items-center justify-between gap-3">
                   <span className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gold text-gold-foreground">
-                      <Wallet className="size-4.5" />
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-tile-3 text-gold-ink">
+                      <Wallet className="size-4.5" aria-hidden />
                     </span>
                     {member.pay_type === "hourly" ? t("edit.hourlyRate") : t("salary.baseSalary")}
                   </span>
@@ -536,13 +586,16 @@ export default async function StaffMemberPage({
                 </CardContent>
               </Card>
 
-              <Card className="overflow-hidden border border-border shadow-sm ring-0">
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold">{t("salary.advancesTitle")}</CardTitle>
-                </CardHeader>
-                <CardContent className="overflow-x-auto p-0">
+              <SectionCard
+                icon={HandCoins}
+                tone={0}
+                title={t("salary.advancesTitle")}
+                hint={t("salary.advancesHint")}
+                contentClassName={(advances ?? []).length > 0 ? "px-0" : undefined}
+                className={(advances ?? []).length > 0 ? "pb-0" : undefined}
+              >
                   {(advances ?? []).length === 0 ? (
-                    <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("salary.advancesEmpty")}</p>
+                    <p className="text-sm text-muted-foreground">{t("salary.advancesEmpty")}</p>
                   ) : (
                     <Table>
                       <TableHeader>
@@ -559,12 +612,10 @@ export default async function StaffMemberPage({
                             <TableCell>{formatDate(a.date, locale)}</TableCell>
                             <TableCell className="text-end tabular-nums">{formatDZD(a.amount, locale)}</TableCell>
                             <TableCell>
-                              {a.repaid ? (
-                                <Badge className="border-transparent bg-success/10 font-medium text-success">
-                                  {t("salary.advanceColumns.repaid")}
-                                </Badge>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
+                              {/* Repaid is the done state; an open advance shows
+                                  nothing, so the one settled row stands out. */}
+                              {a.repaid && (
+                                <StatusPill tone="success">{t("salary.advanceColumns.repaid")}</StatusPill>
                               )}
                             </TableCell>
                             <TableCell className="max-w-56 truncate text-muted-foreground">{a.note ?? "—"}</TableCell>
@@ -573,16 +624,18 @@ export default async function StaffMemberPage({
                       </TableBody>
                     </Table>
                   )}
-                </CardContent>
-              </Card>
+              </SectionCard>
 
-              <Card className="overflow-hidden border border-border shadow-sm ring-0">
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold">{t("salary.payrollTitle")}</CardTitle>
-                </CardHeader>
-                <CardContent className="overflow-x-auto p-0">
+              <SectionCard
+                icon={Receipt}
+                tone={3}
+                title={t("salary.payrollTitle")}
+                hint={t("salary.payrollHint")}
+                contentClassName={payroll.length > 0 ? "px-0" : undefined}
+                className={payroll.length > 0 ? "pb-0" : undefined}
+              >
                   {payroll.length === 0 ? (
-                    <p className="m-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">{t("salary.payrollEmpty")}</p>
+                    <p className="text-sm text-muted-foreground">{t("salary.payrollEmpty")}</p>
                   ) : (
                     <Table>
                       <TableHeader>
@@ -623,11 +676,10 @@ export default async function StaffMemberPage({
                       </TableBody>
                     </Table>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+              </SectionCard>
+            </div>
           )}
-        </Tabs>
+        </>
       )}
     </div>
   );

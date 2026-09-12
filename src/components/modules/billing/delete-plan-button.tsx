@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Trash2 } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -13,24 +13,73 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { deletePlan } from "./actions";
 
-/** Delete a fee plan (refused while children are still assigned to it). */
-export function DeletePlanButton({ planId }: { planId: string }) {
+/**
+ * The row's overflow: deleting is its only item, and the only destructive
+ * thing on the page — inside a menu, never a red bin on every row. Editing
+ * needs no item: the plan's name is the editor.
+ */
+export function PlanRowMenu({ planId }: { planId: string }) {
+  const t = useTranslations("billing");
+  const tc = useTranslations("common");
+  const [deleting, setDeleting] = useState(false);
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-sm" aria-label={t("plans.more")} title={t("plans.more")}>
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
+            {tc("actions.delete")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DeletePlanButton planId={planId} open={deleting} onOpenChange={setDeleting} />
+    </>
+  );
+}
+
+/**
+ * The confirm for deleting a fee plan (refused while children are still
+ * assigned to it).
+ *
+ * Controlled from outside: the only thing that opens it is the destructive
+ * item of the row's "…" menu, and a Radix menu closes on select, so the
+ * dialog has to be mounted beside the menu rather than inside it — the same
+ * shape as the holidays row. No trigger of its own, and never a red bin on
+ * every row.
+ */
+export function DeletePlanButton({
+  planId,
+  open,
+  onOpenChange,
+}: {
+  planId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const t = useTranslations("billing");
   const tc = useTranslations("common");
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function confirm() {
     startTransition(async () => {
       const res = await deletePlan(planId);
       if (res.ok) {
-        setOpen(false);
+        onOpenChange(false);
         toast.success(t("plans.deleted"));
         router.refresh();
       } else {
@@ -40,12 +89,7 @@ export function DeletePlanButton({ planId }: { planId: string }) {
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={tc("actions.delete")}>
-          <Trash2 className="text-destructive" />
-        </Button>
-      </AlertDialogTrigger>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{t("plans.deleteTitle")}</AlertDialogTitle>

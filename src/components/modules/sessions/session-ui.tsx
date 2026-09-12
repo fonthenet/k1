@@ -8,13 +8,18 @@ import {
   PROGRAM_STATUS_TONE,
   STATUS_TONE,
   TYPE_DOT,
-  TYPE_TONE,
   monogram,
   type ProgramStatus,
   type SessionStatus,
   type SessionType,
 } from "./session-types";
 
+/**
+ * The one mark for a session type: the class chip's shape — an outline badge
+ * on a faint wash — with the type's colour as a 6px dot. It used to be a
+ * tinted badge per type, which put a second coloured box next to the status
+ * pill on every row; the dot says the type, the outline says nothing else.
+ */
 export function TypeChip({
   type,
   label,
@@ -25,7 +30,7 @@ export function TypeChip({
   className?: string;
 }) {
   return (
-    <Badge className={cn(TYPE_TONE[type], "gap-1.5 font-medium", className)}>
+    <Badge variant="outline" className={cn("gap-1.5 bg-muted/50 font-normal", className)}>
       <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", TYPE_DOT[type])} />
       {label}
     </Badge>

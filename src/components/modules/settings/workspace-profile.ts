@@ -1,21 +1,14 @@
-import type { CenterType } from "./center-types";
+import { isCenterType, type CenterType } from "./center-types";
 
+/**
+ * The one type a scope is read through, or "mixed" when it has several.
+ *
+ * This decides what a page SHOWS (the dashboard's tiles, the learning
+ * profile), never what the navigation lists: the menu is one map in one order
+ * for every scope. It used to carry per-type "priorities" that reordered the
+ * rail; those are gone, and nothing should bring them back through here.
+ */
 export type WorkspaceType = CenterType | "mixed";
-
-// Presentation priorities only. Route authorization remains role/RLS based.
-export const WORKSPACE_PRIORITIES = {
-  nursery: ["attendance", "children", "learning", "menus"],
-  kindergarten: ["classes", "learning", "activities", "attendance"],
-  montessori: ["learning", "activities", "children", "classes"],
-  edu_center: ["learning", "classes", "children", "attendance"],
-  therapy_center: ["sessions", "children", "calendar", "messages"],
-  activity_center: ["activities", "learning", "classes", "attendance"],
-  camp: ["learning", "activities", "attendance", "kiosk"],
-  private_primary: ["learning", "classes", "children", "attendance"],
-  private_middle: ["learning", "classes", "attendance", "children"],
-  private_secondary: ["learning", "classes", "children", "attendance"],
-  mixed: ["classes", "learning", "staff", "billing"],
-} as const satisfies Record<WorkspaceType, readonly string[]>;
 
 export function workspaceType(
   structures: readonly { id: string; center_type: string }[],
@@ -25,5 +18,5 @@ export function workspaceType(
   const types = new Set(active ? [active.center_type] : structures.map((s) => s.center_type));
   if (types.size !== 1) return "mixed";
   const type = [...types][0];
-  return Object.hasOwn(WORKSPACE_PRIORITIES, type) ? type as WorkspaceType : "mixed";
+  return isCenterType(type) ? type : "mixed";
 }

@@ -36,18 +36,27 @@
     "noFeePlan": {
       "title": "{count, plural, one {1 enrolled child is not invoiced monthly} other {# enrolled children are not invoiced monthly}}",
       "body": "With no fee plan, the monthly run skips them.",
-      "action": "Assign a fee plan"
+      "action": "Assign a fee plan",
+      "group": "No fee plan"
     },
     "incomplete": {
       "title": "{count, plural, one {# invoice this month is incomplete} other {# invoices this month are incomplete}}",
       "body": "Charges that are owed are missing from them — {amount} in total. Invoices already settled are left alone.",
       "action": "Complete the invoices",
-      "done": "{count, plural, =0 {Nothing to add} one {# invoice completed — {amount} added} other {# invoices completed — {amount} added}}"
+      "done": "{count, plural, =0 {Nothing to add} one {# invoice completed — {amount} added} other {# invoices completed — {amount} added}}",
+      "group": "Incomplete invoices",
+      "rowHint": "Charges owed are missing from the invoice"
     },
     "drafts": {
       "title": "{count, plural, one {# invoice this month is still a draft} other {# invoices this month are still drafts}}",
       "body": "Not issued, invisible to families — {amount} in total. On issue the due date will be set to {dueDate}."
-    }
+    },
+    "invoicesTab": "Invoices",
+    "searchPlaceholder": "Search a child or a number",
+    "count": "{count, plural, =0 {No invoices} one {# invoice} other {# invoices}}",
+    "noMatch": "No invoice matches these filters.",
+    "todoHint": "{count, plural, one {# item needs action this month} other {# items need action this month}}",
+    "seeAll": "See all {count} children"
   },
   "status": {
     "draft": "Draft",
@@ -213,7 +222,7 @@
     "dateFr": "Date",
     "dateAr": "التاريخ",
     "childFr": "Enfant",
-    "childAr": "الطفل(ة)",
+    "childAr": "الطفل",
     "methodFr": "Mode de paiement",
     "methodAr": "طريقة الدفع",
     "invoiceFr": "Facture",
@@ -252,7 +261,32 @@
     "copied": "Receipt copied",
     "share": "Share",
     "printing": "Preparing…",
-    "printFailed": "Could not prepare the receipt."
+    "printFailed": "Could not prepare the receipt.",
+    "payerFr": "Reçu de",
+    "payerAr": "استُلم من",
+    "classFr": "Classe",
+    "classAr": "القسم",
+    "detailFr": "Détail",
+    "detailAr": "التفاصيل",
+    "colDescriptionFr": "Désignation",
+    "colDescriptionAr": "البيان",
+    "colAmountFr": "Montant",
+    "colAmountAr": "المبلغ",
+    "discountFr": "Remise",
+    "discountAr": "تخفيض",
+    "invoiceTotalFr": "Total de la facture",
+    "invoiceTotalAr": "مجموع الفاتورة",
+    "previousFr": "Versements précédents",
+    "previousAr": "الدفعات السابقة",
+    "thisPaymentFr": "Ce versement",
+    "thisPaymentAr": "هذه الدفعة",
+    "balanceFr": "Reste à payer",
+    "balanceAr": "المبلغ المتبقي",
+    "settledFr": "Facture soldée",
+    "settledAr": "الفاتورة مسدّدة",
+    "noteFr": "Note",
+    "noteAr": "ملاحظة",
+    "backPortal": "Back to payments"
   },
   "plans": {
     "title": "Fee plans",
@@ -318,7 +352,11 @@
       "success": "Plan assigned",
       "successBilled": "Plan assigned — {amount} added to this month's invoice",
       "successNotBilled": "Plan assigned, but this month's invoice could not be updated. Please check it."
-    }
+    },
+    "columns": {
+      "children": "Children"
+    },
+    "more": "More actions"
   },
   "structures": {
     "all": "All structures",
@@ -362,7 +400,9 @@
     "monthsOwed": "{count, plural, =0 {None} one {# month} other {# months}}",
     "dueSince": "Due {date}",
     "noGuardian": "No number on file",
-    "loadError": "We couldn't load the family list. The aging table below still works."
+    "loadError": "We couldn't load the family list. The aging table below still works.",
+    "asOf": "as of {date}",
+    "count": "{count, plural, =0 {No families} one {# family} other {# families}}"
   },
   "error": {
     "title": "Something went wrong",

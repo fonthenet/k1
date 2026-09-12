@@ -1,5 +1,6 @@
+import { Fragment } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
-import { BadgeCheck, HandCoins, Hourglass, TriangleAlert, Wallet } from "lucide-react";
+import { BadgeCheck, HandCoins, Hourglass, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
@@ -7,10 +8,11 @@ import { formatDZD, formatDate, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SectionCard } from "@/components/shared/section-card";
+import { StatCard } from "@/components/shared/stat-card";
+import { StatusPill } from "@/components/shared/status-pill";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -23,13 +25,6 @@ import { AccountingNav } from "@/components/modules/accounting/nav-tabs";
 import { AdvanceDialog } from "@/components/modules/accounting/advance-dialog";
 import { AdvanceDecisionButtons } from "@/components/modules/accounting/advance-decision-buttons";
 import { AdvanceRepaidButton } from "@/components/modules/accounting/advance-repaid-button";
-import {
-  EmptyIcon,
-  IconTile,
-  MoneyStat,
-  TONE_PILL,
-  type FinanceTone,
-} from "@/components/modules/billing/finance-ui";
 import { StaffLink } from "@/components/shared/entity-link";
 import type { MemberOption } from "@/components/modules/accounting/types";
 
@@ -84,9 +79,9 @@ export default async function AdvancesPage({
   searchParams,
 }: {
   // `advance` arrives from the ledger, which links a payout row back to the
-  // advance it was posted from. There is no page per advance — this one is tabs
-  // over a single list — so the id opens the tab the row is actually in and
-  // marks it, and the matching hash scrolls to it.
+  // advance it was posted from. There is no page per advance — this one is a
+  // single grouped list — so the id marks the row, and the matching hash
+  // scrolls to it.
   searchParams: Promise<{ advance?: string }>;
 }) {
   const ctx = await requireFinance();
@@ -174,34 +169,36 @@ export default async function AdvancesPage({
   const totalOutstanding = outstanding.reduce((s, r) => s + r.amount, 0);
   const totalRepaid = repaid.reduce((s, r) => s + r.amount, 0);
 
-  // Which tab holds the advance the ledger sent us to. Landing on "outstanding"
-  // when the row is filed under "repaid" is the same as not linking at all.
+  // The row a link asked for: tinted, and the anchor the hash scrolls to.
   const focusId = (await searchParams).advance ?? null;
-  const focusTab =
-    focusId === null
-      ? null
-      : repaid.some((r) => r.id === focusId)
-        ? "repaid"
-        : rejected.some((r) => r.id === focusId)
-          ? "rejected"
-          : outstanding.some((r) => r.id === focusId)
-            ? "outstanding"
-            : null;
 
-  const labels: TableLabels = {
-    member: t("advances.member"),
-    amount: t("advances.amount"),
-    date: t("advances.date"),
-    note: t("advances.note"),
-    count: (count: number) => t("advances.count", { count }),
-    queued: t("advances.queuedInPayroll"),
-    viaPayroll: t("advances.viaPayroll"),
-    repaid: t("advances.repaid"),
-    approved: t("advances.approved"),
-    rejected: t("advances.rejected"),
-    decisionNote: t("advances.decisionNote"),
-    decidedOn: (date: string) => t("advances.decidedOn", { date }),
-  };
+  // The register, in the order the money moves: still out, then back, then
+  // never lent. An empty group is not drawn — an empty "Refusées" would be a
+  // permanent reminder of an event that may never have happened.
+  const groups = [
+    { key: "outstanding", label: t("advances.outstanding"), rows: outstanding },
+    { key: "repaid", label: t("advances.repaid"), rows: repaid },
+    { key: "rejected", label: t("advances.rejected"), rows: rejected },
+  ].filter((g) => g.rows.length > 0);
+
+  const tableClass =
+    "[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5";
+
+  /** The person, the same in both tables: an inline link — an advance has no page of its own. */
+  const memberCell = (row: AdvanceRow) => (
+    <TableCell>
+      <div className="font-medium">
+        <StaffLink id={row.membershipId}>
+          <bdi dir="auto">{row.memberName}</bdi>
+        </StaffLink>
+      </div>
+      {row.jobTitle && (
+        <div className="text-xs text-muted-foreground">
+          <bdi dir="auto">{row.jobTitle}</bdi>
+        </div>
+      )}
+    </TableCell>
+  );
 
   return (
     <div className="space-y-6">
@@ -218,378 +215,196 @@ export default async function AdvancesPage({
         </Alert>
       )}
 
-      {/* Above the money, because it is the only thing on this page that is
-          waiting on a human. Nothing here is counted in the totals below. */}
-      <RequestedAdvances
-        rows={requested}
-        locale={locale}
-        title={t("advances.pending")}
-        countLabel={t("advances.pendingCount", { count: requested.length })}
-        emptyTitle={t("advances.emptyRequested")}
-        reasonLabel={t("advances.reason")}
-        requestedOn={(date) => t("advances.requestedOn", { date })}
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <MoneyStat
-          label={t("advances.totalOutstanding")}
-          value={formatDZD(totalOutstanding, locale)}
-          hint={t("advances.count", { count: outstanding.length })}
+      {rows.length === 0 ? (
+        <EmptyState
           icon={<HandCoins />}
-          tone={totalOutstanding > 0 ? "gold" : "muted"}
-          highlight={totalOutstanding > 0}
+          title={t("advances.emptyOutstanding")}
+          description={members.length === 0 ? t("errors.noStaff") : t("advances.addDesc")}
         />
-        <MoneyStat
-          label={t("advances.repaid")}
-          value={formatDZD(totalRepaid, locale)}
-          hint={t("advances.count", { count: repaid.length })}
-          icon={<BadgeCheck />}
-          tone="income"
-        />
-      </div>
-
-      <Tabs defaultValue={focusTab ?? "outstanding"}>
-        <div className="overflow-x-auto pb-1">
-          <TabsList>
-            <TabsTrigger value="outstanding">
-              {t("advances.outstanding")}
-              <span className="ms-1.5 rounded-4xl bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">
-                {outstanding.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="repaid">
-              {t("advances.repaid")}
-              <span className="ms-1.5 rounded-4xl bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">
-                {repaid.length}
-              </span>
-            </TabsTrigger>
-            {/* Only once there is something to look at: an empty "Rejected" tab is
-                a permanent reminder of an event that may never have happened. */}
-            {rejected.length > 0 && (
-              <TabsTrigger value="rejected">
-                {t("advances.rejected")}
-                <span className="ms-1.5 rounded-4xl bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">
-                  {rejected.length}
-                </span>
-              </TabsTrigger>
-            )}
-          </TabsList>
-        </div>
-
-        <TabsContent value="outstanding" className="mt-4">
-          <AdvancesTable
-            rows={outstanding}
-            locale={locale}
-            focusId={focusId}
-            emptyTitle={t("advances.emptyOutstanding")}
-            emptyHint={members.length === 0 ? t("errors.noStaff") : t("advances.addDesc")}
-            totalLabel={t("advances.totalOutstanding")}
-            totalTone="gold"
-            labels={labels}
-          />
-        </TabsContent>
-
-        <TabsContent value="repaid" className="mt-4">
-          <AdvancesTable
-            rows={repaid}
-            locale={locale}
-            focusId={focusId}
-            emptyTitle={t("advances.emptyRepaid")}
-            totalLabel={t("advances.repaid")}
-            totalTone="income"
-            labels={labels}
-          />
-        </TabsContent>
-
-        {rejected.length > 0 && (
-          <TabsContent value="rejected" className="mt-4">
-            {/* No total: nothing was lent, so a sum here would read as money that
-                went somewhere. The count is the only honest figure. */}
-            <AdvancesTable
-              rows={rejected}
-              locale={locale}
-              focusId={focusId}
-              emptyTitle={t("advances.emptyRequested")}
-              labels={labels}
-            />
-          </TabsContent>
-        )}
-      </Tabs>
-    </div>
-  );
-}
-
-/**
- * The requests waiting on finance.
- *
- * Deliberately not a row in the tables below: those are advances the school has
- * already paid out, and a request is the opposite of that — a question. Rows,
- * not a table, because each one carries a reason in the employee's own words and
- * two buttons, neither of which fits a money column.
- */
-function RequestedAdvances({
-  rows,
-  locale,
-  title,
-  countLabel,
-  emptyTitle,
-  reasonLabel,
-  requestedOn,
-}: {
-  rows: AdvanceRow[];
-  locale: string;
-  title: string;
-  countLabel: string;
-  emptyTitle: string;
-  reasonLabel: string;
-  requestedOn: (date: string) => string;
-}) {
-  return (
-    <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-      <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-3">
-        <IconTile tone="primary" size="sm">
-          <Hourglass />
-        </IconTile>
-        <div className="min-w-0">
-          <div className="text-sm font-semibold">{title}</div>
-          <div className="text-xs text-muted-foreground">{countLabel}</div>
-        </div>
-      </div>
-
-      <CardContent className="p-0">
-        {rows.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-muted-foreground">{emptyTitle}</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {rows.map((row) => (
-              <li key={row.id} className="flex flex-wrap items-start gap-4 p-4">
-                <div className="min-w-56 flex-1">
-                  <div className="font-medium">
-                    <StaffLink id={row.membershipId}>{row.memberName}</StaffLink>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {[row.jobTitle, requestedOn(formatDate(row.date, locale))]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </div>
-                  {row.note && (
-                    <div className="mt-2 rounded-lg bg-muted/60 px-3 py-2">
-                      <div className="text-xs font-medium text-muted-foreground">
-                        {reasonLabel}
-                      </div>
-                      <p className="mt-0.5 text-sm">{row.note}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col items-end gap-2">
-                  <span className="text-lg font-bold tabular-nums">
-                    {formatDZD(row.amount, locale)}
-                  </span>
-                  <AdvanceDecisionButtons
-                    advanceId={row.id}
-                    memberName={row.memberName}
-                    amountLabel={formatDZD(row.amount, locale)}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-interface TableLabels {
-  member: string;
-  amount: string;
-  date: string;
-  note: string;
-  count: (count: number) => string;
-  queued: string;
-  viaPayroll: string;
-  repaid: string;
-  approved: string;
-  rejected: string;
-  decisionNote: string;
-  decidedOn: (date: string) => string;
-}
-
-/** Shared table body for the outstanding / repaid tabs. */
-function AdvancesTable({
-  rows,
-  locale,
-  emptyTitle,
-  emptyHint,
-  totalLabel,
-  totalTone,
-  labels,
-  focusId,
-}: {
-  rows: AdvanceRow[];
-  locale: string;
-  emptyTitle: string;
-  emptyHint?: string;
-  /** Omit for a tab where no money changed hands — a sum there would be a lie. */
-  totalLabel?: string;
-  totalTone?: FinanceTone;
-  labels: TableLabels;
-  /** The advance a link asked for. Tinted, and the anchor the hash scrolls to. */
-  focusId?: string | null;
-}) {
-  const total = rows.reduce((s, r) => s + r.amount, 0);
-
-  return (
-    <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-      <CardContent className="p-0">
-        {rows.length === 0 ? (
-          <div className="p-6">
-            <EmptyState
-              icon={
-                <EmptyIcon tone="muted">
-                  <Wallet />
-                </EmptyIcon>
-              }
-              title={emptyTitle}
-              description={emptyHint}
-            />
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
-                  <TableRow>
-                    <TableHead className="ps-4">{labels.member}</TableHead>
-                    <TableHead>{labels.date}</TableHead>
-                    <TableHead>{labels.note}</TableHead>
-                    <TableHead className="text-end">{labels.amount}</TableHead>
-                    <TableHead className="w-44 pe-4" />
+      ) : (
+        <>
+          {/* Above the money, because it is the only thing on this page that
+              is waiting on a human. Nothing here is counted in the totals
+              below. The reason wraps in full — it is what the decision rests
+              on — and the two buttons sit in the last cell. */}
+          <SectionCard
+            icon={Hourglass}
+            tone={1}
+            title={t("advances.pending")}
+            hint={t("advances.pendingCount", { count: requested.length })}
+            className="pb-0"
+            contentClassName="px-0"
+          >
+            {requested.length === 0 ? (
+              <p className="px-5 pb-4 text-sm text-muted-foreground">
+                {t("advances.emptyRequested")}
+              </p>
+            ) : (
+              <Table className={cn(tableClass, "border-t border-border")}>
+                <TableHeader>
+                  <TableRow className="[&>th]:font-semibold">
+                    <TableHead>{t("advances.member")}</TableHead>
+                    <TableHead>{t("advances.requestDate")}</TableHead>
+                    <TableHead>{t("advances.reason")}</TableHead>
+                    <TableHead className="text-end">{t("advances.amount")}</TableHead>
+                    <TableHead className="w-44">
+                      <span className="sr-only">{t("advances.decision")}</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      id={`advance-${row.id}`}
-                      // scroll-mt so the hash does not park the row under the
-                      // dashboard's sticky header.
-                      className={cn(
-                        "h-14 scroll-mt-24",
-                        row.id === focusId && "bg-primary/5"
-                      )}
-                    >
-                      <TableCell className="ps-4">
-                        <div className="font-medium">
-                          <StaffLink id={row.membershipId}>{row.memberName}</StaffLink>
-                        </div>
-                        {row.jobTitle && (
-                          <div className="text-xs text-muted-foreground">{row.jobTitle}</div>
-                        )}
-                      </TableCell>
+                  {requested.map((row) => (
+                    <TableRow key={row.id} className="align-top transition-colors hover:bg-primary/5">
+                      {memberCell(row)}
                       <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
                         {formatDate(row.date, locale)}
                       </TableCell>
-                      <TableCell className="max-w-72">
-                        {row.note ? (
-                          <span className="line-clamp-2 text-sm text-muted-foreground">
-                            {row.note}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
-                        )}
-                        {/* Why finance said no, in their words. It is the only
-                            explanation the employee ever gets, so it belongs
-                            next to the request it answers. */}
-                        {row.decisionNote && (
-                          <span className="mt-1.5 block text-xs">
-                            <span className="font-medium">{labels.decisionNote}</span>
-                            <span className="block text-muted-foreground">
-                              {row.decisionNote}
-                            </span>
-                          </span>
-                        )}
+                      <TableCell className="max-w-md min-w-56 text-sm text-muted-foreground">
+                        {row.note ? <bdi dir="auto">{row.note}</bdi> : "—"}
                       </TableCell>
-                      <TableCell className="text-end font-semibold tabular-nums">
+                      <TableCell className="whitespace-nowrap text-end font-medium tabular-nums">
                         {formatDZD(row.amount, locale)}
                       </TableCell>
-                      <TableCell className="pe-4 text-end">
-                        {/* Rejected is a neutral fact — no money left the school —
-                            so it gets the grey pill, not an alarm colour. */}
-                        {row.status === "rejected" ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <Badge className={TONE_PILL.muted}>{labels.rejected}</Badge>
-                            {row.decidedAt && (
-                              <span className="text-xs text-muted-foreground">
-                                {[
-                                  labels.decidedOn(formatDate(row.decidedAt, locale)),
-                                  row.decidedByName,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ")}
-                              </span>
-                            )}
-                          </div>
-                        ) : row.repaid ? (
-                          <Badge className={TONE_PILL.success}>
-                            <BadgeCheck />
-                            {row.viaPayroll ? labels.viaPayroll : labels.repaid}
-                          </Badge>
-                        ) : (
-                          <div className="flex flex-wrap items-center justify-end gap-1.5">
-                            {/* One status chip per row. "Queued in a payroll" already
-                                says the advance was granted, so the plain "approved"
-                                chip only appears when nothing else is saying it —
-                                which is what separates real money out from a request
-                                still waiting upstairs. */}
-                            {row.viaPayroll ? (
-                              <Badge className={TONE_PILL.gold}>{labels.queued}</Badge>
-                            ) : (
-                              <Badge className={TONE_PILL.muted}>{labels.approved}</Badge>
-                            )}
-                            {/* No button once the run is finalized: the deduction is
-                                locked in, so the only honest thing left is to pay the
-                                run. Offering "mark repaid" here is what charged an
-                                employee twice. */}
-                            {!row.payrollLocked && (
-                              <AdvanceRepaidButton
-                                advanceId={row.id}
-                                memberName={row.memberName}
-                                amountLabel={formatDZD(row.amount, locale)}
-                                detachesFromPayroll={row.payrollDraft}
-                              />
-                            )}
-                          </div>
-                        )}
+                      <TableCell className="w-44">
+                        <AdvanceDecisionButtons
+                          advanceId={row.id}
+                          memberName={row.memberName}
+                          amountLabel={formatDZD(row.amount, locale)}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            )}
+          </SectionCard>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-3 text-sm">
-              <span className="text-muted-foreground">{labels.count(rows.length)}</span>
-              {totalLabel && (
-                <span className="flex items-center gap-2 tabular-nums">
-                  <span className="text-muted-foreground">{totalLabel} :</span>
-                  <span
-                    className={cn(
-                      "rounded-4xl px-2.5 py-0.5 font-bold",
-                      totalTone === "gold"
-                        ? "bg-gold-muted text-gold-ink"
-                        : "bg-success/15 text-success"
-                    )}
-                  >
-                    {formatDZD(total, locale)}
-                  </span>
-                </span>
-              )}
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatCard
+              label={t("advances.totalOutstanding")}
+              value={formatDZD(totalOutstanding, locale)}
+              hint={t("advances.count", { count: outstanding.length })}
+              icon={<HandCoins />}
+              tone="gold"
+            />
+            <StatCard
+              label={t("advances.repaid")}
+              value={formatDZD(totalRepaid, locale)}
+              hint={t("advances.count", { count: repaid.length })}
+              icon={<BadgeCheck />}
+              tone="success"
+            />
+          </div>
+
+          {groups.length > 0 && (
+            <Card className="border border-border py-0 shadow-sm ring-0">
+              <CardContent className="px-0">
+                <Table className={tableClass}>
+                  <TableHeader>
+                    <TableRow className="[&>th]:font-semibold">
+                      <TableHead>{t("advances.member")}</TableHead>
+                      <TableHead>{t("advances.date")}</TableHead>
+                      <TableHead>{t("advances.reason")}</TableHead>
+                      <TableHead className="text-end">{t("advances.amount")}</TableHead>
+                      <TableHead>{t("payroll.status")}</TableHead>
+                      <TableHead className="w-12">
+                        <span className="sr-only">{t("advances.markRepaid")}</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groups.map((g) => (
+                      <Fragment key={g.key}>
+                        {/* Group rows inside the one table: the status is said
+                            once here, so no row repeats it as a pill. */}
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell colSpan={6} className="py-1.5 text-xs">
+                            <span className="flex items-center gap-2">
+                              <span className="font-semibold">{g.label}</span>
+                              <span className="text-muted-foreground tabular-nums">
+                                {t("advances.count", { count: g.rows.length })}
+                              </span>
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                        {g.rows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            id={`advance-${row.id}`}
+                            // scroll-mt so the hash does not park the row under
+                            // the dashboard's sticky header.
+                            className={cn(
+                              "scroll-mt-24 align-top transition-colors hover:bg-primary/5",
+                              row.id === focusId && "bg-primary/5"
+                            )}
+                          >
+                            {memberCell(row)}
+                            <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
+                              {formatDate(row.date, locale)}
+                            </TableCell>
+                            <TableCell className="max-w-md min-w-56 text-sm text-muted-foreground">
+                              {row.note ? <bdi dir="auto">{row.note}</bdi> : "—"}
+                              {/* Why finance said no, in their words. It is the
+                                  only explanation the employee ever gets, so it
+                                  belongs next to the request it answers. */}
+                              {/* Each on its own line, so an Arabic note and a
+                                  French date never share one bidi run. */}
+                              {row.decisionNote && (
+                                <bdi dir="auto" className="mt-1 block text-xs">
+                                  {row.decisionNote}
+                                </bdi>
+                              )}
+                              {row.status === "rejected" && row.decidedAt && (
+                                <span className="mt-1 block text-xs">
+                                  {t("advances.decidedOn", { date: formatDate(row.decidedAt, locale) })}
+                                  {row.decidedByName && (
+                                    <>
+                                      <span aria-hidden> · </span>
+                                      <bdi dir="auto">{row.decidedByName}</bdi>
+                                    </>
+                                  )}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-end font-medium tabular-nums">
+                              {formatDZD(row.amount, locale)}
+                            </TableCell>
+                            <TableCell>
+                              {/* Only the payroll variants: the group row already
+                                  says approved, repaid or refused. */}
+                              {row.status === "approved" && row.viaPayroll && (
+                                <StatusPill tone={row.repaid ? "success" : "attention"}>
+                                  {row.repaid ? t("advances.viaPayroll") : t("advances.queuedInPayroll")}
+                                </StatusPill>
+                              )}
+                            </TableCell>
+                            <TableCell className="w-12">
+                              {/* No tick once the run is finalized: the deduction
+                                  is locked in, so the only honest thing left is
+                                  to pay the run. Offering "mark repaid" here is
+                                  what charged an employee twice. */}
+                              {row.status === "approved" && !row.repaid && !row.payrollLocked && (
+                                <span className="flex items-center justify-end">
+                                  <AdvanceRepaidButton
+                                    advanceId={row.id}
+                                    memberName={row.memberName}
+                                    amountLabel={formatDZD(row.amount, locale)}
+                                    detachesFromPayroll={row.payrollDraft}
+                                  />
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
   );
 }

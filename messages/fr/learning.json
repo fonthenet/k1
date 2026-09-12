@@ -35,76 +35,90 @@
     "sensory": {
       "title": "Découverte sensorielle",
       "objectives": "Explorer les textures, les sons et les couleurs par le jeu accompagné. Observer les réactions de chaque enfant et respecter son rythme.",
-      "activities": "Exploration des textures\nDécouverte des sons\nTri des couleurs"
+      "activities": "Exploration des textures\nDécouverte des sons\nTri des couleurs",
+      "summary": "Textures, sons et couleurs"
     },
     "movement": {
       "title": "Motricité et coordination",
       "objectives": "Travailler l'équilibre, la coordination et le mouvement avec des jeux accompagnés adaptés à l'âge.",
-      "activities": "Jeux d'équilibre\nRythme et mouvement\nParcours moteur simple"
+      "activities": "Jeux d'équilibre\nRythme et mouvement\nParcours moteur simple",
+      "summary": "Équilibre et coordination"
     },
     "routines": {
       "title": "Routines et autonomie",
       "objectives": "Accompagner la participation aux routines quotidiennes avec une aide adaptée aux besoins de chaque enfant.",
-      "activities": "Rituel d'accueil\nRangement collectif\nPréparation des transitions"
+      "activities": "Rituel d'accueil\nRangement collectif\nPréparation des transitions",
+      "summary": "Routines du jour, autonomie"
     },
     "stories": {
       "title": "Langage et histoires",
       "objectives": "Développer l'écoute, le vocabulaire et l'expression orale à travers les histoires, les images et les échanges.",
-      "activities": "Discussion autour d'un album\nRaconter une histoire\nComptines et jeux de mots"
+      "activities": "Discussion autour d'un album\nRaconter une histoire\nComptines et jeux de mots",
+      "summary": "Écouter, parler, raconter"
     },
     "numbers": {
       "title": "Nombres et formes",
       "objectives": "Découvrir le dénombrement, le tri et les formes avec du matériel concret et des jeux.",
-      "activities": "Tri d'objets\nJeux de comptage\nDécouverte des formes"
+      "activities": "Tri d'objets\nJeux de comptage\nDécouverte des formes",
+      "summary": "Compter, trier, les formes"
     },
     "creative": {
       "title": "Expression créative",
       "objectives": "Explorer des matériaux et exprimer ses idées par l'art, la musique et des projets collectifs.",
-      "activities": "Dessin et collage\nAtelier rythmique\nCréation collective"
+      "activities": "Dessin et collage\nAtelier rythmique\nCréation collective",
+      "summary": "Art, musique, projets"
     },
     "practical": {
       "title": "Vie pratique",
       "objectives": "Développer la concentration, la coordination et l'autonomie avec des tâches quotidiennes soigneusement préparées.",
-      "activities": "Verser et transvaser\nPrendre soin du matériel\nRanger son travail"
+      "activities": "Verser et transvaser\nPrendre soin du matériel\nRanger son travail",
+      "summary": "Tâches du quotidien"
     },
     "arabic": {
       "title": "Langue arabe",
       "objectives": "Choisir une unité adaptée au niveau et définir les objectifs de lecture, d'expression orale et d'écriture.",
-      "activities": "Lecture guidée\nTravail du vocabulaire\nCourte production écrite"
+      "activities": "Lecture guidée\nTravail du vocabulaire\nCourte production écrite",
+      "summary": "Lire, parler, écrire"
     },
     "maths": {
       "title": "Mathématiques",
       "objectives": "Choisir un thème adapté au niveau du groupe. Construire la compréhension par des exemples, des exercices et la résolution de problèmes.",
-      "activities": "Découverte d'une notion\nExercices guidés\nRésolution de problèmes"
+      "activities": "Découverte d'une notion\nExercices guidés\nRésolution de problèmes",
+      "summary": "Exemples, exercices, problèmes"
     },
     "french": {
       "title": "Langue française",
       "objectives": "Adapter les objectifs de vocabulaire, d'écoute, d'expression orale et d'écriture au niveau linguistique du groupe.",
-      "activities": "Activité d'écoute\nConversation guidée\nLecture et écriture"
+      "activities": "Activité d'écoute\nConversation guidée\nLecture et écriture",
+      "summary": "Vocabulaire, oral, écrit"
     },
     "english": {
       "title": "Langue anglaise",
       "objectives": "Développer le vocabulaire et la communication à travers des tâches adaptées au niveau linguistique du groupe.",
-      "activities": "Écoute et vocabulaire\nConversation en binômes\nCourte tâche de lecture ou d'écriture"
+      "activities": "Écoute et vocabulaire\nConversation en binômes\nCourte tâche de lecture ou d'écriture",
+      "summary": "Vocabulaire et communication"
     },
     "science": {
       "title": "Exploration scientifique",
       "objectives": "Choisir un thème adapté au niveau. Travailler l'observation, le questionnement et l'explication à partir d'indices.",
-      "activities": "Question et observation\nInvestigation accompagnée\nDiscussion des résultats"
+      "activities": "Question et observation\nInvestigation accompagnée\nDiscussion des résultats",
+      "summary": "Observer et expliquer"
     },
     "communication": {
       "title": "Communication en groupe",
       "objectives": "Préparer des activités collectives non cliniques favorisant l'expression, l'écoute et la participation. Adapter avec le professionnel responsable.",
-      "activities": "Échanges à tour de rôle\nExpression à partir d'images\nHistoire partagée"
+      "activities": "Échanges à tour de rôle\nExpression à partir d'images\nHistoire partagée",
+      "summary": "S'exprimer et écouter en groupe"
     },
     "cooperation": {
       "title": "Coopération et vie de groupe",
       "objectives": "Travailler l'écoute, le tour de rôle et la collaboration autour d'un objectif commun, selon les besoins du groupe.",
-      "activities": "Jeu coopératif\nProjet collectif\nBilan en groupe"
+      "activities": "Jeu coopératif\nProjet collectif\nBilan en groupe",
+      "summary": "Écoute et objectif commun"
     }
   },
-  "title": "Pédagogie et programmes hebdomadaires",
-  "description": "Classes, équipes affectées, programmes, séances et progression réunis dans un seul espace.",
+  "title": "Pédagogie",
+  "description": "Programmes par classe, cours planifiés et évaluations, structure par structure.",
   "profiles": {
     "academic": "Matières, cours et évaluations",
     "care": "Routines et développement",
@@ -119,9 +133,95 @@
     "activities": "Organisez ateliers et programmes saisonniers avec les équipes et groupes affectés.",
     "development": "Préparez les activités hebdomadaires et suivez les progrès par des observations du développement."
   },
-  "programs": "Programmes",
   "week": "Emploi du temps",
-  "assessments": "Évaluations et observations",
+  "assessments": {
+    "title": "Évaluations",
+    "description": "Devoirs, examens et observations, avec la feuille de résultats de chaque classe.",
+    "create": "Créer une évaluation",
+    "published": "Publié",
+    "noMatch": "Aucune évaluation ne correspond à ces filtres.",
+    "dialog": {
+      "title": "Créer une évaluation",
+      "description": "La feuille de résultats s'ouvre juste après.",
+      "noProgram": "Créez d'abord un programme actif pour une classe.",
+      "submit": "Créer"
+    },
+    "fields": {
+      "class": "Classe",
+      "program": "Programme",
+      "title": "Intitulé",
+      "kind": "Type",
+      "date": "Date",
+      "maxScore": "Barème"
+    },
+    "filters": {
+      "allClasses": "Toutes les classes",
+      "allKinds": "Tous les types",
+      "allStatuses": "Tous les statuts",
+      "draft": "Brouillon",
+      "published": "Publié",
+      "count": "{count, plural, =0 {Aucune évaluation} one {# évaluation} other {# évaluations}}"
+    },
+    "columns": {
+      "title": "Évaluation",
+      "class": "Classe",
+      "kind": "Type",
+      "date": "Date",
+      "entered": "Saisis",
+      "status": "Statut",
+      "child": "Enfant",
+      "score": "Note",
+      "level": "Niveau",
+      "absent": "Absent",
+      "feedback": "Retour à la famille"
+    },
+    "empty": {
+      "title": "Aucune évaluation",
+      "description": "Créez la première évaluation d'une classe ; ses résultats se saisissent dans une feuille."
+    },
+    "stats": {
+      "average": "Moyenne",
+      "averageHint": "sur les notes saisies",
+      "entered": "Saisis",
+      "enteredHint": "résultats sur la feuille",
+      "absent": "Absents",
+      "absentHint": "sans note",
+      "remaining": "Restants",
+      "remainingHint": "encore à saisir",
+      "levelHint": "enfants à ce niveau",
+      "levels": {
+        "secure": "Acquis",
+        "developing": "En cours",
+        "emerging": "En émergence"
+      }
+    },
+    "sheet": {
+      "outOf": "sur {max}",
+      "publish": "Publier",
+      "unpublish": "Retirer la publication",
+      "publishTitle": "Publier aux familles ?",
+      "publishDescription": "Seuls les <b>{count} résultats enregistrés</b> seront visibles par les familles ; un enfant sans résultat n'aura aucune note.",
+      "publishNothing": "Enregistrez au moins un résultat avant de publier.",
+      "unpublishTitle": "Retirer la publication ?",
+      "unpublishDescription": "Les familles ne verront plus ces résultats jusqu'à la prochaine publication.",
+      "former": "A quitté la classe",
+      "feedbackHint": "Le retour est visible par la famille après publication.",
+      "save": "Enregistrer la feuille",
+      "noChildren": "Aucun enfant inscrit dans cette classe."
+    },
+    "toasts": {
+      "created": "Évaluation créée.",
+      "saved": "Feuille enregistrée.",
+      "published": "Résultats publiés aux familles.",
+      "unpublished": "Publication retirée."
+    },
+    "errors": {
+      "invalid": "Vérifiez les notes : chaque note doit être comprise entre 0 et le barème.",
+      "forbidden": "Seuls les administrateurs et l'équipe de cette classe peuvent modifier cette feuille.",
+      "failed": "Enregistrement impossible. Réessayez.",
+      "published": "Cette feuille est publiée. Retirez la publication avant de la modifier."
+    }
+  },
   "newProgram": "Ajouter un programme pédagogique",
   "newLesson": "Planifier des séances",
   "newAssessment": "Créer une évaluation",
@@ -151,7 +251,7 @@
   "kinds": {
     "lesson": "Cours",
     "activity": "Activité",
-    "care": "Routine de soin",
+    "care": "Vie quotidienne",
     "therapy": "Accompagnement collectif",
     "observation": "Observation du développement",
     "test": "Devoir",
@@ -165,14 +265,17 @@
     "graded": "Noté"
   },
   "errors": {
-    "closed": "Une ou plusieurs séances sont hors horaires d'ouverture ou sur un jour de fermeture. Choisissez une autre date ou un autre horaire.",
-    "staffAssignment": "Ce membre n'est plus affecté à la classe. Choisissez un membre actif de son équipe.",
+    "closed": "Un ou plusieurs créneaux tombent hors des horaires d’ouverture ou sur un jour de fermeture. Choisissez une autre date ou un autre horaire.",
+    "staffAssignment": "Cet enseignant n’est plus dans l’équipe de la classe. Choisissez un membre actif de son équipe.",
     "archivedProgram": "Ce programme est archivé. Choisissez un programme actif.",
-    "programDates": "Toutes les séances doivent respecter les dates du programme. Réduisez la répétition ou changez la première date.",
-    "invalid": "Vérifiez dates, inscription, affectation et note. Toutes les séances doivent être comprises dans le programme. Retirez la publication avant de modifier un résultat.",
+    "programDates": "Toutes les dates doivent tenir dans celles du programme. Réduisez la répétition ou changez la première date.",
+    "invalid": "Vérifiez les dates, l’inscription, l’affectation et la note. Tous les cours doivent tenir dans les dates du programme. Retirez la publication avant de modifier un résultat.",
     "failed": "Enregistrement impossible. Réessayez.",
     "forbidden": "Seuls les administrateurs et l'équipe pédagogique affectée à cette classe peuvent modifier ces données.",
-    "conflict": "Cette classe ou cet intervenant a déjà une séance à cette heure. Aucune séance de la série n'a été enregistrée."
+    "conflict": "La classe ou l’enseignant est déjà pris à cette heure (créneau ou suivi individuel). Rien de la série n’a été enregistré.",
+    "conflictClass": "La classe est déjà prise à cette heure. Rien de la série n’a été enregistré.",
+    "conflictTeacher": "L’enseignant est déjà pris à cette heure (créneau ou suivi individuel). Rien de la série n’a été enregistré.",
+    "conflictRoom": "La salle est déjà réservée à cette heure. Aucun cours de la série n’a été enregistré."
   },
   "staffHint": "Affectez d'abord le personnel depuis la classe. Seuls les membres actifs de son équipe sont proposés.",
   "repeatHint": "La série est enregistrée en une seule opération. Les dates doivent respecter le programme ; les conflits sont refusés. Horaires locaux d'Algérie.",
@@ -222,5 +325,161 @@
   "done": "Prêt",
   "todo": "À configurer",
   "dateRange": "Dates du programme",
-  "setupOpen": "Ouvrir la configuration"
+  "setupOpen": "Ouvrir la configuration",
+  "tabs": {
+    "label": "Sections de la pédagogie",
+    "timetable": "Emploi du temps",
+    "programs": "Programmes",
+    "assessments": "Évaluations"
+  },
+  "timetable": {
+    "title": "Emploi du temps",
+    "description": "{profile, select, academic {Qui enseigne quoi, quand, dans chaque classe.} therapy {Qui anime quoi, quand, dans chaque classe.} other {Ce qui se passe, quand, dans chaque classe.}}",
+    "weekOf": "Semaine du {date}",
+    "previousWeek": "Semaine précédente",
+    "nextWeek": "Semaine suivante",
+    "allStructures": "Toutes les structures",
+    "filterStructure": "Structure",
+    "filterClass": "Classe",
+    "count": "{profile, select, academic {{count, plural, =0 {Aucun cours} one {# cours} other {# cours}}} therapy {{count, plural, =0 {Aucun atelier} one {# atelier} other {# ateliers}}} other {{count, plural, =0 {Aucune activité} one {# activité} other {# activités}}}}",
+    "empty": "{profile, select, academic {Aucun cours cette semaine} therapy {Aucun atelier cette semaine} other {Aucune activité cette semaine}}",
+    "emptyHint": "{profile, select, academic {Cliquez sur un créneau libre pour ajouter un cours.} therapy {Cliquez sur un créneau libre pour ajouter un atelier.} other {Cliquez sur un créneau libre pour ajouter une activité.}}",
+    "emptyDay": "{profile, select, academic {Aucun cours ce jour-là} therapy {Aucun atelier ce jour-là} other {Aucune activité ce jour-là}}",
+    "closed": "Fermé",
+    "detail": {
+      "class": "Classe",
+      "structure": "Structure",
+      "teacher": "Enseignant",
+      "program": "Programme",
+      "type": "Type",
+      "openClass": "Ouvrir la classe",
+      "complete": "Marquer terminé",
+      "cancel": "{profile, select, academic {Annuler ce cours} therapy {Annuler cet atelier} other {Annuler cette activité}}",
+      "restore": "{profile, select, academic {Rétablir ce cours} therapy {Rétablir cet atelier} other {Rétablir cette activité}}",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "reopen": "Rouvrir",
+      "more": "Plus d’actions",
+      "cancelledToast": "{profile, select, academic {Cours annulé} therapy {Atelier annulé} other {Activité annulée}}",
+      "undo": "Rétablir",
+      "openProgram": "Voir le programme"
+    },
+    "objectives": "Objectifs",
+    "lessonErrors": {
+      "conflict": "{profile, select, academic {La classe ou l’enseignant a déjà un cours ou un suivi individuel à cette heure.} therapy {La classe ou l’enseignant a déjà un atelier ou un suivi individuel à cette heure.} other {La classe ou l’enseignant a déjà une activité ou un suivi individuel à cette heure.}}",
+      "conflictClass": "{profile, select, academic {La classe a déjà un cours à cette heure.} therapy {La classe a déjà un atelier à cette heure.} other {La classe a déjà une activité à cette heure.}}",
+      "conflictTeacher": "{profile, select, academic {L’enseignant a déjà un cours ou un suivi individuel à cette heure.} therapy {L’enseignant a déjà un atelier ou un suivi individuel à cette heure.} other {L’enseignant a déjà une activité ou un suivi individuel à cette heure.}}",
+      "closed": "Ce créneau est hors des horaires d’ouverture ou sur un jour de fermeture.",
+      "programDates": "{profile, select, academic {Ce cours tombe hors des dates du programme.} therapy {Cet atelier tombe hors des dates du programme.} other {Cette activité tombe hors des dates du programme.}}",
+      "staffAssignment": "L’enseignant n’est plus dans l’équipe de la classe.",
+      "archivedProgram": "{profile, select, academic {Le programme de ce cours est archivé.} therapy {Le programme de cet atelier est archivé.} other {Le programme de cette activité est archivé.}}",
+      "forbidden": "{profile, select, academic {Seuls les administrateurs et l’équipe de cette classe peuvent modifier ce cours.} therapy {Seuls les administrateurs et l’équipe de cette classe peuvent modifier cet atelier.} other {Seuls les administrateurs et l’équipe de cette classe peuvent modifier cette activité.}}",
+      "invalid": "{profile, select, academic {Vérifiez la date, les heures et le programme : un cours commence et finit le même jour et suit un programme.} therapy {Vérifiez la date et les heures : un atelier commence et finit le même jour.} other {Vérifiez la date et les heures : une activité commence et finit le même jour.}}",
+      "failed": "Enregistrement impossible. Réessayez.",
+      "conflictRoom": "La salle est déjà réservée à cette heure."
+    },
+    "views": {
+      "week": "Semaine",
+      "day": "Jour"
+    },
+    "filterTeacher": "Enseignant",
+    "allTeachers": "Toute l’équipe",
+    "myLessons": "{profile, select, academic {Mes cours} therapy {Mes ateliers} other {Mes activités}}",
+    "addAt": "{profile, select, academic {Ajouter un cours} therapy {Ajouter un atelier} other {Ajouter une activité}} · {day} · {time}",
+    "block": {
+      "name": "{title}, de {from} à {to}, {class}, {teacher}",
+      "followUp": "Suivi individuel, de {from} à {to}",
+      "nameWithState": "{name}, {state}",
+      "nameWithRoom": "{name}, {room}"
+    },
+    "gridLabel": "Emploi du temps, semaine du {date}",
+    "dayStrip": "Jours de la semaine",
+    "legend": "Légende des classes",
+    "emptyClass": "Aucune classe à planifier dans cette structure."
+  },
+  "programs": {
+    "descriptions": {
+      "academic": "Programmes par matière, devoirs et examens ; barèmes libres, sans valeur de bulletin.",
+      "care": "Routines et activités adaptées à l'âge, suivies par observation et sans notes.",
+      "therapy": "Programmes collectifs ; les plans individuels restent dans le suivi individuel.",
+      "activities": "Ateliers et programmes saisonniers des classes et des équipes affectées.",
+      "development": "Activités hebdomadaires et progrès de chaque enfant suivis par observation."
+    },
+    "add": "Ajouter un programme",
+    "filters": {
+      "allStructures": "Toutes les structures",
+      "allClasses": "Toutes les classes",
+      "showArchived": "Afficher les archivés",
+      "count": "{count, plural, =0 {Aucun programme} one {# programme} other {# programmes}}"
+    },
+    "columns": {
+      "program": "Programme",
+      "class": "Classe",
+      "period": "Période",
+      "lessons": "{profile, select, academic {Cours} therapy {Ateliers} other {Activités}}",
+      "nextLesson": "{profile, select, academic {Prochain cours} therapy {Prochain atelier} other {Prochaine activité}}",
+      "assessments": "Évaluations"
+    },
+    "archived": "Archivé",
+    "actions": {
+      "menu": "Actions",
+      "archive": "Archiver",
+      "restore": "Restaurer"
+    },
+    "toasts": {
+      "created": "Programme créé.",
+      "archived": "Programme archivé.",
+      "restored": "Programme restauré.",
+      "schedule": "{profile, select, academic {Planifier un cours} therapy {Planifier un atelier} other {Planifier une activité}}"
+    },
+    "errors": {
+      "invalid": "Vérifiez le titre et les dates du programme.",
+      "forbidden": "Seuls les administrateurs et l'équipe affectée à cette classe peuvent modifier ses programmes.",
+      "failed": "Enregistrement impossible. Réessayez."
+    },
+    "empty": {
+      "title": "Aucun programme",
+      "description": "{profile, select, academic {Créez le premier programme d'une classe ; ses cours et ses évaluations s'y rattacheront.} therapy {Créez le premier programme d'une classe ; ses ateliers et ses évaluations s'y rattacheront.} other {Créez le premier programme d'une classe ; ses activités et ses évaluations s'y rattacheront.}}"
+    },
+    "noMatch": "Aucun programme ne correspond à ces filtres.",
+    "dialog": {
+      "title": "Nouveau programme",
+      "step": "Étape {n} sur {total}",
+      "intro": "Choisissez une classe, un point de départ, puis adaptez le contenu.",
+      "classLabel": "Classe",
+      "enrolled": "{count, plural, =0 {Aucun enfant} one {# enfant} other {# enfants}}",
+      "noClass": "Aucune classe ne vous est affectée.",
+      "createClass": "Créer une classe",
+      "suggestions": "Suggestions",
+      "disclaimer": "Suggestions modifiables, ni programme officiel ni protocole clinique.",
+      "reuse": "Reprendre un programme existant",
+      "blank": "Commencer vide",
+      "replace": "Choisir un autre point de départ remplace le titre et les objectifs déjà modifiés.",
+      "fields": {
+        "title": "Titre",
+        "startsOn": "Début",
+        "endsOn": "Fin",
+        "objectives": "Objectifs"
+      },
+      "note": "{profile, select, academic {Aucun cours ni notification n'est créé à cette étape.} therapy {Aucun atelier ni notification n'est créé à cette étape.} other {Aucune activité ni notification n'est créée à cette étape.}}",
+      "back": "Retour",
+      "continue": "Continuer",
+      "create": "Créer le programme",
+      "saving": "Création…"
+    },
+    "checklist": {
+      "title": "Préparer votre espace",
+      "hint": "Une fois par structure ; rien de fictif n'est créé.",
+      "steps": {
+        "classes": "Créer les classes",
+        "staff": "Affecter une équipe à chaque classe",
+        "children": "Inscrire et affecter les enfants",
+        "programs": "Créer un programme pour chaque classe",
+        "schedule": "Remplir l'emploi du temps",
+        "billing": "Configurer les frais avant les admissions"
+      },
+      "done": "Prêt",
+      "todo": "À configurer"
+    }
+  }
 }

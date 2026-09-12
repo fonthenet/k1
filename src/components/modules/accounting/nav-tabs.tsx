@@ -1,45 +1,56 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
+import { BookOpen, HandCoins, LayoutDashboard, Tags, Wallet } from "lucide-react";
+import { SectionTabs } from "@/components/shared/section-tabs";
 
-const TABS = [
-  { href: "/accounting", key: "overview" },
-  { href: "/accounting/transactions", key: "transactions" },
-  { href: "/accounting/categories", key: "categories" },
-  { href: "/accounting/payroll", key: "payroll" },
-  { href: "/accounting/advances", key: "advances" },
-] as const;
-
-/** Sub-navigation between the accounting pages. */
+/**
+ * The six accounting routes as the settings-style tab bar.
+ *
+ * Each tab is its own href. The overview matches exactly, because every other
+ * accounting route begins with `/accounting`; the four lists match by prefix
+ * so that a payroll run and its payslips keep the Paie tab lit. No counts —
+ * every number this module has is already on the page it belongs to.
+ *
+ * Prop-less on purpose: `payroll/[id]/page.tsx` renders it as `<AccountingNav />`
+ * and that signature is the contract.
+ */
 export function AccountingNav() {
   const t = useTranslations("accounting");
-  const pathname = usePathname();
-
   return (
-    <nav className="flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-muted p-1">
-      {TABS.map((tab) => {
-        const active =
-          tab.href === "/accounting"
-            ? pathname === "/accounting"
-            : pathname.startsWith(tab.href);
-        return (
-          <Link
-            key={tab.key}
-            href={tab.href}
-            className={cn(
-              "whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              active
-                ? "bg-card text-primary shadow-sm"
-                : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
-            )}
-          >
-            {t(`nav.${tab.key}`)}
-          </Link>
-        );
-      })}
-    </nav>
+    <SectionTabs
+      ariaLabel={t("title")}
+      tabs={[
+        { key: "overview", label: t("nav.overview"), icon: LayoutDashboard, href: "/accounting" },
+        {
+          key: "transactions",
+          label: t("nav.transactions"),
+          icon: BookOpen,
+          href: "/accounting/transactions",
+          match: "prefix",
+        },
+        {
+          key: "categories",
+          label: t("nav.categories"),
+          icon: Tags,
+          href: "/accounting/categories",
+          match: "prefix",
+        },
+        {
+          key: "payroll",
+          label: t("nav.payroll"),
+          icon: Wallet,
+          href: "/accounting/payroll",
+          match: "prefix",
+        },
+        {
+          key: "advances",
+          label: t("nav.advances"),
+          icon: HandCoins,
+          href: "/accounting/advances",
+          match: "prefix",
+        },
+      ]}
+    />
   );
 }

@@ -286,7 +286,6 @@ export const badgeTone = {
   dangerSolid: "border-transparent bg-destructive text-destructive-foreground font-semibold",
 } as const;
 
-/** Allergy severity badges — mild (amber wash) / moderate (gold) / severe (solid red). */
 /** One allergen on a child's file — what the badge names on hover. */
 export interface AllergyItem {
   allergen: string;
@@ -307,15 +306,17 @@ export const SEVERITY_RANK: Record<AllergySeverity, number> = {
   severe: 3,
 };
 
+/**
+ * One colour for every allergy, whatever its severity.
+ *
+ * Mild used to be amber, moderate gold and severe solid red, and a roster
+ * showed three colours for one fact. An allergy is a safety signal and the
+ * destructive tint is the only red a row is allowed; a severe one gets
+ * weight, not another colour. The severity itself is named on hover and on
+ * the health tab, where it is read rather than glanced at.
+ */
 export function severityClasses(severity: AllergySeverity): string {
-  switch (severity) {
-    case "mild":
-      return badgeTone.warning;
-    case "moderate":
-      return badgeTone.gold;
-    case "severe":
-      return badgeTone.dangerSolid;
-  }
+  return severity === "severe" ? `${badgeTone.danger} font-semibold` : badgeTone.danger;
 }
 
 /** Child status badges. */
@@ -367,3 +368,16 @@ export function invoiceStatusClasses(status: InvoiceStatus): string {
       return badgeTone.neutral;
   }
 }
+
+/** The sections of a child's file, in the order the tab bar shows them.
+ *  Here, in a plain module, because the tab bar is a client component and
+ *  a server page cannot read a value exported through that boundary. */
+export const CHILD_TABS = [
+  "profile",
+  "health",
+  "attendance",
+  "billing",
+  "documents",
+  "consents",
+] as const;
+export type ChildTabKey = (typeof CHILD_TABS)[number];

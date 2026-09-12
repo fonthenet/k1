@@ -27,13 +27,20 @@ export function ValueRange({
   className?: string;
   emptyMark?: string;
 }) {
+  // Only a pair of bare numerals ("08:30 – 09:30", "6 / 24") is forced LTR.
+  // A date that carries a month NAME ("3 سبتمبر 2026") is a bidi run of its
+  // own: inside a forced-LTR span the day number jumped to the other end of
+  // the phrase. Such pairs keep the paragraph's direction and isolate each
+  // side instead, which reads correctly in both scripts.
+  const numeric = (v: string | null | undefined) => !v || /^[\d\s.,:/%+\-–—]+$/.test(v);
+  const bare = numeric(from) && numeric(to);
   return (
-    <span dir="ltr" className={className}>
-      {from || emptyMark}
+    <span dir={bare ? "ltr" : undefined} className={className}>
+      <bdi>{from || emptyMark}</bdi>
       <span aria-hidden className="mx-1">
         {separator}
       </span>
-      {to || emptyMark}
+      <bdi>{to || emptyMark}</bdi>
     </span>
   );
 }

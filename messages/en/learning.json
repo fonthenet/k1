@@ -35,76 +35,90 @@
     "sensory": {
       "title": "Sensory discovery",
       "objectives": "Explore textures, sounds and colours through supervised play. Observe each child's responses and respect their pace.",
-      "activities": "Texture exploration\nSound discovery\nColour sorting"
+      "activities": "Texture exploration\nSound discovery\nColour sorting",
+      "summary": "Textures, sounds and colours"
     },
     "movement": {
       "title": "Movement & coordination",
       "objectives": "Practise balance, coordination and movement through age-appropriate supervised games.",
-      "activities": "Balance games\nRhythm and movement\nSimple movement course"
+      "activities": "Balance games\nRhythm and movement\nSimple movement course",
+      "summary": "Balance and coordination"
     },
     "routines": {
       "title": "Daily routines & independence",
       "objectives": "Support participation in familiar daily routines, with help adapted to each child's needs.",
-      "activities": "Welcome routine\nTidying together\nPreparing for transitions"
+      "activities": "Welcome routine\nTidying together\nPreparing for transitions",
+      "summary": "Daily routines, independence"
     },
     "stories": {
       "title": "Language & stories",
       "objectives": "Develop listening, vocabulary and oral expression through stories, pictures and conversation.",
-      "activities": "Picture-book discussion\nStory retelling\nSongs and word games"
+      "activities": "Picture-book discussion\nStory retelling\nSongs and word games",
+      "summary": "Listening, talking, telling"
     },
     "numbers": {
       "title": "Numbers & shapes",
       "objectives": "Explore counting, sorting and shapes through concrete materials and play.",
-      "activities": "Sorting objects\nCounting games\nShape discovery"
+      "activities": "Sorting objects\nCounting games\nShape discovery",
+      "summary": "Counting, sorting, shapes"
     },
     "creative": {
       "title": "Creative expression",
       "objectives": "Explore materials and express ideas through art, music and collaborative projects.",
-      "activities": "Drawing and collage\nRhythm workshop\nShared creation"
+      "activities": "Drawing and collage\nRhythm workshop\nShared creation",
+      "summary": "Art, music, projects"
     },
     "practical": {
       "title": "Practical life",
       "objectives": "Develop concentration, coordination and independence with carefully prepared everyday tasks.",
-      "activities": "Pouring and transferring\nCaring for materials\nPutting work away"
+      "activities": "Pouring and transferring\nCaring for materials\nPutting work away",
+      "summary": "Everyday tasks"
     },
     "arabic": {
       "title": "Arabic language",
       "objectives": "Choose a grade-appropriate unit and define reading, oral expression and writing objectives.",
-      "activities": "Guided reading\nVocabulary practice\nShort writing task"
+      "activities": "Guided reading\nVocabulary practice\nShort writing task",
+      "summary": "Reading, speaking, writing"
     },
     "maths": {
       "title": "Mathematics",
       "objectives": "Select a topic for the group's level. Build understanding through worked examples, practice and problem solving.",
-      "activities": "Concept exploration\nGuided exercises\nProblem-solving review"
+      "activities": "Concept exploration\nGuided exercises\nProblem-solving review",
+      "summary": "Examples, practice, problems"
     },
     "french": {
       "title": "French language",
       "objectives": "Adapt vocabulary, listening, speaking and writing objectives to the group's language level.",
-      "activities": "Listening activity\nGuided conversation\nReading and writing practice"
+      "activities": "Listening activity\nGuided conversation\nReading and writing practice",
+      "summary": "Vocabulary, speaking, writing"
     },
     "english": {
       "title": "English language",
       "objectives": "Build vocabulary and communication skills through tasks adapted to the group's language level.",
-      "activities": "Listening and vocabulary\nPair conversation\nShort reading or writing task"
+      "activities": "Listening and vocabulary\nPair conversation\nShort reading or writing task",
+      "summary": "Vocabulary and communication"
     },
     "science": {
       "title": "Scientific exploration",
       "objectives": "Choose a level-appropriate topic. Practise observation, questioning and explaining evidence.",
-      "activities": "Question and observation\nSupervised investigation\nDiscuss findings"
+      "activities": "Question and observation\nSupervised investigation\nDiscuss findings",
+      "summary": "Observing and explaining"
     },
     "communication": {
       "title": "Group communication",
       "objectives": "Plan non-clinical group activities that encourage expression, listening and participation. Adapt with the responsible professional.",
-      "activities": "Turn-taking conversation\nPicture-based expression\nShared story"
+      "activities": "Turn-taking conversation\nPicture-based expression\nShared story",
+      "summary": "Expressing and listening"
     },
     "cooperation": {
       "title": "Cooperation & group life",
       "objectives": "Practise listening, turn-taking and working towards a shared goal, adapted to the group's needs.",
-      "activities": "Cooperative game\nShared project\nGroup reflection"
+      "activities": "Cooperative game\nShared project\nGroup reflection",
+      "summary": "Listening and a shared goal"
     }
   },
-  "title": "Learning & weekly plans",
-  "description": "Real classes, assigned staff, programs, sessions and learner progress in one place.",
+  "title": "Learning",
+  "description": "Programs per class, planned lessons and assessments, structure by structure.",
   "profiles": {
     "academic": "Subjects, lessons & assessments",
     "care": "Care routines & development",
@@ -119,9 +133,95 @@
     "activities": "Organize workshops and seasonal programs around assigned teams and groups.",
     "development": "Plan weekly activities and follow each child's progress with developmental observations."
   },
-  "programs": "Programs",
   "week": "Weekly timetable",
-  "assessments": "Assessments & observations",
+  "assessments": {
+    "title": "Assessments",
+    "description": "Tests, exams and observations, with each class's results sheet.",
+    "create": "Create an assessment",
+    "published": "Published",
+    "noMatch": "No assessment matches these filters.",
+    "dialog": {
+      "title": "Create an assessment",
+      "description": "The results sheet opens right after.",
+      "noProgram": "Create an active program for a class first.",
+      "submit": "Create"
+    },
+    "fields": {
+      "class": "Class",
+      "program": "Program",
+      "title": "Title",
+      "kind": "Type",
+      "date": "Date",
+      "maxScore": "Scale"
+    },
+    "filters": {
+      "allClasses": "All classes",
+      "allKinds": "All types",
+      "allStatuses": "All statuses",
+      "draft": "Draft",
+      "published": "Published",
+      "count": "{count, plural, =0 {No assessments} one {# assessment} other {# assessments}}"
+    },
+    "columns": {
+      "title": "Assessment",
+      "class": "Class",
+      "kind": "Type",
+      "date": "Date",
+      "entered": "Entered",
+      "status": "Status",
+      "child": "Child",
+      "score": "Mark",
+      "level": "Level",
+      "absent": "Absent",
+      "feedback": "Feedback to the family"
+    },
+    "empty": {
+      "title": "No assessments yet",
+      "description": "Create a class's first assessment; its results are entered on one sheet."
+    },
+    "stats": {
+      "average": "Average",
+      "averageHint": "of the marks entered",
+      "entered": "Entered",
+      "enteredHint": "results on the sheet",
+      "absent": "Absent",
+      "absentHint": "without a mark",
+      "remaining": "Remaining",
+      "remainingHint": "still to enter",
+      "levelHint": "children at this level",
+      "levels": {
+        "secure": "Achieved",
+        "developing": "Developing",
+        "emerging": "Emerging"
+      }
+    },
+    "sheet": {
+      "outOf": "out of {max}",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "publishTitle": "Publish to families?",
+      "publishDescription": "Only the <b>{count} saved results</b> will be visible to families; a child without a result gets no mark.",
+      "publishNothing": "Save at least one result before publishing.",
+      "unpublishTitle": "Unpublish?",
+      "unpublishDescription": "Families will no longer see these results until the next publication.",
+      "former": "Left the class",
+      "feedbackHint": "Feedback is visible to the family after publication.",
+      "save": "Save the sheet",
+      "noChildren": "No child is enrolled in this class."
+    },
+    "toasts": {
+      "created": "Assessment created.",
+      "saved": "Sheet saved.",
+      "published": "Results published to families.",
+      "unpublished": "Publication withdrawn."
+    },
+    "errors": {
+      "invalid": "Check the marks: each mark must be between 0 and the scale.",
+      "forbidden": "Only administrators and this class's team can edit this sheet.",
+      "failed": "Could not save. Try again.",
+      "published": "This sheet is published. Unpublish it before editing."
+    }
+  },
   "newProgram": "Add a learning program",
   "newLesson": "Schedule sessions",
   "newAssessment": "Create an assessment",
@@ -151,7 +251,7 @@
   "kinds": {
     "lesson": "Lesson",
     "activity": "Activity",
-    "care": "Care routine",
+    "care": "Daily routine",
     "therapy": "Group support",
     "observation": "Development observation",
     "test": "Test",
@@ -165,14 +265,17 @@
     "graded": "Graded"
   },
   "errors": {
-    "closed": "One or more sessions fall outside opening hours or on a closure day. Choose another date or time.",
-    "staffAssignment": "This staff member is no longer assigned to the class. Choose an active class team member.",
+    "closed": "One or more slots fall outside opening hours or on a closed day. Choose another date or time.",
+    "staffAssignment": "This teacher is no longer on the class team. Choose an active member of its team.",
     "archivedProgram": "This program is archived. Choose an active program.",
-    "programDates": "Every occurrence must fit within the program dates. Shorten the repeat period or change the first date.",
-    "invalid": "Check the dates, enrollment, staff assignment and mark. Program dates must contain every session; published results must be unpublished before editing.",
-    "failed": "Could not save. Please try again.",
+    "programDates": "Every date must fall within the program’s. Shorten the repeat or change the first date.",
+    "invalid": "Check the dates, enrollment, staff assignment and mark. Every lesson must fall within the program dates; unpublish before editing a result.",
+    "failed": "Could not save. Try again.",
     "forbidden": "Only administrators and this class's assigned teaching team may change these records.",
-    "conflict": "This class or staff member already has a session at that time. No sessions in this series were saved."
+    "conflict": "The class or the teacher is already booked at that time (a slot or an individual follow-up). Nothing of the series was saved.",
+    "conflictClass": "The class is already booked at that time. Nothing of the series was saved.",
+    "conflictTeacher": "The teacher is already booked at that time (a slot or an individual follow-up). Nothing of the series was saved.",
+    "conflictRoom": "The room is already booked at that time. No lesson of the series was saved."
   },
   "staffHint": "Assign staff on the class page first. Only active members of that class's team appear here.",
   "repeatHint": "The complete series saves together. Dates must fit the program; conflicting bookings are rejected. All times are Algeria local time.",
@@ -222,5 +325,161 @@
   "done": "Ready",
   "todo": "Needs setup",
   "dateRange": "Program dates",
-  "setupOpen": "Open setup"
+  "setupOpen": "Open setup",
+  "tabs": {
+    "label": "Learning sections",
+    "timetable": "Timetable",
+    "programs": "Programs",
+    "assessments": "Assessments"
+  },
+  "timetable": {
+    "title": "Timetable",
+    "description": "{profile, select, academic {Who teaches what, and when, in every class.} therapy {Who runs what, and when, in every class.} other {What happens, and when, in every class.}}",
+    "weekOf": "Week of {date}",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week",
+    "allStructures": "All structures",
+    "filterStructure": "Structure",
+    "filterClass": "Class",
+    "count": "{profile, select, academic {{count, plural, =0 {No lessons} one {# lesson} other {# lessons}}} therapy {{count, plural, =0 {No workshops} one {# workshop} other {# workshops}}} other {{count, plural, =0 {No activities} one {# activity} other {# activities}}}}",
+    "empty": "{profile, select, academic {No lessons this week} therapy {No workshops this week} other {No activities this week}}",
+    "emptyHint": "{profile, select, academic {Click a free slot to add a lesson.} therapy {Click a free slot to add a workshop.} other {Click a free slot to add an activity.}}",
+    "emptyDay": "{profile, select, academic {No lessons that day} therapy {No workshops that day} other {No activities that day}}",
+    "closed": "Closed",
+    "detail": {
+      "class": "Class",
+      "structure": "Structure",
+      "teacher": "Teacher",
+      "program": "Program",
+      "type": "Type",
+      "openClass": "Open the class",
+      "complete": "Mark done",
+      "cancel": "{profile, select, academic {Cancel this lesson} therapy {Cancel this workshop} other {Cancel this activity}}",
+      "restore": "{profile, select, academic {Restore this lesson} therapy {Restore this workshop} other {Restore this activity}}",
+      "completed": "Done",
+      "cancelled": "Cancelled",
+      "reopen": "Reopen",
+      "more": "More actions",
+      "cancelledToast": "{profile, select, academic {Lesson cancelled} therapy {Workshop cancelled} other {Activity cancelled}}",
+      "undo": "Undo",
+      "openProgram": "See the program"
+    },
+    "objectives": "Objectives",
+    "lessonErrors": {
+      "conflict": "{profile, select, academic {The class or the teacher already has a lesson or an individual follow-up at that time.} therapy {The class or the teacher already has a workshop or an individual follow-up at that time.} other {The class or the teacher already has an activity or an individual follow-up at that time.}}",
+      "conflictClass": "{profile, select, academic {The class already has a lesson at that time.} therapy {The class already has a workshop at that time.} other {The class already has an activity at that time.}}",
+      "conflictTeacher": "{profile, select, academic {The teacher already has a lesson or an individual follow-up at that time.} therapy {The teacher already has a workshop or an individual follow-up at that time.} other {The teacher already has an activity or an individual follow-up at that time.}}",
+      "closed": "This slot is outside opening hours or on a closed day.",
+      "programDates": "{profile, select, academic {This lesson falls outside the program dates.} therapy {This workshop falls outside the program dates.} other {This activity falls outside the program dates.}}",
+      "staffAssignment": "The teacher is no longer on the class team.",
+      "archivedProgram": "{profile, select, academic {This lesson’s program is archived.} therapy {This workshop’s program is archived.} other {This activity’s program is archived.}}",
+      "forbidden": "{profile, select, academic {Only administrators and this class’s team can change this lesson.} therapy {Only administrators and this class’s team can change this workshop.} other {Only administrators and this class’s team can change this activity.}}",
+      "invalid": "{profile, select, academic {Check the date, times and program: a lesson starts and ends on the same day and belongs to a program.} therapy {Check the date and times: a workshop starts and ends on the same day.} other {Check the date and times: an activity starts and ends on the same day.}}",
+      "failed": "Could not save. Try again.",
+      "conflictRoom": "The room is already booked at that time."
+    },
+    "views": {
+      "week": "Week",
+      "day": "Day"
+    },
+    "filterTeacher": "Teacher",
+    "allTeachers": "Whole team",
+    "myLessons": "{profile, select, academic {My lessons} therapy {My workshops} other {My activities}}",
+    "addAt": "{profile, select, academic {Add a lesson} therapy {Add a workshop} other {Add an activity}} · {day} · {time}",
+    "block": {
+      "name": "{title}, {from} to {to}, {class}, {teacher}",
+      "followUp": "Individual follow-up, {from} to {to}",
+      "nameWithState": "{name}, {state}",
+      "nameWithRoom": "{name}, {room}"
+    },
+    "gridLabel": "Timetable, week of {date}",
+    "dayStrip": "Days of the week",
+    "legend": "Class legend",
+    "emptyClass": "No class to plan in this structure."
+  },
+  "programs": {
+    "descriptions": {
+      "academic": "Programs per subject, tests and exams; free grading scales, not a report card.",
+      "care": "Age-appropriate routines and activities, followed by observation and without marks.",
+      "therapy": "Group programs; individual plans stay in the individual follow-up.",
+      "activities": "Workshops and seasonal programs of the assigned classes and teams.",
+      "development": "Weekly activities and each child's progress followed by observation."
+    },
+    "add": "Add a program",
+    "filters": {
+      "allStructures": "All structures",
+      "allClasses": "All classes",
+      "showArchived": "Show archived",
+      "count": "{count, plural, =0 {No programs} one {# program} other {# programs}}"
+    },
+    "columns": {
+      "program": "Program",
+      "class": "Class",
+      "period": "Period",
+      "lessons": "{profile, select, academic {Lessons} therapy {Workshops} other {Activities}}",
+      "nextLesson": "{profile, select, academic {Next lesson} therapy {Next workshop} other {Next activity}}",
+      "assessments": "Assessments"
+    },
+    "archived": "Archived",
+    "actions": {
+      "menu": "Actions",
+      "archive": "Archive",
+      "restore": "Restore"
+    },
+    "toasts": {
+      "created": "Program created.",
+      "archived": "Program archived.",
+      "restored": "Program restored.",
+      "schedule": "{profile, select, academic {Plan a lesson} therapy {Plan a workshop} other {Plan an activity}}"
+    },
+    "errors": {
+      "invalid": "Check the program's title and dates.",
+      "forbidden": "Only administrators and the team assigned to this class can change its programs.",
+      "failed": "Could not save. Try again."
+    },
+    "empty": {
+      "title": "No programs yet",
+      "description": "{profile, select, academic {Create a class's first program; its lessons and assessments will attach to it.} therapy {Create a class's first program; its workshops and assessments will attach to it.} other {Create a class's first program; its activities and assessments will attach to it.}}"
+    },
+    "noMatch": "No program matches these filters.",
+    "dialog": {
+      "title": "New program",
+      "step": "Step {n} of {total}",
+      "intro": "Pick a class, a starting point, then adapt the content.",
+      "classLabel": "Class",
+      "enrolled": "{count, plural, =0 {No children} one {# child} other {# children}}",
+      "noClass": "No class is assigned to you.",
+      "createClass": "Create a class",
+      "suggestions": "Suggestions",
+      "disclaimer": "Editable suggestions, neither an official curriculum nor a clinical protocol.",
+      "reuse": "Reuse an existing program",
+      "blank": "Start blank",
+      "replace": "Picking another starting point replaces the title and objectives you already edited.",
+      "fields": {
+        "title": "Title",
+        "startsOn": "Start",
+        "endsOn": "End",
+        "objectives": "Objectives"
+      },
+      "note": "{profile, select, academic {No lesson or notification is created at this step.} therapy {No workshop or notification is created at this step.} other {No activity or notification is created at this step.}}",
+      "back": "Back",
+      "continue": "Continue",
+      "create": "Create the program",
+      "saving": "Creating…"
+    },
+    "checklist": {
+      "title": "Set up your workspace",
+      "hint": "Once per structure; nothing fictitious is created.",
+      "steps": {
+        "classes": "Create the classes",
+        "staff": "Assign a team to each class",
+        "children": "Enrol and assign the children",
+        "programs": "Create a program for each class",
+        "schedule": "Fill in the timetable",
+        "billing": "Set up fees before admissions"
+      },
+      "done": "Ready",
+      "todo": "To set up"
+    }
+  }
 }

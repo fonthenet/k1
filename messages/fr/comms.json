@@ -1,13 +1,13 @@
 {
   "audience": {
-    "all": "Tout le monde",
+    "all": "Tout l'établissement",
     "parents": "Parents",
     "staff": "Équipe",
     "class": "Classe",
     "structure": "Structure"
   },
   "structures": {
-    "wholeBuilding": "Tout le bâtiment",
+    "wholeBuilding": "Tout l'établissement",
     "scopeLabel": "Choisir la structure"
   },
   "severity": {
@@ -64,6 +64,12 @@
       "updated": "Annonce mise à jour",
       "deleted": "Annonce supprimée",
       "error": "Une erreur est survenue. Réessayez."
+    },
+    "more": "Plus d'actions",
+    "columns": {
+      "announcement": "Annonce",
+      "author": "Auteur",
+      "actions": "Actions"
     }
   },
   "messages": {
@@ -92,7 +98,8 @@
       "created": "Conversation créée",
       "sent": "Message envoyé",
       "error": "Une erreur est survenue. Réessayez."
-    }
+    },
+    "unreadMessages": "{count, plural, one {# message non lu} other {# messages non lus}}"
   },
   "calendar": {
     "title": "Calendrier",
@@ -115,7 +122,8 @@
       "willNotify": "{count, plural, =0 {Personne ne sera notifié} one {# personne sera notifiée} other {# personnes seront notifiées}}",
       "pastNoNotify": "Cette date est déjà passée — personne ne sera notifié. L’événement reste au calendrier.",
       "structure": "Structure",
-      "chooseStructure": "Choisir une structure"
+      "chooseStructure": "Choisir une structure",
+      "roomNeedsEnd": "Indiquez une fin pour réserver la salle."
     },
     "createDialog": {
       "title": "Nouvel événement",
@@ -131,14 +139,19 @@
       "created": "Événement créé",
       "updated": "Événement mis à jour",
       "deleted": "Événement supprimé",
-      "error": "Une erreur est survenue. Réessayez."
+      "error": "Une erreur est survenue. Réessayez.",
+      "conflictRoom": "La salle est déjà réservée à cette heure. L’événement n’a pas été enregistré."
     },
     "prevMonth": "Mois précédent",
     "nextMonth": "Mois suivant",
     "today": "Aujourd'hui",
     "addOn": "Ajouter un événement le {date}",
     "deleteConfirm": "Confirmer la suppression",
-    "monthEmpty": "Aucun événement ce mois-ci"
+    "monthEmpty": "Aucun événement ce mois-ci",
+    "descriptionEvents": "Événements et jours fériés de l'établissement",
+    "descriptionWithLessons": "{profile, select, academic {Événements, jours fériés et cours de l'établissement} therapy {Événements, jours fériés et ateliers de l'établissement} other {Événements, jours fériés et activités de l'établissement}}",
+    "timetable": "Emploi du temps",
+    "moreLessons": "{profile, select, academic {{count, plural, one {# autre cours} other {# autres cours}}} therapy {{count, plural, one {# autre atelier} other {# autres ateliers}}} other {{count, plural, one {# autre activité} other {# autres activités}}}}"
   },
   "menus": {
     "title": "Menus",
@@ -159,13 +172,20 @@
       "submit": "Enregistrer",
       "detected": "Détecté dans le menu, non coché : {list}",
       "addDetected": "Ajouter",
-      "descriptionFor": "Renseignez les repas du jour pour {structure} et cochez les allergènes présents."
+      "descriptionFor": "Renseignez les repas du jour pour {structure} et cochez les allergènes présents.",
+      "repeat": "Répéter chaque {weekday}",
+      "repeatHint": "Le même menu est copié sur ce jour chaque semaine ; les jours fermés sont ignorés.",
+      "until": "Jusqu’au",
+      "replaceExisting": "Remplacer les jours déjà remplis",
+      "repeatPreview": "{count, plural, =0 {Aucune semaine} one {# semaine} other {# semaines}} · chaque {weekday} jusqu’au {date}"
     },
     "toasts": {
       "saved": "Menu enregistré",
       "copied": "{count, plural, =0 {Aucun menu à copier la semaine dernière} one {1 jour copié} other {# jours copiés}}",
       "error": "Une erreur est survenue. Réessayez.",
-      "publishedWeek": "{count, plural, =0 {Aucun menu à publier} one {1 menu publié} other {# menus publiés}}"
+      "publishedWeek": "{count, plural, =0 {Aucun menu à publier} one {1 menu publié} other {# menus publiés}}",
+      "repeated": "{count, plural, =0 {Menu enregistré, aucun jour ajouté} one {Menu enregistré et copié sur 1 semaine} other {Menu enregistré et copié sur # semaines}}",
+      "repeatedKept": " · {count, plural, one {1 jour déjà rempli conservé} other {# jours déjà remplis conservés}}"
     },
     "prevWeek": "Semaine précédente",
     "nextWeek": "Semaine suivante",
@@ -188,6 +208,17 @@
       "title": "Allergènes signalés dans les semaines à venir",
       "hint": "Ces menus ont été planifiés avant que ces allergies ne soient enregistrées.",
       "week": "Semaine du {date}"
+    },
+    "alertTable": {
+      "hint": "Les allergènes des menus, croisés avec les allergies enregistrées des enfants inscrits.",
+      "allergen": "Allergène",
+      "children": "Enfants concernés",
+      "thisWeek": "Cette semaine",
+      "upcoming": "Semaines à venir"
+    },
+    "columns": {
+      "day": "Jour",
+      "allergens": "Allergènes"
     }
   },
   "incidents": {
@@ -256,6 +287,8 @@
       "notified": "Parent notifié",
       "error": "Une erreur est survenue. Réessayez."
     },
-    "severityFilter": "Filtrer par gravité"
+    "severityFilter": "Filtrer par gravité",
+    "allSeverities": "Toutes les gravités",
+    "count": "{count, plural, =0 {Aucun incident} one {# incident} other {# incidents}}"
   }
 }

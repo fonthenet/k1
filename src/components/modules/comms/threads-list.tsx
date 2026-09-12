@@ -1,13 +1,26 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { formatDate, formatTime } from "@/lib/format";
+import { MessagesSquare } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { signedMediaUrl } from "@/lib/tenant";
+import { formatDate, formatTime, initialsFromName } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { ChildBadge } from "@/components/shared/child-badge";
 import { algiersDateStr } from "./dates";
 import type { ThreadListItem } from "./types";
 
-/** Presentational list of conversations (server component, shared by both messages pages). */
+/**
+ * Presentational list of conversations (server component, shared by both
+ * messages pages).
+ *
+ * Drawn like the family's own list on /portal/messages, because it is the
+ * same record seen from the other side: the child's face at the start, the
+ * subject as the door, "child · last message" as the muted second line, the
+ * stamp and the unread dot at the end. It used to put the child in a tinted
+ * badge that was itself a link — a second door inside the row, in the tint
+ * this product keeps for the selected row.
+ */
 export async function ThreadsList({
   items,
   activeId,
@@ -19,64 +32,103 @@ export async function ThreadsList({
   const locale = await getLocale();
   const today = algiersDateStr(new Date());
 
+  // The faces, signed once per render the way the roster does it. Looked up
+  // here rather than in the thread query so the inbox panel, which reads the
+  // same items and shows no avatar, does not pay for URLs it never draws.
+  const childIds = [...new Set(items.map((th) => th.childId).filter(Boolean))] as string[];
+  const photoUrls = new Map<string, string | null>();
+  if (childIds.length > 0) {
+    const supabase = await createClient();
+    const { data: photoRows } = await supabase
+      .from("kg_children")
+      .select("id, photo_path")
+      .in("id", childIds);
+    await Promise.all(
+      (photoRows ?? []).map(async (c) => {
+        photoUrls.set(c.id, await signedMediaUrl(c.photo_path));
+      })
+    );
+  }
+
   return (
     <Card className="overflow-hidden border border-border py-0 shadow-sm ring-0">
-      <div className="divide-y divide-border">
+      <ul className="divide-y divide-border">
         {items.map((th) => {
           const isToday = algiersDateStr(new Date(th.lastMessageAt)) === today;
           const timeLabel = isToday
             ? formatTime(th.lastMessageAt, locale)
             : formatDate(th.lastMessageAt, locale);
+          const photoUrl = th.childId ? photoUrls.get(th.childId) : null;
           return (
-            <div
+            <li
               key={th.id}
               className={cn(
-                "relative transition-colors hover:bg-muted/60",
+                "relative flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-primary/5",
                 th.id === activeId &&
                   "bg-primary/8 before:absolute before:inset-y-0 before:start-0 before:w-1 before:bg-primary"
               )}
             >
-              {/* Target behind the content, not around it: the child badge is
-                  a link and links cannot nest. */}
-              <Link
-                href={`/messages/${th.id}`}
-                className="absolute inset-0 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 focus-visible:outline-none"
-              >
-                <span className="sr-only">{th.subject || t("messages.noSubject")}</span>
-              </Link>
-              <div className="pointer-events-none relative px-4 py-3.5">
-              <div className="flex items-center justify-between gap-2">
-                <span
+              {/* Whose thread — the face, not a link: the row opens the
+                  conversation and the child's file is one click further
+                  inside it. A thread about nobody in particular gets the
+                  same slot with a speech glyph. */}
+              <Avatar className="size-10 shrink-0">
+                {photoUrl && <AvatarImage src={photoUrl} alt="" />}
+                <AvatarFallback
                   className={cn(
-                    "min-w-0 truncate text-sm",
-                    th.unread ? "font-semibold text-foreground" : "font-medium text-foreground/90"
+                    "text-xs font-semibold",
+                    th.childId ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                   )}
                 >
-                  {th.subject || t("messages.noSubject")}
-                </span>
-                <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-                  {timeLabel}
-                  {th.unread && <span className="size-2 rounded-full bg-primary" />}
-                </span>
-              </div>
-              <div className="mt-1 flex items-center gap-2">
-                {th.childName && <ChildBadge id={th.childId} name={th.childName} />}
-                {th.preview && (
-                  <span
+                  {th.childName ? (
+                    initialsFromName(th.childName) || "?"
+                  ) : (
+                    <MessagesSquare className="size-4" aria-hidden />
+                  )}
+                </AvatarFallback>
+              </Avatar>
+              <span className="grid min-w-0 flex-1 gap-0.5">
+                <span className="flex items-baseline gap-2">
+                  {/* The subject is the door and its overlay reaches the whole
+                      row; nothing else in the row is a link. */}
+                  <Link
+                    href={`/messages/${th.id}`}
                     className={cn(
-                      "min-w-0 truncate text-xs",
-                      th.unread ? "text-foreground/80" : "text-muted-foreground"
+                      "min-w-0 flex-1 truncate text-sm after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring/50",
+                      th.unread ? "font-semibold" : "font-medium"
                     )}
                   >
-                    {th.preview}
+                    <bdi dir="auto" className="text-start">
+                      {th.subject || t("messages.noSubject")}
+                    </bdi>
+                  </Link>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                    {timeLabel}
+                  </span>
+                </span>
+                {(th.childName || th.preview) && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {th.childName && <bdi dir="auto">{th.childName}</bdi>}
+                    {th.childName && th.preview && <span aria-hidden> · </span>}
+                    {th.preview && <bdi dir="auto">{th.preview}</bdi>}
                   </span>
                 )}
-              </div>
-              </div>
-            </div>
+              </span>
+              {/* Messages from other people since this person last opened
+                  the thread. The dot is the one visible mark; the count goes
+                  to whoever cannot see it. */}
+              {th.unread && (
+                <>
+                  <span aria-hidden className="size-2 shrink-0 rounded-full bg-primary" />
+                  <span className="sr-only">
+                    {t("messages.unreadMessages", { count: th.unreadCount })}
+                  </span>
+                </>
+              )}
+            </li>
           );
         })}
-      </div>
+      </ul>
     </Card>
   );
 }

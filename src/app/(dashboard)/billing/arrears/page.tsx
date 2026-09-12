@@ -1,17 +1,16 @@
-import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ArrowLeft, ArrowRight, CircleCheck, Hourglass, TriangleAlert, Users } from "lucide-react";
+import { CircleCheck, Hourglass, TriangleAlert, Users } from "lucide-react";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { StatCard } from "@/components/shared/stat-card";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
-import { childDisplayName, formatDZD } from "@/lib/format";
+import { childDisplayName, formatDate, formatDZD } from "@/lib/format";
 import { algiersToday, daysSince } from "@/components/modules/billing/dates";
-import { EmptyIcon, MoneyStat } from "@/components/modules/billing/finance-ui";
+import { BillingTabs } from "@/components/modules/billing/billing-tabs";
 import { fetchArrears, type ArrearsFamily } from "@/components/modules/dashboard/arrears-data";
 import { ArrearsRefresh } from "@/components/modules/dashboard/arrears-refresh";
 import {
@@ -42,7 +41,6 @@ interface ChildArrears {
   childId: string;
   name: string;
   className: string | null;
-  classId: string | null;
   buckets: [number, number, number, number]; // current, 30d, 60d, 90d+
   total: number;
 }
@@ -83,18 +81,19 @@ export default async function ArrearsPage() {
   }
   const familyName = (f: ArrearsFamily) => arNameByChild.get(f.childId) ?? (f.childName || "—");
 
-  // Which invoices each debt is made of. `kg_arrears_summary` collapses a
-  // family to one row and drops the ids, but the aging query below already
-  // carries them — and it is ordered by due date, so each list comes out
-  // oldest first, which is the one the office chases.
-  // The summary RPC returns a class NAME and no id, so the class column could
-  // not be a door. The invoice join above knows the id; key it on the child.
-  const classIdByChild = new Map<string, string>();
+  // The summary RPC returns the class in one language only. The invoice join
+  // above carries both names, so the Arabic reader gets the Arabic class too.
+  const classNameByChild = new Map<string, string>();
   for (const r of rows) {
-    const cid = r.kg_children?.kg_classes?.id;
-    if (cid && !classIdByChild.has(r.child_id)) classIdByChild.set(r.child_id, cid);
+    const cls = r.kg_children?.kg_classes;
+    if (cls && !classNameByChild.has(r.child_id)) {
+      classNameByChild.set(r.child_id, locale === "ar" && cls.name_ar ? cls.name_ar : cls.name);
+    }
   }
 
+  // The amount's door: with one open invoice it opens that invoice, with
+  // several it opens the child's billing tab. Oldest due first, which is the
+  // order the query returns.
   const invoiceIdsByChild = new Map<string, string[]>();
   for (const r of rows) {
     const list = invoiceIdsByChild.get(r.child_id);
@@ -114,7 +113,6 @@ export default async function ArrearsPage() {
         childId: r.child_id,
         name: r.kg_children ? childDisplayName(r.kg_children, locale) : "—",
         className: cls ? (locale === "ar" && cls.name_ar ? cls.name_ar : cls.name) : null,
-        classId: cls?.id ?? null,
         buckets: [0, 0, 0, 0],
         total: 0,
       };
@@ -140,11 +138,10 @@ export default async function ArrearsPage() {
   const familyRows: ArrearsFamilyRow[] = arrears.rows.map((f) => ({
     childId: f.childId,
     name: familyName(f),
-    className: f.className,
-    classId: classIdByChild.get(f.childId) ?? null,
-    invoiceIds: invoiceIdsByChild.get(f.childId) ?? [],
+    className: classNameByChild.get(f.childId) ?? f.className,
     invoiceCount: f.invoiceCount,
     outstanding: f.outstanding,
+    invoiceIds: invoiceIdsByChild.get(f.childId) ?? [],
     oldestDue: f.oldestDue,
     daysOverdue: f.daysOverdue,
     guardianName: f.guardianName,
@@ -155,14 +152,11 @@ export default async function ArrearsPage() {
     childId: a.childId,
     name: a.name,
     className: a.className,
-    classId: a.classId,
-    invoiceIds: invoiceIdsByChild.get(a.childId) ?? [],
     buckets: [...a.buckets],
     total: a.total,
     phone: phoneByChild.get(a.childId) ?? null,
   }));
 
-  const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
   const bucketLabels = [
     t("arrears.columns.current"),
     t("arrears.columns.d30"),
@@ -170,41 +164,38 @@ export default async function ArrearsPage() {
     t("arrears.columns.d90"),
   ];
   const nothingOwed = aging.length === 0 && arrears.rows.length === 0;
+  // The three figures are read on the day the page is opened, and say so.
+  const asOf = t("arrears.asOf", { date: formatDate(today, locale) });
 
   return (
     <div>
       {/* Statuses age on their own; opening this page is what sweeps them. */}
       <ArrearsRefresh tenantId={ctx.tenant.id} day={today} />
 
-      <PageHeader title={t("arrears.title")} description={t("arrears.description")}>
-        <Button variant="ghost" asChild>
-          <Link href="/billing">
-            <BackIcon data-icon="inline-start" />
-            {t("invoice.back")}
-          </Link>
-        </Button>
-      </PageHeader>
+      <PageHeader title={t("arrears.title")} description={t("arrears.description")} />
+
+      <BillingTabs />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <MoneyStat
+        <StatCard
           label={t("arrears.stats.total")}
           value={formatDZD(grandTotal, locale)}
+          hint={asOf}
           icon={grandTotal > 0 ? <TriangleAlert /> : <CircleCheck />}
-          tone={grandTotal > 0 ? "destructive" : "success"}
-          highlight={grandTotal > 0}
+          tone={grandTotal > 0 ? "danger" : "success"}
         />
-        <MoneyStat
+        <StatCard
           label={t("arrears.stats.children")}
           value={aging.length}
+          hint={asOf}
           icon={<Users />}
-          tone="primary"
         />
-        <MoneyStat
+        <StatCard
           label={t("arrears.stats.oldest")}
           value={formatDZD(bucketTotals[3], locale)}
+          hint={asOf}
           icon={<Hourglass />}
-          tone={bucketTotals[3] > 0 ? "gold" : "muted"}
-          highlight={bucketTotals[3] > 0}
+          tone="gold"
         />
       </div>
 
@@ -217,55 +208,44 @@ export default async function ArrearsPage() {
 
       {nothingOwed ? (
         <EmptyState
-          icon={
-            <EmptyIcon tone="success">
-              <CircleCheck />
-            </EmptyIcon>
-          }
+          icon={<CircleCheck />}
           title={t("arrears.empty")}
           description={t("arrears.emptyHint")}
         />
       ) : (
-        <Tabs defaultValue={arrears.rows.length > 0 ? "families" : "aging"}>
-          <div className="overflow-x-auto pb-1">
+        /* Two cuts of the same debt: who to call, and how old it is. A
+           segmented track in the filter card, with the count of families at
+           the end — the number the office actually plans its morning on. */
+        <Tabs defaultValue={arrears.rows.length > 0 ? "families" : "aging"} className="gap-4">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5 shadow-sm">
             <TabsList>
-              <TabsTrigger value="families">
-                {t("arrears.tabs.families")}
-                <span className="ms-1.5 rounded-4xl bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">
-                  {arrears.rows.length}
-                </span>
-              </TabsTrigger>
+              <TabsTrigger value="families">{t("arrears.tabs.families")}</TabsTrigger>
               <TabsTrigger value="aging">{t("arrears.tabs.aging")}</TabsTrigger>
             </TabsList>
+            <span className="ms-auto rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+              {t("arrears.count", { count: arrears.rows.length })}
+            </span>
           </div>
 
           {/* ----- Who to call, oldest debt first ----- */}
-          <TabsContent value="families" className="mt-4">
-            {arrears.rows.length === 0 ? (
-              <EmptyState
-                icon={
-                  <EmptyIcon tone="success">
-                    <CircleCheck />
-                  </EmptyIcon>
-                }
-                title={t("arrears.empty")}
-                description={t("arrears.emptyHint")}
-              />
-            ) : (
-              <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-                <div className="overflow-x-auto">
+          <TabsContent value="families">
+            <Card className="border border-border py-0 shadow-sm ring-0">
+              <CardContent className="px-0">
+                {arrears.rows.length === 0 ? (
+                  <p className="px-5 py-4 text-sm text-muted-foreground">{t("arrears.empty")}</p>
+                ) : (
                   <ArrearsFamiliesTable rows={familyRows} tenantName={ctx.tenant.name} />
-                </div>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ----- The same debt, aged into buckets ----- */}
-          <TabsContent value="aging" className="mt-4">
-            <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-              <div className="overflow-x-auto">
+          <TabsContent value="aging">
+            <Card className="border border-border py-0 shadow-sm ring-0">
+              <CardContent className="px-0">
                 <ArrearsAgingTable rows={agingRows} bucketLabels={bucketLabels} />
-              </div>
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

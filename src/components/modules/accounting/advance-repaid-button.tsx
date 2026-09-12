@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { BadgeCheck } from "lucide-react";
+import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
@@ -18,7 +18,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { markAdvanceRepaid } from "./actions";
 
-/** Manually settle an outstanding advance. */
+/**
+ * Manually settle an outstanding advance — a ghost tick in the row, named by
+ * its tooltip. The confirm dialog carries the words; the row does not need
+ * a labelled button repeating them on every line.
+ */
 export function AdvanceRepaidButton({
   advanceId,
   memberName,
@@ -46,9 +50,13 @@ export function AdvanceRepaidButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <BadgeCheck data-icon="inline-start" />
-          {t("advances.markRepaid")}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t("advances.markRepaid")}
+          title={t("advances.markRepaid")}
+        >
+          <Check />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

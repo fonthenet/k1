@@ -110,12 +110,12 @@ export function DatePicker({
           aria-required={required}
           data-empty={!selected}
           className={cn(
-            "w-full justify-between gap-2 px-2.5 font-normal",
+            "h-8 w-full justify-between gap-2 px-2.5 font-normal",
             "data-[empty=true]:text-muted-foreground",
             className
           )}
         >
-          <span className="truncate">
+          <span className="truncate text-start">
             {label ?? (selected ? formatDate(selected, locale) : (placeholder ?? "—"))}
           </span>
           <CalendarIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />

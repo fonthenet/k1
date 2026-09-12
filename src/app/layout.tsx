@@ -34,7 +34,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${cairo.variable} antialiased ${locale === "ar" ? "font-[family-name:var(--font-cairo)]" : "font-[family-name:var(--font-inter)]"}`}
+        // Cairo sits in the French/English stack as the FALLBACK: Inter has no
+        // Arabic glyphs, so an Arabic child's name or the establishment's name
+        // inside a French page was falling to the system Arabic face and looked
+        // like a different product. Inter still draws every Latin glyph first.
+        className={`${inter.variable} ${cairo.variable} antialiased ${locale === "ar" ? "font-[family-name:var(--font-cairo)]" : "font-[family-name:var(--font-inter),var(--font-cairo)]"}`}
       >
         <ThemeProvider dir={dir}>
           <NextIntlClientProvider messages={messages}>

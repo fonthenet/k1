@@ -20,18 +20,15 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/shared/date-picker";
 import type { Gender } from "@/lib/types";
-import { groupClassesByStructure, structureLabel } from "@/lib/structure-groups";
-import { centerTypeOption } from "@/components/modules/settings/center-types";
 import { updateChild, uploadChildPhoto } from "./actions";
+import { ClassSelect, classChoiceValue, parseClassChoice } from "./class-select";
 import type { ClassOption, StructureOption } from "./types";
 
 export interface EditableChild {
@@ -76,7 +73,11 @@ export function EditChildDialog({
     lastNameAr: child.last_name_ar ?? "",
     dob: child.dob,
     gender: child.gender as string,
-    classId: child.class_id ?? "none",
+    /** A class id, or "structure:<id>" for no class on the child's side. */
+    place: classChoiceValue({
+      classId: child.class_id,
+      structureId: child.structure_id ?? null,
+    }),
     tagCode: child.tag_code ?? "",
     bloodType: child.blood_type ?? "",
     notes: child.notes ?? "",
@@ -90,30 +91,26 @@ export function EditChildDialog({
 
   const multi = structures.length > 1;
   const currentStructureId = child.structure_id ?? null;
-  // The one case the select is live: a child filed under no structure and in
-  // no class (a legacy row, or one approved through a whole-building link
-  // before structures existed). Filing them somewhere is not a move — there
-  // is nothing to close or to announce — so it belongs here, not in the Move
-  // dialog. Everything else stays read-only, see below.
-  const [filedStructureId, setFiledStructureId] = useState<string | null>(null);
-  const chosenClass = classes.find((c) => c.id === form.classId) ?? null;
-  const followsClass = !!chosenClass?.structure_id;
-  // Read-only on purpose. Changing structure closes tariffs, ends activity
-  // enrolments, writes a transfer and tells the family — that is the Move
-  // dialog's job, and a select here would do the first of those things
-  // silently through the class trigger and none of the rest. So the rooms
-  // offered are the ones on this child's side of the building (plus the
-  // building's own), and the structure control only reports.
-  const unfiled = multi && !currentStructureId && form.classId === "none";
-  const shownStructureId = chosenClass?.structure_id ?? currentStructureId ?? filedStructureId;
+  // Changing structure closes tariffs, ends activity enrolments, writes a
+  // transfer and tells the family — that is the Move dialog's job, so a filed
+  // child is offered only the rooms on their own side of the building (plus
+  // the building's own) and the structure is never asked. The one exception
+  // is a child filed under no structure at all (a legacy row, or one approved
+  // through a whole-building link before structures existed): filing them is
+  // not a move — nothing to close, nothing to announce — so the list opens
+  // up to every side, grouped, and the structure follows the choice.
+  const unfiled = multi && !currentStructureId;
+  const offeredStructures = unfiled
+    ? structures
+    : structures.filter((s) => s.id === currentStructureId);
   const visibleClasses =
     multi && currentStructureId
       ? classes.filter((c) => c.structure_id === currentStructureId || !c.structure_id)
       : classes;
-  const { groups, single } = groupClassesByStructure(visibleClasses, multi ? structures : []);
 
   function submit() {
     if (!canSubmit) return;
+    const choice = parseClassChoice(form.place, classes);
     startTransition(async () => {
       if (photo) {
         const fd = new FormData();
@@ -132,11 +129,11 @@ export function EditChildDialog({
         lastNameAr: form.lastNameAr || undefined,
         dob: form.dob,
         gender: form.gender as Gender,
-        classId: form.classId === "none" ? null : form.classId,
+        classId: choice.classId,
         // Sent back unchanged so an update never blanks the column — except
-        // for an unfiled child being filed, the one case the select is live.
+        // for an unfiled child being filed, the one case the choice decides.
         // The server derives it from the class when there is one anyway.
-        structureId: currentStructureId ?? (unfiled ? filedStructureId : null),
+        structureId: currentStructureId ?? choice.structureId,
         tagCode: form.tagCode || undefined,
         bloodType: form.bloodType || undefined,
         notes: form.notes || undefined,
@@ -153,6 +150,53 @@ export function EditChildDialog({
     });
   }
 
+  // The names in the reader's own script come first; the French pair types
+  // left-to-right and the Arabic pair right-to-left whatever the UI language.
+  const latinPair = (
+    <>
+      <div className="grid gap-1.5">
+        <Label htmlFor="edit-first">{t("form.firstName")}</Label>
+        <Input
+          id="edit-first"
+          dir="ltr"
+          value={form.firstName}
+          onChange={(e) => set("firstName")(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor="edit-last">{t("form.lastName")}</Label>
+        <Input
+          id="edit-last"
+          dir="ltr"
+          value={form.lastName}
+          onChange={(e) => set("lastName")(e.target.value)}
+        />
+      </div>
+    </>
+  );
+  const arabicPair = (
+    <>
+      <div className="grid gap-1.5">
+        <Label htmlFor="edit-first-ar">{t("form.firstNameAr")}</Label>
+        <Input
+          id="edit-first-ar"
+          dir="rtl"
+          value={form.firstNameAr}
+          onChange={(e) => set("firstNameAr")(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor="edit-last-ar">{t("form.lastNameAr")}</Label>
+        <Input
+          id="edit-last-ar"
+          dir="rtl"
+          value={form.lastNameAr}
+          onChange={(e) => set("lastNameAr")(e.target.value)}
+        />
+      </div>
+    </>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -167,40 +211,8 @@ export function EditChildDialog({
           <DialogDescription>{t("editDialog.description")}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
-          <div className="grid gap-1.5">
-            <Label htmlFor="edit-first">{t("form.firstName")}</Label>
-            <Input
-              id="edit-first"
-              value={form.firstName}
-              onChange={(e) => set("firstName")(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="edit-last">{t("form.lastName")}</Label>
-            <Input
-              id="edit-last"
-              value={form.lastName}
-              onChange={(e) => set("lastName")(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="edit-first-ar">{t("form.firstNameAr")}</Label>
-            <Input
-              id="edit-first-ar"
-              dir="rtl"
-              value={form.firstNameAr}
-              onChange={(e) => set("firstNameAr")(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="edit-last-ar">{t("form.lastNameAr")}</Label>
-            <Input
-              id="edit-last-ar"
-              dir="rtl"
-              value={form.lastNameAr}
-              onChange={(e) => set("lastNameAr")(e.target.value)}
-            />
-          </div>
+          {locale === "ar" ? arabicPair : latinPair}
+          {locale === "ar" ? latinPair : arabicPair}
           <div className="grid gap-1.5">
             <Label htmlFor="edit-dob">{t("form.dob")}</Label>
             <DatePicker
@@ -211,9 +223,9 @@ export function EditChildDialog({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label>{t("form.gender")}</Label>
+            <Label htmlFor="edit-gender">{t("form.gender")}</Label>
             <Select value={form.gender} onValueChange={set("gender")}>
-              <SelectTrigger>
+              <SelectTrigger id="edit-gender" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -222,60 +234,15 @@ export function EditChildDialog({
               </SelectContent>
             </Select>
           </div>
-          {multi && (
-            <div className="col-span-2 grid gap-1.5">
-              <Label>{t("form.structure")}</Label>
-              <Select
-                value={shownStructureId ?? undefined}
-                disabled={!unfiled}
-                onValueChange={(v) => setFiledStructureId(v)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t("form.structureNone")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {structures.map((s) => {
-                    const { Icon } = centerTypeOption(s.center_type);
-                    return (
-                      <SelectItem key={s.id} value={s.id}>
-                        <Icon className="size-4" style={{ color: s.color }} aria-hidden />
-                        {structureLabel(s, locale, "")}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                {unfiled
-                  ? t("form.structureUnfiledHint")
-                  : `${followsClass ? `${t("form.structureFollowsClass")} ` : ""}${t("form.structureMoveHint", { button: t("move.button") })}`}
-              </p>
-            </div>
-          )}
-          <div className={multi ? "col-span-2 grid gap-1.5" : "grid gap-1.5"}>
-            <Label>{t("form.class")}</Label>
-            <Select value={form.classId} onValueChange={set("classId")}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{t("form.noClass")}</SelectItem>
-                {groups.map((g) => (
-                  <SelectGroup key={g.structure?.id ?? "building"}>
-                    {!single && (
-                      <SelectLabel>
-                        {structureLabel(g.structure, locale, tc("structures.all"))}
-                      </SelectLabel>
-                    )}
-                    {g.classes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {locale === "ar" && c.name_ar ? c.name_ar : c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="col-span-2 grid gap-1.5">
+            <Label htmlFor="edit-class">{t("form.class")}</Label>
+            <ClassSelect
+              id="edit-class"
+              value={form.place}
+              onChange={set("place")}
+              classes={visibleClasses}
+              structures={offeredStructures}
+            />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="edit-tag">{t("form.tagCode")}</Label>

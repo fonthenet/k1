@@ -1,13 +1,13 @@
 {
   "audience": {
-    "all": "Everyone",
+    "all": "The whole establishment",
     "parents": "Parents",
-    "staff": "Staff",
+    "staff": "Team",
     "class": "Class",
     "structure": "Structure"
   },
   "structures": {
-    "wholeBuilding": "The whole building",
+    "wholeBuilding": "The whole establishment",
     "scopeLabel": "Choose the structure"
   },
   "severity": {
@@ -64,6 +64,12 @@
       "updated": "Announcement updated",
       "deleted": "Announcement deleted",
       "error": "Something went wrong. Try again."
+    },
+    "more": "More actions",
+    "columns": {
+      "announcement": "Announcement",
+      "author": "Author",
+      "actions": "Actions"
     }
   },
   "messages": {
@@ -92,7 +98,8 @@
       "created": "Conversation created",
       "sent": "Message sent",
       "error": "Something went wrong. Try again."
-    }
+    },
+    "unreadMessages": "{count, plural, one {# unread message} other {# unread messages}}"
   },
   "calendar": {
     "title": "Calendar",
@@ -115,7 +122,8 @@
       "willNotify": "{count, plural, =0 {Nobody will be notified} one {# person will be notified} other {# people will be notified}}",
       "pastNoNotify": "This date has already passed — nobody will be notified. The event still appears in the calendar.",
       "structure": "Structure",
-      "chooseStructure": "Choose a structure"
+      "chooseStructure": "Choose a structure",
+      "roomNeedsEnd": "Set an end time to book the room."
     },
     "createDialog": {
       "title": "New event",
@@ -131,14 +139,19 @@
       "created": "Event created",
       "updated": "Event updated",
       "deleted": "Event deleted",
-      "error": "Something went wrong. Try again."
+      "error": "Something went wrong. Try again.",
+      "conflictRoom": "The room is already booked at that time. The event was not saved."
     },
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
     "today": "Today",
     "addOn": "Add an event on {date}",
     "deleteConfirm": "Confirm deletion",
-    "monthEmpty": "No events this month"
+    "monthEmpty": "No events this month",
+    "descriptionEvents": "The establishment's events and public holidays",
+    "descriptionWithLessons": "{profile, select, academic {The establishment's events, public holidays and lessons} therapy {The establishment's events, public holidays and workshops} other {The establishment's events, public holidays and activities}}",
+    "timetable": "Timetable",
+    "moreLessons": "{profile, select, academic {{count, plural, one {# more lesson} other {# more lessons}}} therapy {{count, plural, one {# more workshop} other {# more workshops}}} other {{count, plural, one {# more activity} other {# more activities}}}}"
   },
   "menus": {
     "title": "Menus",
@@ -159,13 +172,20 @@
       "submit": "Save",
       "detected": "Found in the menu, not ticked: {list}",
       "addDetected": "Add",
-      "descriptionFor": "Fill in the day's meals for {structure} and tick the allergens present."
+      "descriptionFor": "Fill in the day's meals for {structure} and tick the allergens present.",
+      "repeat": "Repeat every {weekday}",
+      "repeatHint": "The same menu is copied onto this weekday every week; closed days are skipped.",
+      "until": "Until",
+      "replaceExisting": "Replace days already filled in",
+      "repeatPreview": "{count, plural, =0 {No weeks} one {# week} other {# weeks}} · every {weekday} until {date}"
     },
     "toasts": {
       "saved": "Menu saved",
       "copied": "{count, plural, =0 {No menus to copy from last week} one {1 day copied} other {# days copied}}",
       "error": "Something went wrong. Try again.",
-      "publishedWeek": "{count, plural, =0 {No menu to publish} one {1 menu published} other {# menus published}}"
+      "publishedWeek": "{count, plural, =0 {No menu to publish} one {1 menu published} other {# menus published}}",
+      "repeated": "{count, plural, =0 {Menu saved, no day added} one {Menu saved and copied to 1 week} other {Menu saved and copied to # weeks}}",
+      "repeatedKept": " · {count, plural, one {1 day already filled in kept} other {# days already filled in kept}}"
     },
     "prevWeek": "Previous week",
     "nextWeek": "Next week",
@@ -188,6 +208,17 @@
       "title": "Allergens flagged in the weeks ahead",
       "hint": "These menus were planned before those allergies were recorded.",
       "week": "Week of {date}"
+    },
+    "alertTable": {
+      "hint": "Menu allergens checked against the recorded allergies of enrolled children.",
+      "allergen": "Allergen",
+      "children": "Children concerned",
+      "thisWeek": "This week",
+      "upcoming": "Upcoming weeks"
+    },
+    "columns": {
+      "day": "Day",
+      "allergens": "Allergens"
     }
   },
   "incidents": {
@@ -256,6 +287,8 @@
       "notified": "Parent notified",
       "error": "Something went wrong. Try again."
     },
-    "severityFilter": "Filter by severity"
+    "severityFilter": "Filter by severity",
+    "allSeverities": "All severities",
+    "count": "{count, plural, =0 {No incidents} one {# incident} other {# incidents}}"
   }
 }

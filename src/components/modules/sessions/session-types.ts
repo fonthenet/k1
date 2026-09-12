@@ -2,6 +2,7 @@
 // Tone maps are token-only — see THEME.md. Never a raw Tailwind palette colour.
 
 import { initialsFromName } from "@/lib/format";
+import type { StatusTone } from "@/components/shared/status-pill";
 
 export const SESSION_TYPES = [
   "speech",
@@ -28,19 +29,11 @@ export function isProgramStatus(v: string | undefined): v is ProgramStatus {
   return !!v && (PROGRAM_STATUSES as readonly string[]).includes(v);
 }
 
-/** Each session type carries its own tint so a mixed day reads at a glance. */
-export const TYPE_TONE: Record<SessionType, string> = {
-  speech: "border-transparent bg-primary/10 text-primary",
-  occupational: "border-transparent bg-success/10 text-success",
-  behavioral: "border-transparent bg-gold-muted text-gold-ink",
-  physio: "border-transparent bg-sky text-sky-foreground",
-  psychological: "border-transparent bg-tile-4 text-chart-5",
-  tutoring: "border-transparent bg-accent text-accent-foreground",
-  followup: "border-transparent bg-secondary text-secondary-foreground",
-  other: "border-transparent bg-muted text-muted-foreground",
-};
-
-/** The dot that prefixes a type chip in dense rows. */
+/**
+ * The one colour a session type carries: the dot inside its chip. The chip
+ * itself is a neutral outline, so a day mixing five types reads as five dots
+ * and not as five tinted boxes competing with the status pill beside them.
+ */
 export const TYPE_DOT: Record<SessionType, string> = {
   speech: "bg-primary",
   occupational: "bg-success",
@@ -57,6 +50,19 @@ export const STATUS_TONE: Record<SessionStatus, string> = {
   completed: "border-transparent bg-success/10 text-success",
   cancelled: "border-transparent bg-muted text-muted-foreground",
   no_show: "border-transparent bg-destructive/10 text-destructive",
+};
+
+/**
+ * The shared pill's tone for a session in the schedule register. The expected
+ * state — scheduled — renders no pill at all: on a planning page nearly every
+ * row is scheduled, and a pill on each would say nothing. Completed, missed
+ * and cancelled are the exceptions worth a mark.
+ */
+export const SCHEDULE_PILL_TONE: Record<SessionStatus, StatusTone | null> = {
+  scheduled: null,
+  completed: "success",
+  no_show: "danger",
+  cancelled: "muted",
 };
 
 export const PROGRAM_STATUS_TONE: Record<ProgramStatus, string> = {

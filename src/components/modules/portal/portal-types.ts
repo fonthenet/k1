@@ -1,6 +1,7 @@
 // Shared types + small helpers for the parent portal.
 
 import type { AttendanceStatus, InvoiceStatus } from "@/lib/types";
+import type { StatusTone } from "@/components/shared/status-pill";
 
 // ----- Moods (kg_daily_reports.mood) -----
 
@@ -104,16 +105,24 @@ export type CheckinStatusKind = "notYet" | "arrived" | "left" | "absent";
 /** Pill shell shared by every portal status badge: tinted fill + hairline ring. */
 const PILL = "border font-semibold";
 
-export function attendanceChipClasses(kind: "arrived" | "left" | "absent" | "notYet"): string {
+/**
+ * The tone of the one pill a child card carries for today's door status,
+ * mapped by meaning: arrived is the thing done, absent the thing to act on,
+ * and a child already collected is a day that is over. "Not yet arrived" is
+ * the expected state of every morning and gets no pill at all — the empty
+ * arrival · nap · lunch · departure band under the name already says the day
+ * has not started, and a grey chip repeating it on every card was noise.
+ */
+export function attendanceChipTone(kind: CheckinStatusKind): StatusTone | null {
   switch (kind) {
     case "arrived":
-      return `${PILL} border-success/25 bg-success/10 text-success`;
+      return "success";
     case "left":
-      return `${PILL} border-primary/25 bg-primary/10 text-primary`;
+      return "muted";
     case "absent":
-      return `${PILL} border-destructive/25 bg-destructive/10 text-destructive`;
+      return "danger";
     default:
-      return `${PILL} border-border bg-muted text-muted-foreground`;
+      return null;
   }
 }
 
@@ -129,25 +138,6 @@ export function attendanceStatusClasses(status: AttendanceStatus): string {
       return `${PILL} border-destructive/20 bg-destructive/10 text-destructive`;
     default:
       return `${PILL} border-border bg-muted text-muted-foreground`;
-  }
-}
-
-export function invoiceStatusClasses(status: InvoiceStatus): string {
-  switch (status) {
-    case "paid":
-      return `${PILL} border-success/25 bg-success/10 text-success`;
-    case "partial":
-      return `${PILL} border-warning/40 bg-warning/15 text-foreground`;
-    // Unpaid and overdue both read red to a family: the difference between
-    // them is the due date, which the row already prints. Teal said "fine".
-    case "unpaid":
-    case "overdue":
-      return `${PILL} border-destructive/25 bg-destructive/10 text-destructive`;
-    case "void":
-      return `${PILL} border-border bg-muted text-muted-foreground line-through`;
-    // draft / sent — issued, nothing owed yet from the family's side.
-    default:
-      return `${PILL} border-primary/25 bg-primary/10 text-primary`;
   }
 }
 
@@ -192,6 +182,12 @@ export interface PortalInvoice {
   number: number;
   period_month: string | null;
   issue_date: string;
+  /**
+   * Needed to tell "owed" from "late": the status column lags behind the
+   * calendar until the nightly job flips it, and a family must read "late"
+   * the morning after the date, not the morning after the cron.
+   */
+  due_date: string | null;
   status: InvoiceStatus;
   total: number;
   paid_amount: number;
@@ -220,6 +216,8 @@ export interface PortalGuardianBadge {
 export interface PortalChildInvoices {
   childId: string;
   childName: string;
+  /** Signed for this render; null when the child has no photo. */
+  photoUrl: string | null;
   balance: number;
   invoices: PortalInvoice[];
 }

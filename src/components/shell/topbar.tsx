@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { LogOut, ShieldCheck, User } from "lucide-react";
+import { Languages, LogOut, ShieldCheck, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -12,16 +12,23 @@ import {
 import { setLocale } from "@/app/actions/locale";
 import { createClient } from "@/lib/supabase/client";
 import { initials } from "@/lib/format";
+import { rosterNoun } from "@/lib/vocabulary";
 import { NotificationBell } from "@/components/modules/notifications/notification-bell";
 import { WeatherChip } from "@/components/modules/weather/weather-chip";
 import { MobileNav } from "./mobile-nav";
+import { navItemAt, scopedCenterTypes } from "./nav-items";
 import type { KgRole } from "@/lib/types";
 import type { Structure } from "@/components/modules/classes/class-types";
+
+const LOCALES = [
+  { code: "ar", label: "العربية" },
+  { code: "en", label: "English" },
+  { code: "fr", label: "Français" },
+] as const;
 
 export function Topbar({
   userName,
   roleLabel,
-  title,
   userId,
   isPlatformAdmin,
   role,
@@ -32,7 +39,6 @@ export function Topbar({
 }: {
   userName: string;
   roleLabel?: string;
-  title?: string;
   /** Saves the bell a session round-trip; it falls back to auth.getUser(). */
   userId?: string;
   /** Runs Rawdatik as a business. Almost nobody; the entry is hidden otherwise. */
@@ -46,9 +52,22 @@ export function Topbar({
   activeStructureId: string | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("common");
   const [first = "", last = ""] = userName.split(" ");
+
+  // The page's name, for the phone only. On a desktop the PageHeader sixty
+  // pixels lower already says it, and the tenant name that used to sit here
+  // was the same string as the brand block forty pixels to the left. The
+  // name comes from the nav map, so it is the word the drawer row uses —
+  // including the roster noun, which follows the scope.
+  const current = navItemAt(pathname, role);
+  const pageTitle = !current
+    ? null
+    : current.key === "children"
+      ? t(`nouns.${rosterNoun(scopedCenterTypes(structures, activeStructureId))}`)
+      : t(`nav.${current.key}`);
 
   async function logout() {
     await createClient().auth.signOut();
@@ -86,27 +105,29 @@ export function Topbar({
           structures={structures}
           activeStructureId={activeStructureId}
         />
-        <h1 className="truncate font-heading text-base font-semibold tracking-tight text-foreground">
-          {title}
-        </h1>
+        {pageTitle && (
+          <h1 className="truncate font-heading text-base font-semibold tracking-tight text-foreground md:hidden">
+            {pageTitle}
+          </h1>
+        )}
       </div>
       <div className="flex items-center gap-1">
-        <WeatherChip className={headerControl} />
+        {/* Operational on a desk, decoration on a phone: below md the bar is
+            [menu] [page] [bell] [avatar] and nothing else. */}
+        <div className="hidden md:block">
+          <WeatherChip className={headerControl} />
+        </div>
         <NotificationBell userId={userId} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`gap-1.5 ${headerControl}`}
-            >
-              {locale === "ar" ? "العربية" : locale === "en" ? "English" : "Français"}
+            <Button variant="ghost" size="sm" className={`hidden gap-1.5 md:inline-flex ${headerControl}`}>
+              {LOCALES.find((l) => l.code === locale)?.label ?? "Français"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setLocale("ar")}>العربية</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLocale("en")}>English</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLocale("fr")}>Français</DropdownMenuItem>
+            {LOCALES.map((l) => (
+              <DropdownMenuItem key={l.code} onClick={() => setLocale(l.code)}>{l.label}</DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
         <DropdownMenu>
@@ -117,25 +138,44 @@ export function Topbar({
                   {initials(first, last)}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden max-w-32 truncate text-sm font-medium sm:inline">
+              {/* A person's name, often Arabic inside a French UI: its own
+                  direction, and Cairo behind Inter for the glyphs Inter lacks. */}
+              <bdi
+                dir="auto"
+                className="hidden max-w-32 truncate text-start text-sm font-medium sm:inline ltr:[font-family:Inter,var(--font-cairo),sans-serif]"
+              >
                 {userName}
-              </span>
+              </bdi>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuLabel>
-              <div className="text-sm font-medium">{userName}</div>
+              <bdi
+                dir="auto"
+                className="block text-start text-sm font-medium ltr:[font-family:Inter,var(--font-cairo),sans-serif]"
+              >
+                {userName}
+              </bdi>
               {roleLabel && <div className="text-xs font-normal text-muted-foreground">{roleLabel}</div>}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push("/settings/profile")}>
-              <User className="size-4" /> Profil
+              <User className="size-4" /> {t("nav.profile")}
             </DropdownMenuItem>
             {isPlatformAdmin && (
               <DropdownMenuItem onClick={() => router.push("/admin")}>
                 <ShieldCheck className="size-4" /> {t("nav.platform")}
               </DropdownMenuItem>
             )}
+            {/* The language lives here on a phone, where the bar has no room
+                for a fourth control. */}
+            <DropdownMenuSeparator className="md:hidden" />
+            {LOCALES.filter((l) => l.code !== locale).map((l) => (
+              <DropdownMenuItem key={l.code} className="md:hidden" onClick={() => setLocale(l.code)}>
+                <Languages className="size-4" /> {l.label}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={logout}>
               <LogOut className="size-4" /> {t("actions.logout")}
             </DropdownMenuItem>

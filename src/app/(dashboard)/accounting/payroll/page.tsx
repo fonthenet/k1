@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ArrowRight, HandCoins, TriangleAlert } from "lucide-react";
+import { HandCoins, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import { formatDZD, intlLocale } from "@/lib/format";
 import type { PayrollStatus } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StatusPill } from "@/components/shared/status-pill";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -21,8 +20,7 @@ import {
 } from "@/components/ui/table";
 import { AccountingNav } from "@/components/modules/accounting/nav-tabs";
 import { NewPayrollDialog } from "@/components/modules/accounting/new-payroll-dialog";
-import { monthKey, PAYROLL_STATUS_BADGE } from "@/components/modules/accounting/types";
-import { EmptyIcon, IconTile } from "@/components/modules/billing/finance-ui";
+import { monthKey } from "@/components/modules/accounting/types";
 
 interface RunRow {
   id: string;
@@ -30,12 +28,6 @@ interface RunRow {
   status: PayrollStatus;
   kg_payroll_items: { net_amount: number | string }[];
 }
-
-const RUN_TONE = {
-  draft: "muted",
-  finalized: "gold",
-  paid: "income",
-} as const;
 
 export default async function PayrollPage() {
   const ctx = await requireFinance();
@@ -75,28 +67,21 @@ export default async function PayrollPage() {
         </Alert>
       )}
 
-      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-        <CardContent className="p-0">
-          {runs.length === 0 ? (
-            <div className="p-6">
-              <EmptyState
-                icon={
-                  <EmptyIcon>
-                    <HandCoins />
-                  </EmptyIcon>
-                }
-                title={t("payroll.empty")}
-                description={t("payroll.emptyHint")}
-              />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader className="[&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground">
-                <TableRow>
-                  <TableHead className="ps-4">{t("payroll.month")}</TableHead>
+      {runs.length === 0 ? (
+        <EmptyState
+          icon={<HandCoins />}
+          title={t("payroll.empty")}
+          description={t("payroll.emptyHint")}
+        />
+      ) : (
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            <Table className="[&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-5 [&_th:first-child]:ps-5 [&_td:last-child]:pe-5 [&_th:last-child]:pe-5">
+              <TableHeader>
+                <TableRow className="[&>th]:font-semibold">
+                  <TableHead>{t("payroll.month")}</TableHead>
                   <TableHead>{t("payroll.status")}</TableHead>
                   <TableHead className="text-end">{t("payroll.totalNet")}</TableHead>
-                  <TableHead className="w-16 pe-4" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -104,48 +89,43 @@ export default async function PayrollPage() {
                   const total = run.kg_payroll_items.reduce((s, i) => s + Number(i.net_amount), 0);
                   const monthLabel = monthYearFmt.format(new Date(`${run.month}T00:00:00`));
                   return (
-                    <TableRow key={run.id} className="h-16">
-                      <TableCell className="ps-4">
-                        <div className="flex items-center gap-3">
-                          <IconTile tone={RUN_TONE[run.status]} size="sm">
-                            <HandCoins />
-                          </IconTile>
-                          <div>
-                            <Link
-                              href={`/accounting/payroll/${run.id}`}
-                              className="font-semibold capitalize hover:text-primary hover:underline"
-                            >
-                              {monthLabel}
-                            </Link>
-                            <div className="text-xs text-muted-foreground">
-                              {t("payroll.members", { count: run.kg_payroll_items.length })}
-                            </div>
-                          </div>
+                    <TableRow key={run.id} className="relative h-14 transition-colors hover:bg-primary/5">
+                      <TableCell>
+                        {/* The month is the door: its overlay makes the whole
+                            row open the run, so no arrow cell is needed.
+                            `capitalize` for the French month name; a no-op in
+                            Arabic. */}
+                        <Link
+                          href={`/accounting/payroll/${run.id}`}
+                          className="font-medium capitalize after:absolute after:inset-0"
+                        >
+                          {monthLabel}
+                        </Link>
+                        <div className="text-xs text-muted-foreground">
+                          {t("payroll.members", { count: run.kg_payroll_items.length })}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={PAYROLL_STATUS_BADGE[run.status]}>
-                          {t(`payroll.statusLabels.${run.status}`)}
-                        </Badge>
+                        {/* Paid is the expected end of a run and says nothing;
+                            a draft or a validated run is still waiting on
+                            someone, so it carries the one attention pill. */}
+                        {run.status !== "paid" && (
+                          <StatusPill tone="attention">
+                            {t(`payroll.statusLabels.${run.status}`)}
+                          </StatusPill>
+                        )}
                       </TableCell>
-                      <TableCell className="text-end text-base font-bold tabular-nums">
+                      <TableCell className="text-end font-medium tabular-nums">
                         {formatDZD(total, locale)}
-                      </TableCell>
-                      <TableCell className="pe-4">
-                        <Button asChild variant="ghost" size="icon-sm" aria-label={monthLabel}>
-                          <Link href={`/accounting/payroll/${run.id}`}>
-                            <ArrowRight className="rtl:-scale-x-100" />
-                          </Link>
-                        </Button>
                       </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

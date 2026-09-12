@@ -1,7 +1,7 @@
 {
   "list": {
     "title": "Classes",
-    "description": "Groupes, capacités et affectation des éducateurs",
+    "description": "Salles, capacités et équipe de chaque classe",
     "addClass": "Nouvelle classe",
     "empty": "Aucune classe pour le moment",
     "emptyDescription": "Créez une première classe pour regrouper les enfants par tranche d'âge.",
@@ -13,7 +13,14 @@
     "tabClasses": "Classes",
     "tabRooms": "Salles",
     "tabSections": "Structures",
-    "staffCount": "{count, plural, one {# membre, sans principal} other {# membres, sans principal}}"
+    "staffCount": "{count, plural, one {# membre, sans principal} other {# membres, sans principal}}",
+    "columns": {
+      "class": "Classe",
+      "room": "Salle",
+      "ages": "Âges",
+      "team": "Équipe",
+      "actions": "Actions"
+    }
   },
   "ageRange": {
     "between": "De {min} à {max} ans",
@@ -66,7 +73,8 @@
       "steps": "Premiers pas"
     },
     "structure": "Structure",
-    "noStructure": "Aucune structure"
+    "noStructure": "Aucune structure",
+    "roomClashes": "{count, plural, one {# cours de cette classe chevauche une autre réservation d’ici 12 semaines.} other {# cours de cette classe chevauchent d’autres réservations d’ici 12 semaines.}}"
   },
   "delete": {
     "title": "Supprimer cette classe ?",
@@ -82,17 +90,26 @@
     "submit": "Affecter ({count})"
   },
   "detail": {
-    "back": "Retour aux classes",
+    "back": "Classes",
     "notFound": "Classe introuvable",
     "notFoundDescription": "Cette classe n'existe pas ou n'appartient pas à votre crèche.",
     "children": {
-      "title": "Enfants ({count})",
-      "empty": "Aucun enfant dans cette classe",
+      "title": "Enfants",
+      "empty": "Aucun enfant dans cette classe.",
       "emptyDescription": "Affectez des enfants à cette classe pour les voir apparaître ici.",
       "assign": "Affecter des enfants",
       "unassign": "Retirer de la classe",
       "unassignTitle": "Retirer de la classe ?",
-      "unassignDescription": "{name} sera retiré de cette classe. Vous pourrez le réaffecter plus tard."
+      "unassignDescription": "{name} sera retiré de cette classe. Vous pourrez le réaffecter plus tard.",
+      "hint": "{count, plural, =0 {Aucun enfant inscrit} one {# enfant inscrit} other {# enfants inscrits}}",
+      "outOfBand": "Hors de la tranche d'âge de la classe",
+      "columns": {
+        "child": "Enfant",
+        "age": "Âge",
+        "allergies": "Allergies",
+        "today": "Aujourd'hui",
+        "status": "Statut"
+      }
     },
     "occupancy": {
       "title": "Remplissage"
@@ -108,14 +125,38 @@
       "noChildren": "Aucun enfant dans cette classe."
     },
     "staff": {
-      "title": "Équipe pédagogique",
+      "title": "Équipe",
       "empty": "Aucun membre affecté à cette classe.",
       "main": "Principal",
       "makeMain": "Définir comme principal",
       "remove": "Retirer",
       "add": "Ajouter",
       "selectPlaceholder": "Choisir un membre de l'équipe",
-      "noneAvailable": "Aucun membre disponible"
+      "noneAvailable": "Aucun membre disponible",
+      "hint": "Qui dirige la classe"
+    },
+    "more": "Plus d'actions",
+    "stats": {
+      "team": "Équipe",
+      "noMain": "Sans éducateur principal",
+      "fill": "Remplissage",
+      "spotsLeft": "{count, plural, =0 {Aucune place libre} one {# place libre} other {# places libres}}",
+      "today": "Aujourd'hui",
+      "program": "Cette semaine",
+      "todayHint": "{count, plural, =0 {présents · appel terminé} one {présents · # non pointé} other {présents · # non pointés}}",
+      "weekHint": "{count, plural, =0 {aucun cours planifié} one {cours planifié} other {cours planifiés}}",
+      "hasMain": "Principal désigné"
+    },
+    "learning": {
+      "title": "Pédagogie",
+      "hint": "{profile, select, academic {Programme en cours et prochains cours} therapy {Programme en cours et prochains ateliers} other {Programme en cours et prochaines activités}}",
+      "program": "Programme",
+      "noProgram": "Aucun programme en cours",
+      "upcoming": "{profile, select, academic {Prochains cours} therapy {Prochains ateliers} other {Prochaines activités}}",
+      "noLessons": "{profile, select, academic {Aucun cours planifié} therapy {Aucun atelier planifié} other {Aucune activité planifiée}}",
+      "openPrograms": "Programmes",
+      "openTimetable": "Emploi du temps",
+      "empty": "{profile, select, academic {Aucun programme en cours ni cours planifié} therapy {Aucun programme en cours ni atelier planifié} other {Aucun programme en cours ni activité planifiée}}"
     }
   },
   "childStatus": {
@@ -146,7 +187,7 @@
     "mainSet": "Éducateur principal défini",
     "roomDuplicate": "Une salle porte déjà ce nom.",
     "roomDeleted": "Salle supprimée",
-    "roomInUse": "Suppression impossible : des classes occupent encore cette salle.",
+    "roomInUse": "Suppression impossible : cette salle est encore utilisée.",
     "structureDuplicate": "Une structure porte déjà ce nom.",
     "structureDeleted": "Structure supprimée",
     "structureInUse": "Suppression impossible : cette structure contient encore des classes ou des enfants.",
@@ -164,7 +205,7 @@
     "edit": "Modifier la salle",
     "dialogDescription": "Les salles sont définies une fois, puis choisies sur chaque classe.",
     "name": "Nom",
-    "namePlaceholder": "Salle A",
+    "namePlaceholder": "Salle 1",
     "nameAr": "Nom en arabe",
     "capacity": "Capacité",
     "capacityHint": "Combien d'enfants la salle peut accueillir. Facultatif.",
@@ -189,7 +230,20 @@
       "second": "2ᵉ étage",
       "third": "3ᵉ étage"
     },
-    "noFloor": "Non précisé"
+    "noFloor": "Non précisé",
+    "columns": {
+      "name": "Salle",
+      "capacity": "Capacité",
+      "floor": "Étage",
+      "usedBy": "Utilisée par"
+    },
+    "inUseClasses": "{count, plural, one {# classe} other {# classes}}",
+    "inUseActivities": "{count, plural, one {# activité} other {# activités}}",
+    "inUseBookings": "{count, plural, one {# réservation à venir} other {# réservations à venir}}",
+    "inUseHistory": "{count, plural, one {# réservation passée} other {# réservations passées}}",
+    "inUseSentence": "Cette salle est encore utilisée ({parts}). Déplacez ce qui est à venir, ou mettez-la hors service : l’historique garde sa salle.",
+    "retireBookings": "{count, plural, one {# réservation à venir reste programmée dans cette salle.} other {# réservations à venir restent programmées dans cette salle.}}",
+    "retireActivities": "{count, plural, one {# activité se réunit encore dans cette salle.} other {# activités se réunissent encore dans cette salle.}}"
   },
   "structures": {
     "new": "Nouvelle structure",
@@ -213,11 +267,11 @@
     "deleteTitle": "Supprimer « {name} » ?",
     "deleteDescription": "Aucune classe ni enfant n'appartient à cette structure.",
     "deleteBlocked": "Cette structure contient encore {classes} classe(s) et {children} enfant(s). Déplacez-les d'abord : sans structure, un enfant ne figure dans aucun registre.",
-    "add": "Ajouter une activité",
+    "add": "Ajouter une structure",
     "billingNotice": "Chaque activité est une structure facturée séparément — votre abonnement passera au tarif suivant à la prochaine facture.",
     "moveAll": {
-      "to": "Déplacer tout le monde vers",
-      "action": "Déplacer tout le monde vers {structure}",
+      "to": "Vers",
+      "action": "Déplacer",
       "classLabel": "Classe pour les enfants sans classe",
       "noClass": "Sans classe",
       "hint": "Les classes partent avec leurs enfants, leur équipe et leur salle. Les enfants sans classe rejoignent la structure choisie ; leur famille est prévenue.",
@@ -225,13 +279,18 @@
       "done": "{classes, plural, =0 {Aucune classe} one {# classe} other {# classes}} et {children, plural, =0 {aucun enfant} one {# enfant} other {# enfants}} déplacés vers {structure}.",
       "emptied": "Tout le monde est maintenant dans {structure}. La structure peut être supprimée.",
       "partial": "{failed, plural, one {# enfant n'a pas pu être déplacé} other {# enfants n'ont pas pu être déplacés}}. La structure ne peut pas encore être supprimée.",
-      "error": "Le déplacement a échoué."
-    }
+      "error": "Le déplacement a échoué.",
+      "consequence": "{classes, plural, =0 {Aucune classe} one {# classe} other {# classes}} et {children, plural, =0 {aucun enfant} one {# enfant} other {# enfants}} rejoindront <b>{structure}</b> avec leur équipe et leur salle ; les familles seront prévenues."
+    },
+    "remove": "Retirer",
+    "more": "Plus d'actions",
+    "dasIn": "Registres DAS",
+    "dasOut": "Hors DAS"
   },
   "assignStaff": {
     "open": "Affecter l'équipe",
     "title": "Équipe de {name}",
-    "description": "Cochez les membres qui encadrent cette classe et marquez d'une étoile l'éducateur principal. Chaque ligne indique où la personne est déjà affectée.",
+    "description": "Cochez les membres et marquez l'éducateur principal d'une étoile.",
     "empty": "Aucun membre actif dans l'équipe. Ajoutez d'abord des personnes depuis la page Équipe.",
     "search": "Rechercher un nom ou un poste",
     "noMatch": "Aucun membre ne correspond.",

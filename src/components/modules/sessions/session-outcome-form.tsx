@@ -70,6 +70,11 @@ export function SessionOutcomeForm({
         setSaved(payload);
         setForm(payload);
         router.refresh();
+      } else if (res.error === "conflictRoom" || res.error === "conflictTherapist") {
+        // Reviving a cancelled follow-up books its therapist and its room
+        // again; when either has been taken since, say which — the fix is
+        // to reschedule, not to retry.
+        toast.error(t(`conflicts.${res.error}`));
       } else {
         toast.error(t("toasts.error"));
       }

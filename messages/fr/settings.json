@@ -61,9 +61,18 @@
     "locationHint": "Où vous trouver, et le repère sur la carte."
   },
   "centerTypes": {
-    "private_primary": {"name":"École primaire privée","desc":"Enseignement primaire privé. Sélectionnez aussi les autres cycles proposés par votre établissement."},
-    "private_middle": {"name":"École privée · cycle moyen","desc":"Enseignement moyen privé, distinct du soutien scolaire."},
-    "private_secondary": {"name":"École privée · cycle secondaire","desc":"Enseignement secondaire privé, distinct du soutien scolaire."},
+    "private_primary": {
+      "name": "École primaire privée",
+      "desc": "Enseignement primaire privé. Sélectionnez aussi les autres cycles proposés par votre établissement."
+    },
+    "private_middle": {
+      "name": "École privée · cycle moyen",
+      "desc": "Enseignement moyen privé, distinct du soutien scolaire."
+    },
+    "private_secondary": {
+      "name": "École privée · cycle secondaire",
+      "desc": "Enseignement secondaire privé, distinct du soutien scolaire."
+    },
     "nursery": {
       "name": "Crèche",
       "desc": "Accueil des bébés et tout-petits à la journée."
@@ -133,7 +142,8 @@
     "expired": "Expiré",
     "full": "Limite atteinte",
     "wholeBuildingHint": "La famille choisira la structure au début du formulaire.",
-    "shareTextStructure": "Bonjour ! Vous pouvez inscrire votre enfant à {structure} ({name}) via ce lien :"
+    "shareTextStructure": "Bonjour ! Vous pouvez inscrire votre enfant à {structure} ({name}) via ce lien :",
+    "more": "Plus d'actions"
   },
   "poster": {
     "title": "Affiche d'inscription",
@@ -164,7 +174,7 @@
     "add": "Ajouter un jour férié",
     "addTitle": "Ajouter un jour férié",
     "addDescription": "Ajoutez une fête nationale, une fête religieuse ou une fermeture propre à votre établissement.",
-    "nameFr": "Nom (français)",
+    "nameFr": "Nom",
     "nameAr": "Nom en arabe",
     "startDate": "Date de début",
     "endDate": "Date de fin",
@@ -191,7 +201,8 @@
       "actions": "Actions"
     },
     "tentativeNotice": "Les dates religieuses restent approximatives jusqu'à l'annonce officielle : confirmez-les le moment venu.",
-    "past": "Passé"
+    "past": "Passé",
+    "more": "Plus d'actions"
   },
   "documents": {
     "title": "Documents administratifs",
@@ -228,7 +239,15 @@
       "noExpiry": "Sans expiration"
     },
     "alertTitle": "Documents à renouveler",
-    "alertDescription": "{count} document(s) ont expiré ou expirent dans moins de 60 jours."
+    "alertDescription": "{count} document(s) ont expiré ou expirent dans moins de 60 jours.",
+    "more": "Plus d'actions",
+    "columns": {
+      "document": "Document",
+      "actions": "Actions",
+      "type": "Type",
+      "issued": "Délivré le",
+      "expires": "Expire le"
+    }
   },
   "profile": {
     "title": "Mon profil",
@@ -284,12 +303,13 @@
         "title": "Tâche qui vous est assignée",
         "description": "Une tâche du tableau vous est attribuée. Va à cette personne uniquement."
       }
-    }
+    },
+    "descriptionAdmin": "Ce que les familles reçoivent chaque jour d'ouverture, et ce qui vous alerte, sur téléphone comme au bureau."
   },
   "hours": {
     "title": "Jours et horaires d'ouverture",
-    "description": "Les jours où la crèche accueille les enfants. Les fermetures ponctuelles se gèrent dans Jours fériés.",
-    "establishment": "Établissement",
+    "description": "Les jours où l'établissement accueille les enfants. Les fermetures ponctuelles se gèrent dans Jours fériés.",
+    "establishment": "Tout l'établissement",
     "sameAsEstablishment": "Mêmes horaires que l'établissement",
     "sameAsEstablishmentHint": "Cette structure suit la semaine de l'établissement : si vous la modifiez, elle change ici aussi.",
     "days": {
@@ -307,7 +327,10 @@
     "badRange": "La fermeture doit suivre l'ouverture.",
     "summary": "{count, plural, one {# jour d'ouverture par semaine} other {# jours d'ouverture par semaine}}",
     "noneOpen": "Sélectionnez au moins un jour d'ouverture.",
-    "saved": "Horaires enregistrés"
+    "saved": "Horaires enregistrés",
+    "follows": "Suit l'établissement",
+    "customize": "Personnaliser",
+    "followAgain": "Suivre l'établissement"
   },
   "subscription": {
     "title": "Abonnement",
@@ -367,5 +390,37 @@
     },
     "changesFrom": "Vous êtes passé de {was} à {now} structures. Le changement prend effet sur la facture du {date} : {total} par mois.",
     "lineDescription": "Désignation"
+  },
+  "journal": {
+    "title": "Journal du jour",
+    "hint": "Chaque jour d'ouverture, chaque famille ayant un compte reçoit la journée de son enfant présent : activités, repas, sieste, incidents.",
+    "enable": "Envoyer automatiquement aux familles",
+    "sendAt": "Pas avant",
+    "sendAtHint": "Envoyé à l'heure choisie, ou à la fermeture si elle est plus tardive ; sur téléphone dans le quart d'heure qui suit.",
+    "saved": "Journal du jour enregistré",
+    "preview": "Envoyer un aperçu",
+    "previewTitle": "Aperçu du journal",
+    "previewDescription": "Ce que la famille de <name>{child}</name> recevrait ce soir.",
+    "previewChild": "Enfant",
+    "previewEmpty": "Rien à envoyer aujourd'hui : aucune activité, aucun menu, aucun journal.",
+    "sendToMe": "M'envoyer sur mon téléphone",
+    "previewSent": "Aperçu envoyé sur vos appareils",
+    "noDevice": "Activez les notifications sur ce navigateur ou dans l'application pour recevoir l'aperçu.",
+    "status": {
+      "sentToday": "Envoyé aujourd'hui à <ltr>{time}</ltr> · {count}",
+      "lastRun": "Dernier envoi : {date} à <ltr>{time}</ltr> · {count}",
+      "nextToday": "Prochain envoi : aujourd'hui vers <ltr>{time}</ltr>",
+      "closedToday": "Fermé aujourd'hui",
+      "never": "Aucun envoi pour l'instant.",
+      "nothingToday": {
+        "skipped_unmarked": "Rien envoyé aujourd'hui : le registre n'a pas été pointé.",
+        "skipped_absent": "Rien envoyé aujourd'hui : tous les enfants étaient absents.",
+        "skipped_empty": "Rien envoyé aujourd'hui : aucune activité, aucun menu, aucun journal.",
+        "skipped_no_account": "Rien envoyé aujourd'hui : {count, plural, one {# famille sans compte} other {# familles sans compte}}.",
+        "failed": "Rien envoyé aujourd'hui : {count, plural, one {# envoi en échec} other {# envois en échec}} — nouvel essai au prochain quart d'heure."
+      },
+      "children": "{count, plural, one {# enfant} other {# enfants}}",
+      "pupils": "{count, plural, one {# élève} other {# élèves}}"
+    }
   }
 }

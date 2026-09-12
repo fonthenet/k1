@@ -14,12 +14,11 @@ import "server-only";
 
 import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowRightLeft, FileCheck2, Hourglass } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import type { createClient } from "@/lib/supabase/server";
 import type { TenantContext } from "@/lib/tenant";
 import { formatDate } from "@/lib/format";
-import type { Structure } from "@/components/modules/classes/class-types";
-import { StructureChip } from "./structure-chip";
+import { structureName, type Structure } from "@/components/modules/classes/class-types";
+import { StructureMark } from "@/components/shared/structure-mark";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -68,64 +67,96 @@ export async function getMyOpenApplications(
   }));
 }
 
+/**
+ * The requests still in flight, as rows of the family's children list.
+ *
+ * Rendered INSIDE the list's `<ul>`, under a group row of its own, rather
+ * than as a card per request under a heading of its own: a request is a
+ * child who is not on the register yet, and it belongs in the same register
+ * the enrolled children sit in — the group row is what says "not yet". The
+ * rows are not doors; there is no page behind a request, and the office
+ * delivers the outcome itself.
+ */
 export async function PendingApplications({
   rows,
   structures = [],
 }: {
   rows: PortalApplicationRow[];
-  /** For the chip naming the structure asked for; unused with one structure. */
+  /** For the mark naming the structure asked for; unused with one structure. */
   structures?: Structure[];
 }) {
   if (rows.length === 0) return null;
 
   const t = await getTranslations("portal.applications");
+  // The parent-side name of a move lives with the dialog that asks for it;
+  // the row reuses that word rather than inventing a second one.
+  const tTransfer = await getTranslations("portal.transfer");
   const locale = await getLocale();
   const structureById = new Map(structures.map((s) => [s.id, s]));
   const multiStructure = structures.length > 1;
 
   return (
-    <section className="grid gap-3">
-      <div>
-        <h3 className="text-base font-semibold tracking-tight">{t("title")}</h3>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-          {t("description")}
-        </p>
-      </div>
-
-      <div className="grid gap-3">
-        {rows.map((row) => {
-          const name =
-            `${row.child_first_name ?? ""} ${row.child_last_name ?? ""}`.trim() || "—";
-          const Icon = row.closed ? FileCheck2 : row.transfer ? ArrowRightLeft : Hourglass;
-          const structure =
-            multiStructure && row.structure_id ? structureById.get(row.structure_id) : undefined;
-          return (
-            <Card key={row.id} className="border-dashed bg-muted/30 shadow-none">
-              <CardContent className="flex items-start gap-3.5">
-                <span
-                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-border"
-                  aria-hidden
-                >
-                  <Icon className="size-5" />
-                </span>
-
-                <div className="min-w-0 flex-1">
-                  <span className="font-semibold text-start" dir="auto">
-                    {name}
-                  </span>
-                  <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+    <>
+      <li className="bg-muted/30 px-5 py-1.5 text-xs">
+        <span className="flex items-center gap-2">
+          <span className="font-semibold">{t("group")}</span>
+          <span className="text-muted-foreground tabular-nums">{rows.length}</span>
+        </span>
+      </li>
+      {rows.map((row) => {
+        const name =
+          `${row.child_first_name ?? ""} ${row.child_last_name ?? ""}`.trim() || "—";
+        // The glyph is hidden from assistive tech, so it can only echo what
+        // the words say: a closed file has its own sentence, and a transfer
+        // is named as one under the child — otherwise a family with a move
+        // and a new enrolment in flight reads two identical rows, and a
+        // screen reader hears no difference at all.
+        const Icon = row.closed ? FileCheck2 : row.transfer ? ArrowRightLeft : Hourglass;
+        const structure =
+          multiStructure && row.structure_id ? structureById.get(row.structure_id) : undefined;
+        return (
+          <li key={row.id} className="flex min-h-14 items-center gap-3 px-5 py-3">
+            <span
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+              aria-hidden
+            >
+              <Icon className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <bdi dir="auto" className="block truncate text-sm font-medium">
+                {name}
+              </bdi>
+              <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                {/* A closed file is a different sentence from a pending one:
+                    the date it was sent no longer matters, the next step
+                    does. */}
+                {row.closed ? (
+                  <span>{t("closed")}</span>
+                ) : (
+                  <>
+                    {row.transfer && (
+                      <>
+                        <span>{tTransfer("title")}</span>
+                        <span aria-hidden>·</span>
+                      </>
+                    )}
                     <span>{t("sentOn", { date: formatDate(row.created_at, locale) })}</span>
-                    {structure && <StructureChip structure={structure} locale={locale} />}
-                  </p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-pretty text-muted-foreground">
-                    {row.closed ? t("closed") : row.transfer ? t("processingTransfer") : t("processing")}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-    </section>
+                    {structure && (
+                      <>
+                        <span aria-hidden>·</span>
+                        <StructureMark
+                          structure={{ name: structureName(structure, locale), color: structure.color }}
+                          className="text-xs"
+                        />
+                      </>
+                    )}
+                  </>
+                )}
+              </span>
+            </span>
+          </li>
+        );
+      })}
+    </>
   );
 }

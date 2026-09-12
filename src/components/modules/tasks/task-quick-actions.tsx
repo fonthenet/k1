@@ -1,12 +1,15 @@
 "use client";
 
-// Per-card controls: the one-tap "done" tick, plus a menu for moving a task
-// between lanes, cancelling it, or (admins) deleting it.
+// The controls at the end of a task row: the one-tap "done" tick on an open
+// task, plus a menu for reopening a closed one, moving it between statuses,
+// cancelling it, or (admins) deleting it. Ghost icons only — the row itself
+// is the door to the edit dialog, and the delete confirm lives outside the
+// menu so closing the menu does not unmount it.
 
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Ban, Check, Ellipsis, ListTodo, Play, RotateCcw, Trash2 } from "lucide-react";
+import { Ban, Check, ListTodo, MoreHorizontal, Play, RotateCcw, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,13 +71,16 @@ export function TaskQuickActions({
     });
   }
 
+  // A closed task reopens as "À faire"; the remaining targets are the other
+  // statuses it could move to. An open one lists everything but itself.
+  const isOpen = status === "todo" || status === "in_progress";
   const targets = (["todo", "in_progress", "done", "cancelled"] as const).filter(
-    (s) => s !== status
+    (s) => s !== status && (isOpen || s !== "todo")
   );
 
   return (
-    <div className="flex shrink-0 items-center gap-0.5">
-      {status !== "done" && (
+    <>
+      {isOpen && (
         <Button
           variant="ghost"
           size="icon-sm"
@@ -82,22 +88,9 @@ export function TaskQuickActions({
           onClick={() => move("done")}
           aria-label={t("card.markDone")}
           title={t("card.markDone")}
-          className="rounded-full text-muted-foreground hover:bg-success/10 hover:text-success"
+          className="text-muted-foreground"
         >
           <Check />
-        </Button>
-      )}
-      {status === "done" && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          disabled={pending}
-          onClick={() => move("todo")}
-          aria-label={t("card.reopen")}
-          title={t("card.reopen")}
-          className="rounded-full text-muted-foreground hover:text-primary"
-        >
-          <RotateCcw />
         </Button>
       )}
 
@@ -108,12 +101,22 @@ export function TaskQuickActions({
             size="icon-sm"
             disabled={pending}
             aria-label={t("card.more")}
-            className="rounded-full text-muted-foreground"
+            title={t("card.more")}
+            className="text-muted-foreground"
           >
-            <Ellipsis />
+            <MoreHorizontal />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          {!isOpen && (
+            <>
+              <DropdownMenuItem onSelect={() => move("todo")}>
+                <RotateCcw />
+                {t("card.reopen")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuLabel>{t("card.moveTo")}</DropdownMenuLabel>
           {targets.map((s) => {
             const Icon = MOVE_ICON[s];
@@ -154,6 +157,6 @@ export function TaskQuickActions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

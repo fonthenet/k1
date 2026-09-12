@@ -42,9 +42,17 @@ export function RecordPaymentDialog({
   invoice,
   size = "default",
   payable = true,
+  iconOnly = false,
 }: {
   invoice: PayableInvoice;
   size?: "default" | "sm";
+  /**
+   * The row form of the trigger: a ghost icon with the label in `aria-label`
+   * and `title`. The invoice register renders one per row, where a labelled
+   * button repeated down a column is noise; the invoice page keeps the
+   * labelled button because there it is the page's one action.
+   */
+  iconOnly?: boolean;
   /**
    * Whether there is still a balance to take. Hides the trigger — it must NOT
    * unmount this component.
@@ -118,13 +126,24 @@ export function RecordPaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {payable && (
         <DialogTrigger asChild>
-          <Button
-            variant={size === "sm" ? "outline" : "default"}
-            size={size === "sm" ? "sm" : "default"}
-          >
-            <HandCoins data-icon="inline-start" />
-            {t("payment.button")}
-          </Button>
+          {iconOnly ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("payment.button")}
+              title={t("payment.button")}
+            >
+              <HandCoins />
+            </Button>
+          ) : (
+            <Button
+              variant={size === "sm" ? "outline" : "default"}
+              size={size === "sm" ? "sm" : "default"}
+            >
+              <HandCoins data-icon="inline-start" />
+              {t("payment.button")}
+            </Button>
+          )}
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-lg">
