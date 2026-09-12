@@ -9,6 +9,10 @@ const PROTECTED_PREFIXES = [
   "/messages", "/calendar", "/menus", "/reports", "/settings", "/portal",
   "/kiosk", "/onboarding", "/incidents", "/sessions", "/tasks",
   "/notifications", "/after-login", "/my-pay",
+  // Pédagogie was added after this list and relied on requireStaff() alone:
+  // a signed-out visitor got a 200 shell that redirected client-side. The
+  // page leaked nothing, but a protected route answers 307 at the door.
+  "/learning",
   // The operator panel. Without this a signed-out operator went /admin →
   // /dashboard → /login?next=/dashboard and, having no crèche of their own,
   // ended in the "create your crèche" wizard instead of back on /admin.
