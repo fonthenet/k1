@@ -63,13 +63,15 @@ export type DoorTodayState =
  * Why the legal move may not be written right now. The same tokens the
  * register answers with, so one message key serves the row and the result.
  */
-export type DoorBlock = "just_arrived" | "pickup_not_allowed";
+export type DoorBlock = "just_arrived" | "just_left" | "pickup_not_allowed";
 
 export interface DoorMove {
   childId: string;
   today: DoorTodayState;
   /** What today's row makes of the next scan — said on the row, never chosen. */
   move: DoorMoveKind;
+  /** An arrival after a departure today (0170): the row says "retour". */
+  returning: boolean;
   /** Set, the row cannot be ticked and says why. Only ever on a departure. */
   blocked: DoorBlock | null;
   /** A hand-over already asked for: the child is waiting on the team, not on a tick. */
@@ -111,7 +113,10 @@ export function planSelf(children: DoorPeekChild[], now: number = Date.now()): D
   // ticked when they all point the same way, none when the list points both
   // ways — a father dropping Adam off must not find Ines's departure armed
   // under the one button. Blocked and done rows do not count as a direction.
-  const open = moves.filter(isOpenMove);
+  // A return is never ticked unasked: a parent opening the page after the
+  // evening pick-up must not find "Retour" armed under the one button. It
+  // is open — one deliberate tap — and it does not count as a direction.
+  const open = moves.filter((m) => isOpenMove(m) && !m.returning);
   const oneWay = new Set(open.map((m) => m.move)).size === 1;
   return { moves, preselected: oneWay ? open.map((m) => m.childId) : [] };
 }
@@ -122,15 +127,18 @@ function moveFor(child: DoorPeekChild, now: number): DoorMove {
       ? { id: child.handover.id, expiresAt: child.handover.expires_at }
       : null;
 
-  // Left today: the day is over from here. The register would answer
-  // `already_out` to anything, and a return is recorded at the kiosk by
-  // the team — so the row says so and offers nothing.
+  // Left today: coming back is a RETURN (0170), recorded like an arrival
+  // — the doctor at ten, the return at eleven. Blocked for the two minutes
+  // after the departure, when the register reads a second arrival as the
+  // card read twice on the way out (`just_left`).
   if (child.check_out_at) {
+    const justLeft = now - Date.parse(child.check_out_at) < JUST_ARRIVED_MS;
     return {
       childId: child.id,
       today: { kind: "out", at: child.check_out_at },
-      move: "done",
-      blocked: null,
+      move: "in",
+      returning: true,
+      blocked: justLeft ? "just_left" : null,
       pending,
     };
   }
@@ -144,6 +152,7 @@ function moveFor(child: DoorPeekChild, now: number): DoorMove {
       childId: child.id,
       today: { kind: "in", at: child.check_in_at },
       move: "out",
+      returning: false,
       blocked: !child.can_pickup ? "pickup_not_allowed" : justArrived ? "just_arrived" : null,
       pending,
     };
@@ -154,6 +163,7 @@ function moveFor(child: DoorPeekChild, now: number): DoorMove {
     childId: child.id,
     today: { kind: "notArrived" },
     move: "in",
+    returning: false,
     blocked: null,
     pending,
   };

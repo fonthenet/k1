@@ -846,7 +846,8 @@
     },
     "recorded": {
       "in": "Arrivée enregistrée à {time}",
-      "out": "Départ enregistré à {time}"
+      "out": "Départ enregistré à {time}",
+      "back": "Retour enregistré à {time}"
     },
     "pending": "Demande envoyée — l'équipe vous remet {name}",
     "pendingHint": "Restez près de la porte ; cet écran se met à jour tout seul.",
@@ -860,7 +861,8 @@
       "already_in": "Arrivée déjà enregistrée à {time}",
       "already_out": "Départ déjà enregistré à {time}",
       "just_arrived": "Arrivé il y a moins de deux minutes — l'équipe s'en occupe",
-      "returned": "Départ déjà enregistré à {time} — parlez-en à l'équipe"
+      "returned": "Départ déjà enregistré à {time} — parlez-en à l'équipe",
+      "just_left": "Parti il y a moins de deux minutes — l'équipe s'en occupe"
     },
     "refusedReason": {
       "outside_hours": "Hors des horaires ({open}–{close})",
@@ -880,11 +882,13 @@
     "move": {
       "in": "Arrivée",
       "out": "Départ",
-      "done": "Journée terminée · parti à {time}"
+      "done": "Journée terminée · parti à {time}",
+      "back": "Retour"
     },
     "submitOne": {
       "in": "Enregistrer l'arrivée de {name}",
-      "out": "Enregistrer le départ de {name}"
+      "out": "Enregistrer le départ de {name}",
+      "back": "Enregistrer le retour de {name}"
     },
     "changed": "La situation a changé depuis l'affichage — relisez les lignes avant d'enregistrer.",
     "recordedUnexpected": "Ce n'est pas le mouvement qui était affiché : la situation de {name} avait changé entre-temps. En cas de doute, adressez-vous à l'accueil."

@@ -18,7 +18,6 @@ import type { Structure } from "@/components/modules/classes/class-types";
 import { allergenLabel } from "@/lib/allergens";
 import { childDisplayName, intlLocale } from "@/lib/format";
 import { isValidDateStr, parseDateStr } from "@/components/modules/attendance/dates";
-import { HandoverStrip } from "@/components/modules/attendance/handover-cards";
 import { kioskSettings } from "@/lib/kiosk-settings";
 
 export const dynamic = "force-dynamic";
@@ -140,6 +139,7 @@ export default async function AttendancePage({
     structuresRes,
     hoursRes,
     closure,
+    passesRes,
   ] = await Promise.all([
     supabase
       .from("kg_classes")
@@ -201,6 +201,14 @@ export default async function AttendancePage({
     // And whether a holiday shuts this structure on this date — the jardin's
     // school break must leave the crèche's register open.
     structureClosure(supabase, ctx.tenant.id, structureParam, date),
+    // The day's moves (0170): a child who left and came back has more than
+    // an arrival and a departure, and the row says so.
+    supabase
+      .from("kg_attendance_passes")
+      .select("child_id, direction, at")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("date", date)
+      .order("at"),
   ]);
 
   const firstError =
@@ -212,7 +220,8 @@ export default async function AttendancePage({
     guardianLinksRes.error ??
     pickupsRes.error ??
     structuresRes.error ??
-    hoursRes.error;
+    hoursRes.error ??
+    passesRes.error;
   if (firstError) throw new Error(firstError.message);
   if (closure.error) throw new Error(closure.error);
 
@@ -240,6 +249,12 @@ export default async function AttendancePage({
   const attendance = (attendanceRes.data ?? []) as AttendanceRecord[];
 
   const attendanceByChild = new Map(attendance.map((a) => [a.child_id, a]));
+  const passesByChild = new Map<string, { direction: "in" | "out"; at: string }[]>();
+  for (const pass of (passesRes.data ?? []) as { child_id: string; direction: "in" | "out"; at: string }[]) {
+    const list = passesByChild.get(pass.child_id) ?? [];
+    list.push({ direction: pass.direction, at: pass.at });
+    passesByChild.set(pass.child_id, list);
+  }
   const allergiesByChild = new Map<string, AllergyItem[]>();
   for (const a of allergiesRes.data ?? []) {
     const list = allergiesByChild.get(a.child_id) ?? [];
@@ -291,8 +306,10 @@ export default async function AttendancePage({
   // Presence per class for the tabs. "Present" here means exactly what the
   // green tile means (present or late), so the number on a tab and the numbers
   // above it can never tell two different stories about the same room.
+  // "Present" on the class tabs is who is in the room NOW — marked in and
+  // not gone home — the same question the register's green tile answers.
   const presentChildIds = new Set(
-    attendance.filter((a) => isPresentish(a.status)).map((a) => a.child_id)
+    attendance.filter((a) => isPresentish(a.status) && !a.check_out_at).map((a) => a.child_id)
   );
   const presenceByClass = new Map<string, { present: number; total: number }>();
   let presentAll = 0;
@@ -331,6 +348,7 @@ export default async function AttendancePage({
       },
       allergies: allergiesByChild.get(c.id) ?? [],
       collectors: collectorsByChild.get(c.id) ?? [],
+      passes: passesByChild.get(c.id) ?? [],
       attendance: att
         ? {
             status: att.status,
@@ -378,16 +396,10 @@ export default async function AttendancePage({
         showJournal={showJournal}
         rows={rows}
         // Departures parents asked for at the door, waiting on a member of the
-        // team (0168). Only where self check-in is on; the strip collapses to
-        // nothing while nobody is waiting, and polls the list while shown. It
-        // goes under the header and the tabs, above the roster: a class of
-        // twenty-five fills several screens, and the ten minutes a request
-        // lives are not spent scrolling to the last row.
-        notice={
-          kioskSettings(ctx.tenant.settings).selfCheckin ? (
-            <HandoverStrip tenantId={ctx.tenant.id} enabled className="mb-4" />
-          ) : null
-        }
+        // team (0168): only where self check-in is on. The register renders
+        // the strip itself from this tenant id — the page hands over a fact,
+        // never an element.
+        handovers={kioskSettings(ctx.tenant.settings).selfCheckin ? { tenantId: ctx.tenant.id } : null}
       />
     </div>
   );

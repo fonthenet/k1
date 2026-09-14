@@ -68,6 +68,7 @@ test("not arrived → the move is an arrival, ticked", () => {
     childId: "a",
     today: { kind: "notArrived" },
     move: "in",
+    returning: false,
     blocked: null,
     pending: null,
   });
@@ -82,23 +83,36 @@ test("inside for an hour → the move is a departure, ticked", () => {
   assert.deepEqual(plan.preselected, ["a"]);
 });
 
-test("left today → the day is over: no move, nothing to tick, a fact on the row", () => {
+test("left today → coming back is a return: open, said as such, never ticked unasked", () => {
   const plan = planSelf(
     [child("a", { check_in_at: iso(-8 * 3600 * 1000), check_out_at: iso(-30 * 60 * 1000) })],
     NOW
   );
-  assert.equal(plan.moves[0].move, "done");
+  assert.equal(plan.moves[0].move, "in");
+  assert.equal(plan.moves[0].returning, true);
   assert.equal(plan.moves[0].blocked, null);
   assert.deepEqual(plan.moves[0].today, { kind: "out", at: iso(-30 * 60 * 1000) });
   assert.deepEqual(plan.preselected, []);
+  assert.equal(isOpenMove(plan.moves[0]), true);
+});
+
+test("left under two minutes ago → the return is blocked as just_left (the card read twice on the way out)", () => {
+  const plan = planSelf(
+    [child("a", { check_in_at: iso(-8 * 3600 * 1000), check_out_at: iso(-60 * 1000) })],
+    NOW
+  );
+  assert.equal(plan.moves[0].move, "in");
+  assert.equal(plan.moves[0].returning, true);
+  assert.equal(plan.moves[0].blocked, "just_left");
   assert.equal(isOpenMove(plan.moves[0]), false);
 });
 
-test("a departure written without an arrival still reads as the day over", () => {
+test("a departure written without an arrival still reads as a return on offer", () => {
   // The register lets staff record a departure on a row with no check-in
   // (a child brought in before the tablet was on). check_out_at decides.
   const plan = planSelf([child("a", { check_out_at: iso(-30 * 60 * 1000) })], NOW);
-  assert.equal(plan.moves[0].move, "done");
+  assert.equal(plan.moves[0].move, "in");
+  assert.equal(plan.moves[0].returning, true);
   assert.deepEqual(plan.preselected, []);
 });
 
@@ -130,12 +144,13 @@ test("no custody does not touch an arrival: drop-off stays open to any linked ad
   assert.deepEqual(plan.preselected, ["a"]);
 });
 
-test("a child already out is never blocked: there is nothing left to refuse", () => {
+test("a child already out: no custody is no bar to bringing them back", () => {
   const plan = planSelf(
-    [child("a", { check_in_at: iso(-3600 * 1000), check_out_at: iso(-60 * 1000), can_pickup: false })],
+    [child("a", { check_in_at: iso(-3600 * 1000), check_out_at: iso(-30 * 60 * 1000), can_pickup: false })],
     NOW
   );
-  assert.equal(plan.moves[0].move, "done");
+  assert.equal(plan.moves[0].move, "in");
+  assert.equal(plan.moves[0].returning, true);
   assert.equal(plan.moves[0].blocked, null);
 });
 
@@ -201,7 +216,7 @@ test("one arriving, one leaving → nothing ticked: the kiosk's single-direction
   assert.deepEqual(plan.preselected, []);
 });
 
-test("one arriving beside a sibling who already left → the arrival is still ticked: done is not a direction", () => {
+test("one arriving beside a sibling who already left → the arrival is still ticked: a return is not a direction", () => {
   const plan = planSelf(
     [child("a"), child("b", { check_in_at: iso(-8 * 3600 * 1000), check_out_at: iso(-3600 * 1000) })],
     NOW
@@ -231,8 +246,8 @@ test("one sibling collected already, one still inside → only the one inside is
     NOW
   );
   assert.deepEqual(
-    plan.moves.map((m) => m.move),
-    ["done", "out"]
+    plan.moves.map((m) => [m.move, m.returning]),
+    [["in", true], ["out", false]]
   );
   assert.deepEqual(plan.preselected, ["b"]);
 });

@@ -18,7 +18,7 @@
   },
   "tabs": {
     "all": "كل الأقسام",
-    "presence": "{present, plural, zero {لا أحد حاضر من أصل {total}} one {حاضر واحد من أصل {total}} two {حاضران من أصل {total}} few {# حاضرين من أصل {total}} many {# حاضرًا من أصل {total}} other {# حاضر من أصل {total}}}"
+    "presence": "{present, plural, zero {لا أحد في القسم من أصل {total}} one {واحد في القسم من أصل {total}} two {اثنان في القسم من أصل {total}} few {# في القسم من أصل {total}} many {# في القسم من أصل {total}} other {# في القسم من أصل {total}}}"
   },
   "structures": {
     "filter": "التصفية حسب الهيكل",
@@ -31,7 +31,10 @@
     "checkedOut": "{count, plural, =0 {لم يخرج أحد} one {# خرج} two {# خرج} few {# خرجوا} many {# خرجوا} other {# خرجوا}}",
     "ofTotal": "{count, plural, =0 {لا أطفال مسجّلون} one {من أصل # طفل} two {من أصل # أطفال} few {من أصل # أطفال} many {من أصل # طفلًا} other {من أصل # طفل}}",
     "reportedByParents": "{count, plural, =0 {لم تبلّغ أي عائلة} one {# بلّغت عنه عائلته} two {# بلّغت عنهم عائلاتهم} few {# بلّغت عنهم عائلاتهم} many {# بلّغت عنهم عائلاتهم} other {# بلّغت عنهم عائلاتهم}}",
-    "stillHere": "{count, plural, =0 {لم يبقَ أحد} one {# لا يزال هنا} two {# لا يزالان هنا} few {# لا يزالون هنا} many {# لا يزالون هنا} other {# لا يزالون هنا}}"
+    "stillHere": "{count, plural, =0 {لم يبقَ أحد} one {# لا يزال هنا} two {# لا يزالان هنا} few {# لا يزالون هنا} many {# لا يزالون هنا} other {# لا يزالون هنا}}",
+    "cameOfTotal": "{came, plural, =0 {لم يأتِ أحد} one {# جاء} two {# جاءا} few {# جاؤوا} many {# جاؤوا} other {# جاؤوا}} · {total, plural, one {# مسجّل} two {# مسجّلين} few {# مسجّلين} many {# مسجّلًا} other {# مسجّل}}",
+    "lastDeparture": "آخر خروج {time}",
+    "noDeparture": "لا خروج بعد"
   },
   "status": {
     "present": "حاضر",
@@ -39,7 +42,9 @@
     "absent": "غائب",
     "sick": "مريض",
     "excused": "غياب مبرر",
-    "notMarked": "غير مسجل"
+    "notMarked": "غير مسجل",
+    "here": "في القسم",
+    "gone": "غادر"
   },
   "table": {
     "child": "الطفل",
@@ -48,7 +53,8 @@
     "checkOut": "الخروج",
     "details": "تفاصيل",
     "actions": "إجراءات",
-    "timeNotRecorded": "الوقت غير مسجّل"
+    "timeNotRecorded": "الوقت غير مسجّل",
+    "returnedAt": "عاد على الساعة {time}"
   },
   "actions": {
     "markAllPresent": "تسجيل الجميع حاضرين",

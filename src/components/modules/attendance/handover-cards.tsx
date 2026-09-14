@@ -511,7 +511,7 @@ export function HandoverCard({
   photoUrls: Record<string, string>;
   busy: boolean;
   now: number;
-  onDecide: (id: string, decision: HandoverDecision) => void;
+  onDecide: (id: string, decision: HandoverDecision) => void | Promise<void>;
   layout: "tile" | "row";
   /** Inside the office window: smaller faces and buttons. */
   compact?: boolean;
@@ -714,7 +714,7 @@ export function HandoverCards({
   photoUrls: Record<string, string>;
   busyId: string | null;
   now: number;
-  onDecide: (id: string, decision: HandoverDecision) => void;
+  onDecide: (id: string, decision: HandoverDecision) => void | Promise<void>;
   compact?: boolean;
   /** False on the parents' door (door mode): the cards are read-only there. */
   decidable?: boolean;
@@ -736,21 +736,213 @@ export function HandoverCards({
         {t("handover.title")}
       </h2>
       <ul className={cn("grid", compact ? "gap-1.5" : "gap-2")}>
-        {entries.map((entry) => (
-          <HandoverCard
-            key={entry.item.id}
-            entry={entry}
+        {groupByGuardian(entries).map((group) => (
+          <HandoverGroupCard
+            key={group[0].item.guardian.id}
+            entries={group}
             photoUrls={photoUrls}
-            busy={busyId === entry.item.id}
+            busyId={busyId}
             now={now}
             onDecide={onDecide}
-            layout="tile"
             compact={compact}
             decidable={decidable}
           />
         ))}
       </ul>
     </section>
+  );
+}
+
+/** The stack's tiles, one per adult at the door: a father asking for both children is one person to look at. Oldest request first. */
+function groupByGuardian(entries: HandoverEntry[]): HandoverEntry[][] {
+  const groups = new Map<string, HandoverEntry[]>();
+  for (const entry of entries) {
+    const key = entry.item.guardian.id;
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
+  }
+  return [...groups.values()];
+}
+
+/**
+ * One adult, their children, one decision — the tile the kiosk stacks.
+ *
+ * The person the team looks at is the adult, so the adult heads the card
+ * and the children are rows under them. With several children every row
+ * starts included and a tap on a row leaves that child out (the mother
+ * takes one to the doctor, the other stays); the buttons say how many they
+ * will settle and settle them one after the other through the same decide
+ * as a single card. A row already answered keeps its result line.
+ */
+function HandoverGroupCard({
+  entries,
+  photoUrls,
+  busyId,
+  now,
+  onDecide,
+  compact = false,
+  decidable = true,
+}: {
+  entries: HandoverEntry[];
+  photoUrls: Record<string, string>;
+  busyId: string | null;
+  now: number;
+  onDecide: (id: string, decision: HandoverDecision) => void | Promise<void>;
+  compact?: boolean;
+  decidable?: boolean;
+}) {
+  const t = useTranslations("kiosk");
+  const locale = useLocale();
+  const [left, setLeft] = useState<string[]>([]);
+  const [settling, setSettling] = useState(false);
+  const guardian = entries[0].item.guardian;
+  const oldest = entries.reduce((a, e) => Math.min(a, new Date(e.item.requestedAt).getTime()), Infinity);
+  const minutes = Math.max(0, Math.floor((now - oldest) / 60_000));
+  const requested = minutes < 1 ? t("handover.justNow") : t("handover.requested", { minutes });
+  const relationship = t(
+    `relationships.${RELATIONSHIPS.includes(guardian.relationship) ? guardian.relationship : "other"}`
+  );
+  const guardianFace = guardian.photo_path ? (photoUrls[guardian.photo_path] ?? null) : null;
+  const open = entries.filter((e) => e.outcome === null || e.outcome.kind === "wait" || e.outcome.kind === "failed");
+  // With one child left open there is nothing to leave out: the row has no
+  // toggle, and a tap that left it out while its sibling was still open
+  // must not keep the button dark now.
+  const chosen = open.length > 1 ? open.filter((e) => !left.includes(e.item.id)) : open;
+  const busy = settling || entries.some((e) => e.item.id === busyId);
+
+  const settle = async (decision: HandoverDecision) => {
+    if (busy || chosen.length === 0) return;
+    setSettling(true);
+    try {
+      for (const e of chosen) await onDecide(e.item.id, decision);
+    } finally {
+      setSettling(false);
+    }
+  };
+
+  return (
+    <li
+      className={cn(
+        "w-full rounded-2xl border border-border bg-card text-start shadow-sm",
+        compact ? "p-2.5" : "p-3"
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Face person={guardian} url={guardianFace} className={compact ? "size-10 text-sm" : "size-14 text-lg"} />
+          <div className="min-w-0">
+            <p className={cn("truncate font-bold", compact ? "text-base" : "text-lg")}>
+              <bdi dir="auto">{childDisplayName(guardian, locale)}</bdi>
+            </p>
+            <p className="truncate text-sm text-muted-foreground">{relationship}</p>
+          </div>
+        </div>
+        <p className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+          <LogOut className="size-3.5 shrink-0 rtl:-scale-x-100" aria-hidden />
+          {requested}
+        </p>
+      </div>
+
+      <ul className={cn("divide-y divide-border", compact ? "mt-1.5" : "mt-2")}>
+        {entries.map(({ item, outcome }) => {
+          const face = item.child.photo_path ? (photoUrls[item.child.photo_path] ?? null) : null;
+          const pending = outcome === null || outcome.kind === "wait" || outcome.kind === "failed";
+          const toggle = pending && decidable && open.length > 1;
+          const included = !toggle || !left.includes(item.id);
+          const row = (
+            <>
+              <Face person={item.child} url={face} className={compact ? "size-8 text-xs" : "size-10 text-sm"} />
+              <div className="min-w-0 flex-1">
+                <p className={cn("truncate font-semibold", compact ? "text-sm" : "text-base", !included && "text-muted-foreground")}>
+                  <bdi dir="auto">{childDisplayName(item.child, locale)}</bdi>
+                </p>
+                {item.child.className && (
+                  <p className="truncate text-xs text-muted-foreground">
+                    <bdi dir="auto">{item.child.className}</bdi>
+                  </p>
+                )}
+              </div>
+              {outcome && outcome.kind !== "wait" && outcome.kind !== "failed" ? (
+                <span
+                  className={cn(
+                    "flex shrink-0 items-center gap-1 text-sm font-bold",
+                    outcome.kind === "confirmed" ? "text-success" : "text-destructive"
+                  )}
+                >
+                  {outcome.kind === "confirmed" ? <Check className="size-4" aria-hidden /> : <X className="size-4" aria-hidden />}
+                  {outcome.kind === "confirmed"
+                    ? t("handover.confirmed", { time: formatTime(outcome.at ?? new Date(now), locale) })
+                    : outcome.kind === "refused"
+                      ? t("handover.refused")
+                      : t(declinedKey(outcome.reason))}
+                </span>
+              ) : outcome?.kind === "wait" ? (
+                <span className="flex shrink-0 items-center gap-1 text-sm font-bold text-gold-ink">
+                  <TriangleAlert className="size-4" aria-hidden />
+                  {t("handover.waitJustArrived")}
+                </span>
+              ) : toggle ? (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "flex size-6 shrink-0 items-center justify-center rounded-full border-2",
+                    included ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                  )}
+                >
+                  {included && <Check className="size-4" />}
+                </span>
+              ) : null}
+            </>
+          );
+          return (
+            <li key={item.id}>
+              {toggle ? (
+                <button
+                  type="button"
+                  aria-pressed={included}
+                  disabled={busy}
+                  onClick={() => setLeft((l) => (included ? [...l, item.id] : l.filter((id) => id !== item.id)))}
+                  className={cn("flex w-full items-center gap-3 text-start", compact ? "py-1.5" : "py-2")}
+                >
+                  {row}
+                </button>
+              ) : (
+                <div className={cn("flex items-center gap-3", compact ? "py-1.5" : "py-2")}>{row}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {open.length === 0 ? null : !decidable ? (
+        <p className={cn("text-muted-foreground", compact ? "mt-1 text-sm" : "mt-2 text-base")}>{t("handover.awaitingTeam")}</p>
+      ) : (
+        <div className={cn("grid grid-cols-2 gap-2", compact ? "mt-2" : "mt-3")}>
+          <button
+            type="button"
+            disabled={busy || chosen.length === 0}
+            onClick={() => void settle("refuse")}
+            className={cn(
+              "w-full rounded-2xl border border-border bg-transparent font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50",
+              compact ? "h-10 text-sm" : "h-12 text-base"
+            )}
+          >
+            {t("handover.refuse")}
+          </button>
+          <button
+            type="button"
+            disabled={busy || chosen.length === 0}
+            onClick={() => void settle("confirm")}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-2xl bg-primary font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-transform active:scale-95 disabled:opacity-50",
+              compact ? "h-10 text-sm" : "h-12 text-base"
+            )}
+          >
+            {busy ? <Loader2 className="size-5 shrink-0 animate-spin" aria-hidden /> : <Check className="size-5 shrink-0" aria-hidden />}
+            {open.length > 1 ? t("handover.confirmCount", { count: chosen.length }) : t("handover.confirm")}
+          </button>
+        </div>
+      )}
+    </li>
   );
 }
 

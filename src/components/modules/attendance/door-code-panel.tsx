@@ -71,6 +71,8 @@ interface IssuedCode {
 /** The QR's side, in CSS pixels: legible at arm's length on the tablet, and in a 400px window. */
 const QR_SIZE = 220;
 const QR_SIZE_COMPACT = 160;
+/** The main view of the pad: a parent at arm's length, in a doorway. */
+const QR_SIZE_MAIN = 300;
 /**
  * The longest the panel goes without asking while it has nothing to show.
  * After a refusal (setting off, not staff) it is the whole silence before
@@ -129,6 +131,7 @@ export function DoorCodePanel({
   paused,
   compact = false,
   pipOpen = false,
+  size: sizing = "side",
   className,
 }: {
   tenantId: string;
@@ -138,6 +141,8 @@ export function DoorCodePanel({
   paused: boolean;
   /** Inside the office window: a smaller QR, no hint. */
   compact?: boolean;
+  /** "main" when the code IS the pad's view (the default since the QR-first kiosk): a larger QR. */
+  size?: "side" | "main";
   /** The office window is open, so a hidden tab still has to keep the code fresh. */
   pipOpen?: boolean;
   className?: string;
@@ -288,7 +293,7 @@ export function DoorCodePanel({
   // A code past its life is not shown: a QR that leads to "expired" is worse
   // than the placeholder, and the next ask is on its way.
   const live = issued && issued.expiresAt > now ? issued : null;
-  const size = compact ? QR_SIZE_COMPACT : QR_SIZE;
+  const size = compact ? QR_SIZE_COMPACT : sizing === "main" ? QR_SIZE_MAIN : QR_SIZE;
 
   return (
     <section

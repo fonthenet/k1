@@ -18,7 +18,7 @@
   },
   "tabs": {
     "all": "All classes",
-    "presence": "{present, plural, =0 {none of {total} present} one {# of {total} present} other {# of {total} present}}"
+    "presence": "{present, plural, =0 {none of {total} on site} one {# of {total} on site} other {# of {total} on site}}"
   },
   "structures": {
     "filter": "Filter by structure",
@@ -31,7 +31,10 @@
     "checkedOut": "{count, plural, =0 {0 checked out} one {# checked out} other {# checked out}}",
     "ofTotal": "{count, plural, =0 {no children enrolled} one {of # child} other {of # children}}",
     "reportedByParents": "{count, plural, =0 {none reported by families} one {# reported by the family} other {# reported by families}}",
-    "stillHere": "{count, plural, =0 {nobody still here} one {# still here} other {# still here}}"
+    "stillHere": "{count, plural, =0 {nobody still here} one {# still here} other {# still here}}",
+    "cameOfTotal": "{came, plural, =0 {nobody came} one {# came} other {# came}} · {total, plural, one {# enrolled} other {# enrolled}}",
+    "lastDeparture": "last departure {time}",
+    "noDeparture": "no departures yet"
   },
   "status": {
     "present": "Present",
@@ -39,7 +42,9 @@
     "absent": "Absent",
     "sick": "Sick",
     "excused": "Excused",
-    "notMarked": "Not marked"
+    "notMarked": "Not marked",
+    "here": "On site",
+    "gone": "Gone home"
   },
   "table": {
     "child": "Child",
@@ -48,7 +53,8 @@
     "checkOut": "Check-out",
     "details": "Details",
     "actions": "Actions",
-    "timeNotRecorded": "Time not recorded"
+    "timeNotRecorded": "Time not recorded",
+    "returnedAt": "back at {time}"
   },
   "actions": {
     "markAllPresent": "Mark all present",

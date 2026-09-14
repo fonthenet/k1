@@ -846,7 +846,8 @@
     },
     "recorded": {
       "in": "Arrival recorded at {time}",
-      "out": "Departure recorded at {time}"
+      "out": "Departure recorded at {time}",
+      "back": "Return recorded at {time}"
     },
     "pending": "Request sent — the team is handing {name} over to you",
     "pendingHint": "Stay near the door; this screen updates on its own.",
@@ -860,7 +861,8 @@
       "already_in": "Arrival already recorded at {time}",
       "already_out": "Departure already recorded at {time}",
       "just_arrived": "Arrived less than two minutes ago — the team will take it from here",
-      "returned": "Departure already recorded at {time} — speak to the team"
+      "returned": "Departure already recorded at {time} — speak to the team",
+      "just_left": "Left less than two minutes ago — the team will handle it"
     },
     "refusedReason": {
       "outside_hours": "Outside opening hours ({open}–{close})",
@@ -880,11 +882,13 @@
     "move": {
       "in": "Arrival",
       "out": "Departure",
-      "done": "Day over · left at {time}"
+      "done": "Day over · left at {time}",
+      "back": "Return"
     },
     "submitOne": {
       "in": "Record {name}'s arrival",
-      "out": "Record {name}'s departure"
+      "out": "Record {name}'s departure",
+      "back": "Record {name}'s return"
     },
     "changed": "Things have changed since this screen was read — check the rows again before recording.",
     "recordedUnexpected": "This is not the move that was shown: {name}'s situation had changed in the meantime. If in doubt, ask at the front desk."

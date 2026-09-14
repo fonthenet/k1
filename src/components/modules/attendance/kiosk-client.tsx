@@ -12,6 +12,7 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  QrCode,
   PictureInPicture2,
   ScanLine,
   TriangleAlert,
@@ -52,7 +53,8 @@ import { isPipSupported, usePipWindow } from "@/lib/pip";
 import { PipPortal } from "@/components/shared/pip-window";
 import { useTitleFlash } from "@/lib/use-title-flash";
 
-type Entry = "keypad" | "scan";
+/** What the pad shows: the door's code for a parent's phone (the default where self check-in is on), the keypad, or the tablet's camera. */
+type Entry = "qr" | "keypad" | "scan";
 type Direction = "in" | "out";
 /** The kiosk's translator, as the cards below receive it. */
 type Translate = (key: string, values?: Record<string, string | number>) => string;
@@ -88,7 +90,7 @@ interface PickChild {
 }
 
 /** Why the database refused to write — see migration 0027. */
-type DuplicateReason = "already_in" | "already_out" | "just_arrived" | "returned";
+type DuplicateReason = "already_in" | "already_out" | "just_arrived" | "just_left" | "returned";
 
 /** A refused scan: nothing was written, a human has to decide. */
 interface DuplicateInfo {
@@ -103,6 +105,7 @@ interface RecordedRow {
   child: KioskChild;
   direction: Direction;
   at: string;
+  returned?: boolean;
 }
 
 /** What a batch has written so far, plus the duplicates still awaiting a call. */
@@ -119,7 +122,7 @@ interface DuplicateBatch {
 }
 
 type RecordOutcome =
-  | { kind: "recorded"; direction: Direction; at: string; viaRpc: boolean }
+  | { kind: "recorded"; direction: Direction; at: string; viaRpc: boolean; returned?: boolean }
   | {
       kind: "duplicate";
       reason: DuplicateReason;
@@ -140,6 +143,8 @@ interface CheckinPayload {
   refused?: boolean;
   reason?: string;
   at?: string;
+  /** 0170: an arrival after a departure today — the day re-opened. */
+  returned?: boolean;
   check_in_at?: string | null;
   check_out_at?: string | null;
 }
@@ -171,6 +176,8 @@ interface CheckedEntry {
   child: KioskChild;
   direction: Direction;
   at: string;
+  /** An arrival after a departure today: the card says "retour", not "arrivée". */
+  returned?: boolean;
   /** Canonical allergen values, read with the write; the door card labels them. */
   allergies: string[];
   photoUrl: string | null;
@@ -334,7 +341,7 @@ function staffResultLine(t: Translate, timeFmt: (iso: string) => string, r: Staf
         : t("staff.breakEnded", { time, minutes: Math.round(r.breakMinutes) });
 }
 
-const DUPLICATE_REASONS: DuplicateReason[] = ["already_in", "already_out", "just_arrived", "returned"];
+const DUPLICATE_REASONS: DuplicateReason[] = ["already_in", "already_out", "just_arrived", "just_left", "returned"];
 /** The RPC's own window for "this is a double scan, not a pickup". */
 const JUST_ARRIVED_MS = 2 * 60 * 1000;
 
@@ -345,13 +352,16 @@ function readReason(value: unknown, asked: Direction): DuplicateReason {
 }
 
 /**
- * What the quiet "anyway" button would write. `already_out` and `returned` are
- * the cases where the child is outside the building, so they record an arrival
- * (a forced `returned` also re-opens the day — the RPC clears the departure);
- * the others are a staff member saying "no, this really is a pickup".
+ * What the quiet "anyway" button would write. `already_out`, `just_left` and
+ * the old `returned` are the cases where the child is outside the building,
+ * so they record an arrival (which re-opens the day — the writer clears the
+ * departure and keeps it in the pass log); the others are a staff member
+ * saying "no, this really is a pickup". Since 0170 a child who left more
+ * than two minutes ago is simply recorded as returning — no card at all;
+ * `just_left` is the card for the two minutes after a departure.
  */
 function forceDirection(reason: DuplicateReason): Direction {
-  return reason === "already_out" || reason === "returned" ? "in" : "out";
+  return reason === "already_out" || reason === "returned" || reason === "just_left" ? "in" : "out";
 }
 
 /** The clash the RPC reports, recomputed for children who have no tag code. */
@@ -361,8 +371,14 @@ function localDuplicate(
 ): DuplicateReason | null {
   if (!att) return null;
   if (direction === "in" && att.check_in_at && !att.check_out_at) return "already_in";
-  // Checked out earlier today, back at the door now.
-  if (direction === "in" && att.check_out_at) return "returned";
+  // Checked out under two minutes ago: the card read twice on the way out.
+  // Longer ago, the child is coming back — a return, recorded like an arrival.
+  if (
+    direction === "in" &&
+    att.check_out_at &&
+    Date.now() - new Date(att.check_out_at).getTime() < JUST_ARRIVED_MS
+  )
+    return "just_left";
   if (direction === "out" && att.check_out_at) return "already_out";
   if (
     direction === "out" &&
@@ -441,7 +457,10 @@ export function KioskClient({
   // reaches the speaker through the same live settings.
   const { play } = useKioskSound(live.sound);
 
-  const [entry, setEntry] = useState<Entry>("keypad");
+  // The door's code is the main view where the establishment has switched
+  // self check-in on: parents scan the screen, staff switch to the keypad or
+  // the camera when they need one. A wedge reader types into any view.
+  const [entry, setEntry] = useState<Entry>(settings.selfCheckin ? "qr" : "keypad");
   const [code, setCodeState] = useState("");
   // A hardware reader fires its whole burst — every digit and the closing
   // Enter — inside one task, before React commits a single state update. The
@@ -483,6 +502,24 @@ export function KioskClient({
   const [pickupSaving, setPickupSaving] = useState(false);
   // Scans the database refused. Until this is empty, nothing is confirmed.
   const [duplicateBatch, setDuplicateBatch] = useState<DuplicateBatch | null>(null);
+
+  const overlayOpen = !!(childResult || staffResult || pickList || duplicateBatch || staffPick);
+  const overlayRef = useRef(overlayOpen);
+  useEffect(() => {
+    overlayRef.current = overlayOpen;
+  }, [overlayOpen]);
+  // A QUESTION on the screen — a duplicate to decide, a staff move to pick,
+  // a pick list waiting on a hand — is a human's; a finished result card or
+  // a countdown already running is not, and the next card at the gate must
+  // not wait for it (multi-scan). `admitScan` below settles the difference.
+  const questionOpen = !!(duplicateBatch || staffPick || (pickList && countdown === null));
+  const questionRef = useRef(questionOpen);
+  useEffect(() => {
+    questionRef.current = questionOpen;
+  }, [questionOpen]);
+  // The QR view with no code to show (self check-in switched off meanwhile)
+  // reads as the keypad: derived, not stored, so nothing flips state mid-render.
+  const view: Entry = entry === "qr" && !live.selfCheckin ? "keypad" : entry;
   const [dupBusy, setDupBusy] = useState(false);
 
   // ----- office mode: the tab is not the screen -----
@@ -814,7 +851,7 @@ export function KioskClient({
           };
         }
         if (payload.at) at = payload.at;
-        return { kind: "recorded", direction, at, viaRpc: true };
+        return { kind: "recorded", direction, at, viaRpc: true, returned: payload.returned === true };
       }
 
       // No tag: no RPC to lean on, so we write the row ourselves. The guardian id
@@ -878,6 +915,11 @@ export function KioskClient({
                 : {}),
               check_in_at: att.check_in_at ?? at,
               check_in_method: "kiosk",
+              // A return re-opens the day, as the writer does for tagged
+              // children: the departure columns go, the first arrival stays.
+              ...(att.check_out_at
+                ? { check_out_at: null, check_out_method: null, checked_out_by: null, checked_out_guardian_id: null, picked_up_by: null }
+                : {}),
             };
       // Only ever add attribution — a later child-tag scan must not wipe the
       // adult a guardian scan already recorded.
@@ -893,7 +935,7 @@ export function KioskClient({
         .eq("child_id", child.id)
         .eq("date", date);
       if (updError) return { kind: "failed", message: updError.message };
-      return { kind: "recorded", direction, at, viaRpc: false };
+      return { kind: "recorded", direction, at, viaRpc: false, returned: direction === "in" && !!att.check_out_at };
     },
     [supabase, tenantId]
   );
@@ -940,6 +982,7 @@ export function KioskClient({
         child: d.child,
         direction: d.direction,
         at: d.at,
+        returned: d.returned,
         allergies: allergyMap[d.child.id] ?? [],
         photoUrl:
           knownPhotos[d.child.id] ??
@@ -985,7 +1028,7 @@ export function KioskClient({
       for (const child of children) {
         const res = await recordChild(child, guardian);
         if (res.kind === "recorded") {
-          done.push({ child, direction: res.direction, at: res.at });
+          done.push({ child, direction: res.direction, at: res.at, returned: res.returned });
           if (res.viaRpc) usedRpc = true;
         } else if (res.kind === "refused") {
           // The tile should already have been blocked; this is the database
@@ -1071,7 +1114,7 @@ export function KioskClient({
               ...next,
               done: [
                 ...next.done,
-                { child: current.child, direction: res.direction, at: res.at },
+                { child: current.child, direction: res.direction, at: res.at, returned: res.returned },
               ],
               usedRpc: next.usedRpc || res.viaRpc,
               knownPhotos: { ...next.knownPhotos, [current.child.id]: current.photoUrl },
@@ -1531,58 +1574,10 @@ export function KioskClient({
     [staffPick, busy, supabase, tenantId, mapError, showError, t, refreshPresent, play, announce, locale]
   );
 
-  const runValue = useCallback(
-    async (raw: string) => {
-      const value = normalizeScan(raw);
-      if (!value || busy) return;
-      // The door's own QR, read back by the pad it hangs on: a staff phone or
-      // the tablet's camera pointed at the idle screen. The code inside it is
-      // perfectly known — it is just for a parent's phone — so say that,
-      // rather than "unknown code" after a lookup that was never going to
-      // find a badge.
-      if (isDoorUrl(raw)) {
-        showError(t("errors.doorCode"));
-        return;
-      }
-      if (!CODE_RE.test(value)) {
-        // A plus that is not inside a well-formed pair is a child's card the
-        // camera caught half of: ask for it again, rather than call unknown
-        // a card that is perfectly known.
-        showError(value.includes("+") ? t("errors.invalidPair") : t("errors.unknownCode"));
-        return;
-      }
-      setBusy(true);
-      try {
-        // A child's card names the adult and the child at once and skips the
-        // pick list (submitPair). Otherwise every badge and PIN of the
-        // establishment lives under one unique index, so the code says whose
-        // it is: a child or a parent stays on this path, a staff badge goes
-        // to the clock.
-        if (parsePair(value)) await submitPair(value);
-        else if ((await submitChild(value)) === "staff") await submitStaff(value);
-      } catch {
-        showError(t("errors.generic"));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [busy, submitPair, submitChild, submitStaff, showError, t]
-  );
-
-  const submit = useCallback(() => {
-    void runValue(codeRef.current);
-  }, [runValue]);
-
-  // ----- physical keyboard / badge scanner support -----
-  const submitRef = useRef(submit);
-  useEffect(() => {
-    submitRef.current = submit;
-  }, [submit]);
-  const overlayOpen = !!(childResult || staffResult || pickList || duplicateBatch || staffPick);
-  const overlayRef = useRef(overlayOpen);
-  useEffect(() => {
-    overlayRef.current = overlayOpen;
-  }, [overlayOpen]);
+  // Seeded with a noop, not with `submit`: a function handed to useRef is
+  // frozen by the compiler's rules along with everything it closes over,
+  // and the overlay refs it reaches are written by effects.
+  const submitRef = useRef<() => void>(() => {});
 
   // ----- the parents' end of the scan (0168, the day's code and the child's card since 0169) -----
   // With self check-in on, the idle screen shows the door's own code for a
@@ -1640,17 +1635,19 @@ export function KioskClient({
       // By tag name, not instanceof: an input in the office window is an
       // instance of THAT window's HTMLInputElement, never of this one's.
       if ((e.target as Element | null)?.tagName === "INPUT") return;
-      if (overlayRef.current) {
-        if (e.key === "Escape") {
-          closePickList();
-          setStaffPick(null);
-          setStaffResult(null);
-          dismissChildResult();
-          // Escape is the cautious answer: nothing extra gets written.
-          void cancelDuplicates();
-        }
+      if (overlayRef.current && e.key === "Escape") {
+        closePickList();
+        setStaffPick(null);
+        setStaffResult(null);
+        dismissChildResult();
+        // Escape is the cautious answer: nothing extra gets written.
+        void cancelDuplicates();
         return;
       }
+      // A question on the screen is a human's; a result card or a running
+      // countdown is not, and the next card's digits go through (multi-scan
+      // — `admitScan` settles the overlay when Enter arrives).
+      if (questionRef.current) return;
       if (e.key === "Enter") submitRef.current();
       else if (e.key === "Backspace") setCode((c) => c.slice(0, -1));
       // The plus is the joint of a child's card (0169), typed by a wedge
@@ -1673,7 +1670,7 @@ export function KioskClient({
   // too — a read while a question is on the screen is not an answer to it.
   const onSerialCode = useCallback(
     (value: string) => {
-      if (overlayRef.current) return;
+      if (questionRef.current) return;
       setCode(value);
       submitRef.current();
     },
@@ -1764,13 +1761,81 @@ export function KioskClient({
     }
   }, [pickList, selected, busy, recordChildren, showError, t]);
 
+  /**
+   * Multi-scan: the next card at the gate does not wait for the last one's
+   * card to fade. A finished result (recorded / refused / a staff clock)
+   * is dismissed by the new scan; a pick list whose countdown is running
+   * is committed at once — the same confirm the last second would have
+   * fired — and the new scan follows; a QUESTION (a duplicate to decide, a
+   * staff move to pick, a pick list waiting on a hand) stays with the
+   * human, and the scan is dropped. Returns whether the scan may proceed.
+   */
+  const admitScan = useCallback(async (): Promise<boolean> => {
+    if (questionOpen) return false;
+    if (pickList && countdown !== null) {
+      setCountdown(null);
+      await confirmSelection();
+    }
+    dismissChildResult();
+    setStaffResult(null);
+    return true;
+  }, [questionOpen, pickList, countdown, confirmSelection, dismissChildResult]);
+
+  const runValue = useCallback(
+    async (raw: string) => {
+      const value = normalizeScan(raw);
+      if (!value || busy) return;
+      if (overlayOpen && !(await admitScan())) return;
+      // The door's own QR, read back by the pad it hangs on: a staff phone or
+      // the tablet's camera pointed at the idle screen. The code inside it is
+      // perfectly known — it is just for a parent's phone — so say that,
+      // rather than "unknown code" after a lookup that was never going to
+      // find a badge.
+      if (isDoorUrl(raw)) {
+        showError(t("errors.doorCode"));
+        return;
+      }
+      if (!CODE_RE.test(value)) {
+        // A plus that is not inside a well-formed pair is a child's card the
+        // camera caught half of: ask for it again, rather than call unknown
+        // a card that is perfectly known.
+        showError(value.includes("+") ? t("errors.invalidPair") : t("errors.unknownCode"));
+        return;
+      }
+      setBusy(true);
+      try {
+        // A child's card names the adult and the child at once and skips the
+        // pick list (submitPair). Otherwise every badge and PIN of the
+        // establishment lives under one unique index, so the code says whose
+        // it is: a child or a parent stays on this path, a staff badge goes
+        // to the clock.
+        if (parsePair(value)) await submitPair(value);
+        else if ((await submitChild(value)) === "staff") await submitStaff(value);
+      } catch {
+        showError(t("errors.generic"));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, overlayOpen, admitScan, submitPair, submitChild, submitStaff, showError, t]
+  );
+
+  const submit = useCallback(() => {
+    void runValue(codeRef.current);
+  }, [runValue]);
+
+  // ----- physical keyboard / badge scanner support -----
+  useEffect(() => {
+    submitRef.current = submit;
+  }, [submit]);
+
   // ----- auto-confirm countdown -----
   // One second per step, and the last second fires the very same confirm the
   // button would. The confirm is read through a ref so that a re-render in
   // the middle of a count — the clock ticks once a second — never restarts
   // the timer. A duplicate the database refuses is a separate overlay with no
   // countdown of its own: that question stays with a human.
-  const confirmRef = useRef(confirmSelection);
+  const confirmRef = useRef<() => Promise<void>>(async () => {});
   useEffect(() => {
     confirmRef.current = confirmSelection;
   }, [confirmSelection]);
@@ -2458,113 +2523,115 @@ export function KioskClient({
       {/* Main pad */}
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-5">
         {/* Centred while it fits and scrolling from the top once it does not
-            (auto margins; justify-center would cut the top off). With the
-            door's code on, a wide screen puts the code beside the pad and a
-            narrow one under it — never over it. */}
-        <div
-          className={cn(
-            "m-auto flex w-full flex-col items-center gap-4",
-            doorPanelOn
-              ? "lg:max-w-4xl lg:flex-row lg:items-center lg:justify-center lg:gap-10"
-              : "max-w-sm"
+            (auto margins; justify-center would cut the top off). One column:
+            the door's code, the keypad or the camera, whichever is switched
+            on, under the departures waiting on the team. */}
+        <div className="m-auto flex w-full max-w-sm flex-col items-center gap-4">
+          {/* Departures waiting on the team come first: a parent is at the door
+              on their phone, counting the minutes. In the office window when
+              that is open. */}
+          {!pipOpen && (
+            <HandoverCards
+              entries={handovers.entries}
+              photoUrls={handovers.photoUrls}
+              busyId={handovers.busyId}
+              now={handovers.now}
+              onDecide={(id, decision) => handovers.decide(id, decision)}
+              decidable={handoverDecidable}
+            />
           )}
-        >
-          <div className="flex w-full max-w-sm flex-col items-center gap-4">
-            {/* Departures waiting on the team come first: a parent is at the door
-                on their phone, counting the minutes. In the office window when
-                that is open. */}
-            {!pipOpen && (
-              <HandoverCards
-                entries={handovers.entries}
-                photoUrls={handovers.photoUrls}
-                busyId={handovers.busyId}
-                now={handovers.now}
-                onDecide={(id, decision) => void handovers.decide(id, decision)}
-                decidable={handoverDecidable}
-              />
+
+          {/* QR ↔ keypad ↔ camera. The keypad never goes away: it is the
+              fallback when a camera fails, and hardware barcode scanners type
+              straight into it whatever view is up. The QR is a view only
+              where the door has a code. */}
+          <div
+            className={cn(
+              "grid w-full max-w-sm gap-2 rounded-2xl border border-border bg-card/60 p-1",
+              doorPanelOn ? "grid-cols-3" : "grid-cols-2"
             )}
-
-            {/* Keypad ↔ camera. The keypad never goes away: it is the fallback when a
-                camera fails, and hardware barcode scanners type straight into it. */}
-            <div className="grid w-full max-w-sm grid-cols-2 gap-2 rounded-2xl border border-border bg-card/60 p-1">
-              {(["keypad", "scan"] as Entry[]).map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  aria-pressed={entry === e}
-                  onClick={() => setEntry(e)}
-                  className={cn(
-                    "flex h-12 items-center justify-center gap-2 rounded-xl text-base font-semibold transition-colors",
-                    entry === e
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {e === "keypad" ? <Keyboard className="size-5" /> : <ScanLine className="size-5" />}
-                  {t(`input.${e}`)}
-                </button>
-              ))}
-            </div>
-
-            <p className="text-center text-base text-muted-foreground sm:text-lg">
-              {t("children.prompt")}
-            </p>
-
-            {/* Code display — also the readout for hardware scanners in scan mode.
-                A child's card is eighteen symbols where a badge is five or
-                twelve: past a badge's length the type steps down so the whole
-                value stays readable when it is left on screen after a refusal. */}
-            <div
-              key={shakeKey}
-              className={cn(
-                "flex h-16 w-full max-w-sm items-center justify-center overflow-hidden rounded-2xl border-2 bg-card px-3 font-mono font-bold shadow-sm sm:h-18",
-                code.length > 12
-                  ? "text-xl tracking-[0.1em] sm:text-2xl"
-                  : "text-3xl tracking-[0.2em] sm:text-4xl",
-                error ? "border-destructive" : "border-border",
-                error && "[animation:kiosk-shake_0.4s_ease-in-out]"
-              )}
-              dir="ltr"
-            >
-              {code || <span className="text-muted-foreground/60">{t("children.hint")}</span>}
-              {code && <span className="ms-1 animate-pulse text-primary">|</span>}
-            </div>
-
-            <div aria-live="polite" className="min-h-6 text-center">
-              {error && (
-                <p className="flex items-center gap-2 text-base font-bold text-destructive">
-                  <TriangleAlert className="size-5" />
-                  {error}
-                </p>
-              )}
-            </div>
-
-            {entry === "keypad" ? (
-              <KioskKeypad
-                onKey={(k) => setCode((c) => (c + k).slice(0, CODE_MAX_LENGTH))}
-                onBackspace={() => setCode((c) => c.slice(0, -1))}
-                onClear={() => setCode("")}
-                onSubmit={submit}
-                disabled={busy}
-              />
-            ) : (
-              <KioskScanner
-                paused={overlayOpen || busy}
-                onScan={(text) => void runValue(text)}
-                onFallback={() => setEntry("keypad")}
-              />
-            )}
+          >
+            {(doorPanelOn ? (["qr", "keypad", "scan"] as Entry[]) : (["keypad", "scan"] as Entry[])).map((e) => (
+              <button
+                key={e}
+                type="button"
+                aria-pressed={view === e}
+                onClick={() => setEntry(e)}
+                className={cn(
+                  "flex h-12 items-center justify-center gap-2 rounded-xl text-base font-semibold transition-colors",
+                  view === e
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {e === "qr" ? <QrCode className="size-5" /> : e === "keypad" ? <Keyboard className="size-5" /> : <ScanLine className="size-5" />}
+                {t(`input.${e}`)}
+              </button>
+            ))}
           </div>
 
-          {/* The door's own code, for a parent's phone. Beside the pad from
-              `lg`, under it below; in the office window when that is open. */}
-          {doorPanelOn && !pipOpen && (
+          {view === "qr" && doorPanelOn ? (
+            /* The door's own code, for a parent's phone: the main view. A
+               wedge reader still types into the hidden readout; the result
+               card says what it read. */
             <DoorCodePanel
               tenantId={tenantId}
               enabled={live.selfCheckin}
               paused={overlayOpen}
-              className="max-w-sm lg:w-80 lg:max-w-none"
+              size="main"
+              className="w-full"
             />
+          ) : (
+            <>
+              <p className="text-center text-base text-muted-foreground sm:text-lg">
+                {t("children.prompt")}
+              </p>
+
+              {/* Code display — also the readout for hardware scanners in scan mode.
+                  A child's card is eighteen symbols where a badge is five or
+                  twelve: past a badge's length the type steps down so the whole
+                  value stays readable when it is left on screen after a refusal. */}
+              <div
+                key={shakeKey}
+                className={cn(
+                  "flex h-16 w-full max-w-sm items-center justify-center overflow-hidden rounded-2xl border-2 bg-card px-3 font-mono font-bold shadow-sm sm:h-18",
+                  code.length > 12
+                    ? "text-xl tracking-[0.1em] sm:text-2xl"
+                    : "text-3xl tracking-[0.2em] sm:text-4xl",
+                  error ? "border-destructive" : "border-border",
+                  error && "[animation:kiosk-shake_0.4s_ease-in-out]"
+                )}
+                dir="ltr"
+              >
+                {code || <span className="text-muted-foreground/60">{t("children.hint")}</span>}
+                {code && <span className="ms-1 animate-pulse text-primary">|</span>}
+              </div>
+
+              <div aria-live="polite" className="min-h-6 text-center">
+                {error && (
+                  <p className="flex items-center gap-2 text-base font-bold text-destructive">
+                    <TriangleAlert className="size-5" />
+                    {error}
+                  </p>
+                )}
+              </div>
+
+              {view === "keypad" ? (
+                <KioskKeypad
+                  onKey={(k) => setCode((c) => (c + k).slice(0, CODE_MAX_LENGTH))}
+                  onBackspace={() => setCode((c) => c.slice(0, -1))}
+                  onClear={() => setCode("")}
+                  onSubmit={submit}
+                  disabled={busy}
+                />
+              ) : (
+                <KioskScanner
+                  paused={questionOpen || busy}
+                  onScan={(text) => void runValue(text)}
+                  onFallback={() => setEntry("keypad")}
+                />
+              )}
+            </>
           )}
         </div>
       </main>
@@ -2612,7 +2679,7 @@ export function KioskClient({
                       photoUrls={handovers.photoUrls}
                       busyId={handovers.busyId}
                       now={handovers.now}
-                      onDecide={(id, decision) => void handovers.decide(id, decision)}
+                      onDecide={(id, decision) => handovers.decide(id, decision)}
                       compact
                     />
                     <div className="flex flex-1 flex-col items-center justify-center gap-1.5 text-center">
@@ -2965,7 +3032,7 @@ function DuplicateCard({
             <LogOut className="size-4 shrink-0 rtl:-scale-x-100" />
           )}
           {direction === "in"
-            ? current.reason === "returned"
+            ? current.reason === "returned" || current.reason === "just_left"
               ? t("duplicate.forceReturn")
               : t("duplicate.forceIn")
             : t("duplicate.forceOut")}
@@ -3080,7 +3147,7 @@ function ChildResultCard({
               <LogOut className={cn("shrink-0 rtl:-scale-x-100", compact ? "size-5" : "size-7")} />
             )}
             {single.direction === "in"
-              ? t("children.checkedIn", { time: timeFmt(single.at) })
+              ? t(single.returned ? "children.checkedBack" : "children.checkedIn", { time: timeFmt(single.at) })
               : t("children.checkedOut", { time: timeFmt(single.at) })}
           </p>
           {/* What the write cannot know: who usually collects, the day in
@@ -3136,7 +3203,7 @@ function ChildResultCard({
                       <LogOut className="size-4 shrink-0 rtl:-scale-x-100" />
                     )}
                     {e.direction === "in"
-                      ? t("children.checkedIn", { time: timeFmt(e.at) })
+                      ? t(e.returned ? "children.checkedBack" : "children.checkedIn", { time: timeFmt(e.at) })
                       : t("children.checkedOut", { time: timeFmt(e.at) })}
                   </p>
                   <DoorCard

@@ -100,6 +100,8 @@ interface SelfPayload {
    */
   direction?: string;
   at?: string | null;
+  /** 0170: an arrival after a departure today. */
+  returned?: boolean;
   check_in_at?: string | null;
   check_out_at?: string | null;
   /** `outside_hours` carries the day's window, HH:MM. */
@@ -118,7 +120,7 @@ interface HandoverStatusPayload {
 type HandoverStatus = "pending" | "confirmed" | "refused" | "cancelled" | "expired";
 
 /** Why the register refused to write — the four of migration 0027. */
-const DUPLICATE_REASONS = ["already_in", "already_out", "just_arrived", "returned"] as const;
+const DUPLICATE_REASONS = ["already_in", "already_out", "just_arrived", "just_left", "returned"] as const;
 type DuplicateReason = (typeof DUPLICATE_REASONS)[number];
 
 /**
@@ -136,7 +138,7 @@ type Outcome =
    * moments before the write, so the two agree in all but a race with the
    * kiosk — and when they do not, the row says so instead of a plain check.
    */
-  | { kind: "recorded"; direction: DoorDirection; shown: DoorDirection; at: string }
+  | { kind: "recorded"; direction: DoorDirection; shown: DoorDirection; at: string; returned: boolean }
   | { kind: "duplicate"; reason: DuplicateReason; checkInAt: string | null; checkOutAt: string | null }
   // `reason` is null for a refusal this build does not know the words for.
   | { kind: "refused"; reason: RefusedReason | null; opensAt: string | null; closesAt: string | null }
@@ -272,7 +274,7 @@ function readPayload(data: unknown, shown: DoorDirection): Outcome {
       busy: false,
     };
   }
-  return { kind: "recorded", direction, shown, at: p.at ?? new Date().toISOString() };
+  return { kind: "recorded", direction, shown, at: p.at ?? new Date().toISOString(), returned: p.returned === true };
 }
 
 /**
@@ -734,7 +736,9 @@ export function DoorClient({ code, isStaff = false }: { code: string; isStaff?: 
     only && onlyChild
       ? only.move === "out"
         ? t("submitOne.out", { name: childDisplayName(onlyChild, locale) })
-        : t("submitOne.in", { name: childDisplayName(onlyChild, locale) })
+        : only.returning
+          ? t("submitOne.back", { name: childDisplayName(onlyChild, locale) })
+          : t("submitOne.in", { name: childDisplayName(onlyChild, locale) })
       : t("submit");
 
   return (
@@ -965,13 +969,17 @@ function MoveRow({
     ? null
     : move.today.kind === "in"
       ? t("today.in", { time: timeFmt(move.today.at) })
-      : t("today.notArrived");
+      : move.today.kind === "out"
+        ? t("today.out", { time: timeFmt(move.today.at) })
+        : t("today.notArrived");
 
   // The move, in words. Explicit branches rather than a template key so
   // check-messages can see all three.
   const moveLabel =
     move.move === "in"
-      ? t("move.in")
+      ? move.returning
+        ? t("move.back")
+        : t("move.in")
       : move.move === "out"
         ? t("move.out")
         : t("move.done", { time: move.today.kind === "out" ? timeFmt(move.today.at) : "" });
@@ -982,7 +990,9 @@ function MoveRow({
       ? t("refusedReason.pickup_not_allowed", { name })
       : move.blocked === "just_arrived"
         ? t("duplicate.just_arrived")
-        : null;
+        : move.blocked === "just_left"
+          ? t("duplicate.just_left")
+          : null;
 
   const inert = disabled || done || move.blocked !== null;
   const MoveIcon = move.move === "out" ? LogOut : LogIn;
@@ -1073,7 +1083,7 @@ function ResultRow({
     case "recorded":
       line =
         o.direction === "in"
-          ? t("recorded.in", { time: timeFmt(o.at) })
+          ? t(o.returned ? "recorded.back" : "recorded.in", { time: timeFmt(o.at) })
           : t("recorded.out", { time: timeFmt(o.at) });
       // The register made the other move of the scan than the row said —
       // the child's state changed in the moments between the re-read and

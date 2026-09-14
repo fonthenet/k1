@@ -8,7 +8,8 @@
   },
   "input": {
     "keypad": "Keypad",
-    "scan": "Scan"
+    "scan": "Scan",
+    "qr": "QR code"
   },
   "children": {
     "prompt": "Enter the child's code, the parent's PIN or your staff code",
@@ -19,7 +20,8 @@
     "pickedUpBy": "Picked up by",
     "pickedUpByPlaceholder": "Person's name",
     "allergyWarning": "WARNING — ALLERGIES",
-    "class": "Class"
+    "class": "Class",
+    "checkedBack": "Back at {time}"
   },
   "scan": {
     "prompt": "Hold the QR code up to the camera",
@@ -61,14 +63,15 @@
       "already_in": "{name} is already checked in and still here. Nothing has been recorded.",
       "already_out": "{name} was already checked out today. Nothing has been recorded.",
       "just_arrived": "{name} arrived less than two minutes ago. Did you mean to record a departure?",
-      "returned": "{name} left today and is now back at the door. Record their return?"
+      "returned": "{name} left today and is now back at the door. Record their return?",
+      "just_left": "{name}'s departure was recorded less than two minutes ago. Did you really mean to record a return?"
     },
     "cancel": "No, cancel",
     "forceOut": "Record departure anyway",
     "forceIn": "Record arrival anyway",
     "partial": "{recorded} of {total} recorded. This child is waiting on your decision.",
     "remaining": "{count, plural, one {# more child to check} other {# more children to check}}",
-    "forceReturn": "Record return — the earlier departure will be replaced"
+    "forceReturn": "Record the return — the departure stays in the log"
   },
   "result": {
     "adult": "Adult",
@@ -196,7 +199,11 @@
     "notification": {
       "in": "{name} · arrived {time}",
       "out": "{name} · left {time}"
-    }
+    },
+    "readerTitle": "Card reader",
+    "windowTitle": "Window",
+    "alertsTitle": "Browser alerts",
+    "settings": "Settings"
   },
   "app": {
     "description": "The door on this phone: QR code, badge or PIN."
@@ -216,6 +223,7 @@
     "confirmed": "Handed over · {time}",
     "refused": "Refused",
     "awaitingTeam": "Waiting for the team",
-    "waitJustArrived": "Arrived less than 2 min ago — try again in a moment"
+    "waitJustArrived": "Arrived less than 2 min ago — try again in a moment",
+    "confirmCount": "{count, plural, =0 {Hand over} one {Hand over # child} other {Hand over all #}}"
   }
 }

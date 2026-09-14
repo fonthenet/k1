@@ -12,6 +12,7 @@ import {
   CircleDashed,
   Loader2,
   LogOut,
+  Undo2,
   Pencil,
   UserCheck,
   UserX,
@@ -64,6 +65,7 @@ import { AllergyBadge } from "@/components/modules/children/allergy-badge";
 import type { AllergyItem } from "@/components/modules/children/types";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { ATTENDANCE_STATUSES, STATUS_STYLES, isPresentish, stillHere } from "./status-config";
+import { HandoverStrip } from "./handover-cards";
 import { AttendanceTabs } from "./attendance-tabs";
 import { addDaysStr, toDateStr } from "./dates";
 import {
@@ -113,6 +115,8 @@ export interface RegisterRow {
   /** Translated allergen label plus severity — what the shared AllergyBadge draws. */
   allergies: AllergyItem[];
   collectors: RegisterCollector[];
+  /** The day's moves in order (0170) — more than two means the child came back. */
+  passes: { direction: "in" | "out"; at: string }[];
   attendance: {
     status: AttendanceStatus;
     check_in_at: string | null;
@@ -203,7 +207,7 @@ export function RegisterClient({
   activeStructure,
   showJournal,
   rows,
-  notice,
+  handovers,
 }: {
   /** The PageHeader is drawn here, not in page.tsx, because its one primary
    *  button (mark everyone present) is client state — pending, disabled on a
@@ -233,7 +237,14 @@ export function RegisterClient({
    *  asked for at the door (0168). Drawn under the header and the tabs, above
    *  the filter card, because the header lives here and page.tsx cannot
    *  follow it otherwise. */
-  notice?: React.ReactNode;
+  /**
+   * Departures parents asked for at the door (0168), waiting on a member of
+   * the team: the tenant to poll, or null where self check-in is off. Data,
+   * not an element — a server page handing a client component a ready-made
+   * element leaves React without a key for it and the register warned on
+   * every load.
+   */
+  handovers?: { tenantId: string } | null;
 }) {
   const isToday = date === toDateStr(new Date());
   const t = useTranslations("attendance");
@@ -287,6 +298,7 @@ export function RegisterClient({
     let checkedOut = 0;
     let reportedByParents = 0;
     let stillIn = 0;
+    let lastOut: string | null = null;
     for (const row of rows) {
       const s = displayStatus(row);
       if (s === null) notMarked++;
@@ -295,10 +307,13 @@ export function RegisterClient({
         absent++;
         if (row.attendance?.reported_by_parent) reportedByParents++;
       }
-      if (row.attendance?.check_out_at) checkedOut++;
+      if (row.attendance?.check_out_at) {
+        checkedOut++;
+        if (lastOut === null || row.attendance.check_out_at > lastOut) lastOut = row.attendance.check_out_at;
+      }
       if (row.attendance && stillHere(row.attendance)) stillIn++;
     }
-    return { present, absent, notMarked, checkedOut, reportedByParents, stillIn };
+    return { present, absent, notMarked, checkedOut, reportedByParents, stillIn, lastOut };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, optimStatus]);
 
@@ -496,7 +511,11 @@ export function RegisterClient({
         showJournal={showJournal}
       />
 
-      {notice}
+      {/* Under the header and the tabs, above the roster: a class of
+          twenty-five fills several screens, and the ten minutes a request
+          lives are not spent scrolling to the last row. The strip collapses
+          to nothing while nobody is waiting. */}
+      {handovers ? <HandoverStrip tenantId={handovers.tenantId} enabled className="mb-4" /> : null}
 
       <div className="space-y-4">
         {/* The roster's filter card: the day, the structure, the class, and
@@ -596,7 +615,7 @@ export function RegisterClient({
                   total: c.total,
                 })),
               ].map((item) => {
-                const present = activeClass === item.value ? counters.present : item.present;
+                const present = activeClass === item.value ? counters.stillIn : item.present;
                 return (
                   <SelectItem key={item.value} value={item.value}>
                     <span className="flex items-center gap-1.5">
@@ -627,7 +646,7 @@ export function RegisterClient({
           </Select>
 
           <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
-            {t("tabs.presence", { present: counters.present, total: rows.length })}
+            {t("tabs.presence", { present: counters.stillIn, total: rows.length })}
           </span>
         </div>
 
@@ -668,10 +687,15 @@ export function RegisterClient({
             the denominator, who reported the absence, how many are still in
             the building. The one gold on the page is the sorties tile. */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {/* "Present" used to sit here and read as "in the building" — a
+              child who arrived at 08:29 and left at 08:34 counted as present
+              all day. The green tile now answers the question the hall is
+              asking: who is here NOW; the day's classification (came at all)
+              is the hint under it. */}
           <StatCard
-            label={t("status.present")}
-            value={counters.present}
-            hint={t("counters.ofTotal", { count: rows.length })}
+            label={t("status.here")}
+            value={counters.stillIn}
+            hint={t("counters.cameOfTotal", { came: counters.present, total: rows.length })}
             icon={<UserCheck className="size-5" />}
             tone="success"
           />
@@ -691,7 +715,11 @@ export function RegisterClient({
           <StatCard
             label={t("table.checkOut")}
             value={counters.checkedOut}
-            hint={t("counters.stillHere", { count: counters.stillIn })}
+            hint={
+              counters.lastOut
+                ? t("counters.lastDeparture", { time: formatTime(counters.lastOut, locale) })
+                : t("counters.noDeparture")
+            }
             icon={<LogOut className="size-5 rtl:-scale-x-100" />}
             tone="gold"
           />
@@ -800,24 +828,37 @@ export function RegisterClient({
                           <div className="inline-flex items-center gap-0.5 rounded-xl border border-border bg-muted/60 p-1">
                             {ATTENDANCE_STATUSES.map((s) => {
                               const style = STATUS_STYLES[s];
-                              const Icon = style.icon;
                               const active = status === s;
+                              // A child who came and has gone home is still
+                              // "present" in the day's ledger, but a green
+                              // "Présent" on their row reads as "in class".
+                              // The selected chip says what is true now —
+                              // "Parti" — in the neutral tone of a day that
+                              // is over; the word behind it (present or late)
+                              // is unchanged and one tap away.
+                              const gone = active && checkedOut && isPresentish(s);
+                              const Icon = gone ? LogOut : style.icon;
+                              const label = gone ? t("status.gone") : t(`status.${s}`);
                               return (
                                 <button
                                   key={s}
                                   type="button"
                                   aria-pressed={active}
-                                  aria-label={t(`status.${s}`)}
-                                  title={t(`status.${s}`)}
+                                  aria-label={label}
+                                  title={label}
                                   disabled={saving || isFuture}
                                   onClick={() => handleStatus(row, s)}
                                   className={cn(
                                     "inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-medium transition-colors disabled:opacity-60",
-                                    active ? style.activeClass : style.idleClass
+                                    gone
+                                      ? "border border-border bg-background text-foreground shadow-sm"
+                                      : active
+                                        ? style.activeClass
+                                        : style.idleClass
                                   )}
                                 >
-                                  <Icon className="size-3.5" />
-                                  <span className="hidden xl:inline">{t(`status.${s}`)}</span>
+                                  <Icon className={cn("size-3.5", gone && "rtl:-scale-x-100")} />
+                                  <span className="hidden xl:inline">{label}</span>
                                 </button>
                               );
                             })}
@@ -843,6 +884,18 @@ export function RegisterClient({
                             ) : (
                               <span className="text-muted-foreground">—</span>
                             )}
+                            {/* A child who left and came back: the row keeps the
+                                morning's arrival; the return is said here so
+                                nobody reads a single pass into a day of three. */}
+                            {(() => {
+                              const back = [...row.passes].reverse().find((p, i, arr) => p.direction === "in" && arr.slice(i + 1).some((q) => q.direction === "out"));
+                              return back ? (
+                                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t("table.returnedAt", { time: formatTime(back.at, locale) })}>
+                                  <Undo2 className="size-3.5 rtl:-scale-x-100" aria-hidden />
+                                  <span dir="ltr" className="tabular-nums">{formatTime(back.at, locale)}</span>
+                                </span>
+                              ) : null;
+                            })()}
                             <Button
                               variant="ghost"
                               size="icon-sm"

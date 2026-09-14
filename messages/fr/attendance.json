@@ -18,7 +18,7 @@
   },
   "tabs": {
     "all": "Toutes les classes",
-    "presence": "{present, plural, =0 {0 présent sur {total}} one {# présent sur {total}} other {# présents sur {total}}}"
+    "presence": "{present, plural, =0 {0 sur place sur {total}} one {# sur place sur {total}} other {# sur place sur {total}}}"
   },
   "structures": {
     "filter": "Filtrer par structure",
@@ -31,7 +31,10 @@
     "checkedOut": "{count, plural, =0 {0 sorti} one {# sorti} other {# sortis}}",
     "ofTotal": "{count, plural, =0 {aucun enfant inscrit} one {sur # enfant} other {sur # enfants}}",
     "reportedByParents": "{count, plural, =0 {aucun signalé par les familles} one {# signalé par la famille} other {# signalés par les familles}}",
-    "stillHere": "{count, plural, =0 {plus personne sur place} one {# encore sur place} other {# encore sur place}}"
+    "stillHere": "{count, plural, =0 {plus personne sur place} one {# encore sur place} other {# encore sur place}}",
+    "cameOfTotal": "{came, plural, =0 {personne n'est venu} one {# venu} other {# venus}} · {total, plural, one {# inscrit} other {# inscrits}}",
+    "lastDeparture": "dernier départ {time}",
+    "noDeparture": "aucune sortie pour l'instant"
   },
   "status": {
     "present": "Présent",
@@ -39,7 +42,9 @@
     "absent": "Absent",
     "sick": "Malade",
     "excused": "Excusé",
-    "notMarked": "Non pointé"
+    "notMarked": "Non pointé",
+    "here": "Sur place",
+    "gone": "Parti"
   },
   "table": {
     "child": "Enfant",
@@ -48,7 +53,8 @@
     "checkOut": "Sortie",
     "details": "Détails",
     "actions": "Actions",
-    "timeNotRecorded": "Heure non saisie"
+    "timeNotRecorded": "Heure non saisie",
+    "returnedAt": "retour à {time}"
   },
   "actions": {
     "markAllPresent": "Tout marquer présent",

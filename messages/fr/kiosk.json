@@ -8,7 +8,8 @@
   },
   "input": {
     "keypad": "Clavier",
-    "scan": "Scanner"
+    "scan": "Scanner",
+    "qr": "Code QR"
   },
   "children": {
     "prompt": "Entrez le code de l'enfant, le PIN du parent ou votre code personnel",
@@ -19,7 +20,8 @@
     "pickedUpBy": "Récupéré par",
     "pickedUpByPlaceholder": "Nom de la personne",
     "allergyWarning": "ATTENTION — ALLERGIES",
-    "class": "Classe"
+    "class": "Classe",
+    "checkedBack": "Retour enregistré {time}"
   },
   "scan": {
     "prompt": "Présentez le code QR devant la caméra",
@@ -61,14 +63,15 @@
       "already_in": "L'arrivée de {name} est déjà enregistrée : l'enfant est présent. Rien n'a été enregistré.",
       "already_out": "La sortie de {name} est déjà enregistrée aujourd'hui. Rien n'a été enregistré.",
       "just_arrived": "L'arrivée de {name} a été enregistrée il y a moins de deux minutes. Vouliez-vous vraiment enregistrer une sortie ?",
-      "returned": "{name} est parti(e) aujourd'hui et se présente de nouveau. Enregistrer son retour ?"
+      "returned": "{name} est parti(e) aujourd'hui et se présente de nouveau. Enregistrer son retour ?",
+      "just_left": "La sortie de {name} a été enregistrée il y a moins de deux minutes. Vouliez-vous vraiment enregistrer un retour ?"
     },
     "cancel": "Non, annuler",
     "forceOut": "Enregistrer quand même la sortie",
     "forceIn": "Enregistrer quand même l'arrivée",
     "partial": "{recorded} sur {total} enregistrés. Cet enfant attend votre décision.",
     "remaining": "{count, plural, one {# autre enfant à vérifier} other {# autres enfants à vérifier}}",
-    "forceReturn": "Enregistrer le retour — le départ précédent sera remplacé"
+    "forceReturn": "Enregistrer le retour — le départ reste dans l'historique"
   },
   "result": {
     "adult": "Adulte",
@@ -196,7 +199,11 @@
     "notification": {
       "in": "{name} · arrivée {time}",
       "out": "{name} · sortie {time}"
-    }
+    },
+    "readerTitle": "Lecteur de cartes",
+    "windowTitle": "Fenêtre",
+    "alertsTitle": "Alertes du navigateur",
+    "settings": "Réglages"
   },
   "app": {
     "description": "La porte sur ce téléphone : code QR, badge ou code PIN."
@@ -216,6 +223,7 @@
     "confirmed": "Remis · {time}",
     "refused": "Refusé",
     "awaitingTeam": "En attente de l'équipe",
-    "waitJustArrived": "Arrivé il y a moins de 2 min — réessayez dans un instant"
+    "waitJustArrived": "Arrivé il y a moins de 2 min — réessayez dans un instant",
+    "confirmCount": "{count, plural, =0 {Remettre} one {Remettre # enfant} other {Remettre les #}}"
   }
 }
