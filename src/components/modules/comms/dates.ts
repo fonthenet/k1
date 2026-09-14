@@ -11,7 +11,9 @@ export function isValidDateStr(s: string | undefined): s is string {
 }
 
 export function isValidMonthStr(s: string | undefined): s is string {
-  return !!s && MONTH_RE.test(s);
+  // The shape alone let "2026-13" through, and the portal month grid then
+  // threw on an invalid first day instead of falling back to this month.
+  return !!s && MONTH_RE.test(s) && isValidDateStr(`${s}-01`);
 }
 
 /** Calendar date of `d` as seen in Algeria. */

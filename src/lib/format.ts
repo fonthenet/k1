@@ -83,6 +83,19 @@ export function formatTime(date: string | Date, locale = "fr"): string {
 }
 
 /**
+ * A list joined the way the reader's language joins one: "3 événements, 2
+ * cours et 1 fermeture", "3 events, 2 lessons and 1 closure", "3 فعاليات
+ * وحصتان وإغلاق واحد". The conjunction and its spacing differ in all three —
+ * Arabic glues "و" to the next word with no space — so a hand-written
+ * `join(", ")` is wrong in two languages out of three. The calendar's cell
+ * names and the notification renderer both go through here; a caller that
+ * wants "or" or the short form passes the options through.
+ */
+export function listFormat(locale: string, opts?: Intl.ListFormatOptions): Intl.ListFormat {
+  return new Intl.ListFormat(intlLocale(locale), { style: "long", type: "conjunction", ...opts });
+}
+
+/**
  * Today's calendar date in Algiers, as "yyyy-MM-dd".
  *
  * A child's age is a calendar fact about Jijel, not about the Vercel region

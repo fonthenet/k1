@@ -44,9 +44,19 @@ export default async function EnrollPage({
   if (error || !data) {
     return <InvalidLink />;
   }
-  const link = data as unknown as EnrollLinkData;
+  const raw = data as unknown as EnrollLinkData;
   // Readable without a session since 0059; null for a crèche with no logo yet.
-  const logoUrl = await signedMediaUrl(link.logo_url);
+  const logoUrl = await signedMediaUrl(raw.logo_url);
+  // The blank forms of the dossier (0164) are public objects like the logo,
+  // and the family has no membership yet, so their signed URLs are minted
+  // here — the one place with a server client — and travel with the link.
+  const documents = await Promise.all(
+    (raw.documents ?? []).map(async (d) => ({
+      ...d,
+      form_url: d.form_path ? await signedMediaUrl(d.form_path) : null,
+    })),
+  );
+  const link: EnrollLinkData = { ...raw, documents };
 
   const {
     data: { user },

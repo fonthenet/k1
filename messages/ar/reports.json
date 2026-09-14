@@ -40,7 +40,7 @@
       "uniform": "الزي",
       "other": "أخرى"
     },
-    "lines": "{count, plural, one {بند واحد} two {بندان} few {# بنود} many {# بندا} other {# بند}}",
+    "lines": "{count, plural, one {# بند} two {# بنود} few {# بنود} many {# بندا} other {# بند}}",
     "amount": "المبلغ",
     "share": "الحصة",
     "emptyRevenue": "لم تصدر أي فاتورة خلال هذا الشهر.",
@@ -95,7 +95,7 @@
     "print": "طباعة",
     "generated": "أُنشئ بتاريخ {date}",
     "period": "الفترة: {month}",
-    "count": "{count, plural, =0 {لا توجد تسجيلات} one {تسجيل واحد} two {تسجيلان} few {# تسجيلات} many {# تسجيلا} other {# تسجيل}}",
+    "count": "{count, plural, =0 {لا توجد تسجيلات} one {# تسجيل} two {# تسجيلات} few {# تسجيلات} many {# تسجيلا} other {# تسجيل}}",
     "signature": "إمضاء وختم الإدارة",
     "male": "ذكر",
     "female": "أنثى",

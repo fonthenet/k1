@@ -1,4 +1,5 @@
 import "server-only";
+import { getTranslations } from "next-intl/server";
 import { learningContext } from "./data";
 import {
   addDays,
@@ -9,7 +10,6 @@ import {
   type Lesson,
   type Program,
   type TimetableClass,
-  type TimetableDay,
   type TimetableStructure,
 } from "./domain";
 import type { StaffChoice } from "./forms";
@@ -18,10 +18,11 @@ import {
   type RoomChoice,
 } from "@/components/modules/classes/class-types";
 import { readRoomOccupancy } from "@/components/modules/rooms/occupancy-data";
+import type { WeekGridDay } from "@/components/shared/week-grid";
 import { algiersClock, algiersDate } from "@/lib/algiers";
+import { buildWeekDays, readClosures, type ClosureRow } from "@/lib/closures";
 import {
   DAY_KEYS,
-  dayKeyOfStr,
   toOpeningHours,
   type OpeningHours,
 } from "@/lib/week";
@@ -49,8 +50,19 @@ export interface TimetableWeek {
   day: string;
   /** Every day the establishment opens this week, in week order, plus a
    *  weekend day only when a lesson already falls on it. Never empty: a
-   *  building shut every day still gets Sunday–Thursday, greyed. */
-  days: TimetableDay[];
+   *  building shut every day still gets Sunday–Thursday, greyed. Built by
+   *  the shared buildWeekDays (lib/closures) under the one closure rule:
+   *  a day is shut by its weekly hours or by a CONFIRMED closure, and a
+   *  tentative one only names the day (0157). */
+  days: WeekGridDay[];
+  /** Every kg_holidays row touching the week, for the view to draw the
+   *  tentative closures as gold spans over the open columns they name. */
+  closures: ClosureRow[];
+  /** Lessons whose teacher is on approved leave that day, by lesson id,
+   *  with the leave's span: the block strikes the initials, the hover says
+   *  the dates. Read under lr_sel, so a teacher sees her own leave and the
+   *  director everyone's. */
+  onLeave: Record<string, { from: string; to: string }>;
   /** Grid bounds, widened by out-of-hours lessons (and the filtered
    *  teacher's follow-ups), rounded outward to the half hour. */
   open: string;
@@ -94,14 +106,6 @@ export interface TimetableWeek {
 }
 
 type Hours = { open: string; close: string };
-type Closure = {
-  date: string;
-  end_date: string | null;
-  name: string;
-  name_ar: string | null;
-  tentative: boolean;
-  structure_id: string | null;
-};
 
 /** Down to the half hour below, as "HH:MM". */
 function floorHalf(time: string): string {
@@ -134,10 +138,6 @@ function bounds(hours: OpeningHours): Hours {
   return { open: floorHalf(open), close: ceilHalf(close) };
 }
 
-function closureCovers(closure: Closure, date: string): boolean {
-  return closure.date <= date && (closure.end_date ?? closure.date) >= date;
-}
-
 export async function timetableWeek(params: {
   week?: string;
   class?: string;
@@ -146,7 +146,10 @@ export async function timetableWeek(params: {
   view?: string;
   day?: string;
 }): Promise<TimetableWeek> {
-  const { ctx, db, locale, classes: choices, staff } = await learningContext();
+  const [{ ctx, db, locale, classes: choices, staff }, tc] = await Promise.all([
+    learningContext(),
+    getTranslations("common"),
+  ]);
   const today = algiersToday();
   const view: "week" | "day" = params.view === "day" ? "day" : "week";
   // A day in the URL names its own week; the week parameter only matters
@@ -198,7 +201,7 @@ export async function timetableWeek(params: {
 
   const from = `${week}T00:00:00+01:00`;
   const to = `${addDays(week, 7)}T00:00:00+01:00`;
-  const [hoursRead, programRead, lessonRead, occupancy, holidayRead] =
+  const [hoursRead, programRead, lessonRead, occupancy, closures, leaveRead] =
     await Promise.all([
       db.rpc("kg_structure_hours", {
         p_structure: structureId,
@@ -243,22 +246,29 @@ export async function timetableWeek(params: {
       // room (0155). One read, on the reader's own client, and the editor
       // says both kinds of clash before the database has to.
       readRoomOccupancy(db, ctx, locale, from, to),
-      // Every closure touching the week, tentative or not: the guard refuses
-      // a lesson on a tentative closure as firmly as on a confirmed one.
+      // Every closure touching the week, tentative or not, through the one
+      // reader (lib/closures): buildWeekDays shuts a column on a CONFIRMED
+      // closure only, exactly as the guard of 0153 refuses a lesson — a
+      // tentative Aïd leaves the column open and is named in gold, since
+      // the database still accepts a cours on it.
+      readClosures(db, ctx.tenant.id, week, weekEnd),
+      // Approved leaves overlapping the week. lr_sel decides who sees them:
+      // a teacher her own, the director everyone's — so the struck
+      // initials are drawn for exactly the people the reader may know about.
       db
-        .from("kg_holidays")
-        .select("date,end_date,name,name_ar,tentative,structure_id")
+        .from("kg_leave_requests")
+        .select("membership_id,start_date,end_date")
         .eq("tenant_id", ctx.tenant.id)
-        .eq("closure", true)
-        .lte("date", weekEnd)
-        .or(`end_date.gte.${week},and(end_date.is.null,date.gte.${week})`),
+        .eq("status", "approved")
+        .lte("start_date", weekEnd)
+        .gte("end_date", week),
     ]);
-  if (hoursRead.error || programRead.error || lessonRead.error || holidayRead.error)
+  if (hoursRead.error || programRead.error || lessonRead.error || leaveRead.error)
     throw new Error("Timetable unavailable");
 
   const hours = toOpeningHours(hoursRead.data);
   const allLessons = (lessonRead.data ?? []) as Lesson[];
-  const closures = (holidayRead.data ?? []) as Closure[];
+  const leaves = (leaveRead.data ?? []) as { membership_id: string; start_date: string; end_date: string }[];
 
   // The teacher list is the scope's team plus whoever still owns a lesson
   // in it, so a filter can reach a lesson kept by someone who left.
@@ -291,51 +301,38 @@ export async function timetableWeek(params: {
   // cancelled included, so a struck-through lesson on a Friday is still
   // there to be put back. The whole scope decides, not the class or teacher
   // filter, so switching filters only empties columns and never reshapes
-  // the week under the day strip.
+  // the week under the day strip. A structure shut on its own only matters
+  // when the sheet shows the whole building, where it shuts that
+  // structure's lanes — its own and its classes'; inside that structure the
+  // day is simply closed.
   const busyDays = new Set(scopedRows.map((l) => algiersDate(l.starts_at)));
-  const holidayName = (c: Closure) =>
-    locale === "ar" && c.name_ar ? c.name_ar : c.name;
-  const dayOf = (date: string): TimetableDay => {
-    const weekly = hours[dayKeyOfStr(date)];
-    const covering = closures.filter((c) => closureCovers(c, date));
-    const applying = covering.find(
-      (c) => c.structure_id === null || c.structure_id === structureId,
+  const days = buildWeekDays({
+    week,
+    hours,
+    closures,
+    structures: structures.map((s) => ({
+      id: s.id,
+      name: s.name,
+      classIds: allClasses.filter((c) => c.structure_id === s.id).map((c) => c.id),
+    })),
+    structureId,
+    busyDays,
+    locale,
+    today,
+    todayLabel: tc("labels.today"),
+  });
+
+  // The cours a teacher on approved leave will not give: the day of the
+  // cours inside one of her leave spans. Only the scoped rows are marked;
+  // the mark is a fact of a block, not of the clash check.
+  const onLeave: Record<string, { from: string; to: string }> = {};
+  for (const l of scopedRows) {
+    const day = algiersDate(l.starts_at);
+    const leave = leaves.find(
+      (lv) => lv.membership_id === l.membership_id && lv.start_date <= day && lv.end_date >= day,
     );
-    // A structure shut on its own only matters when the sheet shows the
-    // whole building; inside that structure the day is simply closed.
-    const closedStructures =
-      structureId === null
-        ? structures.flatMap((s) => {
-            const own = covering.find((c) => c.structure_id === s.id);
-            return own
-              ? [{ id: s.id, name: holidayName(own), tentative: own.tentative }]
-              : [];
-          })
-        : [];
-    return {
-      date,
-      closed: weekly === null || applying !== undefined,
-      hours: weekly,
-      ...(applying
-        ? {
-            holiday: {
-              name: holidayName(applying),
-              tentative: applying.tentative,
-            },
-          }
-        : {}),
-      closedStructures,
-    };
-  };
-  let days = Array.from({ length: 7 }, (_, i) => addDays(week, i))
-    .filter((date) => hours[dayKeyOfStr(date)] !== null || busyDays.has(date))
-    .map(dayOf);
-  // A building shut every day of the week still gets a sheet to look at,
-  // greyed, rather than an empty card or a crash on days[0].
-  if (days.length === 0)
-    days = Array.from({ length: 5 }, (_, i) => addDays(week, i)).map(
-      (date) => ({ ...dayOf(date), closed: true, hours: null }),
-    );
+    if (leave) onLeave[l.id] = { from: leave.start_date, to: leave.end_date };
+  }
 
   const inDays = (date: string | null) =>
     date !== null && days.some((d) => d.date === date);
@@ -373,6 +370,8 @@ export async function timetableWeek(params: {
     view,
     day,
     days,
+    closures,
+    onLeave,
     open: floorHalf(earliest),
     close: ceilHalf(latest),
     hours: establishment,

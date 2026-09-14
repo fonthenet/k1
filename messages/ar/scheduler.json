@@ -57,9 +57,9 @@
     "noPrograms": "أنشئوا أولًا برنامجًا نشطًا لقسم يمكنكم تأطيره.",
     "noStaff": "لا يوجد عضو من الفريق معيّن لهذا القسم.",
     "assignStaff": "تعيين الفريق من صفحة القسم",
-    "series": "{profile, select, academic {{count, plural, one {حصة واحدة} two {حصتان} few {# حصص} many {# حصة} other {# حصة}}} therapy {{count, plural, one {ورشة واحدة} two {ورشتان} few {# ورشات} many {# ورشة} other {# ورشة}}} other {{count, plural, one {نشاط واحد} two {نشاطان} few {# أنشطة} many {# نشاطا} other {# نشاط}}}}، من {from} إلى {to}",
+    "series": "{profile, select, academic {{count, plural, one {# حصة} two {# حصص} few {# حصص} many {# حصة} other {# حصة}}} therapy {{count, plural, one {# ورشة} two {# ورشات} few {# ورشات} many {# ورشة} other {# ورشة}}} other {{count, plural, one {# نشاط} two {# أنشطة} few {# أنشطة} many {# نشاطا} other {# نشاط}}}}، من {from} إلى {to}",
     "outsideRange": "السلسلة تتجاوز تواريخ البرنامج.",
-    "save": "{profile, select, academic {{count, plural, one {حفظ} two {حفظ حصتين} few {حفظ # حصص} many {حفظ # حصة} other {حفظ # حصة}}} therapy {{count, plural, one {حفظ} two {حفظ ورشتين} few {حفظ # ورشات} many {حفظ # ورشة} other {حفظ # ورشة}}} other {{count, plural, one {حفظ} two {حفظ نشاطين} few {حفظ # أنشطة} many {حفظ # نشاطا} other {حفظ # نشاط}}}}",
+    "save": "{profile, select, academic {{count, plural, one {حفظ} two {حفظ # حصص} few {حفظ # حصص} many {حفظ # حصة} other {حفظ # حصة}}} therapy {{count, plural, one {حفظ} two {حفظ # ورشات} few {حفظ # ورشات} many {حفظ # ورشة} other {حفظ # ورشة}}} other {{count, plural, one {حفظ} two {حفظ # أنشطة} few {حفظ # أنشطة} many {حفظ # نشاطا} other {حفظ # نشاط}}}}",
     "validation": {
       "class": "اختاروا قسمًا.",
       "program": "اختاروا برنامجًا نشطًا.",

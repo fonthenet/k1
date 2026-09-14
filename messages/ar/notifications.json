@@ -5,7 +5,7 @@
   "emptyUnread": "اطّلعتم على كل شيء",
   "emptyHint": "ستصلكم هنا آخر أخبار المؤسسة.",
   "markAllRead": "تعليم الكل كمقروء",
-  "unreadCount": "{count, plural, =0 {لا جديد} one {إشعار جديد} two {إشعاران جديدان} few {# إشعارات جديدة} other {# إشعاراً جديداً}}",
+  "unreadCount": "{count, plural, =0 {لا جديد} one {# إشعار جديد} two {# إشعارات جديدة} few {# إشعارات جديدة} other {# إشعاراً جديداً}}",
   "seeAll": "عرض كل الإشعارات",
   "justNow": "الآن",
   "unreadOnly": "غير المقروءة",
@@ -184,11 +184,82 @@
     },
     "event": {
       "title": "{name}",
-      "body": "{date} · {time} · {className} · {description}"
+      "body": "{date} · {time} · {room} · {className} · {description}",
+      "kinds": {
+        "created": "فعالية جديدة — {name}",
+        "changed": "تغيير في الفعالية — {name}",
+        "removed": "لم تعد تخصّكم — {name}",
+        "cancelled": "إلغاء الفعالية — {name}",
+        "reminder": "غدًا: {name}"
+      },
+      "bodies": {
+        "removed": "فعالية يوم {date} لم تعد تخصّ طفلكم.",
+        "cancelled": "لن تُقام فعالية يوم {date}."
+      }
     },
     "structure_changed": {
       "title": "تغيير الهيكل — {child}",
       "body": "{child} الآن في {structure} · {className}"
+    },
+    "closure": {
+      "title": "{name}",
+      "body": "{date} · {structure}",
+      "kinds": {
+        "created": "إغلاق — {name}",
+        "confirmed": "تأكيد التاريخ — {name}",
+        "reminder": "مغلق غدًا — {name}",
+        "cancelled": "إلغاء الغلق — {name}"
+      },
+      "bodies": {
+        "range": "من {date} إلى {endDate} · {structure}",
+        "cancelled": "ستفتح المؤسسة أبوابها أخيرًا يوم {date} · {structure}"
+      }
+    },
+    "session_scheduled": {
+      "title": "{sessionType} · {child}",
+      "body": "{date} · {time} · {therapist}",
+      "kinds": {
+        "created": "موعد — {child}",
+        "rescheduled": "تغيير الموعد — {child}",
+        "changed": "تعديل الموعد — {child}",
+        "cancelled": "إلغاء الموعد — {child}",
+        "reminder": "غدًا: {sessionType} — {child}"
+      }
+    },
+    "assessment_scheduled": {
+      "title": "{assessmentKind} — {name}",
+      "body": "{date} · {className}",
+      "kinds": {
+        "created": "{assessmentKind} — {name}",
+        "changed": "تغيير التاريخ — {name}"
+      }
+    },
+    "leave": {
+      "title": "إجازة",
+      "body": "من {date} إلى {endDate} · {leaveType}",
+      "kinds": {
+        "approved": "إجازة مقبولة",
+        "rejected": "إجازة مرفوضة"
+      },
+      "bodies": {
+        "single": "{date} · {leaveType}"
+      }
+    },
+    "document_received": {
+      "title": "وثيقة مستلمة — {child}",
+      "body": "{name}"
+    },
+    "document_reviewed": {
+      "title": "الملف — {child}",
+      "body": "{name}",
+      "kinds": {
+        "rejected": "وثيقة مرفوضة — {child}",
+        "complete": "اكتمل الملف — {child}"
+      },
+      "bodies": {
+        "rejected": "{name} · {text}",
+        "complete": "قُبلت جميع الوثائق المطلوبة."
+      }
     }
   },
   "push": {
@@ -197,7 +268,7 @@
     "disable": "إيقاف الإشعارات",
     "blocked": "الإشعارات محظورة في المتصفح. فعّلوها من إعدادات الموقع.",
     "unsupported": "متصفحكم لا يدعم الإشعارات.",
-    "enableHint": "استقبلوا إشعاراً فور وصول طفلكم أو ورود رسالة من الروضة.",
+    "enableHint": "استقبلوا إشعاراً فور وصول طفلكم أو ورود رسالة من المؤسسة.",
     "enableHintStaff": "استقبلوا إشعاراً عند ورود طلب تسجيل أو رسالة من الأولياء.",
     "success": "تم تفعيل الإشعارات على هذا الجهاز.",
     "removed": "تم إيقاف الإشعارات على هذا الجهاز.",
@@ -288,7 +359,7 @@
     "rejected": "لا يمكننا تقديم مقعد",
     "under_review": "تم استلام الطلب"
   },
-  "count": "{count, plural, =0 {لا توجد إشعارات} one {إشعار واحد} two {إشعاران} few {# إشعارات} many {# إشعارًا} other {# إشعار}}",
+  "count": "{count, plural, =0 {لا توجد إشعارات} one {# إشعار} two {# إشعارات} few {# إشعارات} many {# إشعارًا} other {# إشعار}}",
   "unread": "غير مقروء",
   "moods": {
     "happy": "مزاج مرح",
@@ -298,5 +369,24 @@
     "sad": "مزاج حزين",
     "upset": "مزاج منزعج",
     "sick": "متوعّك"
+  },
+  "sessionTypes": {
+    "speech": "تقويم النطق",
+    "occupational": "العلاج الوظيفي",
+    "behavioral": "الدعم السلوكي",
+    "physio": "العلاج الطبيعي",
+    "psychological": "المتابعة النفسية",
+    "tutoring": "الدعم المدرسي",
+    "followup": "حصة متابعة",
+    "other": "متابعة فردية"
+  },
+  "assessmentKinds": {
+    "test": "فرض",
+    "exam": "اختبار"
+  },
+  "leaveTypes": {
+    "vacation": "إجازة سنوية",
+    "sick": "إجازة مرضية",
+    "personal": "سبب شخصي"
   }
 }

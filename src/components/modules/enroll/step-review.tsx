@@ -8,9 +8,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { IdentityBand } from "@/components/shared/identity-band";
 import { createClient } from "@/lib/supabase/client";
 import { ageFromDob, formatDate, formatDZD, initials } from "@/lib/format";
-import { STEP, effectiveStructureId, inStructure, type EnrollLinkData, type WizardState } from "./types";
+import {
+  STEP,
+  effectiveStructureId,
+  inStructure,
+  wizardRequirements,
+  type EnrollLinkData,
+  type WizardState,
+} from "./types";
 import { GroupLabel, OwnName, StepHeader } from "./wizard-ui";
 import { allergenLabel } from "@/lib/allergens";
+import { requirementName } from "@/lib/dossier";
 
 /** A group of the review: small-caps label, one "Modifier" text link, rows on hairlines. */
 function Group({
@@ -49,6 +57,7 @@ function Row({
   value,
   ltr,
   bold,
+  quiet,
 }: {
   label: React.ReactNode;
   value: React.ReactNode;
@@ -56,12 +65,17 @@ function Row({
    *  bidi algorithm otherwise reorders in Arabic. */
   ltr?: boolean;
   bold?: boolean;
+  /** A value that is an absence ("À remettre sur place", "—"): muted, not medium. */
+  quiet?: boolean;
 }) {
   if (!value) return null;
   return (
     <div className={bold ? "flex items-baseline justify-between gap-3 py-2 font-semibold" : "flex items-baseline justify-between gap-3 py-2"}>
       <span className={bold ? "shrink-0" : "shrink-0 text-muted-foreground"}>{label}</span>
-      <span className={bold ? "text-end tabular-nums" : "text-end font-medium"} dir={ltr ? "ltr" : undefined}>
+      <span
+        className={bold ? "text-end tabular-nums" : quiet ? "text-end text-muted-foreground" : "text-end font-medium"}
+        dir={ltr ? "ltr" : undefined}
+      >
         {value}
       </span>
     </div>
@@ -135,6 +149,10 @@ export function StepReview({
       ? (inStructure(link.fee_plans ?? [], structureId).find((f) => f.id === state.feePlanId) ?? null)
       : null;
   const admissionFees = inStructure(link.admission_fees ?? [], structureId);
+  // The papers of the chosen kind, as the dossier step listed them; the
+  // group only exists when the step did.
+  const requirements = wizardRequirements(link, state);
+  const attached = requirements.filter((r) => state.documents[r.id]).length;
   // What the family will actually be asked for in month one. Monthly activities
   // are included; per-session ones are billed as they happen, so promising a
   // figure for them here would be a promise the invoice cannot keep.
@@ -243,6 +261,33 @@ export function StepReview({
           </div>
           {health.doctor_name && <Row label={t("health.doctorName")} value={health.doctor_name} />}
         </Group>
+
+        {/* One line per paper, the way the office will read the file: joined,
+            or to bring to the desk. No red — a missing paper never blocks
+            (D7) — and the count line under the rows says where it stands. */}
+        {requirements.length > 0 && (
+          <Group title={t("review.documents")} onEdit={() => goTo(STEP.documents)} editLabel={edit}>
+            {requirements.map((r) =>
+              state.documents[r.id] ? (
+                <Row
+                  key={r.id}
+                  label={<OwnName>{requirementName(r, locale)}</OwnName>}
+                  value={t("documents.attached")}
+                />
+              ) : (
+                <Row
+                  key={r.id}
+                  label={<OwnName>{requirementName(r, locale)}</OwnName>}
+                  value={r.required ? t("documents.bringLater") : "—"}
+                  quiet
+                />
+              ),
+            )}
+            <p className="pt-2 text-xs text-muted-foreground tabular-nums">
+              {t("review.documentsCount", { count: attached, total: requirements.length })}
+            </p>
+          </Group>
+        )}
 
         <Group title={t("review.schedule")} onEdit={() => goTo(STEP.activities)} editLabel={edit}>
           {chosenPlan ? (

@@ -102,13 +102,13 @@ async function loadJournalCard(ctx: TenantContext, locale: string) {
     ? structures.map((s) => toOpeningHours(s.opening_hours ?? tenantHours))
     : [toOpeningHours(tenantHours)];
 
-  // A tenant that never touched the switch is shown the derived default, not
-  // the sender's 17:00 fallback, so the first flip proposes the building's
-  // own evening.
+  // A tenant that never touched the switch is shown ON (the default since
+  // 0163) with the derived evening, not the sender's 17:00 fallback, so the
+  // first edit proposes the building's own closing time.
   const proposed = defaultSendAt(weeks);
   const stored = dailyJournalSettings(ctx.tenant.settings);
   const hasStored = typeof ctx.tenant.settings?.daily_journal === "object" && ctx.tenant.settings.daily_journal !== null;
-  const settings = hasStored ? stored : { enabled: false, sendAt: proposed };
+  const settings = hasStored ? stored : { enabled: true, sendAt: proposed };
 
   const latestCloseToday = latestCloseOn(structures, tenantHours, closures, today);
   const status = journalStatusLine({

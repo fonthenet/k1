@@ -8,8 +8,12 @@ import {
   Bell,
   Building2,
   CalendarDays,
+  CalendarOff,
   CalendarX2,
+  ClipboardCheck,
   ClipboardList,
+  FileCheck2,
+  FileText,
   HandCoins,
   HeartPulse,
   ListChecks,
@@ -21,6 +25,8 @@ import {
   ReceiptText,
   ShieldAlert,
   Sparkles,
+  Stethoscope,
+  TreePalm,
   TriangleAlert,
   Undo2,
   UserPen,
@@ -68,6 +74,17 @@ const ICONS: Record<string, LucideIcon> = {
   advance_rejected: HandCoins,
   // 0140 — the child moved from one structure of the building to another.
   structure_changed: Building2,
+  // 0159 — the calendar's own facts, drawn with the glyphs the calendar uses
+  // for them, so a row about Adam's appointment looks like the appointment.
+  closure: TreePalm,
+  session_scheduled: Stethoscope,
+  assessment_scheduled: ClipboardCheck,
+  leave: CalendarOff,
+  // 0164 — the dossier d’inscription. A paper the family sent is drawn with
+  // the glyph the staff dossier card carries; the office’s verdict on it with
+  // the glyph of the family’s dossier step, so each side recognises its row.
+  document_received: FileText,
+  document_reviewed: FileCheck2,
 };
 
 // Tokens only. Gold tints take `gold-ink` for text — the raw gold hue is far
@@ -116,6 +133,18 @@ const TONES: Record<string, string> = {
   // A change to the child's enrolment, same warm tone as enrollment_changed:
   // big news for the family, and not an alarm.
   structure_changed: "bg-gold-muted text-gold-ink",
+  // Registers, not palette: a closure and a leave are neutral facts, an
+  // appointment and an exam date are the product's own (primary) dates.
+  closure: "bg-muted text-muted-foreground",
+  session_scheduled: "bg-primary/10 text-primary",
+  assessment_scheduled: "bg-primary/10 text-primary",
+  leave: "bg-muted text-muted-foreground",
+  // A received paper waits on a human to judge it, and a verdict (refused, or
+  // the file complete) is news the family acts on: both take the warm tone of
+  // the other "somebody must look at this" rows, never red — the refusal note
+  // itself is the one red, and it lives in the dossier, not the bell.
+  document_received: "bg-gold-muted text-gold-ink",
+  document_reviewed: "bg-gold-muted text-gold-ink",
 };
 
 /** The square icon tile that opens every notification row. */

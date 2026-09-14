@@ -7,7 +7,8 @@
     "payments": "Payments",
     "announcements": "News",
     "unreadMessages": "{count, plural, =0 {No unread messages} one {# unread message} other {# unread messages}}",
-    "switchCreche": "Switch kindergarten"
+    "switchCreche": "Switch kindergarten",
+    "calendar": "Calendar"
   },
   "error": {
     "title": "This page could not be displayed",
@@ -25,7 +26,7 @@
     "seeAll": "See all",
     "upcomingTitle": "Coming up",
     "upcomingEmpty": "Nothing coming up.",
-    "tentative": "Tentative",
+    "tentative": "to be confirmed",
     "status": {
       "notYet": "Not arrived yet",
       "arrived": "Arrived at {time}",
@@ -64,10 +65,18 @@
       "nap": "Nap",
       "lunch": "Lunch",
       "departure": "Departure"
+    },
+    "seeCalendar": "Calendar",
+    "pinnedEmpty": "No pinned announcement",
+    "closedTodayNamed": "Closed today — {name}",
+    "dossier": {
+      "title": "File to complete",
+      "line": "{names} · {count} documents"
     }
   },
   "checkin": {
     "action": "Check in",
+    "screenTitle": "Door badge",
     "title": "Show this at the door",
     "subtitle": "Staff scan this code, then compare your photo with your child’s before confirming the arrival or the pick-up.",
     "qrTitle": "Your badge QR code",
@@ -113,7 +122,8 @@
     "processing": "File received — being processed. The crèche will contact you.",
     "closed": "File handled — contact the establishment about the next step.",
     "processingTransfer": "Structure change request received — the office will confirm.",
-    "group": "Requests in progress"
+    "group": "Requests in progress",
+    "dossierLine": "File · {text}"
   },
   "addChild": {
     "trigger": "Enrol another child",
@@ -155,7 +165,8 @@
       "title": "Preferred class",
       "reviewLabel": "Preferred class",
       "undecided": "The office decides"
-    }
+    },
+    "documents": "File"
   },
   "messages": {
     "title": "Messages",
@@ -213,7 +224,7 @@
     "subjectRange": "Absence — {name} — {from} to {to}",
     "successRecorded": "{count, plural, one {Absence recorded in the register for # day} other {Absence recorded in the register for # days}}",
     "successKept": "The office already had an entry for that day — your report still reached them.",
-    "successClosed": "The kindergarten is closed on those days — the office was still informed.",
+    "successClosed": "The establishment is closed on those days — the office has still been informed.",
     "errors": {
       "window": "Absences can be reported from yesterday up to 14 days ahead."
     }
@@ -248,7 +259,7 @@
       "attendance": "Attendance",
       "health": "Health",
       "activities": "Activities",
-      "permissions": "Access"
+      "permissions": "File"
     },
     "journal": {
       "title": "Daily journal",
@@ -588,7 +599,12 @@
       "save": "Save my details",
       "saved": "Your details were updated. The office sees the change straight away.",
       "noFile": "No parent file yet",
-      "noFileDescription": "Your account is not linked to a parent file at this kindergarten yet. Contact the office and they will link it."
+      "noFileDescription": "Your account is not linked to a parent file at this kindergarten yet. Contact the office and they will link it.",
+      "contact": "Contact details",
+      "identity": "Identity",
+      "more": "Other details",
+      "notProvided": "Not provided",
+      "namesRequired": "The first and last names in Latin letters are required."
     },
     "photo": {
       "title": "My photo",
@@ -633,7 +649,10 @@
         "en": "English",
         "fr": "Français"
       },
-      "saved": "Your account was updated"
+      "saved": "Your account was updated",
+      "edit": "Display name and phone",
+      "editHint": "The name shown beside your messages, and the phone attached to your login.",
+      "fullNameRequired": "Enter the name to display."
     },
     "children": {
       "title": "My children",
@@ -646,7 +665,9 @@
       "description": "Get a notification on this phone when the kindergarten posts something about your child.",
       "enable": "Turn on notifications",
       "enabled": "Notifications on",
-      "denied": "Notifications are off for Rawdatik. Turn them on in Settings to be alerted."
+      "denied": "Notifications are off for Rawdatik. Turn them on in Settings to be alerted.",
+      "unavailable": "Not available on this device.",
+      "openSettings": "Open Settings"
     },
     "signOut": {
       "hint": "You will need your email and password to sign back in."
@@ -654,6 +675,16 @@
     "errors": {
       "load": "Your details could not be loaded. Please try again in a moment.",
       "forbidden": "You are not allowed to change this. Contact the kindergarten office."
+    },
+    "legal": {
+      "title": "Privacy",
+      "privacy": "Privacy policy",
+      "privacyHint": "What Rawdatik keeps, where, and who can see it.",
+      "deleteAccount": "Delete my account",
+      "deleteHint": "The request goes by email to {email}; the steps are described in the privacy policy.",
+      "deleteSubject": "Rawdatik account deletion request",
+      "deleteBody": "Hello,\n\nI request the deletion of my Rawdatik account ({identity}) and of the data attached to it.\n\n",
+      "copied": "No email app on this phone: the address {email} has been copied."
     }
   },
   "classChoice": {
@@ -744,5 +775,107 @@
     "ackedAt": "Acknowledged on {date} · <ltr>{time}</ltr>",
     "sessions": "Sessions",
     "photoOpen": "Photo {n} — open full size"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "description": "What is planned for your children and the days the establishment is closed",
+    "allChildren": "All",
+    "upcoming": "Coming days",
+    "empty": "Nothing planned in the coming days.",
+    "dayEmpty": "Nothing planned that day.",
+    "closed": "Closed",
+    "tentative": "to be confirmed",
+    "allDay": "All day",
+    "legendJournal": "Day with a journal",
+    "journalOf": "{name}'s journal",
+    "kinds": {
+      "event": "Event",
+      "holiday": "Closure",
+      "lesson": "{profile, select, academic {Lesson} therapy {Workshop} other {Activity}}",
+      "session": "Appointment",
+      "activity": "Activity",
+      "assessment": "{kind, select, exam {Exam} other {Test}}",
+      "invoice_due": "Due date"
+    },
+    "invoice": "{count, plural, one {# invoice due} other {# invoices due}}",
+    "event": {
+      "addToCalendar": "Add to my calendar",
+      "going": "I'll be there",
+      "notGoing": "Absent",
+      "note": "A word for the team",
+      "noteHint": "optional",
+      "answered": "Answer saved",
+      "cancelled": "Cancelled",
+      "gone": "This event no longer exists.",
+      "perPerson": "per person"
+    },
+    "backToCalendar": "Calendar"
+  },
+  "dossier": {
+    "title": "Documents on file",
+    "missingLine": "{count, plural, one {# document to provide} other {# documents to provide}}",
+    "rejectedLine": "{count, plural, one {# document refused} other {# documents refused}}",
+    "complete": "File complete",
+    "incomplete": "File incomplete",
+    "empty": "No document is requested for now.",
+    "fix": "fix",
+    "hint": "What the establishment has received, and what is still to provide.",
+    "back": "My requests",
+    "toasts": {
+      "attached": "Document sent"
+    }
+  },
+  "door": {
+    "app": {
+      "tabTitle": "Scan",
+      "segBadge": "My badge",
+      "segScan": "Scan the door",
+      "aim": "Aim at the code shown on the door screen",
+      "notDoor": "That is not the door code.",
+      "cameraDenied": "Allow the camera in your phone's settings to scan the door."
+    },
+    "title": "At the door",
+    "choose": "Who is arriving, who is leaving?",
+    "in": "Arrival",
+    "out": "Departure",
+    "submit": "Record",
+    "today": {
+      "notArrived": "Not arrived yet",
+      "in": "Arrived at {time}",
+      "out": "Left at {time}"
+    },
+    "recorded": {
+      "in": "Arrival recorded at {time}",
+      "out": "Departure recorded at {time}"
+    },
+    "pending": "Request sent — the team is handing {name} over to you",
+    "pendingHint": "Stay near the door; this screen updates on its own.",
+    "pendingElsewhere": "A departure has already been requested for {name} — the team will take it from here.",
+    "confirmed": "{name} was handed over to you at {time}",
+    "refused": "The team did not confirm this departure — please see the front desk.",
+    "expired": "No answer from the team — please see the front desk.",
+    "cancelled": "Request cancelled",
+    "cancel": "Cancel the request",
+    "duplicate": {
+      "already_in": "Arrival already recorded at {time}",
+      "already_out": "Departure already recorded at {time}",
+      "just_arrived": "Arrived less than two minutes ago — the team will take it from here",
+      "returned": "Departure already recorded at {time} — speak to the team"
+    },
+    "refusedReason": {
+      "outside_hours": "Outside opening hours ({open}–{close})",
+      "closed_day": "Closed today",
+      "pickup_not_allowed": "You are not authorised to collect {name}",
+      "not_arrived": "{name} has not arrived today"
+    },
+    "codeExpired": "This code has expired — scan the door screen again.",
+    "unknownCode": "Unknown code — scan the door screen again.",
+    "notParent": "This account is not linked to any child at this establishment.",
+    "noChildren": "No enrolled child under your name here.",
+    "staffHere": "This code is for parents. The team uses the kiosk.",
+    "openKiosk": "Open the kiosk",
+    "done": "Done",
+    "expiresIn": "Code valid for {seconds} s",
+    "orScan": "Or scan the code shown at the door with your phone's camera."
   }
 }

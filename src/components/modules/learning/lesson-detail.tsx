@@ -66,10 +66,17 @@ export interface LessonDetailProps {
   roomInherited?: boolean;
   locale: string;
   onClose: () => void;
-  /** The view closes the detail and opens SessionEditor with this row. */
-  onEdit: (lesson: Lesson) => void;
+  /** The view closes the detail and opens SessionEditor with this row. Not needed in `readOnly`. */
+  onEdit?: (lesson: Lesson) => void;
   /** After any successful status change; the view refreshes inside a transition. */
   onChanged: () => void;
+  /**
+   * The calendar's form of the dialog: the same facts, no Modifier and no
+   * status actions — their slot holds one tertiary link to the cours on the
+   * timetable, where the editing happens. Absent, the dialog is the
+   * timetable's own and nothing about it changes.
+   */
+  readOnly?: { timetableHref: string };
 }
 
 interface StatusError {
@@ -90,9 +97,11 @@ export function LessonDetail({
   onClose,
   onEdit,
   onChanged,
+  readOnly,
 }: LessonDetailProps) {
   const t = useTranslations("learning.timetable");
   const tc = useTranslations("common");
+  const tCal = useTranslations("comms.calendar.hover");
   const [isPending, startTransition] = useTransition();
   const [statusError, setStatusError] = useState<StatusError | null>(null);
   // The row is named by its own class: a crèche block is an activité even on
@@ -123,6 +132,7 @@ export function LessonDetail({
   const handingOver = useRef(false);
 
   function edit(row: Lesson) {
+    if (!onEdit) return;
     handingOver.current = true;
     onEdit(row);
   }
@@ -244,14 +254,18 @@ export function LessonDetail({
               <Link href={`/classes/${lesson.class_id}`} className="shrink-0 whitespace-nowrap text-sm text-primary">
                 {t("detail.openClass")} <span aria-hidden className="inline-block rtl:rotate-180">›</span>
               </Link>
-              {cls?.canTeach && (
+              {readOnly ? (
+                <Link href={readOnly.timetableHref} className="shrink-0 whitespace-nowrap text-sm text-primary">
+                  {tCal("openTimetable")} <span aria-hidden className="inline-block rtl:rotate-180">›</span>
+                </Link>
+              ) : cls?.canTeach && (
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   {lesson.status === "scheduled" && (
                     <>
                       {/* An archived programme cannot be saved back by the
                           editor, so Modifier would only open a form that
                           refuses; the guidance is the editor's own copy. */}
-                      {canEdit && (
+                      {canEdit && onEdit && (
                         <Button type="button" variant="outline" disabled={isPending} onClick={() => edit(lesson)}>
                           {tc("actions.edit")}
                         </Button>

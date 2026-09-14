@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
@@ -28,7 +28,9 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/shared/date-picker";
 import { groupClassesByStructure, structureLabel } from "@/lib/structure-groups";
+import { cn } from "@/lib/utils";
 import type { Structure } from "@/components/modules/classes/class-types";
+import { closedDayStatus } from "@/components/modules/comms/actions";
 import { createAssessment } from "./assessments-actions";
 import type { AssessmentClass } from "./assessments-data";
 import { algiersToday, learningProfile, type Program } from "./domain";
@@ -40,7 +42,9 @@ import { algiersToday, learningProfile, type Program } from "./domain";
  * fixes the dates the assessment may fall on, and the type decides whether a
  * scale is asked at all (an observation has levels, not marks). The date
  * defaults to today clamped into the programme, so the common case is typed
- * in two fields and created.
+ * in two fields and created. A closure of the class's structure on that
+ * day is said under the fields (0157: muted when confirmed, gold when still
+ * to be confirmed) and refuses nothing — an exam is a date, not a booking.
  */
 const KINDS_ACADEMIC = ["test", "exam", "observation"] as const;
 
@@ -82,6 +86,10 @@ export function CreateAssessmentDialog({
   const [kind, setKind] = useState("");
   const [day, setDay] = useState("");
   const [maxScore, setMaxScore] = useState("20");
+  const [closedDay, setClosedDay] = useState<{ confirmed: string | null; tentative: string | null }>({
+    confirmed: null,
+    tentative: null,
+  });
 
   const klass = classes.find((c) => c.id === classId);
   const offered = programs.filter((p) => p.class_id === classId);
@@ -97,6 +105,28 @@ export function CreateAssessmentDialog({
     withProgram,
     structures.length > 1 ? structures : [],
   );
+  const structureId = klass?.structure_id ?? null;
+  const validDay = /^\d{4}-\d{2}-\d{2}$/.test(chosenDay);
+  useEffect(() => {
+    if (!open || !validDay) return;
+    let live = true;
+    // Debounced: the date picker fires on every keystroke of a typed date.
+    const timer = setTimeout(() => {
+      void closedDayStatus(structureId, chosenDay)
+        .then((status) => {
+          if (live) setClosedDay(status);
+        })
+        // A failed read says nothing rather than something wrong.
+        .catch(() => {
+          if (live) setClosedDay({ confirmed: null, tentative: null });
+        });
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [open, validDay, chosenDay, structureId]);
+
   const scaleAsked = chosenKind !== "observation";
   const scale = Number(maxScore);
   const canSubmit =
@@ -258,6 +288,22 @@ export function CreateAssessmentDialog({
                   onChange={(e) => setMaxScore(e.target.value)}
                 />
               </Field>
+            )}
+            {/* The day's door, under the field pairs — one line, the
+                whole width, muted or gold. */}
+            {validDay && program && (closedDay.confirmed || closedDay.tentative) && (
+              <p
+                role="status"
+                aria-live="polite"
+                className={cn(
+                  "col-span-2 text-xs",
+                  closedDay.confirmed ? "text-muted-foreground" : "text-gold-ink",
+                )}
+              >
+                {closedDay.confirmed
+                  ? t("assessments.closedDay", { name: closedDay.confirmed })
+                  : t("assessments.closedDayTentative", { name: closedDay.tentative ?? "" })}
+              </p>
             )}
           </div>
         )}

@@ -184,11 +184,82 @@
     },
     "event": {
       "title": "{name}",
-      "body": "{date} · {time} · {className} · {description}"
+      "body": "{date} · {time} · {room} · {className} · {description}",
+      "kinds": {
+        "created": "Nouvel événement — {name}",
+        "changed": "Événement modifié — {name}",
+        "removed": "Ne vous concerne plus — {name}",
+        "cancelled": "Événement annulé — {name}",
+        "reminder": "Demain : {name}"
+      },
+      "bodies": {
+        "removed": "L'événement du {date} ne concerne plus votre enfant.",
+        "cancelled": "L'événement du {date} n'aura pas lieu."
+      }
     },
     "structure_changed": {
       "title": "Changement de structure — {child}",
       "body": "{child} est désormais dans {structure} · {className}"
+    },
+    "closure": {
+      "title": "{name}",
+      "body": "{date} · {structure}",
+      "kinds": {
+        "created": "Fermeture — {name}",
+        "confirmed": "Date confirmée — {name}",
+        "reminder": "Fermé demain — {name}",
+        "cancelled": "Réouverture — {name}"
+      },
+      "bodies": {
+        "range": "Du {date} au {endDate} · {structure}",
+        "cancelled": "L'établissement ouvrira finalement le {date} · {structure}"
+      }
+    },
+    "session_scheduled": {
+      "title": "{sessionType} · {child}",
+      "body": "{date} · {time} · {therapist}",
+      "kinds": {
+        "created": "Rendez-vous — {child}",
+        "rescheduled": "Rendez-vous déplacé — {child}",
+        "changed": "Rendez-vous modifié — {child}",
+        "cancelled": "Rendez-vous annulé — {child}",
+        "reminder": "Demain : {sessionType} — {child}"
+      }
+    },
+    "assessment_scheduled": {
+      "title": "{assessmentKind} — {name}",
+      "body": "{date} · {className}",
+      "kinds": {
+        "created": "{assessmentKind} — {name}",
+        "changed": "Date modifiée — {name}"
+      }
+    },
+    "leave": {
+      "title": "Congé",
+      "body": "Du {date} au {endDate} · {leaveType}",
+      "kinds": {
+        "approved": "Congé accepté",
+        "rejected": "Congé refusé"
+      },
+      "bodies": {
+        "single": "{date} · {leaveType}"
+      }
+    },
+    "document_received": {
+      "title": "Pièce reçue — {child}",
+      "body": "{name}"
+    },
+    "document_reviewed": {
+      "title": "Dossier — {child}",
+      "body": "{name}",
+      "kinds": {
+        "rejected": "Pièce refusée — {child}",
+        "complete": "Dossier complet — {child}"
+      },
+      "bodies": {
+        "rejected": "{name} · {text}",
+        "complete": "Toutes les pièces demandées sont acceptées."
+      }
     }
   },
   "push": {
@@ -197,7 +268,7 @@
     "disable": "Désactiver les notifications",
     "blocked": "Les notifications sont bloquées dans votre navigateur. Activez-les dans les paramètres du site.",
     "unsupported": "Votre navigateur ne prend pas en charge les notifications.",
-    "enableHint": "Soyez prévenu dès l'arrivée de votre enfant ou d'un message de la crèche.",
+    "enableHint": "Soyez prévenu dès l'arrivée de votre enfant ou d'un message de l'établissement.",
     "enableHintStaff": "Soyez prévenu dès qu'une demande d'inscription ou un message parent arrive.",
     "success": "Notifications activées sur cet appareil.",
     "removed": "Notifications désactivées sur cet appareil.",
@@ -298,5 +369,24 @@
     "sad": "humeur triste",
     "upset": "humeur contrariée",
     "sick": "pas en forme"
+  },
+  "sessionTypes": {
+    "speech": "Orthophonie",
+    "occupational": "Ergothérapie",
+    "behavioral": "Soutien comportemental",
+    "physio": "Kinésithérapie",
+    "psychological": "Suivi psychologique",
+    "tutoring": "Soutien scolaire",
+    "followup": "Séance de suivi",
+    "other": "Suivi individuel"
+  },
+  "assessmentKinds": {
+    "test": "Devoir",
+    "exam": "Examen"
+  },
+  "leaveTypes": {
+    "vacation": "congé annuel",
+    "sick": "congé maladie",
+    "personal": "raison personnelle"
   }
 }

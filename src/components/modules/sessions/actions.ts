@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { flushPush } from "@/app/actions/push";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { clashFromDetails, isRoomClash, type ClashRange } from "@/lib/db-clash";
@@ -14,6 +15,7 @@ export type ActionError =
   | "notFound"
   | "conflictRoom"
   | "conflictTherapist"
+  | "outsideOpeningHours"
   | "error";
 export type ActionResult =
   | { ok: true; id?: string }
@@ -28,6 +30,11 @@ export type ActionResult =
  * booking's range in their DETAIL, so the same parser reads the range for
  * either. The room is checked FIRST because every room refusal names
  * `room_booking` in its message, and nothing else does.
+ *
+ * A third refusal is the door: the session guard of 0157 raises
+ * `outside_opening_hours` (23514) on a CONFIRMED closed day of the child's
+ * structure — the one rule every guard shares — and the dialog says so in
+ * its own words rather than as a generic "invalid".
  */
 function mapDbError(
   error: { code?: string; message?: string; details?: string } | null,
@@ -39,14 +46,25 @@ function mapDbError(
       at: clashFromDetails(error.details),
     };
   }
-  if (error?.code === "23514") return { ok: false, error: "invalid" };
+  if (error?.code === "23514") {
+    return {
+      ok: false,
+      error: error.message?.includes("outside_opening_hours") ? "outsideOpeningHours" : "invalid",
+    };
+  }
   if (error?.code === "42501") return { ok: false, error: "forbidden" };
   return { ok: false, error: "error" };
 }
 
+/**
+ * A follow-up sits on three calendars — this module's, the staff calendar
+ * and the family's — so all three are told.
+ */
 function revalidateSessions(sessionId?: string, programId?: string) {
   revalidatePath("/sessions");
   revalidatePath("/sessions/programs");
+  revalidatePath("/calendar");
+  revalidatePath("/portal/calendar");
   if (sessionId) revalidatePath(`/sessions/${sessionId}`);
   if (programId) revalidatePath(`/sessions/programs/${programId}`);
 }
@@ -116,6 +134,9 @@ export async function createSession(
   if (error) return mapDbError(error);
 
   revalidateSessions(data.id, d.programId ?? undefined);
+  // The session trigger of 0159 wrote the family's "rendez-vous" row in
+  // the same transaction; the flush hands it to their phones now.
+  await flushPush();
   return { ok: true, id: data.id };
 }
 
@@ -162,6 +183,9 @@ export async function saveSessionOutcome(
   if (!data) return { ok: false, error: "notFound" };
 
   revalidateSessions(sessionId, data.program_id ?? undefined);
+  // A cancellation or an un-cancel is told by the trigger (0159); a note
+  // alone writes nothing and the flush finds the queue empty.
+  await flushPush();
   return { ok: true, id: sessionId };
 }
 

@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchThreadItems } from "../comms/queries";
 import { fetchThreadSenderRoles } from "../comms/sender-roles";
 import { getSupportMessages, getSupportSummary } from "../support/data";
-import type { InboxKind, InboxMessage, InboxThread } from "./types";
+import { childDisplayName } from "@/lib/format";
+import type { InboxChild, InboxKind, InboxMessage, InboxThread } from "./types";
 
 /**
  * The conversations list, loaded the first time the panel is opened.
@@ -122,4 +123,71 @@ export async function loadInboxMessages(
     authorName: m.sender_id === ctx.user.id ? null : (nameById.get(m.sender_id) ?? null),
     authorRole: m.sender_id === ctx.user.id ? null : (roleById.get(m.sender_id) ?? null),
   }));
+}
+
+/**
+ * The children a new conversation can be about, for the panel's composer.
+ *
+ * The same rows the /messages dialog offers, plus two things a floating
+ * panel needs that a page does not: the class, because a search box over
+ * fifty names is where two Adams get told apart; and whether the family can
+ * actually read what is about to be written. RLS narrows the rows to what the
+ * reader may see.
+ */
+export async function loadInboxChildren(): Promise<InboxChild[]> {
+  const ctx = await requireStaff();
+  const locale = await getLocale();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("kg_children")
+    .select(
+      "id, first_name, last_name, first_name_ar, last_name_ar, kg_classes(name, name_ar), " +
+        "kg_child_guardians(kg_guardians(user_id, first_name, last_name, first_name_ar, last_name_ar))"
+    )
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("status", "enrolled")
+    .order("first_name");
+
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    first_name: string;
+    last_name: string;
+    first_name_ar: string | null;
+    last_name_ar: string | null;
+    kg_classes: { name: string; name_ar: string | null } | null;
+    kg_child_guardians: {
+      kg_guardians: {
+        user_id: string | null;
+        first_name: string;
+        last_name: string;
+        first_name_ar: string | null;
+        last_name_ar: string | null;
+      } | null;
+    }[];
+  }[];
+
+  // Families that can be reached come first: the list exists to send a
+  // message, and a name nobody will read belongs at the end, said as such.
+  return rows
+    .map((c) => {
+      const reachedBy = c.kg_child_guardians
+        .map((g) => g.kg_guardians)
+        .filter((g) => g?.user_id)
+        .map((g) => childDisplayName(g!, locale));
+      return {
+        id: c.id,
+        name: childDisplayName(c, locale),
+        className: c.kg_classes
+          ? locale === "ar" && c.kg_classes.name_ar
+            ? c.kg_classes.name_ar
+            : c.kg_classes.name
+          : null,
+        reachedBy,
+        reachable: reachedBy.length > 0,
+      };
+    })
+    .sort(
+      (a, b) =>
+        Number(b.reachable) - Number(a.reachable) || a.name.localeCompare(b.name, locale)
+    );
 }

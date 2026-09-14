@@ -35,7 +35,8 @@
     "greeting": "مرحبًا بكم في",
     "lead": "دقائق قليلة، من هاتفكم. يمكنكم المتابعة لاحقًا.",
     "needAccount": "رقم هاتف أو بريد إلكتروني لإنشاء حسابكم",
-    "classes": "الأقسام:"
+    "classes": "الأقسام:",
+    "needDocuments": "وثائق الملف (شهادة الميلاد، الدفتر الصحي…) — صورة أو PDF"
   },
   "account": {
     "title": "حساب الولي",
@@ -156,7 +157,7 @@
     "title": "الأنشطة",
     "subtitle": "اختاروا الأنشطة التي تهم طفلكم (اختياري).",
     "none": "لا توجد أنشطة متاحة حاليًا. يمكنكم المتابعة.",
-    "selected": "{count, plural, =0 {لم يتم اختيار أي نشاط} one {تم اختيار نشاط واحد} two {تم اختيار نشاطين} few {تم اختيار # أنشطة} many {تم اختيار # نشاطًا} other {تم اختيار # نشاط}}",
+    "selected": "{count, plural, =0 {لم يتم اختيار أي نشاط} one {تم اختيار # نشاط} two {تم اختيار # أنشطة} few {تم اختيار # أنشطة} many {تم اختيار # نشاطًا} other {تم اختيار # نشاط}}",
     "period": {
       "once": "مرة واحدة",
       "monthly": "شهريًا",
@@ -173,7 +174,7 @@
     "noPhoto": "لم تُضف صورة",
     "guardians": "الأولياء",
     "health": "الصحة",
-    "allergiesCount": "{count, plural, =0 {لا حساسية مصرّح بها} one {حساسية واحدة} two {حساسيتان} few {# حساسيات} many {# حساسية} other {# حساسية}}",
+    "allergiesCount": "{count, plural, =0 {لا حساسية مصرّح بها} one {# حساسية} two {# حساسيات} few {# حساسيات} many {# حساسية} other {# حساسية}}",
     "activities": "الأنشطة",
     "noActivities": "لم يتم اختيار أنشطة",
     "edit": "تعديل",
@@ -190,13 +191,19 @@
     "placement": "الهيكل والقسم",
     "structure": "الهيكل",
     "class": "القسم المرغوب",
-    "classUndecided": "يُقرَّر مع المؤسسة"
+    "classUndecided": "يُقرَّر مع المؤسسة",
+    "documents": "الملف",
+    "documentsCount": "{count} من {total, plural, one {# وثيقة} two {# وثائق} few {# وثائق} many {# وثيقة} other {# وثيقة}} مُرفقة"
   },
   "success": {
     "title": "تم إرسال الطلب!",
     "message": "شكرًا لكم! وصل ملفكم إلى {name}. سيدرس الفريق الطلب ويتواصل معكم قريبًا.",
     "hint": "ستتلقون الرد بعد دراسة الملف.",
-    "portal": "الدخول إلى فضاء الأولياء"
+    "portal": "الدخول إلى فضاء الأولياء",
+    "bring": "لا تنسوا إحضار: {list}",
+    "seeDossier": "عرض الملف",
+    "printFiche": "طباعة استمارة المعلومات",
+    "printDemande": "طباعة نموذج الطلب الخطي"
   },
   "status": {
     "submitted": "جديدة",
@@ -214,13 +221,13 @@
     "emptyTitle": "لا توجد طلبات",
     "emptyDesc": "لا توجد طلبات في هذه الفئة حاليًا.",
     "submittedOn": "وصل في {date}",
-    "activitiesCount": "{count, plural, =0 {لا أنشطة} one {نشاط واحد} two {نشاطان} few {# أنشطة} many {# نشاطًا} other {# نشاط}}",
+    "activitiesCount": "{count, plural, =0 {لا أنشطة} one {# نشاط} two {# أنشطة} few {# أنشطة} many {# نشاطًا} other {# نشاط}}",
     "errorTitle": "تعذّر عرض الطلبات",
     "retry": "إعادة المحاولة",
     "approve": "الموافقة والتسجيل",
     "approveTitle": "تسجيل {name}؟",
     "approveDesc": "يُنشئ هذا ملف الطفل وأولياء أمره وسجله الصحي، ويمنح العائلة حساب دخول. لا يمكن التراجع عن ذلك.",
-    "approveBills": "سيُسجَّل أيضًا في {count, plural, zero {# نشاط} one {نشاط واحد} two {نشاطين} few {# أنشطة} many {# نشاطًا} other {# نشاط}} وتُحتسب الرسوم على فاتورة هذا الشهر.",
+    "approveBills": "سيُسجَّل أيضًا في {count, plural, zero {# نشاط} one {# نشاط} two {# أنشطة} few {# أنشطة} many {# نشاطًا} other {# نشاط}} وتُحتسب الرسوم على فاتورة هذا الشهر.",
     "approveNoFee": "لا تُضبط الرسوم الشهرية هنا — عيّنها من ملف الطفل بعد الموافقة.",
     "approveClass": "القسم",
     "approveNoClass": "بدون قسم بعد",
@@ -252,7 +259,7 @@
     "sourceTransfer": "نقل",
     "interviewToSchedule": "موعد يُحدَّد",
     "waitlistRank": "الترتيب {rank}",
-    "approvedCount": "{count, plural, zero {لا طلبات مقبولة} one {طلب واحد مقبول} two {طلبان مقبولان} few {# طلبات مقبولة} many {# طلبًا مقبولًا} other {# طلب مقبول}}",
+    "approvedCount": "{count, plural, zero {لا طلبات مقبولة} one {# طلب مقبول} two {# طلبات مقبولة} few {# طلبات مقبولة} many {# طلبًا مقبولًا} other {# طلب مقبول}}",
     "seeChildren": "عرض الأطفال",
     "columns": {
       "child": "الطفل",
@@ -261,7 +268,8 @@
       "requestedClass": "القسم المطلوب",
       "source": "المصدر",
       "received": "تاريخ الاستلام",
-      "followUp": "المتابعة"
+      "followUp": "المتابعة",
+      "dossier": "الملف"
     },
     "stages": {
       "submitted": "مستلمة",
@@ -284,7 +292,8 @@
     "healthHint": "الحساسية والعلاج والطبيب",
     "billingSection": "التعريفة والأنشطة",
     "billingHint": "ما طلبته العائلة في الاستمارة",
-    "monthlyPlan": "شهريًا"
+    "monthlyPlan": "شهريًا",
+    "documentsToReview": "وثائق للتحقق"
   },
   "detail": {
     "back": "كل الطلبات",
@@ -477,10 +486,10 @@
   },
   "structure": {
     "title": "في أي هيكل؟",
-    "subtitle": "{count, plural, one {هيكل واحد} two {هيكلان} few {# هياكل} many {# هيكلًا} other {# هيكل}} في المبنى نفسه — كل تسجيل يُدوَّن في سجل مختلف.",
+    "subtitle": "{count, plural, one {# هيكل} two {# هياكل} few {# هياكل} many {# هيكلًا} other {# هيكل}} في المبنى نفسه — كل تسجيل يُدوَّن في سجل مختلف.",
     "required": "اختاروا هيكلًا للمتابعة.",
-    "ageMonths": "{n, plural, one {شهر واحد} two {شهران} few {# أشهر} many {# شهرًا} other {# شهر}}",
-    "ageYears": "{n, plural, one {سنة واحدة} two {سنتان} few {# سنوات} many {# سنة} other {# سنة}}",
+    "ageMonths": "{n, plural, one {# شهر} two {# أشهر} few {# أشهر} many {# شهرًا} other {# شهر}}",
+    "ageYears": "{n, plural, one {# سنة} two {# سنوات} few {# سنوات} many {# سنة} other {# سنة}}",
     "ageRange": "‏{min} – {max}",
     "ageFrom": "ابتداءً من {min}",
     "ageUpTo": "إلى غاية {max}",
@@ -490,5 +499,68 @@
     "fromDob": "حسب تاريخ الميلاد:",
     "unitMonths": "{n, plural, one {شهر} two {أشهر} few {أشهر} many {شهرًا} other {شهر}}",
     "unitYears": "{n, plural, one {سنة} two {سنوات} few {سنوات} many {سنة} other {سنة}}"
+  },
+  "print": {
+    "fiche": "استمارة المعلومات",
+    "demande": "طلب تسجيل بخط اليد",
+    "print": "طباعة",
+    "backApplication": "الطلب",
+    "backDossier": "الملف",
+    "child": "الطفل",
+    "guardians": "الأولياء",
+    "health": "الصحة",
+    "pickups": "الأشخاص المرخّص لهم باستلام الطفل",
+    "documents": "الوثائق في الملف",
+    "engagement": "أشهد أنا الموقّع أدناه، الولي الشرعي للطفل، بصحة المعلومات أعلاه وألتزم باحترام النظام الداخلي للمؤسسة.",
+    "doneAt": "حُرّر بـ ______ في ______",
+    "signGuardian": "الولي",
+    "signDirector": "الإدارة",
+    "requestTo": "إلى إدارة <name></name>",
+    "requestSubject": "الموضوع: طلب تسجيل طفلي",
+    "requestHint": "اكتبوا بخط اليد: اسم الطفل، تاريخ ميلاده، الهيكل المطلوب، تاريخ الدخول المرغوب.",
+    "requestGuardian": "اسم الولي ولقبه",
+    "address": "العنوان",
+    "phone": "الهاتف",
+    "signatureGuardian": "إمضاء الولي",
+    "authorised": "مرخّص له بالاستلام",
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "dossier": {
+    "section": "الملف",
+    "count": "{ok} من {total} وثائق مقبولة",
+    "add": "إضافة وثيقة",
+    "replace": "استبدال",
+    "accept": "قبول",
+    "reject": "رفض",
+    "remove": "إزالة",
+    "removeDescription": "تُحذف الوثيقة وملفها.",
+    "rejectTitle": "رفض الوثيقة",
+    "rejectHint": "يُرسل السبب إلى العائلة.",
+    "rejectReason": "السبب",
+    "rejectPlaceholder": "الصورة غير واضحة، يرجى إعادة التقاطها",
+    "others": "وثائق أخرى",
+    "other": "وثيقة أخرى",
+    "piece": "الوثيقة",
+    "docTitle": "العنوان",
+    "file": "الملف",
+    "empty": "لا تُطلب أي وثيقة لهذا الهيكل.",
+    "printFiche": "طباعة استمارة المعلومات",
+    "printDemande": "طباعة نموذج الطلب الخطي",
+    "toasts": {
+      "accepted": "تم قبول الوثيقة",
+      "rejected": "تم رفض الوثيقة — أُبلغت العائلة",
+      "added": "تمت إضافة الوثيقة",
+      "removed": "تمت إزالة الوثيقة",
+      "noteRequired": "اذكروا السبب"
+    }
+  },
+  "documents": {
+    "title": "ملف التسجيل",
+    "subtitle": "صوّروا كل وثيقة أو أرفقوا ملف PDF. ما ينقص يمكنكم تسليمه في الاستقبال.",
+    "attached": "مُرفقة",
+    "bringLater": "تُسلَّم في الاستقبال",
+    "formHint": "تُطبع وتُملأ وتُوقَّع ثم تُرفق هنا.",
+    "progress": "{count} من {total, plural, one {# وثيقة} two {# وثائق} few {# وثائق} many {# وثيقة} other {# وثيقة}} مُرفقة — يمكن تسليم الباقي في الاستقبال."
   }
 }

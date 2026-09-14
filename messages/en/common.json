@@ -167,5 +167,50 @@
   },
   "scheduler": {
     "busy": "Already booked"
+  },
+  "dossier": {
+    "noun": "Enrolment file",
+    "piece": "Document",
+    "form": "Form",
+    "required": "Required",
+    "optional": "Optional",
+    "add": "Add",
+    "change": "Change",
+    "uploading": "Uploading…",
+    "pdf": "PDF",
+    "states": {
+      "received": "Received",
+      "accepted": "Accepted",
+      "rejected": "Refused",
+      "missing": "Missing",
+      "expired": "Expired"
+    },
+    "appliesTo": {
+      "child": "Child",
+      "guardian": "Guardian"
+    },
+    "kinds": {
+      "early": "Nursery and kindergarten",
+      "school": "School"
+    },
+    "count": "{ok} of {total} documents accepted",
+    "acceptedOn": "Accepted on {date}",
+    "receivedOn": "Received on {date}",
+    "byFamily": "by the family",
+    "byStaff": "by the team",
+    "expiresOn": "Valid until {date}",
+    "downloadForm": "Download the form",
+    "fileHint": "PDF or image — 10 MB max",
+    "errors": {
+      "tooLarge": "File too large (10 MB max)",
+      "type": "Photo or PDF only",
+      "upload": "Upload failed. Check your connection and try again.",
+      "camera": "Camera access is refused. Allow it in the phone's settings."
+    },
+    "sources": {
+      "camera": "Take a photo",
+      "library": "Choose a photo",
+      "files": "Choose a file"
+    }
   }
 }

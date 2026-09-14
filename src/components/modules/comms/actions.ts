@@ -1,13 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { clashFromDetails, isRoomClash, type ClashRange } from "@/lib/db-clash";
 import { flushPush } from "@/app/actions/push";
-import { addDaysStr, dateRange } from "./dates";
+import { childDisplayName, intlLocale } from "@/lib/format";
+import { addDaysStr, dateRange, isValidDateStr } from "./dates";
+import { eventSpan } from "./datetime";
 import { onStructure } from "./structures";
+import type { EventInput, EventReach, EventResponseRow, RsvpSummary } from "./types";
 import { isOpenDayStr, toOpeningHours, type OpeningHours } from "@/lib/week";
 
 export type CommsActionResult =
@@ -241,50 +245,100 @@ export async function sendThreadMessage(input: z.infer<typeof replySchema>): Pro
 
 // ===== Calendar events =====
 
+const timeStr = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
+/**
+ * The form's parts, validated before any instant is built (an unparseable
+ * part would make the Date constructor throw instead of returning a clean
+ * `invalid`). A timed event carries an end date and an end time together or
+ * not at all; an all-day event carries no times; the end never precedes the
+ * start — equal is allowed, because a past row with end_at = start_at is a
+ * valid row and must stay editable; a room needs a real span, because the
+ * ledger of 0155 holds ranges, not instants (kg_events_room_needs_range).
+ */
 const eventSchema = z
   .object({
     title: z.string().trim().min(1).max(200),
-    description: optionalText,
-    startAt: isoDateTime,
-    endAt: isoDateTime.nullable(),
+    description: z
+      .string()
+      .trim()
+      .max(2000)
+      .nullable()
+      .transform((v) => (v ? v : null)),
+    date: dateStr.refine(isValidDateStr),
+    startTime: timeStr.nullable(),
+    endDate: dateStr.refine(isValidDateStr).nullable(),
+    endTime: timeStr.nullable(),
+    allDay: z.boolean(),
     audience: z.enum(["all", "parents", "staff", "class", "structure"]),
     classId: z.uuid().nullable(),
     structureId: z.uuid().nullable(),
     roomId: z.uuid().nullable(),
-    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    rsvp: z.boolean(),
   })
+  .refine((d) => d.allDay || d.startTime !== null, { message: "start time required" })
+  .refine((d) => d.allDay || (d.endDate === null) === (d.endTime === null), {
+    message: "end date and end time go together",
+  })
+  .refine((d) => !d.allDay || d.endDate === null || d.endDate >= d.date, {
+    message: "end before start",
+  })
+  .refine(
+    (d) => {
+      if (d.allDay) return true;
+      const span = eventSpan(d);
+      return span.endAt === null || Date.parse(span.endAt) >= Date.parse(span.startAt);
+    },
+    { message: "end before start" },
+  )
+  .refine(
+    (d) => {
+      if (!d.roomId) return true;
+      const span = eventSpan(d);
+      return span.endAt !== null && Date.parse(span.endAt) > Date.parse(span.startAt);
+    },
+    { message: "room needs a span" },
+  )
   .refine((d) => d.audience !== "class" || d.classId !== null, { message: "class required" })
   .refine((d) => d.audience !== "structure" || d.structureId !== null, {
     message: "structure required",
-  })
-  .refine((d) => !d.endAt || Date.parse(d.endAt) >= Date.parse(d.startAt), {
-    message: "end before start",
-  })
-  // A room is booked for a span, not an instant: the ledger cannot hold an
-  // event with no end, and the database says so (kg_events_room_needs_range).
-  .refine((d) => !d.roomId || (!!d.endAt && Date.parse(d.endAt) > Date.parse(d.startAt)), {
-    message: "room needs an end",
   });
 
-export async function saveEvent(
-  eventId: string | null,
-  input: z.infer<typeof eventSchema>
-): Promise<ActionResult> {
+/** The pages an event sits on: the staff calendar, the family's home and calendar, the dashboard's next-days card. */
+function revalidateEventPages() {
+  revalidatePath("/calendar");
+  revalidatePath("/portal");
+  revalidatePath("/portal/calendar");
+  revalidatePath("/dashboard");
+}
+
+/**
+ * Creates or updates an event. The colour column is never written: an event
+ * is drawn in one tint and carries its structure's dot, so the row keeps
+ * whatever it has and a new row takes the column default. The database does
+ * the telling (0159's insert and update triggers) and this only flushes the
+ * push queue afterwards so the phones ring now rather than on the next cron.
+ */
+export async function saveEvent(eventId: string | null, input: EventInput): Promise<ActionResult> {
   const ctx = await requireStaff();
   const parsed = eventSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const d = parsed.data;
+  const span = eventSpan(d);
 
   const row = {
     title: d.title,
     description: d.description,
-    start_at: d.startAt,
-    end_at: d.endAt,
+    start_at: span.startAt,
+    end_at: span.endAt,
+    all_day: d.allDay,
     audience: d.audience,
     class_id: d.audience === "class" ? d.classId : null,
     structure_id: d.audience === "structure" ? d.structureId : null,
     room_id: d.roomId,
-    color: d.color,
+    // A staff meeting asks no family anything: the summary counts family
+    // recipients, and a box that can never be answered is a lie on screen.
+    rsvp: d.audience === "staff" ? false : d.rsvp,
   };
 
   const supabase = await createClient();
@@ -296,7 +350,8 @@ export async function saveEvent(
       .eq("id", eventId)
       .eq("tenant_id", ctx.tenant.id);
     if (error) return mapDbError(error);
-    revalidatePath("/calendar");
+    revalidateEventPages();
+    await flushPush();
     return { ok: true, id: eventId };
   }
 
@@ -306,23 +361,206 @@ export async function saveEvent(
     .select("id")
     .single();
   if (error) return mapDbError(error);
-  revalidatePath("/calendar");
+  revalidateEventPages();
+  await flushPush();
   return { ok: true, id: data.id };
 }
 
-export async function deleteEvent(eventId: string): Promise<ActionResult> {
+/**
+ * Cancels without deleting. Once anyone was told, the row has to stay: the
+ * pill stays on every calendar struck through, the room is released, and
+ * the update trigger tells everyone still told that it is off. The person
+ * doing it is stamped as cancelled_by, because the notification speaks in
+ * their name and never in the author's by assumption (decision 7).
+ */
+export async function cancelEvent(eventId: string): Promise<ActionResult> {
   const ctx = await requireStaff();
   if (!z.uuid().safeParse(eventId).success) return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("kg_events")
+    .update({ cancelled_at: new Date().toISOString(), cancelled_by: ctx.user.id })
+    .eq("id", eventId)
+    .eq("tenant_id", ctx.tenant.id)
+    .is("cancelled_at", null);
+  if (error) return mapDbError(error);
+  revalidateEventPages();
+  await flushPush();
+  return { ok: true, id: eventId };
+}
+
+/** Puts a cancelled event back; the update trigger tells the current audience it has changed. */
+export async function restoreEvent(eventId: string): Promise<ActionResult> {
+  const ctx = await requireStaff();
+  if (!z.uuid().safeParse(eventId).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("kg_events")
+    .update({ cancelled_at: null, cancelled_by: null })
+    .eq("id", eventId)
+    .eq("tenant_id", ctx.tenant.id)
+    .not("cancelled_at", "is", null);
+  if (error) return mapDbError(error);
+  revalidateEventPages();
+  await flushPush();
+  return { ok: true, id: eventId };
+}
+
+/**
+ * Deletes an event nobody was told about. A told event is cancelled instead
+ * (cancelEvent), so its pill stays and the people told read "annulé" rather
+ * than finding a hole: the dialog offers Delete only when the reach is
+ * zero, and this refuses a stale screen's request the same way. A delete
+ * the database itself cascades (a class removed) still speaks through the
+ * delete trigger; this is the only door that checks first.
+ */
+export async function deleteEvent(eventId: string): Promise<ActionResult> {
+  const ctx = await requireStaff();
+  if (!z.uuid().safeParse(eventId).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data: reach, error: reachErr } = await supabase.rpc("kg_event_reach", {
+    p_tenant: ctx.tenant.id,
+    p_event_ids: [eventId],
+  });
+  if (reachErr) return mapDbError(reachErr);
+  const told = ((reach ?? []) as { families: number; staff: number }[]).some(
+    (r) => r.families + r.staff > 0,
+  );
+  if (told) return { ok: false, error: "invalid" };
+
+  const { error } = await supabase
+    .from("kg_events")
     .delete()
     .eq("id", eventId)
     .eq("tenant_id", ctx.tenant.id);
   if (error) return mapDbError(error);
-  revalidatePath("/calendar");
+  revalidateEventPages();
   return { ok: true };
+}
+
+/**
+ * Who was told, per event: families, staff and how many read it, each
+ * person counted once by their latest row (a family moved away no longer
+ * counts). Events the database returned nothing for reached nobody.
+ */
+export async function eventReach(eventIds: string[]): Promise<Record<string, EventReach>> {
+  const ctx = await requireStaff();
+  const ids = eventIds.filter((id) => z.uuid().safeParse(id).success);
+  if (ids.length === 0) return {};
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kg_event_reach", {
+    p_tenant: ctx.tenant.id,
+    p_event_ids: ids,
+  });
+  // A failed count must never block the calendar: every event simply reads
+  // as unreached, which is what a missing row means too.
+  if (error) return {};
+  const out: Record<string, EventReach> = {};
+  for (const r of (data ?? []) as { event_id: string; families: number; staff: number; read: number }[]) {
+    out[r.event_id] = { families: r.families, staff: r.staff, read: r.read };
+  }
+  return out;
+}
+
+/** The answers so far, per person; null when the caller may not read them or the event asked nobody. */
+export async function eventRsvp(eventId: string): Promise<RsvpSummary | null> {
+  await requireStaff();
+  if (!z.uuid().safeParse(eventId).success) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kg_event_rsvp_summary", { p_event: eventId });
+  if (error) return null;
+  const row = ((data ?? []) as { going: number; not_going: number; asked: number }[])[0];
+  if (!row) return null;
+  return { going: row.going, notGoing: row.not_going, asked: row.asked };
+}
+
+/**
+ * Every answer with the person's name, for the director's list under the
+ * dialog. The rows come through rsp_own_sel (educators read every answer of
+ * their tenant); the names are the guardian's, because that is who answers,
+ * with the profile's full name for a member who is not a guardian on file.
+ * Those who said yes come first, then by name in the reader's script.
+ */
+export async function eventResponses(eventId: string): Promise<EventResponseRow[]> {
+  const ctx = await requireStaff();
+  if (!z.uuid().safeParse(eventId).success) return [];
+
+  const [supabase, locale] = await Promise.all([createClient(), getLocale()]);
+  const { data: rows, error } = await supabase
+    .from("kg_event_responses")
+    .select("user_id, response, note, responded_at")
+    .eq("event_id", eventId)
+    .eq("tenant_id", ctx.tenant.id);
+  if (error || !rows || rows.length === 0) return [];
+
+  const userIds = Array.from(new Set(rows.map((r) => r.user_id as string)));
+  const [guardiansRes, profilesRes] = await Promise.all([
+    supabase
+      .from("kg_guardians")
+      .select("user_id, first_name, last_name, first_name_ar, last_name_ar")
+      .eq("tenant_id", ctx.tenant.id)
+      .in("user_id", userIds),
+    supabase.from("kg_profiles").select("id, full_name").in("id", userIds),
+  ]);
+  const guardianName = new Map<string, string>();
+  for (const g of guardiansRes.data ?? []) {
+    if (g.user_id && !guardianName.has(g.user_id)) guardianName.set(g.user_id, childDisplayName(g, locale));
+  }
+  const profileName = new Map<string, string>();
+  for (const p of profilesRes.data ?? []) {
+    if (p.full_name) profileName.set(p.id, p.full_name);
+  }
+
+  const collator = new Intl.Collator(intlLocale(locale));
+  return rows
+    .map((r) => ({
+      userId: r.user_id as string,
+      name: guardianName.get(r.user_id) ?? profileName.get(r.user_id) ?? "",
+      response: r.response as "going" | "not_going",
+      note: (r.note as string | null) ?? null,
+      respondedAt: r.responded_at as string,
+    }))
+    .sort(
+      (a, b) =>
+        Number(a.response !== "going") - Number(b.response !== "going") ||
+        collator.compare(a.name, b.name),
+    );
+}
+
+/**
+ * Is the door shut on this day, and by what name — the one closure rule
+ * (kg_closure_on, 0157) asked from a dialog: the event dialog when its page
+ * did not hand it the closures, the follow-up and assessment dialogs on
+ * every date change. A confirmed closure is said in muted text, a tentative
+ * one in gold; neither refuses anything here, the database does that on
+ * save. A failed read says nothing rather than something wrong.
+ */
+export async function closedDayStatus(
+  structureId: string | null,
+  date: string,
+): Promise<{ confirmed: string | null; tentative: string | null }> {
+  const none = { confirmed: null, tentative: null };
+  const ctx = await requireStaff();
+  if (!isValidDateStr(date)) return none;
+  if (structureId !== null && !z.uuid().safeParse(structureId).success) return none;
+
+  const [supabase, locale] = await Promise.all([createClient(), getLocale()]);
+  const { data, error } = await supabase.rpc("kg_closure_on", {
+    p_structure: structureId,
+    p_tenant: ctx.tenant.id,
+    p_date: date,
+  });
+  if (error) return none;
+  const rows = (data ?? []) as { name: string; name_ar: string | null; tentative: boolean }[];
+  const label = (r: { name: string; name_ar: string | null }) => (locale === "ar" && r.name_ar) || r.name;
+  const confirmed = rows.find((r) => !r.tentative);
+  const tentative = rows.find((r) => r.tentative);
+  return { confirmed: confirmed ? label(confirmed) : null, tentative: tentative ? label(tentative) : null };
 }
 
 // ===== Menus =====
@@ -654,10 +892,10 @@ export async function notifyIncidentParent(incidentId: string): Promise<ActionRe
  * saves.
  *
  * The audience picker defaults to "all". While events notified nobody that was
- * harmless; now it means a push to every family in the crèche, and the author
- * is the only person positioned to notice. So the number goes on screen next to
- * the picker — if it surprises them, they change the audience. That is the
- * whole anti-spam mechanism, and it costs one query.
+ * harmless; now it means a push to every family in the establishment, and the
+ * author is the only person positioned to notice. So the number goes on screen
+ * next to the picker — if it surprises them, they change the audience. That is
+ * the whole anti-spam mechanism, and it costs one query.
  *
  * Returns a count only. kg_event_recipients stays revoked from clients because
  * it is a directory of parents; kg_event_audience_count is the narrow door.
@@ -665,19 +903,26 @@ export async function notifyIncidentParent(incidentId: string): Promise<ActionRe
 export async function eventAudienceCount(
   audience: string,
   classId: string | null,
-  /** The event's start. An event that has already started notifies nobody —
-   *  the count has to know that, or it promises an audience the insert trigger
-   *  will refuse. */
+  /** The event's start. An event that has already ENDED notifies nobody —
+   *  the triggers compare coalesce(end_at, start_at) to now — so the count
+   *  has to know the same instant, or it promises an audience the insert
+   *  trigger will refuse. */
   startAt: string | null,
-  structureId: string | null = null
+  structureId: string | null = null,
+  /** The event's end, when it has one; it is what decides "past", not the start. */
+  endAt: string | null = null,
 ): Promise<{ count: number; past: boolean }> {
   const ctx = await requireStaff();
   const supabase = await createClient();
+  // The RPC's p_start_at is really "the instant after which nobody is told":
+  // it returns 0 once that instant has passed, exactly as the triggers do
+  // for coalesce(end_at, start_at). So the end goes there when there is one.
+  const deadline = endAt ?? startAt;
   const { data, error } = await supabase.rpc("kg_event_audience_count", {
     p_tenant: ctx.tenant.id,
     p_audience: audience,
     p_class: classId,
-    p_start_at: startAt,
+    p_start_at: deadline,
     // Sent only when it is the question being asked. p_structure has a default,
     // so the four-argument call is still the one PostgREST resolves for every
     // other audience — and stays resolvable on a database that has not learned
@@ -687,7 +932,7 @@ export async function eventAudienceCount(
   // Decided here, not in the component: the client cannot read a clock during
   // render without breaking React's purity rule, and the server's clock is the
   // one the insert trigger will actually compare against.
-  const past = startAt !== null ? Date.parse(startAt) <= Date.now() : false;
+  const past = deadline !== null ? Date.parse(deadline) <= Date.now() : false;
 
   // A failed count must never block saving an event — the dialog simply shows
   // nothing rather than a wrong number.

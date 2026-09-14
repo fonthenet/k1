@@ -184,11 +184,82 @@
     },
     "event": {
       "title": "{name}",
-      "body": "{date} · {time} · {className} · {description}"
+      "body": "{date} · {time} · {room} · {className} · {description}",
+      "kinds": {
+        "created": "New event — {name}",
+        "changed": "Event changed — {name}",
+        "removed": "No longer concerns you — {name}",
+        "cancelled": "Event cancelled — {name}",
+        "reminder": "Tomorrow: {name}"
+      },
+      "bodies": {
+        "removed": "The event on {date} no longer concerns your child.",
+        "cancelled": "The event on {date} will not take place."
+      }
     },
     "structure_changed": {
       "title": "Change of structure — {child}",
       "body": "{child} is now in {structure} · {className}"
+    },
+    "closure": {
+      "title": "{name}",
+      "body": "{date} · {structure}",
+      "kinds": {
+        "created": "Closure — {name}",
+        "confirmed": "Date confirmed — {name}",
+        "reminder": "Closed tomorrow — {name}",
+        "cancelled": "Reopened — {name}"
+      },
+      "bodies": {
+        "range": "From {date} to {endDate} · {structure}",
+        "cancelled": "We will be open after all on {date} · {structure}"
+      }
+    },
+    "session_scheduled": {
+      "title": "{sessionType} · {child}",
+      "body": "{date} · {time} · {therapist}",
+      "kinds": {
+        "created": "Appointment — {child}",
+        "rescheduled": "Appointment moved — {child}",
+        "changed": "Appointment updated — {child}",
+        "cancelled": "Appointment cancelled — {child}",
+        "reminder": "Tomorrow: {sessionType} — {child}"
+      }
+    },
+    "assessment_scheduled": {
+      "title": "{assessmentKind} — {name}",
+      "body": "{date} · {className}",
+      "kinds": {
+        "created": "{assessmentKind} — {name}",
+        "changed": "Date changed — {name}"
+      }
+    },
+    "leave": {
+      "title": "Leave",
+      "body": "From {date} to {endDate} · {leaveType}",
+      "kinds": {
+        "approved": "Leave approved",
+        "rejected": "Leave refused"
+      },
+      "bodies": {
+        "single": "{date} · {leaveType}"
+      }
+    },
+    "document_received": {
+      "title": "Document received — {child}",
+      "body": "{name}"
+    },
+    "document_reviewed": {
+      "title": "File — {child}",
+      "body": "{name}",
+      "kinds": {
+        "rejected": "Document refused — {child}",
+        "complete": "File complete — {child}"
+      },
+      "bodies": {
+        "rejected": "{name} · {text}",
+        "complete": "Every requested document is accepted."
+      }
     }
   },
   "push": {
@@ -197,7 +268,7 @@
     "disable": "Turn off notifications",
     "blocked": "Notifications are blocked in your browser. Enable them in site settings.",
     "unsupported": "Your browser does not support notifications.",
-    "enableHint": "Get alerted the moment your child arrives or the kindergarten writes to you.",
+    "enableHint": "Get alerted the moment your child arrives or the establishment writes to you.",
     "enableHintStaff": "Get alerted when an application or a parent message comes in.",
     "success": "Notifications enabled on this device.",
     "removed": "Notifications turned off on this device.",
@@ -298,5 +369,24 @@
     "sad": "sad",
     "upset": "upset",
     "sick": "unwell"
+  },
+  "sessionTypes": {
+    "speech": "Speech therapy",
+    "occupational": "Occupational therapy",
+    "behavioral": "Behavioural support",
+    "physio": "Physiotherapy",
+    "psychological": "Psychological follow-up",
+    "tutoring": "Tutoring",
+    "followup": "Follow-up session",
+    "other": "Individual follow-up"
+  },
+  "assessmentKinds": {
+    "test": "Test",
+    "exam": "Exam"
+  },
+  "leaveTypes": {
+    "vacation": "annual leave",
+    "sick": "sick leave",
+    "personal": "personal reason"
   }
 }

@@ -28,10 +28,12 @@ import { DatePicker } from "@/components/shared/date-picker";
 import { TimePicker } from "@/components/shared/time-picker";
 import { ValueRange } from "@/components/shared/value-range";
 import type { RoomChoice } from "@/components/modules/classes/class-types";
+import { closedDayStatus } from "@/components/modules/comms/actions";
 import { roomOccupancy } from "@/components/modules/rooms/occupancy";
 import { RoomSelect, RoomStatusLine } from "@/components/modules/rooms/room-select";
 import { roomStates, type BusySlot, type HomeClass } from "@/components/modules/rooms/room-state";
 import type { ClashRange } from "@/lib/db-clash";
+import { cn } from "@/lib/utils";
 import { createSession, type ActionError } from "./actions";
 import { addDaysStr, algiersInstant, isValidDateStr, nextHalfHour } from "./dates";
 import {
@@ -44,8 +46,11 @@ import {
 
 const NONE = "none";
 
+/** A child as the dialog offers them: the option, plus the structure whose door the day is asked of. */
+export type SessionChildOption = ChildOption & { structureId: string | null };
+
 export interface NewSessionDialogProps {
-  childrenOptions: ChildOption[];
+  childrenOptions: SessionChildOption[];
   therapists: TherapistOption[];
   programs: ProgramOption[];
   defaultDate: string;
@@ -69,6 +74,12 @@ function plusMinutes(time: string, minutes: number): string {
  * refuses anyway (a booking made since the read), the footer says which
  * ledger said no and when, and the day is read again so the line under the
  * field catches up.
+ *
+ * The door is a third judge (0157): a confirmed closure of the child's
+ * structure is said under the date in the refusal colour — the database
+ * will refuse that day with `outside_opening_hours` — and a tentative one in
+ * gold; neither disables Save, and when the refusal comes anyway the
+ * footer says so in those words.
  */
 export function NewSessionDialog({
   childrenOptions,
@@ -98,8 +109,32 @@ export function NewSessionDialog({
   const [busy, setBusy] = useState<BusySlot[]>([]);
   const [reads, setReads] = useState(0);
   const [conflict, setConflict] = useState<{ error: ActionError; at?: ClashRange } | null>(null);
+  // The closure covering the chosen day for the chosen child's structure.
+  const [closedDay, setClosedDay] = useState<{ confirmed: string | null; tentative: string | null }>({
+    confirmed: null,
+    tentative: null,
+  });
 
   const validDate = isValidDateStr(form.date);
+  const childStructure = childrenOptions.find((c) => c.id === form.childId)?.structureId ?? null;
+  useEffect(() => {
+    if (!open || !validDate) return;
+    let live = true;
+    const timer = setTimeout(() => {
+      void closedDayStatus(childStructure, form.date)
+        .then((status) => {
+          if (live) setClosedDay(status);
+        })
+        // A failed read says nothing; the database keeps the last word.
+        .catch(() => {
+          if (live) setClosedDay({ confirmed: null, tentative: null });
+        });
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [open, form.date, validDate, childStructure]);
   useEffect(() => {
     if (!open || !validDate) return;
     let live = true;
@@ -201,6 +236,10 @@ export function NewSessionDialog({
         // the line under that field names the booking the read had missed.
         setConflict({ error: res.error, at: res.at });
         setReads((n) => n + 1);
+      } else if (res.error === "outsideOpeningHours") {
+        // The door, in the footer for the same reason: the date is the
+        // field to change.
+        setConflict({ error: res.error });
       } else {
         toast.error(t("toasts.error"));
       }
@@ -399,6 +438,22 @@ export function NewSessionDialog({
             </div>
           </div>
 
+          {/* The day's door, under the date row rather than inside its
+              third-width cell: one line, red when the database will refuse
+              the day (the same colour as the ledger lines above, for the
+              same reason), gold when the closure is still to be confirmed. */}
+          {validDate && (closedDay.confirmed || closedDay.tentative) && (
+            <p
+              role="status"
+              aria-live="polite"
+              className={cn("text-xs", closedDay.confirmed ? "text-destructive" : "text-gold-ink")}
+            >
+              {closedDay.confirmed
+                ? t("newSession.closedDay", { name: closedDay.confirmed })
+                : t("newSession.closedDayTentative", { name: closedDay.tentative ?? "" })}
+            </p>
+          )}
+
           <p className="text-xs leading-relaxed text-muted-foreground">
             {t("newSession.programHint")}
           </p>
@@ -409,7 +464,9 @@ export function NewSessionDialog({
               range the database reported, muted. */}
           {conflict && (
             <p role="alert" className="text-xs text-destructive sm:me-auto">
-              {t(`conflicts.${conflict.error}`)}
+              {conflict.error === "outsideOpeningHours"
+                ? t("errors.outsideOpeningHours")
+                : t(`conflicts.${conflict.error}`)}
               {conflict.at && (
                 <span className="text-muted-foreground">
                   <span aria-hidden> · </span>

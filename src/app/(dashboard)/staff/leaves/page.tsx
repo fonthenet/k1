@@ -93,6 +93,32 @@ export default async function StaffLeavesPage() {
     (r) => ctx.isAdmin || r.membership_id === ctx.membership.id
   );
   const pending = all.filter((r) => r.status === "pending");
+  // What each pending person is scheduled to give over the days asked for,
+  // read under the director's own RLS (kg_leave_conflicts is an invoker
+  // function): the approve dialog states the counts as a warning. Only the
+  // director decides, so only the director pays for the read; a failed read
+  // leaves the sentence out rather than blocking the decision.
+  const conflictsById = new Map<string, { lessons: number; sessions: number }>();
+  if (ctx.isAdmin && pending.length > 0) {
+    const reads = await Promise.all(
+      pending.map((r) =>
+        supabase.rpc("kg_leave_conflicts", {
+          p_tenant: ctx.tenant.id,
+          p_membership: r.membership_id,
+          p_from: r.start_date,
+          p_to: r.end_date,
+        }),
+      ),
+    );
+    pending.forEach((r, i) => {
+      const body = reads[i].error ? null : (reads[i].data as { lessons?: unknown[]; sessions?: unknown[] } | null);
+      if (!body) return;
+      conflictsById.set(r.id, {
+        lessons: Array.isArray(body.lessons) ? body.lessons.length : 0,
+        sessions: Array.isArray(body.sessions) ? body.sessions.length : 0,
+      });
+    });
+  }
   const upcoming = all
     .filter((r) => r.status === "approved" && r.end_date >= today)
     .sort((a, b) => a.start_date.localeCompare(b.start_date));
@@ -171,7 +197,12 @@ export default async function StaffLeavesPage() {
         <TableCell className="w-0 whitespace-nowrap">
           {lr.status === "pending" &&
             (ctx.isAdmin ? (
-              <LeaveDecisionButtons id={lr.id} memberName={person.name} period={period} />
+              <LeaveDecisionButtons
+                id={lr.id}
+                memberName={person.name}
+                period={period}
+                conflicts={conflictsById.get(lr.id)}
+              />
             ) : (
               lr.membership_id === ctx.membership.id && (
                 <span className="flex justify-end">

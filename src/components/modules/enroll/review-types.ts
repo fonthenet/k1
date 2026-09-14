@@ -8,6 +8,7 @@
 // `ApplicationRecord & ApplicationReviewFields` is the row a review page reads.
 
 import type { StatusTone } from "@/components/shared/status-pill";
+import type { DossierSummaryRow } from "@/lib/dossier";
 import type { ApplicationRecord, PipelineStatus } from "./types";
 
 /** kg_structures, as embedded on an application row (`kg_structures(...)`). */
@@ -51,7 +52,18 @@ export interface ApplicationReviewFields {
   kg_classes?: ClassRef | null;
 }
 
-export type ReviewApplication = ApplicationRecord & ApplicationReviewFields;
+/**
+ * What the board knows about the file's papers (0164): the kg_dossier_summary
+ * row for this application, joined in memory by /applications. Absent when
+ * the page did not ask; null when the kind has no active required
+ * requirement — the column then shows nothing, because a "0 / 0" would
+ * announce a register the establishment has not switched on (D14).
+ */
+export interface ReviewApplicationDossier {
+  dossier?: DossierSummaryRow | null;
+}
+
+export type ReviewApplication = ApplicationRecord & ApplicationReviewFields & ReviewApplicationDossier;
 
 /** `kg_applications.source` written by kg_request_transfer (0140). */
 export const TRANSFER_SOURCE = "transfer";

@@ -65,7 +65,9 @@
   "checkOutDialog": {
     "title": "Départ de {name}",
     "description": "Qui vient chercher l'enfant ? Choisissez une personne dans la liste, ou saisissez un nom.",
-    "orType": "Ou saisissez un autre nom"
+    "orType": "Ou saisissez un autre nom",
+    "noCollectors": "Personne n’est encore enregistré pour cet enfant. Saisissez le nom de la personne qui vient le chercher.",
+    "addInRecord": "Ajouter ses responsables dans sa fiche"
   },
   "fields": {
     "pickedUpBy": "Récupéré par",
@@ -142,6 +144,7 @@
     "notSlept": "Pas dormi",
     "napMinutes": "{minutes} min",
     "notePlaceholder": "Une ligne pour les parents",
+    "rowEmpty": "Rien de noté pour l'instant",
     "photos": {
       "title": "<name>{child}</name> · photos du {date}",
       "add": "Ajouter des photos",
@@ -150,6 +153,7 @@
       "noConsent": "La famille n'a pas encore répondu au consentement photos.",
       "refused": "La famille a refusé les photos.",
       "seeConsents": "Voir les consentements",
+      "permission": "Autorisez l'accès à l'appareil photo et aux photos dans les réglages du téléphone.",
       "tooLarge": "Cette photo n'a pas pu être réduite."
     },
     "bulkMeal": "Tout le monde a bien mangé",

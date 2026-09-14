@@ -1,11 +1,43 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { workspaceType } from "../src/components/modules/settings/workspace-profile.ts";
-import { CENTER_TYPES } from "../src/components/modules/settings/center-types.ts";
-import { PRIVATE_SCHOOL_TYPES, isPrivateSchool, supportsPrivateSchools } from "../src/components/modules/settings/private-school-types.ts";
-import { NAV_GROUPS, NAV_FOOTER, navFor, scopedCenterTypes } from "../src/components/shell/nav-items.ts";
-import { rosterNoun } from "../src/lib/vocabulary.ts";
+import { register } from "node:module";
+
+// Runs on Node 22.6+ (native type stripping): `node --test scripts/workspace-profile.test.mjs`.
+//
+// The modules under test import the way the bundler does — `@/lib/types` and
+// relative paths without an extension — which Node resolves neither of, so the
+// same resolve hook as learning.test.mjs maps `@/` to src/ and adds the .ts
+// extension; the modules are imported AFTER it is registered (a static import
+// would be resolved before this line ran).
+const hooks = `
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+let src;
+export function initialize(data) { src = data.src; }
+export async function resolve(specifier, context, next) {
+  let target = specifier;
+  if (target.startsWith("@/")) target = new URL(target.slice(2), src).href;
+  const local = target.startsWith("./") || target.startsWith("../") || target.startsWith("file:");
+  const named = target.slice(target.lastIndexOf("/") + 1).includes(".");
+  if (local && !named) {
+    const base = target.startsWith("file:") ? target : new URL(target, context.parentURL).href;
+    for (const ext of [".ts", ".tsx"]) {
+      if (existsSync(fileURLToPath(base + ext))) { target = base + ext; break; }
+    }
+  }
+  return next(target, context);
+}`;
+register(`data:text/javascript,${encodeURIComponent(hooks)}`, {
+  parentURL: import.meta.url,
+  data: { src: new URL("../src/", import.meta.url).href },
+});
+
+const { workspaceType } = await import("../src/components/modules/settings/workspace-profile.ts");
+const { CENTER_TYPES } = await import("../src/components/modules/settings/center-types.ts");
+const { PRIVATE_SCHOOL_TYPES, isPrivateSchool, supportsPrivateSchools } = await import("../src/components/modules/settings/private-school-types.ts");
+const { NAV_GROUPS, NAV_FOOTER, navFor, scopedCenterTypes } = await import("../src/components/shell/nav-items.ts");
+const { rosterNoun } = await import("../src/lib/vocabulary.ts");
 
 const nursery = { id: "n", center_type: "nursery" };
 const therapy = { id: "t", center_type: "therapy_center" };

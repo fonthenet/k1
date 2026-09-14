@@ -31,7 +31,12 @@
   --color-brand-to: var(--brand-to);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* "Inter" by name, not var(--font-inter): next/font's variable carries
+     its size-adjusted "Inter Fallback" (local Arial) after Inter, and Arial
+     has Arabic glyphs — so on a French page an Arabic title was caught by
+     that fallback before Cairo was reached and drew in a third face. Named
+     this way the stack is Inter for every Latin glyph, Cairo for Arabic. */
+  --font-sans: "Inter", var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -293,4 +298,16 @@ html[data-modality="pointer"] :focus-visible {
  * focus after a click. */
 html[data-modality="pointer"] [class~="border-transparent"]:focus-visible {
   border-color: transparent;
+}
+
+/* The OS asked for less motion: every Radix enter/exit animation and every
+   transition of the product collapses to a frame. One rule here rather than a
+   motion-reduce class on each sheet, dialog, popover and chip. */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

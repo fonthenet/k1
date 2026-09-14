@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
+  CalendarOff,
   ChevronLeft,
   ChevronRight,
   CircleDashed,
@@ -202,6 +203,7 @@ export function RegisterClient({
   activeStructure,
   showJournal,
   rows,
+  notice,
 }: {
   /** The PageHeader is drawn here, not in page.tsx, because its one primary
    *  button (mark everyone present) is client state — pending, disabled on a
@@ -227,6 +229,11 @@ export function RegisterClient({
   /** Whether a scoped class keeps a journal, so the tab bar offers the Journal tab. */
   showJournal: boolean;
   rows: RegisterRow[];
+  /** Something the page wants read before the roster — the hand-overs parents
+   *  asked for at the door (0168). Drawn under the header and the tabs, above
+   *  the filter card, because the header lives here and page.tsx cannot
+   *  follow it otherwise. */
+  notice?: React.ReactNode;
 }) {
   const isToday = date === toDateStr(new Date());
   const t = useTranslations("attendance");
@@ -489,6 +496,8 @@ export function RegisterClient({
         showJournal={showJournal}
       />
 
+      {notice}
+
       <div className="space-y-4">
         {/* The roster's filter card: the day, the structure, the class, and
             the live count last. The date is "aujourd'hui" when it is today,
@@ -626,20 +635,31 @@ export function RegisterClient({
             a confirmed holiday. The holiday variant names it (in Arabic when
             the office typed an Arabic name), because "closed on Sunday" is not
             the answer when the question is "why is 1 November empty". A
-            future day gets the same line with a different sentence. Muted
-            text, not a band: the register is what says whether the day
-            happened, and the line only explains why it is empty. */}
+            future day gets the same line with a different sentence. Gold,
+            the colour of "a person should look": the owner read the muted
+            line as a footnote and missed that the whole register was shut.
+            A tinted line with the closed-calendar glyph, not a band across
+            the page — the register below still says whether the day
+            happened; this only explains why it is empty. */}
         {(isClosedDay || isFuture) && (
-          <p className="px-1 text-sm text-muted-foreground">
-            {isFuture
-              ? t("nav.futureNotice")
-              : closedHoliday
-                ? t("nav.holidayNotice", {
-                    name:
-                      locale === "ar" && closedHoliday.name_ar
-                        ? closedHoliday.name_ar
-                        : closedHoliday.name,
-                  })
+          <p
+            role="status"
+            className="flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2 text-sm font-medium text-gold-ink"
+          >
+            <CalendarOff className="size-4 shrink-0" aria-hidden />
+            {/* A closure names itself even on a day still ahead: "not yet
+                arrived" is true of every future day and says nothing, while
+                "closed — travaux" is why next Monday's register will stay
+                empty. */}
+            {closedHoliday
+              ? t("nav.holidayNotice", {
+                  name:
+                    locale === "ar" && closedHoliday.name_ar
+                      ? closedHoliday.name_ar
+                      : closedHoliday.name,
+                })
+              : isFuture
+                ? t("nav.futureNotice")
                 : t("nav.closedNotice", { day: dayLabel })}
           </p>
         )}
@@ -982,8 +1002,25 @@ export function RegisterClient({
                 <DialogTitle>
                   {t("checkOutDialog.title", { name: checkOutDialog.name })}
                 </DialogTitle>
-                <DialogDescription>{t("checkOutDialog.description")}</DialogDescription>
+                {/* The sentence promises a list only when there is one. A
+                    child nobody has been linked to yet gets the reason and
+                    the door to fix it — the office types the name today and
+                    adds the family to the record so tomorrow costs one tap. */}
+                <DialogDescription>
+                  {checkOutDialog.collectors.length > 0
+                    ? t("checkOutDialog.description")
+                    : t("checkOutDialog.noCollectors")}
+                </DialogDescription>
               </DialogHeader>
+              {checkOutDialog.collectors.length === 0 && (
+                <Link
+                  href={`/children/${checkOutDialog.childId}`}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  {t("checkOutDialog.addInRecord")}
+                  <ChevronRight className="size-4 rtl:-scale-x-100" aria-hidden />
+                </Link>
+              )}
               {checkOutDialog.collectors.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {checkOutDialog.collectors.map((c) => {

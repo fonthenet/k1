@@ -7,16 +7,23 @@
 // notification), and a refusal is delivered by a person, in words the crèche
 // chooses, shown here only as "this file is closed, contact us".
 //
+// Since 0164 the request carries one thing the family does own: the papers
+// of the enrolment file. A row whose kind asks for papers becomes a door to
+// /enroll/dossier/[id], where the family adds what is missing and replaces
+// what the office refused — still without a stage in sight.
+//
 // The data comes from kg_my_applications(), an RPC that returns only what the
 // family may see. The kg_applications row itself is staff-only under RLS, so
 // nothing more is readable even with devtools open.
 import "server-only";
 
+import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ArrowRightLeft, FileCheck2, Hourglass } from "lucide-react";
+import { ArrowRightLeft, ChevronLeft, ChevronRight, FileCheck2, Hourglass } from "lucide-react";
 import type { createClient } from "@/lib/supabase/server";
 import type { TenantContext } from "@/lib/tenant";
 import { formatDate } from "@/lib/format";
+import type { MyApplicationRow } from "@/lib/dossier";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import { StructureMark } from "@/components/shared/structure-mark";
 
@@ -34,13 +41,13 @@ export interface PortalApplicationRow {
   structure_id: string | null;
   /** A request to MOVE an existing child rather than enrol a new one. */
   transfer: boolean;
+  /** Active required papers of the kind; 0 keeps the row a non-door (0164). */
+  dossier_required: number;
+  /** Required papers missing, refused or expired. */
+  dossier_missing: number;
+  /** Of those, refused by the office — the family's turn. */
+  dossier_rejected: number;
 }
-
-type MyApplicationRpcRow = Omit<PortalApplicationRow, "structure_id" | "transfer"> & {
-  source: string | null;
-  existing_child_id: string | null;
-  structure_id: string | null;
-};
 
 /**
  * The signed-in parent's requests that have not turned into a child yet.
@@ -48,6 +55,7 @@ type MyApplicationRpcRow = Omit<PortalApplicationRow, "structure_id" | "transfer
  * kg_my_applications() returns nothing internal — no status, no stage — and
  * since 0142 it does return the structure and the child the family named,
  * so a transfer is a transfer by its own row and nothing here matches names.
+ * Since 0164 it also counts the file's papers.
  */
 export async function getMyOpenApplications(
   supabase: Supabase,
@@ -55,7 +63,7 @@ export async function getMyOpenApplications(
 ): Promise<PortalApplicationRow[]> {
   void ctx; // the RPC scopes to auth.uid() itself, across every crèche
   const { data } = await supabase.rpc("kg_my_applications");
-  return ((data ?? []) as MyApplicationRpcRow[]).map((r) => ({
+  return ((data ?? []) as MyApplicationRow[]).map((r) => ({
     id: r.id,
     tenant_name: r.tenant_name,
     child_first_name: r.child_first_name,
@@ -64,6 +72,9 @@ export async function getMyOpenApplications(
     closed: r.closed,
     structure_id: r.structure_id,
     transfer: !!r.existing_child_id,
+    dossier_required: r.dossier_required ?? 0,
+    dossier_missing: r.dossier_missing ?? 0,
+    dossier_rejected: r.dossier_rejected ?? 0,
   }));
 }
 
@@ -73,9 +84,9 @@ export async function getMyOpenApplications(
  * Rendered INSIDE the list's `<ul>`, under a group row of its own, rather
  * than as a card per request under a heading of its own: a request is a
  * child who is not on the register yet, and it belongs in the same register
- * the enrolled children sit in — the group row is what says "not yet". The
- * rows are not doors; there is no page behind a request, and the office
- * delivers the outcome itself.
+ * the enrolled children sit in — the group row is what says "not yet". A
+ * row is a door only when the file asks for papers; there is no page
+ * behind a request otherwise, and the office delivers the outcome itself.
  */
 export async function PendingApplications({
   rows,
@@ -88,12 +99,14 @@ export async function PendingApplications({
   if (rows.length === 0) return null;
 
   const t = await getTranslations("portal.applications");
+  const tDossier = await getTranslations("portal.dossier");
   // The parent-side name of a move lives with the dialog that asks for it;
   // the row reuses that word rather than inventing a second one.
   const tTransfer = await getTranslations("portal.transfer");
   const locale = await getLocale();
   const structureById = new Map(structures.map((s) => [s.id, s]));
   const multiStructure = structures.length > 1;
+  const ForwardIcon = locale === "ar" ? ChevronLeft : ChevronRight;
 
   return (
     <>
@@ -114,8 +127,24 @@ export async function PendingApplications({
         const Icon = row.closed ? FileCheck2 : row.transfer ? ArrowRightLeft : Hourglass;
         const structure =
           multiStructure && row.structure_id ? structureById.get(row.structure_id) : undefined;
-        return (
-          <li key={row.id} className="flex min-h-14 items-center gap-3 px-5 py-3">
+        // A door only while the file asks for papers: the page behind it is
+        // the family's list of them — read-only once the file is closed, so
+        // a closed row keeps its own sentence and says nothing about papers.
+        // A refused paper is the one fact on this row that wears colour: the
+        // office is waiting on the family.
+        const isDoor = row.dossier_required > 0;
+        const dossierLine = !isDoor || row.closed ? null : row.dossier_rejected > 0 ? (
+          <span className="font-medium text-gold-ink">
+            {tDossier("rejectedLine", { count: row.dossier_rejected })} · {tDossier("fix")}
+          </span>
+        ) : row.dossier_missing > 0 ? (
+          <span>{t("dossierLine", { text: tDossier("missingLine", { count: row.dossier_missing }) })}</span>
+        ) : (
+          <span>{tDossier("complete")}</span>
+        );
+
+        const body = (
+          <>
             <span
               className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
               aria-hidden
@@ -150,10 +179,34 @@ export async function PendingApplications({
                         />
                       </>
                     )}
+                    {/* The file's state is one more fact on the same line,
+                        after the date and the structure. */}
+                    {dossierLine && (
+                      <>
+                        <span aria-hidden>·</span>
+                        {dossierLine}
+                      </>
+                    )}
                   </>
                 )}
               </span>
             </span>
+            {isDoor && <ForwardIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
+          </>
+        );
+
+        return isDoor ? (
+          <li key={row.id}>
+            <Link
+              href={`/enroll/dossier/${row.id}`}
+              className="flex min-h-14 items-center gap-3 px-5 py-3 transition-colors hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              {body}
+            </Link>
+          </li>
+        ) : (
+          <li key={row.id} className="flex min-h-14 items-center gap-3 px-5 py-3">
+            {body}
           </li>
         );
       })}

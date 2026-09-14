@@ -5,6 +5,8 @@ import type { createClient } from "@/lib/supabase/server";
 import type { TenantContext } from "@/lib/tenant";
 import type { ChildStatus, Gender } from "@/lib/types";
 import { childDisplayName, initials } from "@/lib/format";
+import { loadDossierSummary } from "@/lib/dossier-server";
+import type { DossierSummaryRow } from "@/lib/dossier";
 import type { Structure } from "@/components/modules/classes/class-types";
 import type {
   CheckinDialogChild,
@@ -158,6 +160,26 @@ export async function getChildTransfers(
     .order("effective_date", { ascending: true })
     .order("created_at", { ascending: true });
   return (data ?? []) as PortalTransferRow[];
+}
+
+// ----- The dossier d'inscription: what is still to hand in (0164) -----
+
+/**
+ * The family's children whose enrolment file is not complete: the rows of
+ * kg_dossier_summary with at least one active required paper missing,
+ * refused or expired. RLS narrows the summary to the caller's own children
+ * (and their own open applications, which the callers ignore by child_id).
+ *
+ * Empty for a tenant that has not activated its list (D14): every child then
+ * has zero required papers, so no row carries a gap and nothing on the home
+ * or the children list mentions a dossier at all.
+ */
+export async function getDossierGaps(
+  supabase: Supabase,
+  tenantId: string
+): Promise<DossierSummaryRow[]> {
+  const rows = await loadDossierSummary(supabase, tenantId);
+  return rows.filter((row) => row.missing > 0);
 }
 
 // ----- Is a transfer already asked for? -----

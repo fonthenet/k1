@@ -95,7 +95,8 @@ function hrefOf(slot: BusySlot): string {
     case "session":
       return `/sessions/${slot.id}`;
     case "event":
-      return `/calendar?month=${slot.date.slice(0, 7)}`;
+      // The calendar's day view with the event open, not the month it sits in.
+      return `/calendar?view=day&date=${slot.date}&event=${slot.id}`;
     case "activity":
       return `/activities/${slot.id}`;
   }

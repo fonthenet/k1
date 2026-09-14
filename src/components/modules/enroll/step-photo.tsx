@@ -4,43 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Camera, Check, Images, Loader2, RefreshCw, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { resizeToJpeg } from "@/lib/image-resize";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { StepHeader } from "./wizard-ui";
 import type { WizardUser } from "./types";
 
-const MAX_DIMENSION = 800;
-
-function loadImage(file: File): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("decode failed"));
-    };
-    img.src = url;
-  });
-}
-
-/** Downscale to max 800px on the longest side and re-encode as JPEG. */
-async function resizeToJpeg(file: File): Promise<Blob> {
-  const img = await loadImage(file);
-  const scale = Math.min(1, MAX_DIMENSION / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.max(1, Math.round(img.naturalWidth * scale));
-  const h = Math.max(1, Math.round(img.naturalHeight * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("no canvas context");
-  ctx.drawImage(img, 0, 0, w, h);
-  URL.revokeObjectURL(img.src);
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode failed"))), "image/jpeg", 0.85)
-  );
-}
+/** Longest side of the badge photo: a face on a tablet at the gate, not a print. */
+const PHOTO_MAX_PX = 800;
 
 export function StepPhoto({
   user,
@@ -80,7 +51,7 @@ export function StepPhoto({
     setError(null);
     setBusy(true);
     try {
-      const blob = await resizeToJpeg(file);
+      const blob = await resizeToJpeg(file, PHOTO_MAX_PX);
       const path = `u/${user.id}/enroll/${crypto.randomUUID()}.jpg`;
       const { error: err } = await supabase.storage
         .from("kg-media")

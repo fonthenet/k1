@@ -16,6 +16,8 @@ import {
   effectiveStructureId,
   inStructure,
   initialWizardState,
+  toSubmitDocuments,
+  wizardRequirements,
   type AppChildPayload,
   type AppGuardianPayload,
   type AppHealthPayload,
@@ -24,6 +26,7 @@ import {
   type WizardState,
   type WizardUser,
 } from "./types";
+import type { SignedUrlMap } from "@/lib/dossier";
 import { SoftWash } from "@/components/shared/soft-wash";
 import { StepWelcome } from "./step-welcome";
 import { StepStructure, StructureRow } from "./step-structure";
@@ -33,6 +36,7 @@ import { StepChild } from "./step-child";
 import { StepPhoto } from "./step-photo";
 import { StepGuardians } from "./step-guardians";
 import { StepHealth } from "./step-health";
+import { StepDocuments } from "./step-documents";
 import { StepActivities } from "./step-activities";
 import { StepReview } from "./step-review";
 import { StepSuccess } from "./step-success";
@@ -41,13 +45,16 @@ import { isPhoneAlias } from "@/lib/auth-identifier";
 import { suggestClassPerStructure } from "@/lib/class-fit";
 
 // The step order lives in STEP (types.ts): welcome · structure · account ·
-// child · photo · guardians · health · activities · review.
+// child · photo · guardians · health · documents · activities · review.
 //
 // Version 2 inserted the structure step after welcome, which shifted every
-// index after it by one. A draft saved under version 1 is not thrown away —
-// a family halfway through on the day of the deploy would lose ten minutes
-// of typing — its step is shifted instead (see the resume effect).
-const STORAGE_VERSION = 2;
+// index after it by one; version 3 (0164) inserted the dossier step after
+// health, which shifted the last two. A draft saved under an older version
+// is not thrown away — a family halfway through on the day of the deploy
+// would lose ten minutes of typing — its step is shifted instead (see the
+// resume effect).
+const STORAGE_VERSION = 3;
+const RESUMABLE_VERSIONS = [1, 2, STORAGE_VERSION];
 
 function storageKey(token: string) {
   return `kg-enroll-${token}`;
@@ -128,6 +135,8 @@ export function EnrollWizard({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  /** The application's id, as the RPC returned it: the success step links the family's file with it. */
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // ----- localStorage resume -----
@@ -140,7 +149,7 @@ export function EnrollWizard({
       const raw = localStorage.getItem(storageKey(token));
       if (raw) {
         const parsed = JSON.parse(raw) as { v: number; state: WizardState };
-        if ((parsed.v === STORAGE_VERSION || parsed.v === 1) && parsed.state) {
+        if (RESUMABLE_VERSIONS.includes(parsed.v) && parsed.state) {
           const restored: WizardState = { ...initialWizardState(), ...parsed.state };
           // A version-1 draft counted its steps without the structure step.
           if (parsed.v === 1 && restored.step >= STEP.structure) restored.step += 1;
@@ -154,6 +163,15 @@ export function EnrollWizard({
             restored.step > STEP.structure
           ) {
             restored.step = STEP.structure;
+          }
+          // Every draft before version 3 counted its steps without the
+          // dossier step (0164); the papers were never asked, so nothing
+          // sends the family back — a missing paper never blocks (D7).
+          if (parsed.v <= 2 && restored.step >= STEP.documents) restored.step += 1;
+          // A draft parked on the dossier step of a list the establishment
+          // has since emptied would open on a step with no rows.
+          if (restored.step === STEP.documents && wizardRequirements(link, restored).length === 0) {
+            restored.step = STEP.activities;
           }
           // A signed-out visitor must pass through the account step again.
           if (!initialUser && restored.step > STEP.account) restored.step = STEP.account;
@@ -205,6 +223,16 @@ export function EnrollWizard({
   const classes = inStructure(allClasses, structureId);
   const feePlans = inStructure(link.fee_plans ?? [], structureId);
   const activities = inStructure(link.activities, structureId);
+  // The papers follow the KIND of the structure, not the room (D2): the
+  // crèche's list or the école's. Empty — an establishment that asks for
+  // nothing online, or one whose list is still switched off (D14) — and the
+  // step does not exist.
+  const requirements = wizardRequirements(link, state);
+  // The blank forms' signed URLs, minted by the page (blank forms are public
+  // objects; the family has no membership yet), keyed by their storage path.
+  const formUrls: SignedUrlMap = Object.fromEntries(
+    (link.documents ?? []).flatMap((d) => (d.form_path ? [[d.form_path, d.form_url ?? null]] : [])),
+  );
 
   /**
    * Changing structure drops the choices that belonged to the other one.
@@ -218,6 +246,11 @@ export function EnrollWizard({
       if (s.structureId === id) return s;
       const keep = <T extends { id: string; structure_id: string | null }>(items: T[], chosen: string) =>
         inStructure(items, id).some((i) => i.id === chosen);
+      // The papers too: a file attached against the école's list has no
+      // line on the crèche's, and the RPC would register it to a
+      // requirement no screen of this application lists. The object stays
+      // in the family's folder, unregistered, like a replaced one (D8).
+      const askedFor = new Set(wizardRequirements(link, { structureId: id }).map((r) => r.id));
       return {
         ...s,
         structureId: id,
@@ -225,6 +258,7 @@ export function EnrollWizard({
         feePlanId:
           s.feePlanId === "undecided" || keep(link.fee_plans ?? [], s.feePlanId) ? s.feePlanId : "",
         activityIds: s.activityIds.filter((a) => keep(link.activities, a)),
+        documents: Object.fromEntries(Object.entries(s.documents).filter(([rid]) => askedFor.has(rid))),
       };
     });
   };
@@ -291,6 +325,9 @@ export function EnrollWizard({
       if (state.health.allergies.some((a) => !a.allergen.trim()))
         return t("errors.allergenRequired");
     }
+    // STEP.documents has no rule on purpose (D7): a missing paper never
+    // blocks the application — its absence is "to bring in person", the
+    // success step lists it, the office sees it as "Manquante".
     if (step === STEP.activities) {
       // The schedule is the family's monthly bill — the one question this form
       // exists to carry. "Undecided" is an allowed answer; silence is not.
@@ -300,10 +337,13 @@ export function EnrollWizard({
     return null;
   };
 
-  /** The two conditional screens: no structure question without a choice
-   *  to make, no account screen for someone already signed in. */
+  /** The three conditional screens: no structure question without a choice
+   *  to make, no account screen for someone already signed in, no dossier
+   *  step when the kind asks for no paper. */
   const skipped = (step: number) =>
-    (step === STEP.structure && !asksStructure) || (step === STEP.account && !!user);
+    (step === STEP.structure && !asksStructure) ||
+    (step === STEP.account && !!user) ||
+    (step === STEP.documents && requirements.length === 0);
 
   const next = () => {
     const problem = validate(state.step);
@@ -398,7 +438,7 @@ export function EnrollWizard({
     };
 
     try {
-      const { error: err } = await supabase.rpc("kg_submit_application", {
+      const { data: applicationId, error: err } = await supabase.rpc("kg_submit_application", {
         p_fee_plan_id:
           state.feePlanId && state.feePlanId !== "undecided" ? state.feePlanId : null,
         p_token: token,
@@ -409,10 +449,16 @@ export function EnrollWizard({
         // "undecided" is a real answer from the family, but it is not a class:
         // it reaches the reviewer as no request, which is what it means.
         p_class_id: submittedClassId,
-        // The link's own structure, or the family's answer on a whole-building
-        // link. The RPC lets the link win regardless; sending it anyway keeps
-        // the eight-argument call unambiguous (see 0140 §8).
+        // The link's own structure, the family's answer on a whole-building
+        // link, or the building's only structure (effectiveStructureId) —
+        // so the row lands on the structure whose papers were attached. The
+        // RPC lets the link win regardless; sending it anyway keeps the
+        // nine-argument call unambiguous (see 0140 §8).
         p_structure_id: structureId,
+        // The papers, registered with the application in the same
+        // transaction (D3). One the RPC cannot register — a stale draft, a
+        // path named twice — is dropped, never fatal.
+        p_documents: toSubmitDocuments(state.documents),
       });
       if (err) {
         setError(err.message === "invalid_link" ? t("invalid.title") : t("errors.generic"));
@@ -422,6 +468,7 @@ export function EnrollWizard({
         } catch {
           // ignore
         }
+        setSubmittedId(typeof applicationId === "string" ? applicationId : null);
         setSubmitted(true);
         // The application was written by an RPC from the browser, so no server
         // action ran to flush the admins' "new application" push. Best-effort
@@ -441,9 +488,10 @@ export function EnrollWizard({
   const showProgress = !submitted && step > STEP.welcome;
   const showFooterNav =
     !submitted && step >= STEP.structure && step <= STEP.activities && step !== STEP.account;
-  // Once a structure is known — the link's, or the family's answer — the
-  // running summary in the header is that structure; before that, and on a
-  // single-structure establishment, it is the establishment's name.
+  // Once a structure is known — the link's, the family's answer, or the
+  // building's only one — the running summary in the header is that
+  // structure; before that, and on an establishment with no structure at
+  // all, it is the establishment's name.
   const headerStructure = structures.find((s) => s.id === structureId) ?? null;
 
   return (
@@ -500,10 +548,19 @@ export function EnrollWizard({
             </div>
           )}
           {submitted ? (
-            <StepSuccess tenantName={link.tenant_name} />
+            <StepSuccess
+              tenantName={link.tenant_name}
+              // The door to the family's file exists only when there was a
+              // dossier step: an establishment that asks for nothing online,
+              // or whose list is still switched off (D14), has nothing there.
+              submittedId={requirements.length > 0 ? submittedId : null}
+              missing={requirements
+                .filter((r) => r.required && !state.documents[r.id])
+                .map((r) => ({ key: r.key, name: r.name, name_ar: r.name_ar }))}
+            />
           ) : step === STEP.welcome ? (
             <>
-              {/* Eight steps of child-and-parent details, for someone this
+              {/* Nine steps of child-and-parent details, for someone this
                   establishment already holds a record of, ends in a duplicate
                   of them. The sibling form asks for the child alone. */}
               {existingFamily && (
@@ -534,7 +591,10 @@ export function EnrollWizard({
               structureId={state.structureId}
               onChange={chooseStructure}
             />
-          ) : step === STEP.account ? (
+          ) : step === STEP.account || (step === STEP.documents && !user) ? (
+            // The dossier step uploads into the family's own folder, so it
+            // needs the account; a session that expired on the way there
+            // meets the account screen again, as the submit does.
             <StepAccount
               user={user}
               onAuthed={(u) => {
@@ -576,6 +636,17 @@ export function EnrollWizard({
             <StepHealth
               health={state.health}
               onChange={(patch) => update({ health: { ...state.health, ...patch } })}
+            />
+          ) : step === STEP.documents && user ? (
+            <StepDocuments
+              user={user}
+              requirements={requirements}
+              documents={state.documents}
+              onChange={(requirementId, doc) =>
+                update({ documents: { ...state.documents, [requirementId]: doc } })
+              }
+              pathPrefix={`u/${user.id}/enroll/docs`}
+              formUrls={formUrls}
             />
           ) : step === STEP.activities ? (
             <StepActivities

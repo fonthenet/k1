@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
+import { flushPush } from "@/app/actions/push";
 import { algiersToday } from "@/lib/algiers";
+import { MAX_DOCUMENT_BYTES, centerKind, sniffDocumentMime, type DocumentAccepts, type DocumentMime } from "@/lib/dossier";
 import type { KgRole } from "@/lib/types";
 import { serializeHealthList } from "@/components/modules/portal/health-edit-shared";
 
@@ -948,69 +950,288 @@ export async function deleteAllergy(childId: string, allergyId: string): Promise
   return { ok: true };
 }
 
-// ===== Documents =====
+// ===== Dossier d'inscription (0164) =====
 
-const DOC_TYPE_VALUES = ["birth_certificate", "vaccination_record", "medical", "photo", "other"];
+/**
+ * The staff side of the register. A paper handed in at the desk is scanned
+ * and filed ACCEPTED on the spot — the person holding it is the review — and
+ * a family paper is accepted or refused from the same section. The three
+ * actions serve both registers: a child's record and a pending application
+ * (the row moves to the child at approval, D1).
+ */
+export type StaffActionError = "invalid" | "duplicate" | "forbidden" | "error";
+export type StaffActionResult = { ok: true; id?: string } | { ok: false; error: StaffActionError };
+/** kg_review_document refuses a refusal without a note (23514): the family must learn why. */
+export type ReviewActionResult = StaffActionResult | { ok: false; error: "noteRequired" };
 
-export async function uploadDocument(formData: FormData): Promise<ActionResult> {
+/**
+ * Both record pages read the register on render, so both are refreshed
+ * whatever the subject: an application's papers are the child's the moment
+ * it is approved, and revalidating by route pattern costs nothing. The
+ * roster and the board carry the counts, so they follow.
+ */
+function revalidateDossier() {
+  revalidatePath("/children/[id]", "page");
+  revalidatePath("/applications/[id]", "page");
+  revalidatePath("/children");
+  revalidatePath("/applications");
+}
+
+/**
+ * today + n months, clamped to the end of the month the way Postgres's
+ * make_interval does (31 Jan + 1 month = 28 Feb, not 3 Mar), so a paper the
+ * office scans and one the office accepts from the family expire on the same
+ * day for the same valid_months.
+ */
+function addMonthsClamped(isoDate: string, months: number): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const first = new Date(Date.UTC(y, m - 1 + months, 1));
+  const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  const day = Math.min(d, lastDay);
+  return `${first.getUTCFullYear()}-${String(first.getUTCMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** What a requirement asks of the file's bytes: any → whatever the sniff accepts. */
+function mimeAllowed(accepts: DocumentAccepts, mime: DocumentMime): boolean {
+  if (accepts === "pdf") return mime === "application/pdf";
+  if (accepts === "image") return mime !== "application/pdf";
+  return true;
+}
+
+const uploadSubjectSchema = z
+  .object({
+    childId: z.uuid().optional(),
+    applicationId: z.uuid().optional(),
+    requirementId: z.union([z.uuid(), z.literal("other")]),
+    title: z.string().trim().max(200).optional(),
+  })
+  // Exactly one register: the CHECK on kg_child_documents says the same, and
+  // a row on both would be counted twice by every summary.
+  .refine((v) => (v.childId ? 1 : 0) + (v.applicationId ? 1 : 0) === 1);
+
+/**
+ * A paper handed in at the desk. FormData: childId | applicationId (exactly
+ * one), requirementId (uuid | "other"), title (Autre pièce only), file.
+ *
+ * The bytes are sniffed, never trusted by their declared type: a HEIC from
+ * an iPhone is refused here as "invalid" (D15 — the staff browser converts),
+ * and the register stores the mime the sniff found. The row is inserted
+ * accepted / staff with the reviewer stamped, and expires_at counted from
+ * today when the requirement has a validity — the same arithmetic as
+ * kg_review_document. The path is the register's own folder,
+ * `…/documents/`; the pre-0164 `docs/` shelf is retired (its rows keep their
+ * paths and stay readable by staff; nothing is renamed).
+ */
+export async function uploadDossierDocument(formData: FormData): Promise<StaffActionResult> {
   const ctx = await requireStaff();
-  const childId = formData.get("childId");
-  const title = formData.get("title");
-  const docType = formData.get("docType");
+  if (!isEducator(ctx.role)) return { ok: false, error: "forbidden" };
+
+  const parsed = uploadSubjectSchema.safeParse({
+    childId: formData.get("childId") || undefined,
+    applicationId: formData.get("applicationId") || undefined,
+    requirementId: formData.get("requirementId"),
+    title: typeof formData.get("title") === "string" ? formData.get("title") : undefined,
+  });
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { childId, applicationId, requirementId } = parsed.data;
+
   const file = formData.get("file");
-
-  if (typeof childId !== "string" || !z.uuid().safeParse(childId).success)
+  if (!(file instanceof File) || file.size === 0 || file.size > MAX_DOCUMENT_BYTES)
     return { ok: false, error: "invalid" };
-  if (typeof title !== "string" || !title.trim() || title.length > 200)
-    return { ok: false, error: "invalid" };
-  if (typeof docType !== "string" || !DOC_TYPE_VALUES.includes(docType))
-    return { ok: false, error: "invalid" };
-  if (!(file instanceof File) || file.size === 0 || file.size > 10 * 1024 * 1024)
-    return { ok: false, error: "invalid" };
-
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
-  const path = `t/${ctx.tenant.id}/children/${childId}/docs/${Date.now()}-${safeName}`;
+  const mime = sniffDocumentMime(await file.slice(0, 16).arrayBuffer());
+  if (!mime) return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
-  const { error: upErr } = await supabase.storage.from("kg-media").upload(path, file);
+
+  // The subject must be this tenant's, and an application must still be
+  // open: a paper filed on an approved file would never follow the child
+  // (kg_approve_application bound the rows once), and a refused file is
+  // closed — kg_attach_document applies the same two rules to the family.
+  if (childId) {
+    const { data: child } = await supabase
+      .from("kg_children")
+      .select("id")
+      .eq("id", childId)
+      .eq("tenant_id", ctx.tenant.id)
+      .maybeSingle();
+    if (!child) return { ok: false, error: "invalid" };
+  } else if (applicationId) {
+    const { data: app } = await supabase
+      .from("kg_applications")
+      .select("status")
+      .eq("id", applicationId)
+      .eq("tenant_id", ctx.tenant.id)
+      .maybeSingle();
+    if (!app || app.status === "approved" || app.status === "rejected")
+      return { ok: false, error: "invalid" };
+  }
+
+  // The requirement names the row: doc_type is its key, title its name, and
+  // valid_months decides the expiry. "Autre pièce" carries the typed title
+  // and no requirement — the FK is RESTRICT, so null is the only way to say
+  // "none" (D17).
+  let docType = "other";
+  let title = parsed.data.title ?? "";
+  let expiresAt: string | null = null;
+  if (requirementId !== "other") {
+    const { data: req } = await supabase
+      .from("kg_document_requirements")
+      .select("key, name, accepts, valid_months, kind")
+      .eq("id", requirementId)
+      .eq("tenant_id", ctx.tenant.id)
+      .maybeSingle();
+    if (!req) return { ok: false, error: "invalid" };
+    if (!mimeAllowed(req.accepts as DocumentAccepts, mime)) return { ok: false, error: "invalid" };
+    // The same kind kg_dossier_status files the row under (kg_attach_document
+    // refuses the mismatch for a family; this path inserts directly, so it
+    // asks the same question): an école paper on a crèche child would be a
+    // row no checklist ever shows.
+    const subject = childId
+      ? await supabase
+          .from("kg_children")
+          .select("kg_structures(center_type)")
+          .eq("id", childId)
+          .eq("tenant_id", ctx.tenant.id)
+          .maybeSingle<{ kg_structures: { center_type: string } | null }>()
+      : await supabase
+          .from("kg_applications")
+          .select("kg_structures(center_type)")
+          .eq("id", applicationId as string)
+          .eq("tenant_id", ctx.tenant.id)
+          .maybeSingle<{ kg_structures: { center_type: string } | null }>();
+    if (subject.error || !subject.data) return { ok: false, error: "invalid" };
+    const subjectKind = centerKind(
+      subject.data.kg_structures?.center_type ?? (ctx.tenant as { center_type?: string | null }).center_type,
+    );
+    if (req.kind !== subjectKind) return { ok: false, error: "invalid" };
+    docType = req.key;
+    title = req.name;
+    if (req.valid_months) expiresAt = addMonthsClamped(algiersToday(), Number(req.valid_months));
+  } else if (!title) {
+    return { ok: false, error: "invalid" };
+  }
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
+  const path = childId
+    ? `t/${ctx.tenant.id}/children/${childId}/documents/${Date.now()}-${safeName}`
+    : `t/${ctx.tenant.id}/applications/${applicationId}/documents/${Date.now()}-${safeName}`;
+
+  const { error: upErr } = await supabase.storage
+    .from("kg-media")
+    .upload(path, file, { contentType: mime });
   if (upErr) return { ok: false, error: "error" };
 
-  const { error } = await supabase.from("kg_child_documents").insert({
-    tenant_id: ctx.tenant.id,
-    child_id: childId,
-    doc_type: docType,
-    title: title.trim(),
-    file_path: path,
-    uploaded_by: ctx.user.id,
+  const now = new Date().toISOString();
+  const { data: row, error } = await supabase
+    .from("kg_child_documents")
+    .insert({
+      tenant_id: ctx.tenant.id,
+      child_id: childId ?? null,
+      application_id: applicationId ?? null,
+      requirement_id: requirementId === "other" ? null : requirementId,
+      doc_type: docType,
+      title,
+      file_path: path,
+      uploaded_by: ctx.user.id,
+      status: "accepted",
+      source: "staff",
+      file_name: file.name.slice(0, 120),
+      mime_type: mime,
+      size_bytes: file.size,
+      reviewed_by: ctx.user.id,
+      reviewed_at: now,
+      expires_at: expiresAt,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    // The object is the register's handle; without a row it is an orphan
+    // nobody can reach. Best effort — the refusal is what the caller needs.
+    await supabase.storage.from("kg-media").remove([path]);
+    return mapDbError(error);
+  }
+  revalidateDossier();
+  // A scan that completes the dossier queues "Dossier complet" for the
+  // family; the cron would carry it hours later, so it goes out now, best
+  // effort, the way the portal's attach actions do for the office.
+  await flushPush();
+  return { ok: true, id: row.id as string };
+}
+
+const reviewSchema = z.object({
+  documentId: z.uuid(),
+  status: z.enum(["accepted", "rejected"]),
+  note: z.string().trim().max(1000).optional(),
+});
+
+/**
+ * Accept or refuse a family paper — kg_review_document, which stamps the
+ * reviewer, counts the expiry from today and, through its trigger, tells the
+ * family (a refusal always, with the note; "Dossier complet" when this was
+ * the last required paper, D10).
+ */
+export async function reviewDossierDocument(
+  input: z.input<typeof reviewSchema>
+): Promise<ReviewActionResult> {
+  const ctx = await requireStaff();
+  if (!isEducator(ctx.role)) return { ok: false, error: "forbidden" };
+  const parsed = reviewSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  if (parsed.data.status === "rejected" && !parsed.data.note)
+    return { ok: false, error: "noteRequired" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("kg_review_document", {
+    p_doc: parsed.data.documentId,
+    p_status: parsed.data.status,
+    p_note: parsed.data.note ?? null,
   });
-  if (error) return mapDbError(error);
-  revalidateChild(childId);
+  if (error) {
+    if (error.code === "23514") return { ok: false, error: "noteRequired" };
+    if (error.code === "22023") return { ok: false, error: "invalid" };
+    return mapDbError(error);
+  }
+  revalidateDossier();
+  // The refusal push carries the note — the one place the family learns why —
+  // and must not wait for the twice-daily dispatch.
+  await flushPush();
   return { ok: true };
 }
 
-export async function deleteDocument(childId: string, documentId: string): Promise<ActionResult> {
+/**
+ * Remove a paper — row and bytes. The delete is asked to return the row it
+ * removed: RLS (cd_del: admins, or a family withdrawing its own unread
+ * paper) answers a refusal with zero rows and no error, and an empty answer
+ * must read "forbidden" BEFORE the object is touched, or an accountant could
+ * strip the bytes from a row they may not delete.
+ */
+export async function deleteDossierDocument(input: { documentId: string }): Promise<StaffActionResult> {
   const ctx = await requireStaff();
-  if (!z.uuid().safeParse(documentId).success) return { ok: false, error: "invalid" };
+  if (!z.uuid().safeParse(input.documentId).success) return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
-  const { data: doc } = await supabase
+  const { data: row, error: readError } = await supabase
     .from("kg_child_documents")
-    .select("file_path")
-    .eq("id", documentId)
+    .select("id, file_path")
+    .eq("id", input.documentId)
     .eq("tenant_id", ctx.tenant.id)
-    .maybeSingle();
+    .maybeSingle<{ id: string; file_path: string }>();
+  if (readError) return mapDbError(readError);
+  if (!row) return { ok: false, error: "forbidden" };
 
+  // The bytes first: a family file under u/ may be removed by the office
+  // only while the register names it (kg_storage_may_alter, 0164) — once the
+  // row is gone no rule lets staff touch it and the object is orphaned for
+  // good. Best effort still: a failed remove leaves a paper on the register
+  // rather than an orphan in the bucket.
+  await supabase.storage.from("kg-media").remove([row.file_path]);
   const { error } = await supabase
     .from("kg_child_documents")
     .delete()
-    .eq("id", documentId)
+    .eq("id", row.id)
     .eq("tenant_id", ctx.tenant.id);
   if (error) return mapDbError(error);
-
-  if (doc?.file_path) {
-    await supabase.storage.from("kg-media").remove([doc.file_path]);
-  }
-  revalidateChild(childId);
+  revalidateDossier();
   return { ok: true };
 }
 

@@ -11,7 +11,7 @@
     "scan": "Scanner"
   },
   "children": {
-    "prompt": "Entrez le code de l'enfant ou le code PIN du parent",
+    "prompt": "Entrez le code de l'enfant, le PIN du parent ou votre code personnel",
     "hint": "K-001",
     "chooseChild": "Quel enfant ?",
     "checkedIn": "Arrivée enregistrée {time}",
@@ -31,8 +31,13 @@
       "denied": "Accès à la caméra refusé. Autorisez la caméra pour ce site ou utilisez le clavier.",
       "noCamera": "Aucune caméra détectée sur cet appareil. Utilisez le clavier.",
       "insecure": "La caméra exige une connexion sécurisée (HTTPS). Utilisez le clavier.",
-      "generic": "La caméra n'a pas pu démarrer. Réessayez ou utilisez le clavier."
-    }
+      "generic": "La caméra n'a pas pu démarrer. Réessayez ou utilisez le clavier.",
+      "deniedApp": "Accès à la caméra refusé. Autorisez la caméra pour Rawdatik dans les réglages du téléphone, ou utilisez le clavier."
+    },
+    "allow": "Autoriser la caméra",
+    "openSettings": "Ouvrir les réglages du téléphone",
+    "torchOn": "Allumer la lampe",
+    "torchOff": "Éteindre la lampe"
   },
   "verify": {
     "adultLabel": "Adulte à la porte",
@@ -44,7 +49,9 @@
     "willCheckIn": "Arrivée",
     "arrivedAt": "Sortie · arrivé à {time}",
     "confirmCount": "{count, plural, =0 {Choisissez un enfant} one {Enregistrer # enfant} other {Enregistrer # enfants}}",
-    "noPickup": "Non autorisé à récupérer"
+    "noPickup": "Non autorisé à récupérer",
+    "confirmIn": "Enregistrer dans {seconds} s",
+    "autoHint": "Touchez un enfant pour choisir vous-même, ou Annuler."
   },
   "duplicate": {
     "title": "Vérifiez avant d'enregistrer",
@@ -124,7 +131,9 @@
     "notOnBreak": "Aucune pause en cours.",
     "staffCodeHere": "Ceci est un badge du personnel. Utilisez l'onglet Personnel.",
     "closedDay": "La crèche est fermée aujourd'hui.",
-    "outsideHours": "En dehors des heures d'ouverture."
+    "outsideHours": "En dehors des heures d'ouverture.",
+    "staffCodeDoor": "Porte réservée aux parents — pointez sur la tablette de l'équipe.",
+    "doorCode": "C'est le code de la porte : il se scanne avec le téléphone d'un parent, pas au kiosque."
   },
   "exitDialog": {
     "title": "Quitter le kiosque",
@@ -133,6 +142,76 @@
     "confirm": "Se déconnecter",
     "wrong": "Code incorrect.",
     "locked": "Trop de tentatives. Attendez 10 minutes puis réessayez.",
-    "noPin": "Aucun directeur n'a de code PIN. Utilisez le mot de passe du compte."
+    "noPin": "Aucun directeur n'a de code PIN. Utilisez le mot de passe du compte.",
+    "descriptionApp": "Saisissez le code PIN d'un directeur ou le mot de passe de ce compte pour revenir à l'application.",
+    "confirmApp": "Quitter"
+  },
+  "doorMode": {
+    "label": "Mode porte"
+  },
+  "door": {
+    "hereSince": "Ici depuis <ltr>{time}</ltr> · <b>{duration}</b>",
+    "usualPickup": "Habituellement récupéré par <name>{who}</name> vers <ltr>{time}</ltr>",
+    "duration": {
+      "hours": "{h} h {m}",
+      "minutes": "{m} min"
+    },
+    "incidents": "{count, plural, one {# incident} other {# incidents}}",
+    "allergies": "Allergies : {list}",
+    "title": "Scannez avec votre téléphone",
+    "hint": "Ouvrez l'appareil photo ou l'application Rawdatik : arrivée ou départ en un geste.",
+    "renews": "Nouveau code dans {seconds} s"
+  },
+  "feedback": {
+    "recorded": "Enregistré",
+    "attention": "Attention",
+    "refused": "Refusé"
+  },
+  "office": {
+    "title": "Mode bureau",
+    "readerKeyboard": "Clavier",
+    "readerSerial": "Port série",
+    "connect": "Connecter le lecteur",
+    "connecting": "Connexion au lecteur…",
+    "connected": "Lecteur : {name}",
+    "connectedUnnamed": "Lecteur connecté",
+    "changePort": "Changer de port",
+    "forget": "Oublier le lecteur",
+    "readerMenu": "Changer de port ou oublier le lecteur",
+    "noPort": "Aucun lecteur connecté — cliquez sur Connecter le lecteur et choisissez le port.",
+    "keepOnScreen": "Garder à l'écran",
+    "onScreen": "Fenêtre ouverte",
+    "alerts": "Alertes",
+    "alertsOn": "Alertes activées",
+    "alertsBlocked": "Alertes bloquées",
+    "alertsBlockedHint": "Le navigateur refuse les notifications pour ce site. Autorisez-les dans ses réglages.",
+    "shownInWindow": "Affiché dans la fenêtre flottante",
+    "bringBack": "Afficher ici",
+    "ready": "Prêt · passez une carte",
+    "unsupported": "Nécessite Chrome ou Edge sur un ordinateur.",
+    "notification": {
+      "in": "{name} · arrivée {time}",
+      "out": "{name} · sortie {time}"
+    }
+  },
+  "app": {
+    "description": "La porte sur ce téléphone : code QR, badge ou code PIN."
+  },
+  "fab": {
+    "label": "Scan du kiosque"
+  },
+  "quick": {
+    "close": "Fermer"
+  },
+  "handover": {
+    "title": "Départs à remettre",
+    "requested": "{minutes, plural, one {Demandé il y a # min} other {Demandé il y a # min}}",
+    "justNow": "À l'instant",
+    "confirm": "Remettre",
+    "refuse": "Refuser",
+    "confirmed": "Remis · {time}",
+    "refused": "Refusé",
+    "awaitingTeam": "En attente de l'équipe",
+    "waitJustArrived": "Arrivé il y a moins de 2 min — réessayez dans un instant"
   }
 }

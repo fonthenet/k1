@@ -35,7 +35,8 @@
     "greeting": "Bienvenue chez",
     "lead": "Quelques minutes, depuis votre téléphone. Vous pouvez reprendre plus tard.",
     "needAccount": "Un numéro de téléphone ou un e-mail pour créer votre compte",
-    "classes": "Classes :"
+    "classes": "Classes :",
+    "needDocuments": "Les pièces du dossier (extrait de naissance, carnet de santé…) — en photo ou en PDF"
   },
   "account": {
     "title": "Votre compte parent",
@@ -190,13 +191,19 @@
     "placement": "Structure et classe",
     "structure": "Structure",
     "class": "Classe souhaitée",
-    "classUndecided": "À décider avec l'établissement"
+    "classUndecided": "À décider avec l'établissement",
+    "documents": "Dossier",
+    "documentsCount": "{count} pièces sur {total} jointes"
   },
   "success": {
     "title": "Demande envoyée !",
     "message": "Merci ! {name} a bien reçu votre dossier. L'équipe l'examinera et vous contactera très prochainement.",
     "hint": "Vous recevrez une réponse après examen du dossier.",
-    "portal": "Accéder à l'espace parents"
+    "portal": "Accéder à l'espace parents",
+    "bring": "Pensez à apporter : {list}",
+    "seeDossier": "Voir le dossier",
+    "printFiche": "Imprimer la fiche de renseignements",
+    "printDemande": "Imprimer la demande manuscrite"
   },
   "status": {
     "submitted": "Reçue",
@@ -261,7 +268,8 @@
       "requestedClass": "Classe demandée",
       "source": "Origine",
       "received": "Reçue le",
-      "followUp": "Suivi"
+      "followUp": "Suivi",
+      "dossier": "Dossier"
     },
     "stages": {
       "submitted": "Reçues",
@@ -284,7 +292,8 @@
     "healthHint": "Allergies, traitements et médecin",
     "billingSection": "Tarif et activités",
     "billingHint": "Ce que la famille a demandé sur le formulaire",
-    "monthlyPlan": "par mois"
+    "monthlyPlan": "par mois",
+    "documentsToReview": "Pièces à vérifier"
   },
   "detail": {
     "back": "Toutes les demandes",
@@ -490,5 +499,68 @@
     "fromDob": "D'après sa date de naissance :",
     "unitMonths": "mois",
     "unitYears": "{n, plural, one {an} other {ans}}"
+  },
+  "print": {
+    "fiche": "Fiche de renseignements",
+    "demande": "Demande d'inscription manuscrite",
+    "print": "Imprimer",
+    "backApplication": "Demande",
+    "backDossier": "Dossier",
+    "child": "Enfant",
+    "guardians": "Tuteurs",
+    "health": "Santé",
+    "pickups": "Personnes autorisées à récupérer l'enfant",
+    "documents": "Pièces au dossier",
+    "engagement": "Je soussigné(e), tuteur légal de l'enfant, certifie l'exactitude des renseignements ci-dessus et m'engage à respecter le règlement intérieur de l'établissement.",
+    "doneAt": "Fait à ______ le ______",
+    "signGuardian": "Le tuteur",
+    "signDirector": "La direction",
+    "requestTo": "À Madame, Monsieur le Directeur de <name></name>",
+    "requestSubject": "Objet : demande d'inscription de mon enfant",
+    "requestHint": "Écrivez à la main : nom de l'enfant, date de naissance, structure souhaitée, date d'entrée souhaitée.",
+    "requestGuardian": "Nom et prénom du tuteur",
+    "address": "Adresse",
+    "phone": "Téléphone",
+    "signatureGuardian": "Signature du tuteur",
+    "authorised": "Autorisé à récupérer",
+    "yes": "oui",
+    "no": "non"
+  },
+  "dossier": {
+    "section": "Dossier",
+    "count": "{ok} pièces sur {total} acceptées",
+    "add": "Ajouter une pièce",
+    "replace": "Remplacer",
+    "accept": "Accepter",
+    "reject": "Refuser",
+    "remove": "Retirer",
+    "removeDescription": "La pièce et son fichier sont supprimés.",
+    "rejectTitle": "Refuser la pièce",
+    "rejectHint": "Le motif est envoyé à la famille.",
+    "rejectReason": "Motif",
+    "rejectPlaceholder": "Photo floue, merci de la reprendre",
+    "others": "Autres pièces",
+    "other": "Autre pièce",
+    "piece": "Pièce",
+    "docTitle": "Titre",
+    "file": "Fichier",
+    "empty": "Aucune pièce n'est demandée pour cette structure.",
+    "printFiche": "Imprimer la fiche de renseignements",
+    "printDemande": "Imprimer la demande manuscrite",
+    "toasts": {
+      "accepted": "Pièce acceptée",
+      "rejected": "Pièce refusée — la famille est prévenue",
+      "added": "Pièce ajoutée",
+      "removed": "Pièce retirée",
+      "noteRequired": "Indiquez le motif"
+    }
+  },
+  "documents": {
+    "title": "Dossier d'inscription",
+    "subtitle": "Photographiez chaque pièce ou joignez un PDF. Ce qui manque peut être remis à l'accueil.",
+    "attached": "Jointe",
+    "bringLater": "À remettre sur place",
+    "formHint": "À imprimer, remplir, signer et joindre ici.",
+    "progress": "{count} pièces sur {total} jointes — le reste peut être remis à l'accueil."
   }
 }

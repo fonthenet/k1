@@ -63,13 +63,17 @@
       "created": "تم نشر الإعلان",
       "updated": "تم تحديث الإعلان",
       "deleted": "تم حذف الإعلان",
-      "error": "حدث خطأ. أعد المحاولة."
+      "error": "حدث خطأ. أعد المحاولة.",
+      "forbidden": "ليست لديكم صلاحية نشر إعلان."
     },
     "more": "إجراءات أخرى",
     "columns": {
       "announcement": "الإعلان",
       "author": "الكاتب",
       "actions": "إجراءات"
+    },
+    "compose": {
+      "description": "يظهر للمعنيين ويُشعَرون به فور الإرسال."
     }
   },
   "messages": {
@@ -99,12 +103,19 @@
       "sent": "تم إرسال الرسالة",
       "error": "حدث خطأ. أعد المحاولة."
     },
-    "unreadMessages": "{count, plural, one {رسالة واحدة غير مقروءة} two {رسالتان غير مقروءتين} few {# رسائل غير مقروءة} other {# رسالة غير مقروءة}}"
+    "unreadMessages": "{count, plural, one {# رسالة غير مقروءة} two {# رسائل غير مقروءة} few {# رسائل غير مقروءة} other {# رسالة غير مقروءة}}",
+    "compose": {
+      "searchChild": "البحث عن طفل…",
+      "noMatch": "لا يوجد طفل بهذا الاسم",
+      "picked": "إلى",
+      "unreachable": "ليس للأولياء حساب بعد: لن يروا هذه الرسالة حتى يفتحوا حسابًا.",
+      "noAccount": "لا ولي له حساب بعد"
+    }
   },
   "calendar": {
     "title": "التقويم",
     "description": "فعاليات الروضة والعطل الرسمية",
-    "newEvent": "فعالية جديدة",
+    "newEvent": "إضافة فعالية",
     "tentative": "بانتظار التأكيد",
     "holiday": "عطلة",
     "upcoming": "القادمة",
@@ -119,15 +130,24 @@
       "class": "القسم",
       "chooseClass": "اختاروا قسمًا",
       "color": "اللون",
-      "willNotify": "{count, plural, =0 {لن يُنبَّه أحد} one {سيُنبَّه شخص واحد} two {سيُنبَّه شخصان} few {سيُنبَّه # أشخاص} many {سيُنبَّه # شخصًا} other {سيُنبَّه # شخص}}",
+      "willNotify": "{count, plural, =0 {لن يُنبَّه أحد} one {سيُنبَّه # شخص} two {سيُنبَّه # أشخاص} few {سيُنبَّه # أشخاص} many {سيُنبَّه # شخصًا} other {سيُنبَّه # شخص}}",
       "pastNoNotify": "هذا التاريخ قد مضى — لن يُنبَّه أحد. تبقى الفعالية في التقويم.",
       "structure": "الهيكل",
-      "chooseStructure": "اختاروا هيكلا",
-      "roomNeedsEnd": "حدّدوا وقت النهاية لحجز القاعة."
+      "chooseStructure": "اختاروا هيكلًا",
+      "roomNeedsEnd": "حدّدوا وقت النهاية لحجز القاعة.",
+      "allDay": "طوال اليوم",
+      "from": "من",
+      "to": "إلى",
+      "editDescription": "سيُبلَّغ المعنيون إذا تغيّر التاريخ أو الوقت أو المكان أو الموجَّه إليهم.",
+      "moveNotify": "{count, plural, =0 {لن يُبلَّغ أحد بالتغيير} one {سيُبلَّغ # شخص بالتغيير} two {سيُبلَّغ # أشخاص بالتغيير} few {سيُبلَّغ # أشخاص بالتغيير} many {سيُبلَّغ # شخصًا بالتغيير} other {سيُبلَّغ # شخص بالتغيير}}",
+      "rsvp": "طلب تأكيد الحضور من العائلات",
+      "closedDay": "المؤسسة مغلقة في هذا اليوم ({name}).",
+      "closedDayTentative": "إغلاق بانتظار التأكيد في هذا اليوم: {name}.",
+      "rsvpHint": "يجيب كل ولي عن نفسه."
     },
     "createDialog": {
       "title": "فعالية جديدة",
-      "description": "ستظهر الفعالية في تقويم المعنيين بها.",
+      "description": "ستظهر الفعالية في تقويم المعنيين بها وسيُبلَّغون.",
       "submit": "إنشاء"
     },
     "editDialog": {
@@ -140,7 +160,10 @@
       "updated": "تم تحديث الفعالية",
       "deleted": "تم حذف الفعالية",
       "error": "حدث خطأ. أعيدوا المحاولة.",
-      "conflictRoom": "القاعة محجوزة في هذا الوقت. لم تُحفظ الفعالية."
+      "conflictRoom": "القاعة محجوزة في هذا الوقت. لم تُحفظ الفعالية.",
+      "cancelled": "أُلغيت الفعالية — وبُلِّغ من كان على علم بها",
+      "restored": "أُعيدت الفعالية",
+      "gone": "هذه الفعالية لم تعد موجودة"
     },
     "prevMonth": "الشهر السابق",
     "nextMonth": "الشهر التالي",
@@ -151,7 +174,120 @@
     "descriptionEvents": "فعاليات المؤسسة وعطلها الرسمية",
     "descriptionWithLessons": "{profile, select, academic {فعاليات المؤسسة وعطلها الرسمية وحصصها} therapy {فعاليات المؤسسة وعطلها الرسمية وورشاتها} other {فعاليات المؤسسة وعطلها الرسمية وأنشطتها}}",
     "timetable": "الجدول الأسبوعي",
-    "moreLessons": "{profile, select, academic {{count, plural, one {حصة أخرى} two {حصتان أخريان} few {# حصص أخرى} many {# حصة أخرى} other {# حصة أخرى}}} therapy {{count, plural, one {ورشة أخرى} two {ورشتان أخريان} few {# ورشات أخرى} many {# ورشة أخرى} other {# ورشة أخرى}}} other {{count, plural, one {نشاط آخر} two {نشاطان آخران} few {# أنشطة أخرى} many {# نشاطا آخر} other {# نشاط آخر}}}}"
+    "moreLessons": "{profile, select, academic {{count, plural, one {# حصة أخرى} two {# حصص أخرى} few {# حصص أخرى} many {# حصة أخرى} other {# حصة أخرى}}} therapy {{count, plural, one {# ورشة أخرى} two {# ورشات أخرى} few {# ورشات أخرى} many {# ورشة أخرى} other {# ورشة أخرى}}} other {{count, plural, one {# نشاط آخر} two {# أنشطة أخرى} few {# أنشطة أخرى} many {# نشاطا آخر} other {# نشاط آخر}}}}",
+    "cancelEvent": "إلغاء الفعالية",
+    "cancelConfirm": "تأكيد الإلغاء",
+    "cancelHint": "سيُبلَّغ من كان على علم بها. تبقى الفعالية في التقويم مشطوبة.",
+    "restoreEvent": "إعادة الفعالية",
+    "cancelled": "ملغاة",
+    "detail": {
+      "edit": "تعديل",
+      "audience": "الموجَّه إليهم",
+      "room": "القاعة",
+      "addToCalendar": "إضافة إلى تقويمي",
+      "responses": "الردود",
+      "responsesList": "عرض الردود",
+      "going": "حاضر",
+      "notGoing": "غائب",
+      "noAnswer": "بلا رد",
+      "cancelledOn": "أُلغيت يوم {date}",
+      "responsesHint": "يجيب كل ولي عن نفسه."
+    },
+    "descriptionAll": "{profile, select, academic {فعاليات المؤسسة وأيام إغلاقها وحصصها ومتابعاتها وآجالها} therapy {فعاليات المؤسسة وأيام إغلاقها وورشاتها ومتابعاتها وآجالها} other {فعاليات المؤسسة وأيام إغلاقها وأنشطتها ومتابعاتها وآجالها}}",
+    "views": {
+      "label": "طريقة العرض",
+      "month": "شهر",
+      "week": "أسبوع",
+      "day": "يوم"
+    },
+    "prevWeek": "الأسبوع السابق",
+    "nextWeek": "الأسبوع التالي",
+    "prevDay": "اليوم السابق",
+    "nextDay": "اليوم التالي",
+    "weekOf": "أسبوع {date}",
+    "todayKey": "اليوم (T)",
+    "allDay": "طوال اليوم",
+    "closed": "مغلق",
+    "closedLine": "مغلق · {name}",
+    "closedLineTentative": "مغلق · {name} · بانتظار التأكيد",
+    "tentativeName": "{name} · بانتظار التأكيد",
+    "scope": {
+      "label": "النطاق",
+      "mine": "{profile, select, academic {حصصي} therapy {ورشاتي} other {أنشطتي}}",
+      "all": "الكل"
+    },
+    "kinds": {
+      "label": "عرض",
+      "event": "الفعاليات",
+      "holiday": "أيام الإغلاق",
+      "lesson": "{profile, select, academic {الحصص} therapy {الورشات} other {أنشطة الأقسام}}",
+      "session": "المتابعة الفردية",
+      "activity": "الأنشطة الموازية",
+      "assessment": "التقييمات",
+      "task": "المهام",
+      "leave": "إجازات الفريق",
+      "interview": "مقابلات التسجيل",
+      "birthday": "أعياد الميلاد",
+      "invoice_due": "الآجال",
+      "payroll": "الأجور"
+    },
+    "more": "{count, plural, one {# آخر} two {# آخران} few {# أخرى} many {# أخرى} other {# أخرى}}",
+    "moreTitle": "{count, plural, one {# عنصر آخر في هذا اليوم} two {# عناصر أخرى في هذا اليوم} few {# عناصر أخرى في هذا اليوم} many {# عنصرًا آخر في هذا اليوم} other {# عنصر آخر في هذا اليوم}}",
+    "marker": {
+      "invoices": "{count, plural, one {# فاتورة للتسديد} two {# فواتير للتسديد} few {# فواتير للتسديد} many {# فاتورة للتسديد} other {# فاتورة للتسديد}}",
+      "payroll": "أجور {month}",
+      "birthday": "{name} · {age, plural, one {يُتمّ # سنة} two {يُتمّ # سنوات} few {يُتمّ # سنوات} many {يُتمّ # سنة} other {يُتمّ # سنة}}",
+      "leave": "{name} · إجازة",
+      "leavePending": "{name} · إجازة بانتظار القرار"
+    },
+    "cell": {
+      "name": "{date} · {summary}",
+      "today": "{name}، اليوم",
+      "empty": "{date} · لا شيء مبرمج",
+      "closed": "{date} · مغلق · {name}",
+      "events": "{count, plural, one {# فعالية} two {# فعاليات} few {# فعاليات} many {# فعالية} other {# فعالية}}",
+      "lessons": "{profile, select, academic {{count, plural, one {# حصة} two {# حصص} few {# حصص} many {# حصة} other {# حصة}}} therapy {{count, plural, one {# ورشة} two {# ورشات} few {# ورشات} many {# ورشة} other {# ورشة}}} other {{count, plural, one {# نشاط} two {# أنشطة} few {# أنشطة} many {# نشاطًا} other {# نشاط}}}}",
+      "sessions": "{count, plural, one {# متابعة فردية} two {# متابعات فردية} few {# متابعات فردية} many {# متابعة فردية} other {# متابعة فردية}}",
+      "others": "{count, plural, one {# عنصر آخر} two {# عناصر أخرى} few {# عناصر أخرى} many {# عنصرًا آخر} other {# عنصر آخر}}"
+    },
+    "grid": {
+      "label": "التقويم، {month}",
+      "help": "السهمان للتنقّل بين الفترات، T لليوم، M وW وD لتغيير العرض، N لإضافة فعالية.",
+      "dayLabel": "يوم {date}"
+    },
+    "legend": "الدليل",
+    "legendTentative": "بانتظار التأكيد",
+    "printTitle": "{establishment} · {month}",
+    "printScope": "{structure} · {kinds}",
+    "dayEmpty": "لا شيء مبرمج في هذا اليوم",
+    "upcomingDays": "الأيام السبعة القادمة",
+    "hover": {
+      "openTimetable": "عرض في الجدول الأسبوعي",
+      "openSession": "فتح المتابعة",
+      "openChild": "فتح الملف",
+      "openTask": "فتح المهمة",
+      "openApplication": "فتح الطلب",
+      "openBilling": "عرض الفوترة",
+      "openPayroll": "عرض الأجور",
+      "openLeaves": "عرض الإجازات",
+      "openAssessment": "فتح التقييم",
+      "openActivity": "فتح النشاط",
+      "confirmDate": "تأكيد التاريخ",
+      "child": "الطفل",
+      "therapist": "المختص",
+      "assignee": "المكلَّف",
+      "pending": "بانتظار القرار",
+      "approved": "إجازة مقبولة",
+      "lessonsOnLeave": "{count, plural, one {# حصة بلا معلّم} two {# حصص بلا معلّم} few {# حصص بلا معلّم} many {# حصة بلا معلّم} other {# حصة بلا معلّم}}",
+      "notifiedFamilies": "{count, plural, =0 {لم تُبلَّغ أي عائلة} one {# عائلة أُبلغت} two {# عائلات أُبلغت} few {# عائلات أُبلغت} many {# عائلة أُبلغت} other {# عائلة أُبلغت}}",
+      "notifiedStaff": "{count, plural, one {# عضو من الفريق} two {# أعضاء من الفريق} few {# أعضاء من الفريق} many {# عضوًا من الفريق} other {# عضو من الفريق}}",
+      "notifiedRead": "{count, plural, =0 {لم يقرأها أحد} one {# قراءة} two {# قراءات} few {# قراءات} many {# قراءة} other {# قراءة}}",
+      "rsvpGoing": "{count, plural, =0 {لا حضور مؤكد} one {# حضور مؤكد} two {# حضور مؤكد} few {# حضور مؤكد} many {# حضورًا مؤكدًا} other {# حضور مؤكد}}",
+      "rsvpNotGoing": "{count, plural, one {# غياب} two {# غيابات} few {# غيابات} many {# غيابًا} other {# غياب}}",
+      "rsvpPending": "{count, plural, one {# دون رد} two {# دون رد} few {# دون رد} many {# دون رد} other {# دون رد}}",
+      "perPerson": "لكل شخص"
+    },
+    "count": "{count, plural, =0 {لا شيء للعرض} one {# عنصر} two {# عناصر} few {# عناصر} many {# عنصرًا} other {# عنصر}}"
   },
   "menus": {
     "title": "قوائم الطعام",
@@ -177,15 +313,15 @@
       "repeatHint": "تُنسخ القائمة نفسها إلى هذا اليوم من كل أسبوع، وتُتجاوز أيام الإغلاق.",
       "until": "حتى",
       "replaceExisting": "استبدال الأيام المعبّأة مسبقًا",
-      "repeatPreview": "{count, plural, =0 {لا أسابيع} one {أسبوع واحد} two {أسبوعان} few {# أسابيع} other {# أسبوعًا}} · كل {weekday} حتى {date}"
+      "repeatPreview": "{count, plural, =0 {لا أسابيع} one {# أسبوع} two {# أسابيع} few {# أسابيع} other {# أسبوعًا}} · كل {weekday} حتى {date}"
     },
     "toasts": {
       "saved": "تم حفظ القائمة",
-      "copied": "{count, plural, =0 {لا توجد قوائم للنسخ من الأسبوع الماضي} one {تم نسخ يوم واحد} two {تم نسخ يومين} few {تم نسخ # أيام} many {تم نسخ # يومًا} other {تم نسخ # يوم}}",
+      "copied": "{count, plural, =0 {لا توجد قوائم للنسخ من الأسبوع الماضي} one {تم نسخ # يوم} two {تم نسخ # أيام} few {تم نسخ # أيام} many {تم نسخ # يومًا} other {تم نسخ # يوم}}",
       "error": "حدث خطأ. أعد المحاولة.",
-      "publishedWeek": "{count, plural, zero {لا قائمة للنشر} one {نُشرت قائمة واحدة} two {نُشرت قائمتان} few {نُشرت # قوائم} many {نُشرت # قائمة} other {نُشرت # قائمة}}",
-      "repeated": "{count, plural, =0 {حُفظت القائمة دون إضافة أي يوم} one {حُفظت القائمة ونُسخت إلى أسبوع واحد} two {حُفظت القائمة ونُسخت إلى أسبوعين} few {حُفظت القائمة ونُسخت إلى # أسابيع} other {حُفظت القائمة ونُسخت إلى # أسبوعًا}}",
-      "repeatedKept": " · {count, plural, one {احتُفظ بيوم واحد معبّأ مسبقًا} two {احتُفظ بيومين معبّأين مسبقًا} few {احتُفظ بـ # أيام معبّأة مسبقًا} other {احتُفظ بـ # يومًا معبّأً مسبقًا}}"
+      "publishedWeek": "{count, plural, zero {لا قائمة للنشر} one {نُشرت # قائمة} two {نُشرت # قوائم} few {نُشرت # قوائم} many {نُشرت # قائمة} other {نُشرت # قائمة}}",
+      "repeated": "{count, plural, =0 {حُفظت القائمة دون إضافة أي يوم} one {حُفظت القائمة ونُسخت إلى # أسبوع} two {حُفظت القائمة ونُسخت إلى # أسابيع} few {حُفظت القائمة ونُسخت إلى # أسابيع} other {حُفظت القائمة ونُسخت إلى # أسبوعًا}}",
+      "repeatedKept": " · {count, plural, one {احتُفظ بـ # يوم معبّأ مسبقًا} two {احتُفظ بـ # أيام معبّأة مسبقًا} few {احتُفظ بـ # أيام معبّأة مسبقًا} other {احتُفظ بـ # يومًا معبّأً مسبقًا}}"
     },
     "prevWeek": "الأسبوع السابق",
     "nextWeek": "الأسبوع التالي",
@@ -289,6 +425,6 @@
     },
     "severityFilter": "التصفية حسب الخطورة",
     "allSeverities": "كل درجات الخطورة",
-    "count": "{count, plural, =0 {لا توجد حوادث} one {حادث واحد} two {حادثان} few {# حوادث} many {# حادثًا} other {# حادث}}"
+    "count": "{count, plural, =0 {لا توجد حوادث} one {# حادث} two {# حوادث} few {# حوادث} many {# حادثًا} other {# حادث}}"
   }
 }

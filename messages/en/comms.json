@@ -63,13 +63,17 @@
       "created": "Announcement published",
       "updated": "Announcement updated",
       "deleted": "Announcement deleted",
-      "error": "Something went wrong. Try again."
+      "error": "Something went wrong. Try again.",
+      "forbidden": "You do not have the rights to publish an announcement."
     },
     "more": "More actions",
     "columns": {
       "announcement": "Announcement",
       "author": "Author",
       "actions": "Actions"
+    },
+    "compose": {
+      "description": "Visible to the recipients, and notified to them, as soon as it is sent."
     }
   },
   "messages": {
@@ -99,12 +103,19 @@
       "sent": "Message sent",
       "error": "Something went wrong. Try again."
     },
-    "unreadMessages": "{count, plural, one {# unread message} other {# unread messages}}"
+    "unreadMessages": "{count, plural, one {# unread message} other {# unread messages}}",
+    "compose": {
+      "searchChild": "Search for a child…",
+      "noMatch": "No child matches",
+      "picked": "To",
+      "unreachable": "The parents have no account yet: they will not see this message until they open one.",
+      "noAccount": "No parent with an account"
+    }
   },
   "calendar": {
     "title": "Calendar",
     "description": "Kindergarten events and public holidays",
-    "newEvent": "New event",
+    "newEvent": "Add an event",
     "tentative": "to be confirmed",
     "holiday": "Holiday",
     "upcoming": "Upcoming",
@@ -123,11 +134,20 @@
       "pastNoNotify": "This date has already passed — nobody will be notified. The event still appears in the calendar.",
       "structure": "Structure",
       "chooseStructure": "Choose a structure",
-      "roomNeedsEnd": "Set an end time to book the room."
+      "roomNeedsEnd": "Set an end time to book the room.",
+      "allDay": "All day",
+      "from": "From",
+      "to": "To",
+      "editDescription": "The audience will be told if the date, time, place or audience changes.",
+      "moveNotify": "{count, plural, =0 {Nobody will be told of the change} one {# person will be told of the change} other {# people will be told of the change}}",
+      "rsvp": "Ask families to confirm attendance",
+      "closedDay": "The establishment is closed that day ({name}).",
+      "closedDayTentative": "Closure to be confirmed that day: {name}.",
+      "rsvpHint": "Each parent answers for themselves."
     },
     "createDialog": {
       "title": "New event",
-      "description": "The event will appear on the calendar of the chosen audience.",
+      "description": "The event will appear on the calendar of the chosen audience, who will be told.",
       "submit": "Create"
     },
     "editDialog": {
@@ -140,7 +160,10 @@
       "updated": "Event updated",
       "deleted": "Event deleted",
       "error": "Something went wrong. Try again.",
-      "conflictRoom": "The room is already booked at that time. The event was not saved."
+      "conflictRoom": "The room is already booked at that time. The event was not saved.",
+      "cancelled": "Event cancelled — everyone who was told knows",
+      "restored": "Event restored",
+      "gone": "This event no longer exists"
     },
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
@@ -151,7 +174,120 @@
     "descriptionEvents": "The establishment's events and public holidays",
     "descriptionWithLessons": "{profile, select, academic {The establishment's events, public holidays and lessons} therapy {The establishment's events, public holidays and workshops} other {The establishment's events, public holidays and activities}}",
     "timetable": "Timetable",
-    "moreLessons": "{profile, select, academic {{count, plural, one {# more lesson} other {# more lessons}}} therapy {{count, plural, one {# more workshop} other {# more workshops}}} other {{count, plural, one {# more activity} other {# more activities}}}}"
+    "moreLessons": "{profile, select, academic {{count, plural, one {# more lesson} other {# more lessons}}} therapy {{count, plural, one {# more workshop} other {# more workshops}}} other {{count, plural, one {# more activity} other {# more activities}}}}",
+    "cancelEvent": "Cancel the event",
+    "cancelConfirm": "Confirm cancellation",
+    "cancelHint": "Everyone who was told will be told. The event stays on the calendar, struck through.",
+    "restoreEvent": "Restore the event",
+    "cancelled": "Cancelled",
+    "detail": {
+      "edit": "Edit",
+      "audience": "Audience",
+      "room": "Room",
+      "addToCalendar": "Add to my calendar",
+      "responses": "Responses",
+      "responsesList": "See responses",
+      "going": "Attending",
+      "notGoing": "Absent",
+      "noAnswer": "No answer",
+      "cancelledOn": "Cancelled on {date}",
+      "responsesHint": "Each parent answers for themselves."
+    },
+    "descriptionAll": "{profile, select, academic {The establishment's events, closures, lessons, follow-ups and due dates} therapy {The establishment's events, closures, workshops, follow-ups and due dates} other {The establishment's events, closures, activities, follow-ups and due dates}}",
+    "views": {
+      "label": "View",
+      "month": "Month",
+      "week": "Week",
+      "day": "Day"
+    },
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "weekOf": "Week of {date}",
+    "todayKey": "Today (T)",
+    "allDay": "All day",
+    "closed": "Closed",
+    "closedLine": "Closed · {name}",
+    "closedLineTentative": "Closed · {name} · to be confirmed",
+    "tentativeName": "{name} · to be confirmed",
+    "scope": {
+      "label": "Scope",
+      "mine": "{profile, select, academic {My lessons} therapy {My workshops} other {My activities}}",
+      "all": "Everything"
+    },
+    "kinds": {
+      "label": "Show",
+      "event": "Events",
+      "holiday": "Closures",
+      "lesson": "{profile, select, academic {Lessons} therapy {Workshops} other {Class activities}}",
+      "session": "Individual follow-up",
+      "activity": "Extracurricular activities",
+      "assessment": "Assessments",
+      "task": "Tasks",
+      "leave": "Team leave",
+      "interview": "Admission interviews",
+      "birthday": "Birthdays",
+      "invoice_due": "Due dates",
+      "payroll": "Payroll"
+    },
+    "more": "{count, plural, one {# more} other {# more}}",
+    "moreTitle": "{count, plural, one {# more item that day} other {# more items that day}}",
+    "marker": {
+      "invoices": "{count, plural, one {# invoice due} other {# invoices due}}",
+      "payroll": "{month} payroll",
+      "birthday": "{name} · turns {age}",
+      "leave": "{name} · leave",
+      "leavePending": "{name} · leave to decide"
+    },
+    "cell": {
+      "name": "{date} · {summary}",
+      "today": "{name}, today",
+      "empty": "{date} · nothing planned",
+      "closed": "{date} · closed · {name}",
+      "events": "{count, plural, one {# event} other {# events}}",
+      "lessons": "{profile, select, academic {{count, plural, one {# lesson} other {# lessons}}} therapy {{count, plural, one {# workshop} other {# workshops}}} other {{count, plural, one {# activity} other {# activities}}}}",
+      "sessions": "{count, plural, one {# individual follow-up} other {# individual follow-ups}}",
+      "others": "{count, plural, one {# other item} other {# other items}}"
+    },
+    "grid": {
+      "label": "Calendar, {month}",
+      "help": "Left and right arrows change the period, T is today, M, W, D switch the view, N adds an event.",
+      "dayLabel": "Day of {date}"
+    },
+    "legend": "Legend",
+    "legendTentative": "to be confirmed",
+    "printTitle": "{establishment} · {month}",
+    "printScope": "{structure} · {kinds}",
+    "dayEmpty": "Nothing planned that day",
+    "upcomingDays": "The next 7 days",
+    "hover": {
+      "openTimetable": "See in the timetable",
+      "openSession": "Open the follow-up",
+      "openChild": "Open the record",
+      "openTask": "Open the task",
+      "openApplication": "Open the application",
+      "openBilling": "See billing",
+      "openPayroll": "See payroll",
+      "openLeaves": "See leave",
+      "openAssessment": "Open the assessment",
+      "openActivity": "Open the activity",
+      "confirmDate": "Confirm the date",
+      "child": "Child",
+      "therapist": "Practitioner",
+      "assignee": "Assignee",
+      "pending": "Awaiting a decision",
+      "approved": "Leave approved",
+      "lessonsOnLeave": "{count, plural, one {# lesson without a teacher} other {# lessons without a teacher}}",
+      "notifiedFamilies": "{count, plural, =0 {No family told} one {# family told} other {# families told}}",
+      "notifiedStaff": "{count, plural, one {# team member} other {# team members}}",
+      "notifiedRead": "{count, plural, =0 {none read} one {# read} other {# read}}",
+      "rsvpGoing": "{count, plural, =0 {No one confirmed} one {# confirmed} other {# confirmed}}",
+      "rsvpNotGoing": "{count, plural, one {# not coming} other {# not coming}}",
+      "rsvpPending": "{count, plural, one {# no answer} other {# no answer}}",
+      "perPerson": "per person"
+    },
+    "count": "{count, plural, =0 {Nothing to show} one {# item} other {# items}}"
   },
   "menus": {
     "title": "Menus",

@@ -67,7 +67,8 @@
     "published": "Shared with the parent",
     "columns": {
       "time": "Time"
-    }
+    },
+    "seeCalendar": "See on the calendar"
   },
   "newSession": {
     "trigger": "New session",
@@ -85,7 +86,9 @@
     "programNone": "No programme",
     "programHint": "Linking a session to a programme counts it towards the plan.",
     "submit": "Book session",
-    "noChildren": "Enrol a child first — sessions are always booked for one child."
+    "noChildren": "Enrol a child first — sessions are always booked for one child.",
+    "closedDay": "The establishment is closed that day ({name}).",
+    "closedDayTentative": "Closure to be confirmed that day: {name}."
   },
   "detail": {
     "title": "Session — {child}",
@@ -209,7 +212,8 @@
   "errors": {
     "title": "Sessions could not be loaded",
     "description": "The schedule could not be read. Check your connection and try again.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "outsideOpeningHours": "The establishment is closed that day — the session was not saved."
   },
   "toasts": {
     "sessionCreated": "Session booked",

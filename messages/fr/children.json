@@ -45,7 +45,9 @@
       "searchPlaceholder": "Rechercher un élève (français ou arabe)…",
       "addChild": "Ajouter un élève",
       "column": "Élève"
-    }
+    },
+    "dossierIncomplete": "Dossier incomplet",
+    "dossierPill": "Dossier"
   },
   "status": {
     "pending": "En attente",
@@ -122,7 +124,7 @@
       "health": "Santé",
       "attendance": "Présences",
       "billing": "Facturation",
-      "documents": "Documents",
+      "documents": "Dossier",
       "consents": "Consentements"
     },
     "info": {
@@ -370,7 +372,7 @@
   "documents": {
     "title": "Documents",
     "empty": "Aucun document",
-    "emptyDescription": "Ajoutez l'acte de naissance, le carnet de vaccination ou d'autres pièces.",
+    "emptyDescription": "Ajoutez les pièces reçues à l'accueil ; la famille peut aussi les joindre depuis son espace.",
     "upload": "Ajouter un document",
     "uploadTitle": "Nouveau document",
     "docTitle": "Titre du document",

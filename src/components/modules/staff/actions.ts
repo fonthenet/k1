@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { flushPush } from "@/app/actions/push";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import type { Timesheet } from "@/lib/types";
@@ -375,6 +376,18 @@ export async function setTimesheetApproved(
 
 // -------------------------------------------------------------------- leaves
 
+/**
+ * A leave is on two calendars besides this page: the staff calendar draws
+ * a pending request as a dashed band and an approved one as a neutral one,
+ * and the timetable strikes the teacher's initials on the cours they will
+ * not give (SPEC5 §7). Both are told on every change of a request.
+ */
+function revalidateLeaves() {
+  revalidatePath("/staff/leaves");
+  revalidatePath("/calendar");
+  revalidatePath("/learning/timetable");
+}
+
 const leaveSchema = z
   .object({
     leaveType: z.enum(["vacation", "sick", "personal"]),
@@ -400,13 +413,21 @@ export async function requestLeave(input: z.infer<typeof leaveSchema>): Promise<
     reason: v.reason?.trim() || null,
   });
   if (error) return { ok: false, error: "generic" };
-  revalidatePath("/staff/leaves");
+  revalidateLeaves();
   return { ok: true };
 }
 
+/**
+ * Approve or refuse a pending request. The cours and follow-ups the person
+ * is scheduled for stay as they are — the approve dialog says how many, as
+ * a warning and never a refusal (SPEC5 §7) — and the decision trigger of
+ * 0159 tells the person on their own row, which the flush hands to their
+ * phone now rather than at the next dispatch.
+ */
 export async function decideLeave(id: string, decision: "approved" | "rejected"): Promise<Result> {
   const ctx = await requireStaff();
   if (!ctx.isAdmin) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "invalid" };
   const supabase = await createClient();
   const { error } = await supabase
     .from("kg_leave_requests")
@@ -415,7 +436,8 @@ export async function decideLeave(id: string, decision: "approved" | "rejected")
     .eq("tenant_id", ctx.tenant.id)
     .eq("status", "pending");
   if (error) return { ok: false, error: "generic" };
-  revalidatePath("/staff/leaves");
+  revalidateLeaves();
+  await flushPush();
   return { ok: true };
 }
 
@@ -429,7 +451,7 @@ export async function cancelLeave(id: string): Promise<Result> {
     .eq("membership_id", ctx.membership.id)
     .eq("status", "pending");
   if (error) return { ok: false, error: "generic" };
-  revalidatePath("/staff/leaves");
+  revalidateLeaves();
   return { ok: true };
 }
 

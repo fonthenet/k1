@@ -17,6 +17,7 @@ import { StatusPill } from "@/components/shared/status-pill";
 import { StructureMark } from "@/components/shared/structure-mark";
 import { ValueRange } from "@/components/shared/value-range";
 import { CredentialCards } from "@/components/modules/credentials/credential-cards";
+import { ScanCardSheet } from "@/components/modules/credentials/scan-card-sheet";
 import type { CredentialRow } from "@/components/modules/credentials/types";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
@@ -364,7 +365,27 @@ export default async function StaffMemberPage({
             </StatusPill>
           ) : null,
         ]}
-        actions={ctx.isAdmin ? <EditMemberDialog member={member} name={name} /> : undefined}
+        actions={
+          ctx.isAdmin ? (
+            <>
+              <EditMemberDialog member={member} name={name} />
+              {/* The card goes to this one person, so the dialog has no
+                  picker; the button saves the trip to the Cartes tab. */}
+              <ScanCardSheet
+                subjects={[
+                  {
+                    type: "staff",
+                    id: member.id,
+                    name,
+                    photoUrl: profile?.avatar_url ?? null,
+                    initials: initials(parts[0] ?? "", parts[1] ?? ""),
+                  },
+                ]}
+                path={`/staff/${member.id}`}
+              />
+            </>
+          ) : undefined
+        }
       />
 
       {/* What they do, then — only for someone on no class — where. An

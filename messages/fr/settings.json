@@ -6,7 +6,9 @@
     "holidays": "Jours fériés",
     "documents": "Documents",
     "notifications": "Notifications",
-    "subscription": "Abonnement"
+    "subscription": "Abonnement",
+    "dossier": "Dossier d'inscription",
+    "badges": "Badges et cartes"
   },
   "errors": {
     "generic": "Une erreur est survenue. Réessayez.",
@@ -182,8 +184,8 @@
     "structureHint": "Une fête nationale ferme tout l'établissement ; les vacances scolaires ne ferment qu'une structure.",
     "wholeBuilding": "Tout l'établissement",
     "closureLabel": "Établissement fermé",
-    "tentativeLabel": "Date non encore confirmée",
-    "tentativeBadge": "Date approximative",
+    "tentativeLabel": "Date à confirmer (fête religieuse)",
+    "tentativeBadge": "À confirmer",
     "openBadge": "Établissement ouvert",
     "confirmed": "Date confirmée",
     "confirmTitle": "Confirmer la date",
@@ -202,7 +204,27 @@
     },
     "tentativeNotice": "Les dates religieuses restent approximatives jusqu'à l'annonce officielle : confirmez-les le moment venu.",
     "past": "Passé",
-    "more": "Plus d'actions"
+    "more": "Plus d'actions",
+    "kind": "Type",
+    "kinds": {
+      "public": "Fête nationale",
+      "religious": "Fête religieuse",
+      "school_break": "Vacances scolaires",
+      "closure": "Fermeture"
+    },
+    "noClosure": "Sans fermeture",
+    "generate": "Ajouter les jours fériés {year}",
+    "generateHint": "Fêtes nationales confirmées, fêtes religieuses à confirmer selon la lune.",
+    "generated": "{count, plural, =0 {Rien à ajouter, l'année est complète} one {# jour férié ajouté} other {# jours fériés ajoutés}}, {tentative, plural, =0 {} one {# à confirmer} other {# à confirmer}}",
+    "schoolYear": "Année scolaire",
+    "alreadyClosed": "Le {date} est déjà fermé : {name}.",
+    "impact": "Sur ces jours : {lessons, plural, =0 {aucun cours} one {<b>#</b> cours} other {<b>#</b> cours}}, {sessions, plural, =0 {aucun suivi} one {<b>#</b> suivi} other {<b>#</b> suivis}} et {events, plural, =0 {aucun événement} one {<b>#</b> événement} other {<b>#</b> événements}}.",
+    "cancelSlots": "Annuler ces cours et suivis et prévenir les familles",
+    "eventsStay": "Les événements restent au calendrier.",
+    "seeTimetable": "Voir l'emploi du temps",
+    "duplicateDate": "Un jour férié existe déjà à cette date.",
+    "closeDay": "Fermer l'établissement",
+    "keepOpen": "Garder l'établissement ouvert"
   },
   "documents": {
     "title": "Documents administratifs",
@@ -421,6 +443,275 @@
       },
       "children": "{count, plural, one {# enfant} other {# enfants}}",
       "pupils": "{count, plural, one {# élève} other {# élèves}}"
+    }
+  },
+  "dossier": {
+    "title": "Dossier d'inscription",
+    "description": "Les pièces que chaque famille fournit à l'inscription, et les formulaires à remplir",
+    "add": "Ajouter une pièce",
+    "edit": "Modifier la pièce",
+    "newTitle": "Nouvelle pièce",
+    "dialogHint": "Le nom s'affiche aux familles dans leur langue.",
+    "columns": {
+      "piece": "Pièce",
+      "appliesTo": "Concerne",
+      "validity": "Validité",
+      "required": "Obligatoire",
+      "active": "Active"
+    },
+    "fields": {
+      "name": "Nom",
+      "nameAr": "الاسم",
+      "description": "Description",
+      "descriptionAr": "الوصف",
+      "kind": "Liste",
+      "form": "Formulaire à remplir"
+    },
+    "validity": {
+      "none": "Sans limite",
+      "months": "{count} mois"
+    },
+    "formHint": "PDF uniquement, 10 Mo max. La famille le télécharge, le remplit et le joint signé.",
+    "formOpen": "Ouvrir",
+    "formRemove": "Retirer le formulaire",
+    "formRemoveDescription": "Les familles ne pourront plus le télécharger. Les pièces déjà reçues sont conservées.",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "remove": "Retirer",
+    "removeDescription": "La pièce disparaît de la liste demandée aux familles.",
+    "removeRefused": "Des pièces reçues s'y rattachent : désactivez-la plutôt.",
+    "restore": "Rétablir la liste réglementaire",
+    "restoreDescription": "Les pièces réglementaires sont activées ; les enfants déjà inscrits apparaissent « Dossier incomplet » tant que leurs pièces ne sont pas ajoutées.",
+    "restored": "{count} pièces ajoutées",
+    "legalNote": "Décret exécutif 19-253, cahier des charges, art. 6",
+    "empty": "Aucune pièce demandée",
+    "emptyHint": "Rétablissez la liste réglementaire ou ajoutez vos propres pièces.",
+    "save": "Enregistrer",
+    "toasts": {
+      "saved": "Pièce enregistrée",
+      "removed": "Pièce retirée"
+    }
+  },
+  "badges": {
+    "title": "Badges et cartes",
+    "description": "Qui peut ouvrir la porte avec une carte de proximité, et le lecteur qui les attribue.",
+    "empty": "Personne à équiper pour le moment",
+    "emptyHint": "Les enfants inscrits, leurs parents et l'équipe apparaîtront ici.",
+    "noMatch": "Aucune personne ne correspond à ces critères",
+    "noMatchHint": "Essayez de modifier la recherche ou les filtres.",
+    "more": "Plus d'actions",
+    "noCard": "Aucune",
+    "familyWithoutCard": "Famille sans carte",
+    "cardCount": "{count, plural, one {# carte} other {# cartes}}",
+    "stats": {
+      "children": "Enfants",
+      "childrenHint": "avec une carte",
+      "guardians": "Parents",
+      "guardiansHint": "avec une carte",
+      "staff": "Équipe",
+      "staffHint": "avec une carte",
+      "usedThisWeek": "Cette semaine",
+      "usedThisWeekHint": "cartes passées au lecteur"
+    },
+    "filter": {
+      "search": "Rechercher une personne…",
+      "structure": "Structure",
+      "allStructures": "Toutes les structures",
+      "withoutCard": "Sans carte",
+      "count": "{count, plural, =0 {Aucune personne} one {# personne} other {# personnes}}",
+      "pin": {
+        "label": "Filtrer par PIN",
+        "all": "Avec ou sans PIN",
+        "with": "Avec PIN",
+        "without": "Sans PIN"
+      }
+    },
+    "columns": {
+      "person": "Personne",
+      "code": "Code imprimé",
+      "cards": "Cartes",
+      "lastPass": "Dernier passage"
+    },
+    "groups": {
+      "child": "Enfants",
+      "guardian": "Parents",
+      "staff": "Équipe",
+      "family": "Famille {name}",
+      "noClass": "Sans classe",
+      "withoutCard": "{count, plural, one {# sans carte} other {# sans carte}}",
+      "collapseAll": "Tout replier",
+      "expandAll": "Tout déplier"
+    },
+    "scan": {
+      "start": "Attribuer par scan",
+      "stop": "Terminer le scan",
+      "selectPerson": "Sélectionnez une personne puis passez sa carte",
+      "passCard": "Passez maintenant la carte de <name></name>",
+      "escape": "Échap pour quitter",
+      "selectFirst": "Sélectionnez d'abord une personne dans la liste.",
+      "issuedTo": "Carte attribuée à <name></name>"
+    },
+    "reader": {
+      "title": "Test du lecteur",
+      "hint": "Passez une carte pour voir ce que le lecteur lit et à qui elle appartient — sans enregistrer de passage.",
+      "placeholder": "Passez une carte sur le lecteur",
+      "unfocused": "Cliquez dans le champ, puis passez la carte",
+      "read": "Lu :",
+      "chars": "{count, plural, one {# caractère} other {# caractères}}",
+      "belongsTo": "Appartient à <name></name> ({subject})",
+      "subjects": {
+        "child": "enfant",
+        "guardian": "parent",
+        "staff": "équipe"
+      },
+      "unknown": "inconnue — attribuez-la ci-dessous",
+      "unknownShort": "inconnue",
+      "recent": "Dernières lectures",
+      "unexpectedLength": "longueur inattendue ({got} au lieu de {expected})"
+    },
+    "pin": {
+      "column": "Code PIN",
+      "set": "PIN défini",
+      "withPin": "{count, plural, =0 {aucun PIN} one {# avec PIN} other {# avec PIN}}",
+      "generate": "Générer un PIN",
+      "reset": "Réinitialiser le PIN",
+      "remove": "Retirer le PIN",
+      "removed": "PIN retiré",
+      "issued": {
+        "title": "Code PIN émis",
+        "description": "Remettez ce code à <name></name> maintenant.",
+        "warning": "Il ne sera plus jamais affiché. S'il est oublié, réinitialisez le PIN depuis ce registre."
+      },
+      "confirm": {
+        "guardian": {
+          "reset": {
+            "title": "Réinitialiser le PIN de <name></name> ?",
+            "description": "<b>L'ancien PIN cesse de fonctionner au kiosque</b> ; le nouveau s'affiche une seule fois. La carte imprimée et le QR du téléphone restent valables."
+          },
+          "remove": {
+            "title": "Retirer le PIN de <name></name> ?",
+            "description": "<b>Le pointage par PIN ne sera plus possible</b> ; la carte imprimée et le QR du téléphone restent valables."
+          }
+        },
+        "staff": {
+          "reset": {
+            "title": "Réinitialiser le PIN de <name></name> ?",
+            "description": "<b>L'ancien PIN cesse de fonctionner au kiosque</b> ; le nouveau s'affiche une seule fois."
+          },
+          "remove": {
+            "title": "Retirer le PIN de <name></name> ?",
+            "description": "<b>Le pointage par PIN ne sera plus possible</b> ; le code personnel et les cartes restent valables."
+          }
+        }
+      }
+    },
+    "print": {
+      "title": "Imprimer les badges",
+      "description": "Huit badges au format carte par feuille A4, à découper. La planche s'ouvre dans un nouvel onglet.",
+      "scope": "Qui reçoit un badge",
+      "class": "Classe",
+      "allClasses": "Toutes les classes",
+      "count": "{count, plural, =0 {Aucun badge à imprimer} one {# badge} other {# badges}}",
+      "withoutCode": "{count, plural, one {# sans code imprimé} other {# sans code imprimé}}",
+      "sheets": "{count, plural, one {# feuille} other {# feuilles}}",
+      "empty": "Aucun badge à imprimer",
+      "emptyHint": "Personne dans cette sélection ne porte encore de code imprimé."
+    },
+    "settings": {
+      "title": "Lecteur et badges",
+      "hint": "Ce que l'établissement utilise à la porte — le guide et le test du lecteur en tiennent compte.",
+      "guide": "Guide d'installation",
+      "tagType": "Type de badge",
+      "tagTypes": {
+        "em125": "Porte-clés 125 kHz (EM4100)",
+        "nfc": "Cartes NFC 13,56 MHz",
+        "any": "Indifférent"
+      },
+      "codeLength": "Longueur du numéro",
+      "codeLengthHint": "Le test du lecteur signale une carte dont le numéro n'a pas cette longueur.",
+      "codeLengthInvalid": "Un nombre entier de {min} à {max}.",
+      "testedAt": "Testé le {date} à <time></time>.",
+      "neverTested": "Pas encore testé.",
+      "testedNow": "Testé à l'instant."
+    },
+    "guide": {
+      "title": "Guide d'installation",
+      "subtitle": "Badges, lecteur et kiosque : de l'achat au premier passage à la porte.",
+      "buy": {
+        "title": "Ce qu'il faut acheter",
+        "tags": {
+          "em125": "Des badges 125 kHz : porte-clés ou cartes à puce EM4100, vendus comme « RFID 125 kHz ». Robustes, sans pile, sans contact — un porte-clés se perd moins qu'une carte.",
+          "nfc": "Des cartes NFC 13,56 MHz : MIFARE Classic, NTAG ou toute carte « ISO 14443 ». Le format carte bancaire s'imprime et se glisse dans un porte-badge.",
+          "chooseOne": "Choisissez une seule fréquence et gardez-la : un lecteur 125 kHz ne lit pas une carte NFC, et inversement."
+        },
+        "reader": "Un lecteur USB « émulation clavier » à la même fréquence que les badges. Il se branche comme un clavier, sans logiciel, et tape le numéro de la carte suivi d'Entrée. Un lecteur par appareil de kiosque."
+      },
+      "counts": {
+        "children": "{count, plural, one {# enfant} other {# enfants}}",
+        "guardians": "{count, plural, one {# parent} other {# parents}}",
+        "staff": "{count, plural, one {# membre de l'équipe} other {# membres de l'équipe}}",
+        "sentence": "Aujourd'hui, {list} n'ont pas encore de carte. Prévoyez quelques badges de rechange.",
+        "none": "Aujourd'hui, tout le monde a une carte. Prévoyez quelques badges de rechange pour les prochaines inscriptions."
+      },
+      "plug": {
+        "title": "Brancher le lecteur",
+        "p1": "Branchez le lecteur sur l'appareil du kiosque : directement sur un ordinateur, par un adaptateur OTG sur une tablette Android, par un adaptateur USB sur un iPad. Aucun pilote à installer : l'appareil le voit comme un clavier. Pour vérifier, ouvrez n'importe quel champ de texte et passez un badge : son numéro s'inscrit, suivi d'un retour à la ligne.",
+        "p2": "Si le lecteur propose plusieurs formats de sortie (10 chiffres, 8 caractères hexadécimaux…), choisissez-en un et ne le changez plus : un badge enregistré dans un format n'est pas reconnu dans l'autre."
+      },
+      "test": {
+        "title": "Tester le lecteur",
+        "p1": "Dans Paramètres › Badges et cartes, cliquez dans le champ « Lecteur » et passez un badge. La ligne indique ce qui a été lu, le nombre de caractères et à qui appartient la carte, sans enregistrer de passage. Indiquez la longueur du numéro dans « Lecteur et badges » : le test signale alors toute lecture qui ne correspond pas."
+      },
+      "assign": {
+        "title": "Attribuer les badges",
+        "p1": "Cliquez sur « Attribuer par scan », sélectionnez une personne dans le registre et passez son badge : la carte est à elle, la sélection s'efface et vous passez à la suivante. Depuis la fiche d'un enfant ou d'un membre de l'équipe, « Scanner une carte » fait la même chose pour une seule personne."
+      },
+      "kiosk": {
+        "title": "Au kiosque",
+        "p1": "Ouvrez le kiosque sur l'appareil où le lecteur est branché. Un parent passe son badge : l'arrivée ou le départ de ses enfants est enregistré à l'heure du passage. Le badge d'un enfant ou d'un membre de l'équipe fonctionne de la même façon. Sans lecteur, le code imprimé sur la carte reste utilisable au clavier ou à la caméra."
+      },
+      "lost": {
+        "title": "Badge perdu",
+        "p1": "Dans le registre, ouvrez le menu « … » de la personne et révoquez la carte perdue : elle n'ouvre plus rien, dès maintenant. Attribuez-en une nouvelle par scan ; l'historique des passages est conservé."
+      },
+      "printed": "Imprimé le {date}",
+      "office": {
+        "title": "Au bureau, pendant que l'ordinateur sert à autre chose",
+        "p1": "Un lecteur « émulation clavier » est un clavier : ce qu'il lit va dans la fenêtre active. Si vous travaillez dans un tableur, le passage s'écrit dans le tableur, et aucune page web ne peut revenir au premier plan pour une frappe qu'elle n'a pas reçue. Deux réglages, ensemble, règlent la question : lire le lecteur par un port plutôt que par le clavier, et garder une petite fenêtre du kiosque au-dessus des autres.",
+        "moves": {
+          "serial": "Passez le lecteur en mode « port série » (USB-COM) avec le code-barres de configuration de la fiche du fabricant : « USB CDC » chez Zebra et Symbol, « USB Serial » chez Honeywell, « USB virtual COM » chez Netum et Inateck. Dès lors, il ne tape plus rien dans les champs de texte : c'est attendu.",
+          "connect": "Ouvrez le kiosque dans Chrome ou Edge sur l'ordinateur, choisissez « Port série », cliquez « Connecter le lecteur » et désignez le port dans la liste. Le navigateur retient ce choix : aux démarrages suivants, le kiosque se reconnecte seul.",
+          "pip": "Cliquez « Garder à l'écran » : une petite fenêtre se détache et reste au-dessus des autres, dans un coin de l'écran. C'est elle qui affiche « Prêt », puis la vérification et la fiche de chaque passage, pendant que le reste de l'écran sert au tableur ou au courrier."
+        },
+        "fallback": "Si le navigateur ne propose pas « Garder à l'écran » (Firefox, Safari), activez « Alertes » : chaque passage affiche une notification du système avec le nom de l'enfant, le sens et l'heure ; le son du kiosque reste, et le titre de l'onglet clignote dans la barre des tâches.",
+        "limit": "Un lecteur qui ne sait que se faire passer pour un clavier ne peut pas faire cela : ce qu'il lit ira toujours à la fenêtre active. Deux issues : un lecteur qui propose le mode série — la plupart des lecteurs de codes-barres 2D, entre 3 000 et 6 000 DA — ou la tablette qui reste à la porte."
+      }
+    },
+    "groupBy": {
+      "label": "Regrouper par",
+      "family": "Par famille",
+      "structure": "Par structure et classe",
+      "klass": "Par classe",
+      "type": "Par type de personne"
+    },
+    "kiosk": {
+      "title": "Le kiosque",
+      "hint": "Ce que la tablette de la porte fait toute seule, et ce qu'elle laisse à l'équipe.",
+      "autoConfirm": "Enregistrer automatiquement après le scan",
+      "autoConfirmHint": "Après le badge d'un parent, les passages évidents s'enregistrent d'eux-mêmes au bout du délai ; un geste sur l'écran reprend la main.",
+      "seconds": "Délai avant l'enregistrement",
+      "secondsHint": "En secondes. Le bouton compte à rebours ; le parent peut corriger tant qu'il n'est pas à zéro.",
+      "secondsInvalid": "Un nombre entier de {min} à {max}.",
+      "doorMode": "Mode porte",
+      "doorModeHint": "Réservé aux parents : le passage au pointage de l'équipe disparaît de l'écran et le kiosque reste sur les enfants.",
+      "sound": "Signal sonore",
+      "soundHint": "Un son différent selon l'issue : enregistré, à vérifier, refusé.",
+      "floatingScan": "Bouton de scan flottant",
+      "floatingScanHint": "Sur les téléphones de l'équipe et le tableau de bord : un bouton flottant ouvre le scan du kiosque depuis n'importe quel écran, sans verrouiller l'appareil.",
+      "selfCheckin": "Enregistrement par les parents",
+      "selfCheckinHint": "L'écran du kiosque affiche un code que les parents scannent avec leur téléphone pour enregistrer eux-mêmes l'arrivée de leur enfant.",
+      "selfPickupConfirm": "Le départ attend l'équipe",
+      "selfPickupConfirmHint": "Un départ demandé par un parent est confirmé par un membre de l'équipe sur le kiosque ou son téléphone avant d'être enregistré."
     }
   }
 }

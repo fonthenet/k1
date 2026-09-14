@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { QrCode, Sun } from "lucide-react";
+import { Camera, QrCode, Sun } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -156,15 +156,24 @@ export function CheckinDialog({
   badge,
   child,
   trigger = "inline",
+  selfCheckin = false,
   className,
 }: {
   badge: PortalGuardianBadge;
   /** Omit when the badge is opened for the family as a whole. */
   child?: CheckinDialogChild;
   trigger?: TriggerShape;
+  /**
+   * The crèche lets parents scan the door (kiosk settings, 0168): the other
+   * half of the same scan, said in one line under this badge. Read from
+   * `kioskSettings(tenant.settings)` by the page; off by default so a
+   * surface that has not looked says nothing.
+   */
+  selfCheckin?: boolean;
   className?: string;
 }) {
   const t = useTranslations("portal.checkin");
+  const tDoor = useTranslations("portal.door");
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
 
@@ -244,6 +253,16 @@ export function CheckinDialog({
               <Sun className="mt-px size-4 shrink-0 text-gold" aria-hidden />
               {t("brightnessHint")}
             </p>
+
+            {/* The door's own code is the other end of this scan: where the
+                team is not at the tablet, the parent's camera does the same
+                job. One line, only where the crèche has switched it on. */}
+            {selfCheckin && (
+              <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                <Camera className="mt-px size-4 shrink-0" aria-hidden />
+                {tDoor("orScan")}
+              </p>
+            )}
           </>
         )}
 

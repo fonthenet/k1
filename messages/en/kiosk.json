@@ -11,7 +11,7 @@
     "scan": "Scan"
   },
   "children": {
-    "prompt": "Enter the child's code or the parent's PIN",
+    "prompt": "Enter the child's code, the parent's PIN or your staff code",
     "hint": "K-001",
     "chooseChild": "Which child?",
     "checkedIn": "Check-in recorded {time}",
@@ -31,8 +31,13 @@
       "denied": "Camera access was refused. Allow the camera for this site, or use the keypad.",
       "noCamera": "No camera was found on this device. Use the keypad.",
       "insecure": "The camera needs a secure connection (HTTPS). Use the keypad.",
-      "generic": "The camera could not start. Try again or use the keypad."
-    }
+      "generic": "The camera could not start. Try again or use the keypad.",
+      "deniedApp": "Camera access was refused. Allow the camera for Rawdatik in the phone's settings, or use the keypad."
+    },
+    "allow": "Allow the camera",
+    "openSettings": "Open the phone's settings",
+    "torchOn": "Turn the torch on",
+    "torchOff": "Turn the torch off"
   },
   "verify": {
     "adultLabel": "Adult at the door",
@@ -44,7 +49,9 @@
     "willCheckIn": "Arrival",
     "arrivedAt": "Departure · arrived {time}",
     "confirmCount": "{count, plural, =0 {Choose a child} one {Record # child} other {Record # children}}",
-    "noPickup": "Not authorized for pickup"
+    "noPickup": "Not authorized for pickup",
+    "confirmIn": "Recording in {seconds} s",
+    "autoHint": "Tap a child to choose yourself, or Cancel."
   },
   "duplicate": {
     "title": "Check before recording",
@@ -124,7 +131,9 @@
     "notOnBreak": "No break is running.",
     "staffCodeHere": "That is a staff badge. Use the Personnel tab.",
     "closedDay": "The kindergarten is closed today.",
-    "outsideHours": "Outside opening hours."
+    "outsideHours": "Outside opening hours.",
+    "staffCodeDoor": "This door is for parents — clock in on the team's tablet.",
+    "doorCode": "That is the door's code: it is scanned with a parent's phone, not at the kiosk."
   },
   "exitDialog": {
     "title": "Exit the kiosk",
@@ -133,6 +142,76 @@
     "confirm": "Sign out",
     "wrong": "Incorrect code.",
     "locked": "Too many attempts. Wait 10 minutes and try again.",
-    "noPin": "No director has a PIN. Use the account password."
+    "noPin": "No director has a PIN. Use the account password.",
+    "descriptionApp": "Enter a director's PIN or this account's password to return to the app.",
+    "confirmApp": "Leave"
+  },
+  "doorMode": {
+    "label": "Door mode"
+  },
+  "door": {
+    "hereSince": "Here since <ltr>{time}</ltr> · <b>{duration}</b>",
+    "usualPickup": "Usually collected by <name>{who}</name> around <ltr>{time}</ltr>",
+    "duration": {
+      "hours": "{h} h {m}",
+      "minutes": "{m} min"
+    },
+    "incidents": "{count, plural, one {# incident} other {# incidents}}",
+    "allergies": "Allergies: {list}",
+    "title": "Scan with your phone",
+    "hint": "Open your camera or the Rawdatik app: arrival or departure in one move.",
+    "renews": "New code in {seconds} s"
+  },
+  "feedback": {
+    "recorded": "Recorded",
+    "attention": "Attention",
+    "refused": "Refused"
+  },
+  "office": {
+    "title": "Office mode",
+    "readerKeyboard": "Keyboard",
+    "readerSerial": "Serial port",
+    "connect": "Connect the reader",
+    "connecting": "Connecting to the reader…",
+    "connected": "Reader: {name}",
+    "connectedUnnamed": "Reader connected",
+    "changePort": "Change port",
+    "forget": "Forget the reader",
+    "readerMenu": "Change port or forget the reader",
+    "noPort": "No reader connected — click Connect the reader and pick the port.",
+    "keepOnScreen": "Keep on screen",
+    "onScreen": "Window open",
+    "alerts": "Alerts",
+    "alertsOn": "Alerts on",
+    "alertsBlocked": "Alerts blocked",
+    "alertsBlockedHint": "The browser refuses notifications for this site. Allow them in its settings.",
+    "shownInWindow": "Shown in the floating window",
+    "bringBack": "Show here",
+    "ready": "Ready · present a card",
+    "unsupported": "Needs Chrome or Edge on a computer.",
+    "notification": {
+      "in": "{name} · arrived {time}",
+      "out": "{name} · left {time}"
+    }
+  },
+  "app": {
+    "description": "The door on this phone: QR code, badge or PIN."
+  },
+  "fab": {
+    "label": "Kiosk scan"
+  },
+  "quick": {
+    "close": "Close"
+  },
+  "handover": {
+    "title": "Departures to hand over",
+    "requested": "{minutes, plural, one {Requested # min ago} other {Requested # min ago}}",
+    "justNow": "Just now",
+    "confirm": "Hand over",
+    "refuse": "Refuse",
+    "confirmed": "Handed over · {time}",
+    "refused": "Refused",
+    "awaitingTeam": "Waiting for the team",
+    "waitJustArrived": "Arrived less than 2 min ago — try again in a moment"
   }
 }

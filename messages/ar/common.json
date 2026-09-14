@@ -67,8 +67,8 @@
     "yes": "نعم",
     "no": "لا",
     "optional": "اختياري",
-    "years": "{count, plural, zero {# سنة} one {سنة} two {سنتان} few {# سنوات} many {# سنة} other {# سنة}}",
-    "months": "{count, plural, zero {# شهر} one {شهر} two {شهران} few {# أشهر} many {# شهرًا} other {# شهر}}",
+    "years": "{count, plural, zero {# سنة} one {# سنة} two {# سنوات} few {# سنوات} many {# سنة} other {# سنة}}",
+    "months": "{count, plural, zero {# شهر} one {# شهر} two {# أشهر} few {# أشهر} many {# شهرًا} other {# شهر}}",
     "yearsAndMonths": "{years} و{months}",
     "required": "إجباري",
     "requiredLegend": "الخانات المعلَّمة بـ * إجبارية."
@@ -150,12 +150,12 @@
     "noRoom": "بلا قاعة",
     "classRoom": "قاعة القسم",
     "sharedWith": "قاعة {classes} أيضًا.",
-    "places": "{count, plural, zero {# مكان} one {مكان واحد} two {مكانان} few {# أماكن} many {# مكانا} other {# مكان}}",
-    "tooSmall": "قاعة من {capacity, plural, zero {# مكان} one {مكان واحد} two {مكانين} few {# أماكن} many {# مكانا} other {# مكان}} لـ{count, plural, zero {# طفل} one {طفل واحد} two {طفلين} few {# أطفال} many {# طفلا} other {# طفل}}.",
+    "places": "{count, plural, zero {# مكان} one {# مكان} two {# أماكن} few {# أماكن} many {# مكانا} other {# مكان}}",
+    "tooSmall": "قاعة من {capacity, plural, zero {# مكان} one {# مكان} two {# أماكن} few {# أماكن} many {# مكانا} other {# مكان}} لـ{count, plural, zero {# طفل} one {# طفل} two {# أطفال} few {# أطفال} many {# طفلا} other {# طفل}}.",
     "occupancy": "إشغال القاعات",
     "occupancyHint": "عمود لكل قاعة طوال اليوم؛ وكتلتان متجاورتان تعنيان تداخلًا.",
     "sheetLabel": "إشغال القاعات يوم {date}",
-    "bookings": "{count, plural, zero {# حجز} one {حجز واحد} two {حجزان} few {# حجوزات} many {# حجزا} other {# حجز}}",
+    "bookings": "{count, plural, zero {# حجز} one {# حجز} two {# حجوزات} few {# حجوزات} many {# حجزا} other {# حجز}}",
     "emptyDay": "لا توجد حجوزات في هذا اليوم.",
     "previousDay": "اليوم السابق",
     "nextDay": "اليوم التالي",
@@ -167,5 +167,50 @@
   },
   "scheduler": {
     "busy": "محجوز مسبقًا"
+  },
+  "dossier": {
+    "noun": "ملف التسجيل",
+    "piece": "وثيقة",
+    "form": "استمارة",
+    "required": "إلزامية",
+    "optional": "اختيارية",
+    "add": "إضافة",
+    "change": "تغيير",
+    "uploading": "جارٍ الإرسال…",
+    "pdf": "PDF",
+    "states": {
+      "received": "مستلمة",
+      "accepted": "مقبولة",
+      "rejected": "مرفوضة",
+      "missing": "ناقصة",
+      "expired": "منتهية الصلاحية"
+    },
+    "appliesTo": {
+      "child": "الطفل",
+      "guardian": "الولي"
+    },
+    "kinds": {
+      "early": "الروضة ورياض الأطفال",
+      "school": "المدرسة"
+    },
+    "count": "{ok} من {total, plural, one {# وثيقة} two {# وثائق} few {# وثائق} many {# وثيقة} other {# وثيقة}} مقبولة",
+    "acceptedOn": "قُبلت في {date}",
+    "receivedOn": "استُلمت في {date}",
+    "byFamily": "من العائلة",
+    "byStaff": "من الفريق",
+    "expiresOn": "صالحة إلى غاية {date}",
+    "downloadForm": "تحميل الاستمارة",
+    "fileHint": "PDF أو صورة — 10 ميغابايت كحد أقصى",
+    "errors": {
+      "tooLarge": "الملف كبير جدًا (10 ميغابايت كحد أقصى)",
+      "type": "صورة أو PDF فقط",
+      "upload": "فشل الإرسال. تحققوا من الاتصال وأعيدوا المحاولة.",
+      "camera": "الوصول إلى الكاميرا مرفوض. اسمحوا به من إعدادات الهاتف."
+    },
+    "sources": {
+      "camera": "التقاط صورة",
+      "library": "اختيار صورة",
+      "files": "اختيار ملف"
+    }
   }
 }

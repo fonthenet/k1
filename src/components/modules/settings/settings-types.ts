@@ -13,6 +13,9 @@ export interface EnrollLinkRow {
   structure_id: string | null;
 }
 
+export const HOLIDAY_KINDS = ["public", "religious", "school_break", "closure"] as const;
+export type HolidayKind = (typeof HOLIDAY_KINDS)[number];
+
 export interface HolidayRow {
   id: string;
   date: string;
@@ -24,6 +27,27 @@ export interface HolidayRow {
   /** Null is an answer, not a gap: a national holiday shuts the whole building,
    *  while vacances scolaires shut the jardin and leave the crèche open. */
   structure_id: string | null;
+  /** Data and filter vocabulary only (0157): every kind draws the same neutral
+   *  row, and tentative is the only visible mark. */
+  kind: HolidayKind;
+  /** `public:<slug>:<year>` or `religious:<slug>:<hijri_year>` on a generated
+   *  row, null when typed by hand — the generator's idempotency key. */
+  key: string | null;
+  hijri_year: number | null;
+  /** Stamped by the database when the row is confirmed, never by the action. */
+  confirmed_at: string | null;
+}
+
+/**
+ * What sits on the days a closure is about to shut, as kg_closure_impact
+ * (0158) answers it: only what is still ahead and still scheduled, since
+ * yesterday's séance is attendance history and not a thing to cancel.
+ */
+export interface ClosureImpact {
+  lessons: { id: string; title: string; startsAt: string; classId: string }[];
+  sessions: { id: string; scheduledAt: string; childId: string; child: string }[];
+  events: { id: string; title: string; startAt: string }[];
+  activitySlots: number;
 }
 
 export const TENANT_DOC_TYPES = ["agrement", "insurance", "conformity", "other"] as const;

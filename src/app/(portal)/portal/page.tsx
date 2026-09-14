@@ -5,9 +5,9 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  FileWarning,
   Pin,
   ShieldAlert,
-  TreePalm,
   Wallet,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,27 +15,31 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SectionCard } from "@/components/shared/section-card";
 import { StatusPill, type StatusTone } from "@/components/shared/status-pill";
-import { ValueRange } from "@/components/shared/value-range";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, signedMediaUrl } from "@/lib/tenant";
 import { isOpenDayStr, toOpeningHours, type OpeningHours } from "@/lib/week";
 import type { Locale } from "@/i18n/locales";
 import { EstablishmentCard } from "@/components/shared/establishment-card";
-import { childDisplayName, formatDZD, formatDate, formatTime, initials } from "@/lib/format";
+import { childDisplayName, formatDZD, formatDate, formatTime, initials, listFormat } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { AttendanceStatus, Audience, ChildStatus, IncidentSeverity } from "@/lib/types";
+import { readCalendar } from "@/lib/calendar";
+import { algiersInstant } from "@/lib/algiers";
+import { closureOn, holidayLabel, readClosures } from "@/lib/closures";
+import { addDaysStr } from "@/components/modules/comms/dates";
 import {
-  algiersMonth,
   algiersToday,
   classLabel,
+  getDossierGaps,
   getMyChildren,
   getMyGuardianBadge,
   getStructures,
-  monthRange,
 } from "@/components/modules/portal/data";
+import { familyItemsFor, UPCOMING_DAYS } from "@/components/modules/portal/calendar-data";
+import { FamilyAgenda } from "@/components/modules/portal/family-agenda";
 import { StructureMark } from "@/components/shared/structure-mark";
 import { FactsLine } from "@/components/modules/portal/facts-line";
-import { roomName, structureName } from "@/components/modules/classes/class-types";
+import { structureName } from "@/components/modules/classes/class-types";
 import {
   attendanceChipTone,
   eatenKey,
@@ -53,6 +57,7 @@ import { ReportAbsenceDialog } from "@/components/modules/portal/report-absence-
 import { PortalHomeRefresh } from "@/components/modules/portal/portal-home-refresh";
 import { displayIdentity } from "@/lib/auth-identifier";
 import { MEAL_SLOTS } from "@/lib/journal";
+import { kioskSettings } from "@/lib/kiosk-settings";
 
 type AttendanceRow = {
   child_id: string;
@@ -116,28 +121,8 @@ type AnnouncementRow = {
   class_id: string | null;
 };
 
-type EventRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  start_at: string;
-  end_at: string | null;
-  audience: PortalAudience;
-  class_id: string | null;
-  /** The room the event booked, when it did: parents are members and read
-   *  a room like staff do (rm_sel). A family needs the hall as much as the
-   *  hour. */
-  kg_rooms: { name: string; name_ar: string | null } | null;
-};
-
-type HolidayRow = {
-  id: string;
-  date: string;
-  end_date: string | null;
-  name: string;
-  name_ar: string | null;
-  tentative: boolean;
-};
+/** How many rows "À venir" shows before handing over to the calendar. */
+const UPCOMING_LIMIT = 6;
 
 export default async function PortalHomePage() {
   const ctx = await getTenantContext();
@@ -149,7 +134,6 @@ export default async function PortalHomePage() {
 
   const today = algiersToday();
   const openingHours = toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours);
-  const { start: monthStart, end: monthEnd } = monthRange(algiersMonth());
   const nowIso = new Date().toISOString();
 
   // The door badge belongs to the guardian, not to a child: fetched once here
@@ -187,13 +171,6 @@ export default async function PortalHomePage() {
       hoursByStructure.set(sid, data ? toOpeningHours(data) : openingHours);
     })
   );
-  // On a day the child's structure does not open there is no door to watch:
-  // the live chip and the arrival · nap · lunch · departure band say nothing
-  // true, so a closed day gets one muted line instead. A row written anyway
-  // (an exceptional opening) reopens the day for that child.
-  const closedTodayFor = (child: { structure_id: string | null }) =>
-    !isOpenDayStr(hoursByStructure.get(child.structure_id) ?? openingHours, today);
-
   const [
     { data: profile },
     attendanceRes,
@@ -202,8 +179,9 @@ export default async function PortalHomePage() {
     duesRes,
     incidentsRes,
     pinnedRes,
-    eventsRes,
-    holidaysRes,
+    upcomingRead,
+    todayClosures,
+    dossierGaps,
   ] =
     await Promise.all([
       supabase.from("kg_profiles").select("full_name").eq("id", ctx.user.id).maybeSingle(),
@@ -272,29 +250,58 @@ export default async function PortalHomePage() {
         .lte("publish_at", nowIso)
         .order("publish_at", { ascending: false })
         .limit(5),
-      // Class events were dropped here by `.in("audience", ["all","parents"])`,
-      // so a trip organised for a child's own class was invisible to their
-      // parent — the opposite failure to the RLS one, and it hid exactly the
-      // events that matter most. The audience filter now happens below, against
-      // the parent's own classes, the same way `pinned` already does it.
-      // Limit raised because class rows now compete for the same slots.
-      supabase
-        .from("kg_events")
-        .select(
-          "id, title, description, start_at, end_at, audience, class_id, kg_rooms(name, name_ar)"
-        )
-        .eq("tenant_id", ctx.tenant.id)
-        .gte("start_at", `${today}T00:00:00+01:00`)
-        .order("start_at")
-        .limit(12),
-      supabase
-        .from("kg_holidays")
-        .select("id, date, end_date, name, name_ar, tentative")
-        .eq("tenant_id", ctx.tenant.id)
-        .gte("date", monthStart)
-        .lt("date", monthEnd)
-        .order("date"),
+      // "À venir" is the calendar's own read (kg_calendar, 0158), under the
+      // family's RLS: the next fortnight of events, closures, appointments
+      // and exam dates, in one date-ordered list — the same rows, the same
+      // words, as the Calendrier tab, which is one tap away for the rest.
+      // The home is the portal's front door: a composer that cannot answer
+      // costs this one section (logged, drawn as nothing), never the
+      // greeting, the children and the dues above it. The Calendrier tab
+      // shows the failure in full.
+      readCalendar(supabase, {
+        tenantId: ctx.tenant.id,
+        from: today,
+        to: addDaysStr(today, UPCOMING_DAYS),
+        structureId: null,
+        scope: "all",
+        kinds: ["holiday", "event", "session", "assessment"],
+        audience: "family",
+        locale,
+      }).catch((e: unknown) => {
+        console.error("[portal/home] upcoming read failed:", e);
+        return null;
+      }),
+      // Today's closures, for the line under a child whose day is shut;
+      // unreadable, the weekly hours alone decide and no closure is named.
+      readClosures(supabase, ctx.tenant.id, today, today).catch((e: unknown) => {
+        console.error("[portal/home] closures read failed:", e);
+        return [];
+      }),
+      // The enrolment file (0164): which children still owe the office a
+      // paper. Same front-door rule as the calendar — a read that fails
+      // costs the one row it feeds, nothing above it. Empty until the
+      // establishment activates its list (D14).
+      getDossierGaps(supabase, ctx.tenant.id).catch((e: unknown) => {
+        console.error("[portal/home] dossier summary failed:", e);
+        return [];
+      }),
     ]);
+
+  // On a day the child's structure does not open there is no door to watch:
+  // the live chip and the arrival · nap · lunch · departure band say nothing
+  // true, so a closed day gets one muted line instead — named after the
+  // closure when a CONFIRMED one shut the day (the one rule of lib/closures:
+  // a tentative Aïd closes nothing here, exactly as it refuses no write). A
+  // row written anyway (an exceptional opening) reopens the day for that child.
+  const closedTodayFor = (
+    child: { structure_id: string | null }
+  ): { closed: boolean; name: string | null } => {
+    if (!isOpenDayStr(hoursByStructure.get(child.structure_id) ?? openingHours, today)) {
+      return { closed: true, name: null };
+    }
+    const { confirmed } = closureOn(todayClosures, today, child.structure_id);
+    return confirmed ? { closed: true, name: holidayLabel(confirmed, locale) } : { closed: false, name: null };
+  };
 
   const attendanceByChild = new Map<string, AttendanceRow>();
   for (const row of (attendanceRes.data ?? []) as AttendanceRow[]) {
@@ -327,6 +334,16 @@ export default async function PortalHomePage() {
   const earliestDue = dues.find((d) => d.due_date)?.due_date ?? null;
   const anyOverdue = dues.some((d) => d.due_date && d.due_date < today);
 
+  // The children with a paper still to hand in, in the order the list shows
+  // them; the row's count is every missing paper across them. Applications
+  // (child_id null) belong to the children list's pending rows, not here.
+  const dossierChildren = children.filter((c) =>
+    dossierGaps.some((row) => row.child_id === c.id)
+  );
+  const dossierMissing = dossierGaps
+    .filter((row) => row.child_id && dossierChildren.some((c) => c.id === row.child_id))
+    .reduce((sum, row) => sum + row.missing, 0);
+
   // `structure` rows pass on trust: RLS (0138) already hands a family only
   // the notices of a structure one of its children is on, and the page has
   // no cheaper way to re-check that than the database just did.
@@ -338,43 +355,19 @@ export default async function PortalHomePage() {
       (a.audience === "class" && !!a.class_id && myClassIds.has(a.class_id))
   );
 
-  // RLS already refuses another class's events (0089); this keeps the page
-  // honest on its own terms rather than trusting the database to have been
-  // migrated, and drops staff-audience rows for a parent who is also staff.
-  // Which class an event belongs to, in the reader's language. Built from the
-  // children already loaded — a parent only ever sees their own classes' events,
-  // so their own children are a complete source and this costs no query.
-  const classLabelById = new Map<string, string>();
-  for (const c of children) {
-    const label = classLabel(c, locale);
-    if (c.class_id && label) classLabelById.set(c.class_id, label);
-  }
-
-  // "Coming up" starts from NOW, not from midnight — but an event is judged by
+  // "Coming up" starts from NOW, not from midnight — an event is judged by
   // when it ENDS, not when it starts. A trip running 09:00–13:15 is still the
-  // thing happening to your child at noon; one that finished at 10:00 is not.
-  //
-  // Filtering on start_at alone gave both wrong answers at once: this morning's
-  // finished visits sat under "Coming up" hours after they were over, while an
-  // all-day outing would have vanished the moment it began. The finished ones
-  // were also, confusingly, events that had notified nobody precisely BECAUSE
-  // they had already started.
-  // Reuses the timestamp this render already took for the announcements query,
-  // rather than reading the clock a second time — one render, one "now".
+  // thing happening to your child at noon; one that finished at 10:00 is not,
+  // and a closure that ends today is still today's. The composer already
+  // scoped the rows to the family; the same per-child filter as the calendar
+  // (which closure concerns which side of the building) is applied here so
+  // the two lists never disagree.
   const nowMs = Date.parse(nowIso);
-  const stillRelevant = (e: EventRow) => Date.parse(e.end_at ?? e.start_at) >= nowMs;
-
-  const events = ((eventsRes.data ?? []) as unknown as EventRow[])
-    .filter(
-      (e) =>
-        e.audience === "all" ||
-        e.audience === "parents" ||
-        e.audience === "structure" ||
-        (e.audience === "class" && !!e.class_id && myClassIds.has(e.class_id))
-    )
-    .filter(stillRelevant)
-    .slice(0, 5);
-  const holidays = (holidaysRes.data ?? []) as HolidayRow[];
+  const upcoming = familyItemsFor(upcomingRead?.items ?? [], children, structures, null).filter((it) => {
+    if (it.lastDate > today) return true;
+    if (!it.end && !it.start) return true;
+    return Date.parse(algiersInstant(it.lastDate, it.end ?? it.start ?? "00:00")) >= nowMs;
+  });
 
   const childName = (id: string): string => {
     const child = children.find((c) => c.id === id);
@@ -528,6 +521,9 @@ export default async function PortalHomePage() {
   const badgeWanted = children.some(
     (c) => ATTENDING.has(c.status) && todayCheckin(c.id).kind !== "left"
   );
+  // Whether the door itself can be scanned (0168) — one line in the badge
+  // dialog, only where the crèche has switched it on.
+  const { selfCheckin } = kioskSettings(ctx.tenant.settings);
 
   const greetingName =
     profile?.full_name?.split(" ")[0] || profile?.full_name || displayIdentity(ctx.user.email) || "";
@@ -587,6 +583,44 @@ export default async function PortalHomePage() {
         </Link>
       )}
 
+      {/* ===== A file to complete =====
+           Directly under the money, in the same anatomy — a plain row card,
+           a muted tile, two lines, a chevron — because it is the same kind
+           of thing: something the office will ask for at the gate, not an
+           alarm. One row for the whole family; a single child's row opens
+           their file, more than one opens the list. */}
+      {dossierChildren.length > 0 && (
+        <Link
+          href={
+            dossierChildren.length === 1
+              ? `/portal/children/${dossierChildren[0].id}?tab=permissions`
+              : "/portal/children"
+          }
+          className="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <span
+            aria-hidden
+            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+          >
+            <FileWarning className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{t("home.dossier.title")}</span>
+            {/* The names are person-typed text and get their own bdi so a
+                 Latin name never flips the Arabic sentence around it; the
+                 count reuses the file's own "# pièces à fournir" line. */}
+            <span className="block truncate text-xs text-muted-foreground">
+              <bdi dir="auto">
+                {listFormat(locale).format(dossierChildren.map((c) => childDisplayName(c, locale)))}
+              </bdi>
+              {" · "}
+              {t("dossier.missingLine", { count: dossierMissing })}
+            </span>
+          </span>
+          <ForwardIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+      )}
+
       {/* ===== Unacknowledged incidents =====
            A section card with a row per incident, never a red card holding
            red boxes: the severity pill beside the child's name is the row's
@@ -633,7 +667,7 @@ export default async function PortalHomePage() {
                 {t("learning.title")}
                 <ForwardIcon className="size-4" aria-hidden />
               </Link>
-              {badgeWanted && <CheckinDialog badge={badge} className="px-2.5" />}
+              {badgeWanted && <CheckinDialog badge={badge} selfCheckin={selfCheckin} className="px-2.5" />}
             </div>
           )}
         </div>
@@ -655,7 +689,8 @@ export default async function PortalHomePage() {
                     : null;
               const attending = ATTENDING.has(child.status);
               const checkin = attending ? todayCheckin(child.id) : null;
-              const quietDay = closedTodayFor(child) && checkin?.kind === "notYet";
+              const closedToday = closedTodayFor(child);
+              const quietDay = closedToday.closed && checkin?.kind === "notYet";
               const status = attending && !quietDay ? todayStatus(child.id) : null;
               const report = attending ? latestReportByChild.get(child.id) : undefined;
               const meals = report ? parseMeals(report.meals) : [];
@@ -726,7 +761,11 @@ export default async function PortalHomePage() {
                     )}
 
                     {quietDay && (
-                      <p className="text-xs text-muted-foreground">{tCommon("establishment.closedToday")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {closedToday.name
+                          ? t("home.closedTodayNamed", { name: closedToday.name })
+                          : tCommon("establishment.closedToday")}
+                      </p>
                     )}
 
                     {attending && !quietDay && (
@@ -805,21 +844,26 @@ export default async function PortalHomePage() {
       {/* ===== Pinned announcements =====
            A plain header line over one card of rows. The pin tile is the
            page's one gold — "keep this in mind" — said once per row and
-           never as a gold border around the card. */}
-      {pinned.length > 0 && (
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-base font-semibold">{t("home.pinnedTitle")}</h3>
-            <Link
-              href="/portal/announcements"
-              className="inline-flex items-center gap-1 text-sm text-primary hover:underline hover:underline-offset-4"
-            >
-              {t("home.seeAll")}
-              <ForwardIcon className="size-4" aria-hidden />
-            </Link>
-          </div>
-          <Card className="border border-border py-0 shadow-sm ring-0">
-            <CardContent className="px-0">
+           never as a gold border around the card. Always drawn: with the
+           announcements gone from the tab bar (decision 12) this header's
+           "Tout voir" is the family's door to them, so an empty week keeps
+           the door and says so in one muted line. */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-base font-semibold">{t("home.pinnedTitle")}</h3>
+          <Link
+            href="/portal/announcements"
+            className="inline-flex items-center gap-1 text-sm text-primary hover:underline hover:underline-offset-4"
+          >
+            {t("home.seeAll")}
+            <ForwardIcon className="size-4" aria-hidden />
+          </Link>
+        </div>
+        <Card className="border border-border py-0 shadow-sm ring-0">
+          <CardContent className="px-0">
+            {pinned.length === 0 ? (
+              <p className="px-5 py-4 text-sm text-muted-foreground">{t("home.pinnedEmpty")}</p>
+            ) : (
               <ul className="divide-y divide-border">
                 {pinned.map((a) => (
                   <li key={a.id}>
@@ -850,112 +894,46 @@ export default async function PortalHomePage() {
                   </li>
                 ))}
               </ul>
-            </CardContent>
-          </Card>
-        </section>
-      )}
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
-      {/* ===== Upcoming events + holidays =====
-           A section card with a row per event or holiday. The tone tile in
-           the header is the section's colour; the rows' tiles are muted, and
-           a holiday still to be confirmed carries the one attention pill. */}
-      <SectionCard
-        icon={CalendarDays}
-        tone={0}
-        title={t("home.upcomingTitle")}
-        contentClassName="px-0"
-      >
-        {events.length === 0 && holidays.length === 0 ? (
-          <p className="px-5 text-sm text-muted-foreground">{t("home.upcomingEmpty")}</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {events.map((event) => (
-              <li key={event.id} className="flex min-h-14 items-center gap-3 px-5 py-3 text-sm">
-                <span
-                  aria-hidden
-                  className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
-                >
-                  <CalendarDays className="size-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <bdi dir="auto" className="block truncate font-medium text-start">{event.title}</bdi>
-                  {/* Which child this concerns. A guardian with children in two
-                      classes cannot tell two trips apart without it. */}
-                  {event.audience === "class" && event.class_id && (
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {classLabelById.get(event.class_id) ?? ""}
-                    </span>
-                  )}
-                  {/* What it actually is. Staff type this into the event and
-                      it reached the family nowhere at all. */}
-                  {event.description && (
-                    <span className="mt-0.5 block text-xs leading-relaxed text-pretty text-muted-foreground">
-                      <bdi dir="auto" className="text-start">{event.description}</bdi>
-                    </span>
-                  )}
-                </span>
-                <span className="shrink-0 text-end text-xs text-muted-foreground tabular-nums">
-                  <span className="block">{formatDate(event.start_at, locale, { weekday: "short" })}</span>
-                  {/* Both ends when the event has one: "drop off at 09:00" and
-                      "collect at 13:15" are two different questions. */}
-                  <span className="block">
-                    {event.end_at ? (
-                      <ValueRange
-                        from={formatTime(event.start_at, locale)}
-                        to={formatTime(event.end_at, locale)}
-                        separator="–"
-                      />
-                    ) : (
-                      formatTime(event.start_at, locale)
-                    )}
-                  </span>
-                  {/* Where to go, after when: the room the event booked. */}
-                  {event.kg_rooms && (
-                    <span className="block">
-                      <bdi dir="auto">{roomName(event.kg_rooms, locale)}</bdi>
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-            {holidays.map((holiday) => (
-              <li key={holiday.id} className="flex min-h-14 items-center gap-3 px-5 py-3 text-sm">
-                <span
-                  aria-hidden
-                  className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
-                >
-                  <TreePalm className="size-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <bdi dir="auto" className="block truncate font-medium text-start">
-                    {locale === "ar" && holiday.name_ar ? holiday.name_ar : holiday.name}
-                  </bdi>
-                  {holiday.tentative && (
-                    <StatusPill tone="attention" className="mt-0.5">
-                      {t("home.tentative")}
-                    </StatusPill>
-                  )}
-                </span>
-                <span className="shrink-0 text-end text-xs text-muted-foreground tabular-nums">
-                  {/* A span of dates reorders in Arabic exactly the way a
-                      pair of clock times does, so the two ends are isolated
-                      together. An en dash, not an arrow: a holiday runs from
-                      one date to another, it does not flow anywhere. */}
-                  {holiday.end_date ? (
-                    <ValueRange
-                      from={formatDate(holiday.date, locale, { weekday: "short" })}
-                      to={formatDate(holiday.end_date, locale)}
-                      separator="–"
-                    />
-                  ) : (
-                    formatDate(holiday.date, locale, { weekday: "short" })
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SectionCard>
+      {/* ===== À venir =====
+           One date-ordered list of the next fortnight — events, closures,
+           appointments, exam dates — in the calendar's own rows, six at
+           most, and the calendar as the tertiary door for the rest. Absent,
+           not "nothing planned", when the read failed: the tab bar still
+           leads to the calendar, which says what went wrong. */}
+      {upcomingRead && (
+        <SectionCard
+          icon={CalendarDays}
+          tone={0}
+          title={t("home.upcomingTitle")}
+          contentClassName="gap-0"
+          action={
+            <Link
+              href="/portal/calendar"
+              className="inline-flex min-h-9 items-center gap-1 text-sm text-primary hover:underline hover:underline-offset-4"
+            >
+              {t("home.seeCalendar")}
+              <ForwardIcon className="size-4" aria-hidden />
+            </Link>
+          }
+        >
+          <FamilyAgenda
+            items={upcoming}
+            from={today}
+            today={today}
+            locale={locale}
+            household={children.map((c) => ({ id: c.id, name: childDisplayName(c, locale) }))}
+            structures={structures.map((s) => ({ id: s.id, name: structureName(s, locale) }))}
+            showChildNames={children.length > 1}
+            emptyLabel={t("home.upcomingEmpty")}
+            limit={UPCOMING_LIMIT}
+          />
+        </SectionCard>
+      )}
 
       {/* Where the crèche is. A parent looking this up is usually already on
           their way, so the pin and the directions button come first — the

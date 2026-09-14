@@ -167,5 +167,50 @@
   },
   "scheduler": {
     "busy": "Déjà pris"
+  },
+  "dossier": {
+    "noun": "Dossier d'inscription",
+    "piece": "Pièce",
+    "form": "Formulaire",
+    "required": "Obligatoire",
+    "optional": "Facultative",
+    "add": "Ajouter",
+    "change": "Changer",
+    "uploading": "Envoi…",
+    "pdf": "PDF",
+    "states": {
+      "received": "Reçue",
+      "accepted": "Acceptée",
+      "rejected": "Refusée",
+      "missing": "Manquante",
+      "expired": "Expirée"
+    },
+    "appliesTo": {
+      "child": "Enfant",
+      "guardian": "Tuteur"
+    },
+    "kinds": {
+      "early": "Crèche et jardin d'enfants",
+      "school": "École"
+    },
+    "count": "{ok} pièces sur {total} acceptées",
+    "acceptedOn": "Acceptée le {date}",
+    "receivedOn": "Reçue le {date}",
+    "byFamily": "par la famille",
+    "byStaff": "par l'équipe",
+    "expiresOn": "Valable jusqu'au {date}",
+    "downloadForm": "Télécharger le formulaire",
+    "fileHint": "PDF ou image — 10 Mo max",
+    "errors": {
+      "tooLarge": "Fichier trop lourd (10 Mo max)",
+      "type": "Photo ou PDF uniquement",
+      "upload": "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
+      "camera": "L'accès à l'appareil photo est refusé. Autorisez-le dans les réglages du téléphone."
+    },
+    "sources": {
+      "camera": "Prendre une photo",
+      "library": "Choisir une photo",
+      "files": "Choisir un fichier"
+    }
   }
 }

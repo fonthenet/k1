@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
+import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
@@ -55,6 +56,9 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }) {
+  // The close cross is announced in the reader's language, not as "Close" on
+  // an Arabic page; the primitive translates because every sheet has one.
+  const tClose = useTranslations("common.actions")
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -77,7 +81,7 @@ function SheetContent({
             >
               <XIcon
               />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{tClose("close")}</span>
             </Button>
           </SheetPrimitive.Close>
         )}

@@ -7,12 +7,13 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import type { LucideIcon } from "lucide-react";
-import { Baby, Building2, Camera, ClipboardCheck, Loader2, Pencil, Send, Stethoscope } from "lucide-react";
+import { Baby, Building2, Camera, ClipboardCheck, FileCheck2, Loader2, Pencil, Send, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatDate } from "@/lib/format";
 import { StepHeader } from "@/components/modules/enroll/wizard-ui";
 import type { WizardChild } from "@/components/modules/enroll/types";
+import { requirementName, type DocumentRequirement, type WizardDocument } from "@/lib/dossier";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
 import type { AddChildHealth, AddChildStep } from "./add-child-wizard";
 import type { PortalClassOption } from "./portal-types";
@@ -53,18 +54,23 @@ function Row({
   label,
   value,
   ltr,
+  muted,
 }: {
   label: string;
   value: React.ReactNode;
   /** For values ending in a neutral character — "A+", "+213…" — which the
    *  bidi algorithm otherwise reorders in Arabic. */
   ltr?: boolean;
+  /** A value that is a state word rather than an answer ("À remettre sur place"), set muted. */
+  muted?: boolean;
 }) {
   if (!value) return null;
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-end font-medium" dir={ltr ? "ltr" : undefined}>{value}</span>
+      <span className={muted ? "text-end text-muted-foreground" : "text-end font-medium"} dir={ltr ? "ltr" : undefined}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -74,6 +80,8 @@ export function AddChildStepReview({
   health,
   structure,
   klass,
+  requirements,
+  documents,
   submitting,
   error,
   goTo,
@@ -85,6 +93,10 @@ export function AddChildStepReview({
   structure: Structure | null;
   /** The room preference, if the family named one. */
   klass: PortalClassOption | null;
+  /** The requirements of the chosen kind; the section is absent when there are none. */
+  requirements: ReadonlyArray<DocumentRequirement>;
+  /** What was photographed on the Dossier step, by requirement id. */
+  documents: Record<string, WizardDocument>;
   submitting: boolean;
   error: string | null;
   goTo: (step: AddChildStep) => void;
@@ -96,6 +108,7 @@ export function AddChildStepReview({
   const locale = useLocale();
   const edit = te("review.edit");
   const namedAllergies = health.allergies.filter((a) => a.allergen.trim());
+  const attachedCount = requirements.filter((r) => documents[r.id]).length;
 
   return (
     <div>
@@ -166,6 +179,31 @@ export function AddChildStepReview({
           <Row label={te("health.dietary")} value={health.dietary_restrictions || null} />
           <Row label={te("health.doctorName")} value={health.doctor_name || null} />
         </Section>
+
+        {/* One line per paper asked for: attached, or — for a required one
+            without a file — to be handed in at the desk, muted, because it
+            is a plain fact and never blocks the request (D7). */}
+        {requirements.length > 0 && (
+          <Section icon={FileCheck2} title={t("documents")} onEdit={() => goTo("documents")} editLabel={edit}>
+            {requirements.map((r) => {
+              const attached = Boolean(documents[r.id]);
+              return (
+                <Row
+                  key={r.id}
+                  label={requirementName(r, locale)}
+                  value={attached ? te("documents.attached") : r.required ? te("documents.bringLater") : "—"}
+                  muted={!attached}
+                />
+              );
+            })}
+            {/* A translated sentence, not a ratio: the digits are Western
+                and sit between words, so the paragraph's own direction
+                orders them correctly in Arabic without an ltr island. */}
+            <p className="pt-1 text-xs text-muted-foreground tabular-nums">
+              {te("review.documentsCount", { count: attachedCount, total: requirements.length })}
+            </p>
+          </Section>
+        )}
 
         {error && (
           <Alert variant="destructive">

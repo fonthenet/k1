@@ -19,7 +19,7 @@ import {
   openDaysAround,
   shiftDate,
 } from "@/components/modules/portal/day-data";
-import { DayNav } from "@/components/modules/portal/day-nav";
+import { DayNav, type DayNavFrom } from "@/components/modules/portal/day-nav";
 import { DaySections, hasAnySection } from "@/components/modules/portal/day-sections";
 import { FactsLine } from "@/components/modules/portal/facts-line";
 import { structureName } from "@/components/modules/classes/class-types";
@@ -44,14 +44,20 @@ function isCalendarDate(s: string): boolean {
  */
 export default async function PortalChildDayPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; date: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
-  const { id, date } = await params;
+  const [{ id, date }, sp] = await Promise.all([params, searchParams]);
+  // Reached from the family calendar: the back link and every arrow return
+  // there, on this day and this child, rather than to the Journal tab.
+  const from: DayNavFrom | undefined = sp.from === "calendar" ? "calendar" : undefined;
+  const fromQuery = from ? `?from=${from}` : "";
   const today = algiersToday();
   // Tomorrow has no journal and a mistyped date has no meaning: both land on
   // today rather than on an empty page with a broken arrow.
-  if (!isCalendarDate(date) || date > today) redirect(`/portal/children/${id}/day/${today}`);
+  if (!isCalendarDate(date) || date > today) redirect(`/portal/children/${id}/day/${today}${fromQuery}`);
 
   const ctx = await getTenantContext();
   const t = await getTranslations("portal");
@@ -136,14 +142,25 @@ export default async function PortalChildDayPage({
 
   return (
     <div className="grid gap-4">
-      {/* Back to the child's Journal tab — the list this day came from. */}
-      <Link
-        href={`/portal/children/${child.id}?tab=journal`}
-        className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <BackIcon className="size-4" aria-hidden />
-        <bdi dir="auto">{name}</bdi>
-      </Link>
+      {/* Back to where this day came from: the child's Journal tab, or the
+          family calendar on this very day and child. */}
+      {from === "calendar" ? (
+        <Link
+          href={`/portal/calendar?date=${date}&child=${child.id}`}
+          className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <BackIcon className="size-4" aria-hidden />
+          {t("calendar.backToCalendar")}
+        </Link>
+      ) : (
+        <Link
+          href={`/portal/children/${child.id}?tab=journal`}
+          className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <BackIcon className="size-4" aria-hidden />
+          <bdi dir="auto">{name}</bdi>
+        </Link>
+      )}
 
       {/* The identity band reduced for a phone: a 40px face, the name, one
           facts line. The 56px band with its actions belongs to the child's
@@ -183,6 +200,7 @@ export default async function PortalChildDayPage({
         prevLabel={t("day.prev")}
         nextLabel={t("day.next")}
         groupLabel={t("day.navLabel")}
+        from={from}
       />
 
       {/* A holiday still to be confirmed on a day that is otherwise open: the

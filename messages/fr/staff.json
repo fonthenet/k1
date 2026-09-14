@@ -213,7 +213,8 @@
     "approveTitle": "Approuver ce congé ?",
     "approveDesc": "La demande est marquée approuvée et la personne la retrouve dans ses congés.",
     "rejectTitle": "Refuser cette demande ?",
-    "rejectDesc": "La demande est marquée refusée. La personne peut en déposer une autre."
+    "rejectDesc": "La demande est marquée refusée. La personne peut en déposer une autre.",
+    "conflicts": "{name} {lessons, plural, =0 {n'a aucun cours} one {donne <b>#</b> cours} other {donne <b>#</b> cours}} et {sessions, plural, =0 {aucun suivi} one {<b>#</b> suivi} other {<b>#</b> suivis}} sur cette période — ils restent prévus, sans remplaçant."
   },
   "salary": {
     "baseSalary": "Salaire de base",

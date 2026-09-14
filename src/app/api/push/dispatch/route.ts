@@ -89,12 +89,11 @@ async function drain(): Promise<DrainResult> {
     total.native.failed += native.failed;
     total.native.dropped += native.dropped;
     total.native.pending += native.pending;
-    // A skipped pass (missing env, no VAPID keys) would skip identically nine
-    // more times; say why once and stop.
-    if (r.skipped) {
-      total.skipped = r.skipped;
-      break;
-    }
+    // "skipped" now names a half that could not run (missing env: both;
+    // no VAPID keys: the web half only, the phones still went). Say why
+    // once; stop only when nothing at all was delivered — a pass that sent
+    // native pushes with no VAPID keys drains on like any other.
+    if (r.skipped) total.skipped = r.skipped;
     const delivered = r.sent + r.dropped + native.sent + native.dropped;
     if (delivered === 0) break;
     if (r.pending < PASS_LIMIT && native.pending < PASS_LIMIT) break;

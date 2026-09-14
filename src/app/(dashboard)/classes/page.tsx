@@ -9,15 +9,15 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { StructureGroupRow } from "@/components/shared/structure-group-row";
 import { StaffLink } from "@/components/shared/entity-link";
+import { buildWeekDays, readClosures, type ClosureRow } from "@/lib/closures";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, scoped } from "@/lib/tenant";
-import { formatDate, initialsFromName } from "@/lib/format";
+import { initialsFromName } from "@/lib/format";
 import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import { groupClassesByStructure } from "@/lib/structure-groups";
 import { cn } from "@/lib/utils";
-import { dayKeyOfStr, toOpeningHours } from "@/lib/week";
+import { toOpeningHours } from "@/lib/week";
 import type { KgClass } from "@/lib/types";
-import type { WeekGridDay } from "@/components/shared/week-grid";
 import { readRoomChoices, readRoomOccupancy } from "@/components/modules/rooms/occupancy-data";
 import type { BusySlot, HomeClass } from "@/components/modules/rooms/room-state";
 import { addDays, date as dateSchema, weekStart } from "@/components/modules/learning/domain";
@@ -80,15 +80,6 @@ type UsageRow = {
   history_count: number;
 };
 
-/** A tenant-wide closure touching the sheet's week. */
-type Closure = {
-  date: string;
-  end_date: string | null;
-  name: string;
-  name_ar: string | null;
-  tentative: boolean;
-};
-
 /** How many faces a card shows before it says "+N". */
 const AVATARS_SHOWN = 3;
 
@@ -126,7 +117,7 @@ export default async function ClassesPage({
     occupancy,
     { data: usageRows },
     { data: activityRows },
-    { data: closureRows },
+    closures,
   ] =
     await Promise.all([
       scoped(
@@ -205,19 +196,15 @@ export default async function ClassesPage({
             .not("room_id", "is", null)
             .order("name")
         : Promise.resolve({ data: [] as { id: string; name: string; name_ar: string | null; room_id: string }[] }),
-      // Tenant-wide closures touching the week shut the sheet's day; a
-      // structure's own closure does not, since the other structures still
-      // book the same rooms.
+      // Every closure row touching the week; buildWeekDays applies the one
+      // rule (0157): a CONFIRMED closure of the whole building — or of the
+      // scoped structure, when the switcher narrows the page — shuts the
+      // sheet's day, a tentative one only names it in gold, and another
+      // structure's own closure shuts nothing, since the rest of the
+      // building still books the same rooms.
       showRooms
-        ? supabase
-            .from("kg_holidays")
-            .select("date,end_date,name,name_ar,tentative")
-            .eq("tenant_id", ctx.tenant.id)
-            .eq("closure", true)
-            .is("structure_id", null)
-            .lte("date", weekEnd)
-            .or(`end_date.gte.${week},and(end_date.is.null,date.gte.${week})`)
-        : Promise.resolve({ data: [] as Closure[] }),
+        ? readClosures(supabase, ctx.tenant.id, week, weekEnd)
+        : Promise.resolve([] as ClosureRow[]),
     ]);
 
   if (error) throw new Error(error.message);
@@ -264,37 +251,26 @@ export default async function ClassesPage({
   // The building's own hours, the days it opens this week, and any day a
   // booking already falls on: a room booked on a Saturday is on the sheet
   // even when the doors are officially shut. A building shut every day still
-  // gets Sunday–Thursday, greyed, rather than an empty card.
+  // gets Sunday–Thursday, greyed, rather than an empty card. The columns are
+  // the shared buildWeekDays (lib/closures), so the sheet and the timetable
+  // cannot disagree about which day is shut.
   const hours = toOpeningHours((ctx.tenant as { opening_hours?: unknown }).opening_hours);
-  const closures = (closureRows ?? []) as Closure[];
-  const closureOn = (date: string) =>
-    closures.find((c) => c.date <= date && (c.end_date ?? c.date) >= date);
   const sheetBusy = occupancy.busy.filter((b) => b.roomId !== null);
   const busyDays = new Set(sheetBusy.map((b) => b.date));
-  let weekDates = Array.from({ length: 7 }, (_, i) => addDays(week, i)).filter(
-    (date) => hours[dayKeyOfStr(date)] !== null || busyDays.has(date),
-  );
-  if (weekDates.length === 0) weekDates = Array.from({ length: 5 }, (_, i) => addDays(week, i));
-  const hoursByDate: Record<string, { open: string; close: string } | null> = {};
-  const days: WeekGridDay[] = weekDates.map((date) => {
-    const at = new Date(`${date}T12:00:00Z`);
-    const closure = closureOn(date);
-    const weekly = hours[dayKeyOfStr(date)];
-    hoursByDate[date] = closure ? null : weekly;
-    const isToday = date === today;
-    const fullLabel = formatDate(at, locale, { weekday: "long", day: "numeric", month: "long", year: undefined });
-    return {
-      date,
-      weekday: formatDate(at, locale, { weekday: "short", day: undefined, month: undefined, year: undefined }),
-      dayNumber: String(at.getUTCDate()),
-      fullLabel: isToday ? `${fullLabel}, ${tc("labels.today")}` : fullLabel,
-      isToday,
-      closed: weekly === null || closure !== undefined,
-      closedLabel: closure ? (locale === "ar" && closure.name_ar ? closure.name_ar : closure.name) : undefined,
-      tentative: closure?.tentative,
-      hours: closure ? null : weekly,
-    };
+  const days = buildWeekDays({
+    week,
+    hours,
+    closures,
+    structures: [],
+    structureId: ctx.structureId,
+    busyDays,
+    locale,
+    today,
+    todayLabel: tc("labels.today"),
   });
+  // The sheet's clickable minutes: none on a shut day.
+  const hoursByDate: Record<string, { open: string; close: string } | null> = {};
+  for (const d of days) hoursByDate[d.date] = d.closed ? null : (d.hours ?? null);
   // The day on the sheet: the one asked for when it is a sheet day, else the
   // last sheet day before it (a Saturday asked for lands on Thursday — how
   // "previous day" from a Sunday works), else the week's first.

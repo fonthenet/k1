@@ -12,6 +12,7 @@ import {
   TriangleAlert,
   Users,
 } from "lucide-react";
+import { closedDates, closureOn, holidayLabel, readClosures } from "@/lib/closures";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "@/lib/tenant";
 import {
@@ -88,13 +89,8 @@ interface ClassLite {
   name: string;
   name_ar: string | null;
   color: string;
-}
-
-interface ClosureRow {
-  date: string;
-  end_date: string | null;
-  name: string;
-  name_ar: string | null;
+  /** Whose closures take a day from this class's children; null = the building's only. */
+  structure_id: string | null;
 }
 
 interface GuardianLite {
@@ -177,7 +173,13 @@ export default async function ReportsPage({
     (ctx.tenant as { opening_hours?: unknown }).opening_hours
   );
   const supabase = await createClient();
-  const [t, locale] = await Promise.all([getTranslations("reports"), getLocale()]);
+  // The one word for a date still to be confirmed is the calendar's
+  // (SPEC5 decision 13), read from its namespace rather than minted twice.
+  const [t, tCal, locale] = await Promise.all([
+    getTranslations("reports"),
+    getTranslations("comms.calendar"),
+    getLocale(),
+  ]);
   const tid = ctx.tenant.id;
   const dateLocale = intlLocale(locale);
 
@@ -196,7 +198,7 @@ export default async function ReportsPage({
   const monthEndDate = new Date(y, m, 0);
   const monthEnd = isoDate(monthEndDate);
 
-  const [attRes, childRes, classRes, itemsRes, arrearsRes, tsRes, memRes, matricRes, holRes] =
+  const [attRes, childRes, classRes, itemsRes, arrearsRes, tsRes, memRes, matricRes, closures] =
     await Promise.all([
       supabase
         .from("kg_attendance")
@@ -213,7 +215,7 @@ export default async function ReportsPage({
         .eq("status", "enrolled"),
       supabase
         .from("kg_classes")
-        .select("id, name, name_ar, color")
+        .select("id, name, name_ar, color, structure_id")
         .eq("tenant_id", tid)
         .order("name"),
       supabase
@@ -250,16 +252,14 @@ export default async function ReportsPage({
         )
         .eq("tenant_id", tid)
         .order("enrollment_date", { ascending: true }),
-      // Days the crèche declared shut. Closure only — a tentative or
-      // non-closing entry (a school photo, an open day) is a note on the
-      // calendar, not a day nobody was expected. Same predicate as menus/.
-      supabase
-        .from("kg_holidays")
-        .select("date, end_date, name, name_ar")
-        .eq("tenant_id", tid)
-        .eq("closure", true)
-        .lte("date", monthEnd)
-        .or(`end_date.gte.${monthStart},and(end_date.is.null,date.gte.${monthStart})`),
+      // Every closure row touching the month; lib/closures decides below
+      // which ones took a day from whom, under the one rule every screen
+      // shares (0157). A failed read is an empty month of closures and the
+      // page's red banner, like any other read here.
+      readClosures(supabase, tid, monthStart, monthEnd).then(
+        (rows) => ({ data: rows, error: null as { message: string } | null }),
+        (e: unknown) => ({ data: [], error: { message: e instanceof Error ? e.message : String(e) } }),
+      ),
     ]);
 
   const members = (memRes.data ?? []) as MemberRow[];
@@ -281,12 +281,11 @@ export default async function ReportsPage({
       tsRes.error ||
       memRes.error ||
       matricRes.error ||
-      holRes.error
+      closures.error
   );
 
   const att = (attRes.data ?? []) as AttRow[];
   const children = (childRes.data ?? []) as EnrolledChild[];
-  const closures = (holRes.data ?? []) as ClosureRow[];
   const classes = (classRes.data ?? []) as ClassLite[];
   const items = (itemsRes.data ?? []) as unknown as ItemRow[];
   const arrears = (arrearsRes.data ?? []) as unknown as ArrearRow[];
@@ -306,29 +305,41 @@ export default async function ReportsPage({
 
   // ================= (a) Attendance =================
 
-  // Every date the crèche was shut this month, with the closure's name for the
-  // grid tooltip. A closure can span days (end_date), so it is expanded here.
+  // Every date the building was shut this month, with the closure's name for
+  // the grid tooltip — CONFIRMED whole-building closures only (0157): a
+  // tentative Aïd took nobody's day, so it reaches the tooltip and not the
+  // shading, and a structure's own closure is that structure's business,
+  // counted per child below.
+  const monthDates = dateRange(monthStart, monthEnd, 31);
   const closedBy = new Map<string, string>();
-  for (const h of closures) {
-    for (const d of dateRange(h.date, h.end_date ?? h.date, 62)) {
-      if (d >= monthStart && d <= monthEnd) {
-        closedBy.set(d, locale === "ar" && h.name_ar ? h.name_ar : h.name);
-      }
-    }
+  const proposedBy = new Map<string, string>();
+  for (const d of monthDates) {
+    const { confirmed, tentative } = closureOn(closures.data, d, null);
+    if (confirmed) closedBy.set(d, holidayLabel(confirmed, locale));
+    if (tentative) proposedBy.set(d, holidayLabel(tentative, locale));
   }
 
   // The days a child was expected: the crèche's open weekdays (week.ts, per
-  // tenant), minus declared closures, and never past today — a month that is
-  // half over is judged on the half that happened.
+  // tenant), minus the confirmed closures of the building OR of the child's
+  // class's structure — the jardin's vacances scolaires take a day from
+  // the jardin's children and from nobody else — and never past today: a
+  // month that is half over is judged on the half that happened.
   //
   // The rate used to be present ÷ rows marked, which reads 100% for a class
   // whose register was opened once all month. Dividing by expected days is
   // what a director means by "attendance rate", and it exposes the days nobody
   // marked as their own column instead of hiding them in the denominator.
-  const monthDates = dateRange(monthStart, monthEnd, 31);
-  const expectedDates = monthDates.filter(
-    (d) => d <= today && isOpenDayStr(openingHours, d) && !closedBy.has(d)
-  );
+  const structureOfClass = new Map(classes.map((c) => [c.id, c.structure_id] as const));
+  const closedByStructure = new Map<string | null, Set<string>>();
+  const closedDatesFor = (structureId: string | null): Set<string> => {
+    let set = closedByStructure.get(structureId);
+    if (!set) {
+      set = closedDates(closures.data, monthStart, monthEnd, structureId);
+      closedByStructure.set(structureId, set);
+    }
+    return set;
+  };
+  const openDates = monthDates.filter((d) => d <= today && isOpenDayStr(openingHours, d));
 
   const attByDate = new Map<string, AttRow[]>();
   const markedByChild = new Map<string, Set<string>>();
@@ -346,7 +357,8 @@ export default async function ReportsPage({
   // present on a Friday was plainly expected that Friday. Without this the
   // rate could exceed 100% and "not marked" would go negative.
   function expectedDaysFor(c: EnrolledChild): number {
-    const dates = new Set(expectedDates);
+    const shut = closedDatesFor(c.class_id ? (structureOfClass.get(c.class_id) ?? null) : null);
+    const dates = new Set(openDates.filter((d) => !shut.has(d)));
     for (const d of markedByChild.get(c.id) ?? []) dates.add(d);
     let n = 0;
     for (const d of dates) {
@@ -413,6 +425,8 @@ export default async function ReportsPage({
     present: number;
     hasData: boolean;
     closure: string | null;
+    /** A closure still to be confirmed: named in the tooltip, shading nothing. */
+    proposed: string | null;
     rate: number;
   }[][] = [];
   for (let w = 0; w < 6; w++) {
@@ -433,6 +447,7 @@ export default async function ReportsPage({
         present,
         hasData: recs.length > 0,
         closure: closedBy.get(key) ?? null,
+        proposed: proposedBy.get(key) ?? null,
         rate: enrolledCount > 0 ? present / enrolledCount : 0,
       });
     }
@@ -806,6 +821,7 @@ export default async function ReportsPage({
                     const tip = [
                       formatDate(cell.key, locale),
                       cell.closure,
+                      cell.proposed ? `${cell.proposed} · ${tCal("tentative")}` : null,
                       cell.hasData ? `${cell.present}/${enrolledCount}` : null,
                     ]
                       .filter(Boolean)

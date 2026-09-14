@@ -24,9 +24,12 @@ export function CategoryDonut({
     maximumFractionDigits: 0,
   });
   // The centre says the month's total the way the cards above say theirs:
-  // the full figure, grouped. Compact notation gave "198,1 ألف" here, a
-  // form nobody writes on a ledger and one that reads backwards next to a
-  // French legend; the legend already carries the currency for every row.
+  // the full figure, grouped, with the dinar under it. Compact notation gave
+  // "198,1 ألف" here, a form nobody writes on a ledger and one that reads
+  // backwards next to a French legend. The currency is a second, muted line
+  // rather than a suffix: "198 050 دج" on one line outgrows the ring's hole
+  // at six digits, and the owner read the bare figure as "198 050 what?".
+  const currency = locale === "ar" ? "دج" : "DA";
 
   return (
     // Side by side only when the CARD is wide enough for a legend row to
@@ -64,13 +67,14 @@ export function CategoryDonut({
               </Pie>
             </PieChart>
           </ResponsiveContainer>
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center leading-tight">
             <span
               className="text-lg font-bold tabular-nums text-foreground"
               dir="ltr"
             >
               {groupWithSpace(total)}
             </span>
+            <span className="text-xs font-medium text-muted-foreground">{currency}</span>
           </div>
         </div>
         <ul className="w-full min-w-0 flex-1 space-y-0.5">

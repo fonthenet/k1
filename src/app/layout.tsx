@@ -36,9 +36,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body
         // Cairo sits in the French/English stack as the FALLBACK: Inter has no
         // Arabic glyphs, so an Arabic child's name or the establishment's name
-        // inside a French page was falling to the system Arabic face and looked
-        // like a different product. Inter still draws every Latin glyph first.
-        className={`${inter.variable} ${cairo.variable} antialiased ${locale === "ar" ? "font-[family-name:var(--font-cairo)]" : "font-[family-name:var(--font-inter),var(--font-cairo)]"}`}
+        // inside a French page must fall to Cairo, never to the system face.
+        // The stack lives in globals.css (--font-sans) and names "Inter"
+        // directly, because next/font's own variable would put its Arial-based
+        // "Inter Fallback" in front of Cairo. Inter still draws every Latin
+        // glyph first.
+        className={`${inter.variable} ${cairo.variable} antialiased ${locale === "ar" ? "font-[family-name:var(--font-cairo)]" : "font-sans"}`}
       >
         <ThemeProvider dir={dir}>
           <NextIntlClientProvider messages={messages}>

@@ -45,7 +45,9 @@
       "searchPlaceholder": "Search for a pupil (Latin or Arabic)…",
       "addChild": "Add a pupil",
       "column": "Pupil"
-    }
+    },
+    "dossierIncomplete": "File incomplete",
+    "dossierPill": "File"
   },
   "status": {
     "pending": "Pending",
@@ -122,7 +124,7 @@
       "health": "Health",
       "attendance": "Attendance",
       "billing": "Billing",
-      "documents": "Documents",
+      "documents": "File",
       "consents": "Consents"
     },
     "info": {
@@ -370,7 +372,7 @@
   "documents": {
     "title": "Documents",
     "empty": "No documents",
-    "emptyDescription": "Add the birth certificate, vaccination record or other paperwork.",
+    "emptyDescription": "Add the documents handed in at the desk; the family can also attach them from their space.",
     "upload": "Add a document",
     "uploadTitle": "New document",
     "docTitle": "Document title",

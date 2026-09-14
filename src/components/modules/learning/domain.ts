@@ -276,19 +276,3 @@ export interface TimetableStructure {
   color: string;
   center_type: string;
 }
-
-export interface TimetableDay {
-  date: string;
-  /** Shut by the weekly pattern OR by a closure holiday that applies to the
-   *  scope (tenant-wide, or the scoped structure's own). */
-  closed: boolean;
-  /** The scoped structure's (or the tenant's) hours for that weekday. */
-  hours: { open: string; close: string } | null;
-  /** The closure that applies, with its name already localised (name_ar in
-   *  Arabic when the row has one). */
-  holiday?: { name: string; tentative: boolean };
-  /** Whole-building scope only: structures shut that day by their own
-   *  closure while the rest of the building is open. `name` is the closure's
-   *  name — the lane head already says which structure. */
-  closedStructures: { id: string; name: string; tentative: boolean }[];
-}

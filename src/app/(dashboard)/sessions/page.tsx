@@ -2,23 +2,29 @@ import { fetchProfileNames, memberNameIn } from "@/lib/member-names";
 import { Fragment } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { CalendarClock, CalendarX2, CheckCircle2, Target } from "lucide-react";
+import { closureOn, holidayLabel, readClosures } from "@/lib/closures";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { isOpenDayStr, toOpeningHours } from "@/lib/week";
 import { childDisplayName } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { Membership } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
-import { NewSessionDialog } from "@/components/modules/sessions/new-session-dialog";
+import {
+  NewSessionDialog,
+  type SessionChildOption,
+} from "@/components/modules/sessions/new-session-dialog";
 import { roomName } from "@/components/modules/classes/class-types";
 import { readRoomChoices } from "@/components/modules/rooms/occupancy-data";
 import { ScheduleToolbar } from "@/components/modules/sessions/schedule-toolbar";
 import { SessionRow } from "@/components/modules/sessions/session-row";
 import { SessionsTabs } from "@/components/modules/sessions/sessions-tabs";
 import {
+  addDaysStr,
   algiersDate,
   algiersRange,
   algiersToday,
@@ -29,7 +35,6 @@ import {
 import {
   isSessionType,
   type ChildLite,
-  type ChildOption,
   type ProgramOption,
   type SessionStatus,
   type SessionType,
@@ -68,8 +73,11 @@ export default async function SessionsPage({
   const openingHours = toOpeningHours(
     (ctx.tenant as { opening_hours?: unknown }).opening_hours
   );
-  const t = await getTranslations("sessions");
-  const locale = await getLocale();
+  const [t, tCal, locale] = await Promise.all([
+    getTranslations("sessions"),
+    getTranslations("comms.calendar"),
+    getLocale(),
+  ]);
   const sp = await searchParams;
   const supabase = await createClient();
 
@@ -82,6 +90,7 @@ export default async function SessionsPage({
   const rangeStart = view === "week" ? weekStartStr(date) : date;
   const rangeDays = view === "week" ? 7 : 1;
   const range = algiersRange(rangeStart, rangeDays);
+  const rangeEnd = view === "week" ? addDaysStr(rangeStart, 6) : date;
 
   let scheduleQuery = supabase
     .from("kg_sessions")
@@ -108,6 +117,7 @@ export default async function SessionsPage({
     noShowRes,
     activeProgramsRes,
     roomChoices,
+    closures,
   ] = await Promise.all([
     scheduleQuery,
     supabase
@@ -118,7 +128,7 @@ export default async function SessionsPage({
       .neq("role", "parent"),
     supabase
       .from("kg_children")
-      .select("id, first_name, last_name, first_name_ar, last_name_ar")
+      .select("id, first_name, last_name, first_name_ar, last_name_ar, structure_id")
       .eq("tenant_id", ctx.tenant.id)
       .eq("status", "enrolled")
       .order("first_name")
@@ -158,6 +168,11 @@ export default async function SessionsPage({
     // own day once it opens. Never narrowed by the rail: a room is the same
     // room to every structure.
     readRoomChoices(supabase, ctx, locale),
+    // Every closure touching the range, under the one rule (lib/closures):
+    // a confirmed whole-building closure mutes the day's rows and names
+    // itself in the group row; a tentative one is a gold word and nothing
+    // else, since the guard of 0157 still accepts a follow-up on it.
+    readClosures(supabase, ctx.tenant.id, rangeStart, rangeEnd),
   ]);
 
   if (scheduleRes.error) throw new Error(scheduleRes.error.message);
@@ -174,9 +189,10 @@ export default async function SessionsPage({
     .sort((a, b) => a.name.localeCompare(b.name, locale));
   const therapistById = new Map(therapists.map((th) => [th.id, th.name]));
 
-  const childrenOptions: ChildOption[] = (childrenRes.data ?? []).map((c) => ({
+  const childrenOptions: SessionChildOption[] = (childrenRes.data ?? []).map((c) => ({
     id: c.id,
     name: childDisplayName(c, locale),
+    structureId: c.structure_id ?? null,
   }));
   const programs = (programsRes.data ?? []) as ProgramOption[];
 
@@ -294,17 +310,39 @@ export default async function SessionsPage({
               <TableBody>
                 {days.map((day) => {
                   const rows = byDay.get(day) ?? [];
-                  const closed = !isOpenDayStr(openingHours, day);
+                  // The building's door for the day: the weekly pattern, or a
+                  // confirmed closure of the whole building. A structure's own
+                  // closure does not mute a register that mixes structures.
+                  const { confirmed, tentative } = closureOn(closures, day, null);
+                  const closed = !isOpenDayStr(openingHours, day) || confirmed !== null;
+                  // A day view is the rows alone — the date is already said
+                  // once, in the filter card — unless a closure covers the
+                  // day, in which case its name is a fact worth the row.
+                  const groupRow = view === "week" || confirmed !== null || tentative !== null;
                   return (
                     <Fragment key={day}>
-                      {view === "week" && (
+                      {groupRow && (
                         <TableRow className="bg-muted/30 hover:bg-muted/30">
                           <TableCell colSpan={6} className="py-1.5 text-xs">
                             <span className="flex items-center gap-2">
-                              <span className="font-semibold">{shortDayLabel(day, locale)}</span>
+                              <span className={cn("font-semibold", closed && "text-muted-foreground")}>
+                                {shortDayLabel(day, locale)}
+                              </span>
                               {day === today && (
                                 <span className="text-muted-foreground">· {t("dates.today")}</span>
                               )}
+                              {/* The closure that mutes the rows, named once;
+                                  a proposal is the same word in gold, and the
+                                  rows keep their ink. */}
+                              {confirmed ? (
+                                <span className="text-muted-foreground">
+                                  · <bdi dir="auto">{holidayLabel(confirmed, locale)}</bdi>
+                                </span>
+                              ) : tentative ? (
+                                <span className="text-gold-ink">
+                                  · <bdi dir="auto">{holidayLabel(tentative, locale)}</bdi> · {tCal("tentative")}
+                                </span>
+                              ) : null}
                               <span className="text-muted-foreground tabular-nums">
                                 {t("filters.count", { count: rows.length })}
                               </span>

@@ -5,7 +5,9 @@ import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 import { InboxWidget } from "@/components/modules/inbox/inbox-widget";
 import { getInboxSummary } from "@/components/modules/inbox/data";
+import { KioskFab } from "@/components/modules/attendance/kiosk-fab";
 import { displayIdentity } from "@/lib/auth-identifier";
+import { kioskSettings } from "@/lib/kiosk-settings";
 
 /**
  * Inset shell: two floating panels on a tinted ground, rather than the flush
@@ -54,6 +56,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           activeStructureId={ctx.structureId}
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
+        {/* The floating scan button is a tenant switch (settings->kiosk
+            floating_scan, 0167): the desk's way into the kiosk without
+            leaving the page. Read here, server-side, like every other kiosk
+            setting; off by default, so nothing appears until the office
+            turns it on. */}
+        {kioskSettings(ctx.tenant.settings).floatingScan && <KioskFab />}
         <InboxWidget
           tenantId={ctx.tenant.id}
           userId={ctx.user.id}

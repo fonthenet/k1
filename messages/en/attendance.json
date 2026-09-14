@@ -65,7 +65,9 @@
   "checkOutDialog": {
     "title": "Check out {name}",
     "description": "Who is collecting the child? Pick someone from the list, or type a name.",
-    "orType": "Or type another name"
+    "orType": "Or type another name",
+    "noCollectors": "Nobody is on record for this child yet. Type the name of the person collecting them.",
+    "addInRecord": "Add their guardians in the record"
   },
   "fields": {
     "pickedUpBy": "Picked up by",
@@ -142,6 +144,7 @@
     "notSlept": "Did not sleep",
     "napMinutes": "{minutes} min",
     "notePlaceholder": "One line for the parents",
+    "rowEmpty": "Nothing noted yet",
     "photos": {
       "title": "<name>{child}</name> · photos of {date}",
       "add": "Add photos",
@@ -150,6 +153,7 @@
       "noConsent": "The family has not answered the photo consent yet.",
       "refused": "The family declined photos.",
       "seeConsents": "See consents",
+      "permission": "Allow access to the camera and photos in the phone's settings.",
       "tooLarge": "This photo could not be reduced."
     },
     "bulkMeal": "Everyone ate well",

@@ -7,11 +7,15 @@
 // asks about the whole building, which is the honest question for the "all
 // structures" view and the only question a single-structure crèche ever has.
 //
-// One rule the function does not carry is this module's oldest: a `tentative`
-// holiday is a proposal — an Aïd nobody has confirmed yet — and closes nothing
-// (0068, 0103). So the confirmed row is still read here, and it is the same
-// read that names the closure in the register's notice: "closed on Sunday" is
-// not the answer when the question is "why is 1 November empty".
+// One rule, everywhere (0157): kg_structure_closed_on is confirmed-only — a
+// `tentative` holiday is a proposal, an Aïd nobody has confirmed yet, and
+// closes nothing: not the register, not the timetable, not the room ledger.
+// This module has held that rule since 0068 and 0103; since 0157 every guard
+// in the database holds it too. The confirmed row is still read here, through
+// lib/closures so the predicate is typed once, and it is the same read that
+// names the closure in the register's notice: "closed on Sunday" is not the
+// answer when the question is "why is 1 November empty".
+import { closureOn, readClosures } from "@/lib/closures";
 import type { createClient } from "@/lib/supabase/server";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
@@ -28,41 +32,32 @@ export interface StructureClosure {
   error: string | null;
 }
 
-interface HolidayRow extends ClosureHoliday {
-  structure_id: string | null;
-}
-
 export async function structureClosure(
   supabase: Client,
   tenantId: string,
   structureId: string | null,
   date: string
 ): Promise<StructureClosure> {
-  const [closedRes, holidayRes] = await Promise.all([
+  const [closedRes, rows] = await Promise.all([
     supabase.rpc("kg_structure_closed_on", {
       p_structure: structureId,
       p_tenant: tenantId,
       p_date: date,
     }),
-    supabase
-      .from("kg_holidays")
-      .select("name, name_ar, structure_id")
-      .eq("tenant_id", tenantId)
-      .eq("closure", true)
-      .eq("tentative", false)
-      .lte("date", date)
-      .or(`end_date.gte.${date},and(end_date.is.null,date.eq.${date})`),
+    readClosures(supabase, tenantId, date, date).then(
+      (data) => ({ data, error: null as string | null }),
+      (e: unknown) => ({ data: [], error: e instanceof Error ? e.message : String(e) }),
+    ),
   ]);
 
-  const error = closedRes.error?.message ?? holidayRes.error?.message ?? null;
+  const error = closedRes.error?.message ?? rows.error ?? null;
   if (error) return { closed: false, holiday: null, error };
 
   // The same scope the function applies, so the named holiday is always the
-  // one that did the closing: a whole-building closure, or this structure's.
-  const holiday =
-    ((holidayRes.data ?? []) as HolidayRow[]).find(
-      (h) => h.structure_id === null || h.structure_id === structureId
-    ) ?? null;
+  // one that did the closing: a whole-building closure, or this structure's,
+  // confirmed — closureOn puts the building's row first, as the function
+  // does.
+  const holiday = closureOn(rows.data, date, structureId).confirmed;
 
   return { closed: closedRes.data === true && holiday !== null, holiday, error: null };
 }

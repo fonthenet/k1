@@ -11,9 +11,9 @@
     "noCapacity": "بدون حد",
     "noSchedule": "لم يُحدَّد البرنامج بعد",
     "free": "مجاني",
-    "requests": "{count, plural, one {طلب واحد في الانتظار} two {طلبان في الانتظار} few {# طلبات في الانتظار} many {# طلبًا في الانتظار} other {# طلب في الانتظار}}",
+    "requests": "{count, plural, one {# طلب في الانتظار} two {# طلبات في الانتظار} few {# طلبات في الانتظار} many {# طلبًا في الانتظار} other {# طلب في الانتظار}}",
     "view": "عرض النشاط",
-    "count": "{count, plural, =0 {لا توجد أنشطة} one {نشاط واحد} two {نشاطان} few {# أنشطة} many {# نشاطًا} other {# نشاط}}",
+    "count": "{count, plural, =0 {لا توجد أنشطة} one {# نشاط} two {# أنشطة} few {# أنشطة} many {# نشاطًا} other {# نشاط}}",
     "columns": {
       "activity": "النشاط",
       "fee": "الرسوم"

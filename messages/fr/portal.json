@@ -7,7 +7,8 @@
     "payments": "Paiements",
     "announcements": "Actualités",
     "unreadMessages": "{count, plural, =0 {Aucun message non lu} one {# message non lu} other {# messages non lus}}",
-    "switchCreche": "Changer de crèche"
+    "switchCreche": "Changer de crèche",
+    "calendar": "Calendrier"
   },
   "error": {
     "title": "Impossible d'afficher cette page",
@@ -25,7 +26,7 @@
     "seeAll": "Tout voir",
     "upcomingTitle": "À venir",
     "upcomingEmpty": "Rien de prévu pour le moment.",
-    "tentative": "À confirmer",
+    "tentative": "à confirmer",
     "status": {
       "notYet": "Pas encore arrivé",
       "arrived": "Arrivé à {time}",
@@ -64,10 +65,18 @@
       "nap": "Sieste",
       "lunch": "Déjeuner",
       "departure": "Départ"
+    },
+    "seeCalendar": "Calendrier",
+    "pinnedEmpty": "Aucune annonce épinglée",
+    "closedTodayNamed": "Fermé aujourd'hui — {name}",
+    "dossier": {
+      "title": "Dossier à compléter",
+      "line": "{names} · {count} pièces"
     }
   },
   "checkin": {
     "action": "Pointer l’arrivée",
+    "screenTitle": "Badge d’entrée",
     "title": "Montrez ceci à l’entrée",
     "subtitle": "Le personnel scanne ce code, puis compare votre photo à celle de votre enfant avant de valider l’arrivée ou le départ.",
     "qrTitle": "QR code de votre badge",
@@ -113,7 +122,8 @@
     "processing": "Dossier reçu — en cours de traitement. La crèche vous contactera.",
     "closed": "Dossier traité — contactez l'établissement pour la suite.",
     "processingTransfer": "Demande de changement de structure reçue — la direction confirmera.",
-    "group": "Demandes en cours"
+    "group": "Demandes en cours",
+    "dossierLine": "Dossier · {text}"
   },
   "addChild": {
     "trigger": "Inscrire un autre enfant",
@@ -155,7 +165,8 @@
       "title": "Classe souhaitée",
       "reviewLabel": "Classe souhaitée",
       "undecided": "La direction décide"
-    }
+    },
+    "documents": "Dossier"
   },
   "messages": {
     "title": "Messages",
@@ -213,7 +224,7 @@
     "subjectRange": "Absence — {name} — du {from} au {to}",
     "successRecorded": "{count, plural, one {Absence inscrite au registre pour # jour} other {Absence inscrite au registre pour # jours}}",
     "successKept": "Le bureau avait déjà une saisie pour ce jour — votre signalement lui est bien parvenu.",
-    "successClosed": "La crèche est fermée ces jours-là — le bureau a tout de même été informé.",
+    "successClosed": "L'établissement est fermé ces jours-là — le bureau a tout de même été informé.",
     "errors": {
       "window": "Une absence se signale de la veille jusqu'à 14 jours à l'avance."
     }
@@ -248,7 +259,7 @@
       "attendance": "Présences",
       "health": "Santé",
       "activities": "Activités",
-      "permissions": "Accès"
+      "permissions": "Dossier"
     },
     "journal": {
       "title": "Journal quotidien",
@@ -588,7 +599,12 @@
       "save": "Enregistrer mes informations",
       "saved": "Vos informations ont été mises à jour. Le bureau les voit immédiatement.",
       "noFile": "Aucun dossier parent",
-      "noFileDescription": "Votre compte n'est pas encore lié à un dossier parent dans cette crèche. Contactez le bureau pour le lier."
+      "noFileDescription": "Votre compte n'est pas encore lié à un dossier parent dans cette crèche. Contactez le bureau pour le lier.",
+      "contact": "Coordonnées",
+      "identity": "Identité",
+      "more": "Autres informations",
+      "notProvided": "Non renseigné",
+      "namesRequired": "Le prénom et le nom en lettres latines sont obligatoires."
     },
     "photo": {
       "title": "Ma photo",
@@ -633,7 +649,10 @@
         "en": "English",
         "fr": "Français"
       },
-      "saved": "Votre compte a été mis à jour"
+      "saved": "Votre compte a été mis à jour",
+      "edit": "Nom affiché et téléphone",
+      "editHint": "Le nom qui apparaît à côté de vos messages, et le téléphone rattaché à votre connexion.",
+      "fullNameRequired": "Saisissez le nom à afficher."
     },
     "children": {
       "title": "Mes enfants",
@@ -646,7 +665,9 @@
       "description": "Recevez une notification sur ce téléphone dès que la crèche publie quelque chose au sujet de votre enfant.",
       "enable": "Activer les notifications",
       "enabled": "Notifications activées",
-      "denied": "Les notifications sont désactivées pour Rawdatik. Activez-les dans Réglages pour être prévenu."
+      "denied": "Les notifications sont désactivées pour Rawdatik. Activez-les dans Réglages pour être prévenu.",
+      "unavailable": "Non disponible sur cet appareil.",
+      "openSettings": "Ouvrir les réglages"
     },
     "signOut": {
       "hint": "Il vous faudra votre e-mail et votre mot de passe pour vous reconnecter."
@@ -654,6 +675,16 @@
     "errors": {
       "load": "Vos informations n'ont pas pu être chargées. Réessayez dans un instant.",
       "forbidden": "Vous n'êtes pas autorisé à modifier cette information. Contactez le bureau de la crèche."
+    },
+    "legal": {
+      "title": "Confidentialité",
+      "privacy": "Politique de confidentialité",
+      "privacyHint": "Ce que Rawdatik conserve, où, et qui peut le voir.",
+      "deleteAccount": "Supprimer mon compte",
+      "deleteHint": "La demande s'envoie par e-mail à {email} ; la marche à suivre est décrite dans la politique de confidentialité.",
+      "deleteSubject": "Demande de suppression de compte Rawdatik",
+      "deleteBody": "Bonjour,\n\nJe demande la suppression de mon compte Rawdatik ({identity}) et des données qui y sont rattachées.\n\n",
+      "copied": "Aucune application e-mail sur ce téléphone : l'adresse {email} a été copiée."
     }
   },
   "classChoice": {
@@ -744,5 +775,107 @@
     "ackedAt": "Accusé le {date} · <ltr>{time}</ltr>",
     "sessions": "Séances",
     "photoOpen": "Photo {n} — ouvrir en plein écran"
+  },
+  "calendar": {
+    "title": "Calendrier",
+    "description": "Ce qui est prévu pour vos enfants et les jours où l'établissement est fermé",
+    "allChildren": "Tous",
+    "upcoming": "Prochains jours",
+    "empty": "Rien de prévu dans les prochains jours.",
+    "dayEmpty": "Rien de prévu ce jour-là.",
+    "closed": "Fermé",
+    "tentative": "à confirmer",
+    "allDay": "Toute la journée",
+    "legendJournal": "Jour avec journal",
+    "journalOf": "Journal de {name}",
+    "kinds": {
+      "event": "Événement",
+      "holiday": "Fermeture",
+      "lesson": "{profile, select, academic {Cours} therapy {Atelier} other {Activité}}",
+      "session": "Rendez-vous",
+      "activity": "Activité",
+      "assessment": "{kind, select, exam {Examen} other {Devoir}}",
+      "invoice_due": "Échéance"
+    },
+    "invoice": "{count, plural, one {# facture à régler} other {# factures à régler}}",
+    "event": {
+      "addToCalendar": "Ajouter à mon agenda",
+      "going": "J'y serai",
+      "notGoing": "Absent",
+      "note": "Un mot pour l'équipe",
+      "noteHint": "facultatif",
+      "answered": "Réponse enregistrée",
+      "cancelled": "Annulé",
+      "gone": "Cet événement n'existe plus.",
+      "perPerson": "par personne"
+    },
+    "backToCalendar": "Calendrier"
+  },
+  "dossier": {
+    "title": "Pièces du dossier",
+    "missingLine": "{count, plural, one {# pièce à fournir} other {# pièces à fournir}}",
+    "rejectedLine": "{count, plural, one {# pièce refusée} other {# pièces refusées}}",
+    "complete": "Dossier complet",
+    "incomplete": "Dossier incomplet",
+    "empty": "Aucune pièce n'est demandée pour le moment.",
+    "fix": "corriger",
+    "hint": "Ce que l'établissement a reçu, et ce qu'il reste à fournir.",
+    "back": "Mes demandes",
+    "toasts": {
+      "attached": "Pièce envoyée"
+    }
+  },
+  "door": {
+    "app": {
+      "tabTitle": "Scanner",
+      "segBadge": "Ma carte",
+      "segScan": "Scanner la porte",
+      "aim": "Visez le code affiché sur l'écran de la porte",
+      "notDoor": "Ce n'est pas le code de la porte.",
+      "cameraDenied": "Autorisez l'appareil photo dans les réglages pour scanner la porte."
+    },
+    "title": "À la porte",
+    "choose": "Qui arrive, qui part ?",
+    "in": "Arrivée",
+    "out": "Départ",
+    "submit": "Enregistrer",
+    "today": {
+      "notArrived": "Pas encore arrivé",
+      "in": "Arrivé à {time}",
+      "out": "Parti à {time}"
+    },
+    "recorded": {
+      "in": "Arrivée enregistrée à {time}",
+      "out": "Départ enregistré à {time}"
+    },
+    "pending": "Demande envoyée — l'équipe vous remet {name}",
+    "pendingHint": "Restez près de la porte ; cet écran se met à jour tout seul.",
+    "pendingElsewhere": "Un départ est déjà demandé pour {name} — l'équipe s'en occupe.",
+    "confirmed": "{name} vous a été remis à {time}",
+    "refused": "L'équipe n'a pas validé ce départ — adressez-vous à l'accueil.",
+    "expired": "Sans réponse de l'équipe — adressez-vous à l'accueil.",
+    "cancelled": "Demande annulée",
+    "cancel": "Annuler la demande",
+    "duplicate": {
+      "already_in": "Arrivée déjà enregistrée à {time}",
+      "already_out": "Départ déjà enregistré à {time}",
+      "just_arrived": "Arrivé il y a moins de deux minutes — l'équipe s'en occupe",
+      "returned": "Départ déjà enregistré à {time} — parlez-en à l'équipe"
+    },
+    "refusedReason": {
+      "outside_hours": "Hors des horaires ({open}–{close})",
+      "closed_day": "Établissement fermé aujourd'hui",
+      "pickup_not_allowed": "Vous n'êtes pas autorisé·e à récupérer {name}",
+      "not_arrived": "{name} n'est pas arrivé aujourd'hui"
+    },
+    "codeExpired": "Ce code a expiré — rescannez l'écran de la porte.",
+    "unknownCode": "Code inconnu — rescannez l'écran de la porte.",
+    "notParent": "Ce compte n'est rattaché à aucun enfant de cet établissement.",
+    "noChildren": "Aucun enfant inscrit à votre nom ici.",
+    "staffHere": "Ce code s'adresse aux parents. L'équipe utilise le kiosque.",
+    "openKiosk": "Ouvrir le kiosque",
+    "done": "Terminé",
+    "expiresIn": "Code valable {seconds} s",
+    "orScan": "Ou scannez le code affiché à la porte avec l'appareil photo de votre téléphone."
   }
 }

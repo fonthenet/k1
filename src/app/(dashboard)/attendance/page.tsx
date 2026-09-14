@@ -18,6 +18,8 @@ import type { Structure } from "@/components/modules/classes/class-types";
 import { allergenLabel } from "@/lib/allergens";
 import { childDisplayName, intlLocale } from "@/lib/format";
 import { isValidDateStr, parseDateStr } from "@/components/modules/attendance/dates";
+import { HandoverStrip } from "@/components/modules/attendance/handover-cards";
+import { kioskSettings } from "@/lib/kiosk-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -375,6 +377,17 @@ export default async function AttendancePage({
         activeStructure={activeStructure ?? "all"}
         showJournal={showJournal}
         rows={rows}
+        // Departures parents asked for at the door, waiting on a member of the
+        // team (0168). Only where self check-in is on; the strip collapses to
+        // nothing while nobody is waiting, and polls the list while shown. It
+        // goes under the header and the tabs, above the roster: a class of
+        // twenty-five fills several screens, and the ten minutes a request
+        // lives are not spent scrolling to the last row.
+        notice={
+          kioskSettings(ctx.tenant.settings).selfCheckin ? (
+            <HandoverStrip tenantId={ctx.tenant.id} enabled className="mb-4" />
+          ) : null
+        }
       />
     </div>
   );

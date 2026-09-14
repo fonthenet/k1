@@ -38,7 +38,7 @@ import { ageFromDob, childDisplayName, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ChildStatus } from "@/lib/types";
 import { ChildAvatar } from "./child-avatar";
-import type { ClassOption, RosterChild } from "./types";
+import type { ClassOption, RosterChild, RosterDossierFilter } from "./types";
 import { AllergyBadge as SharedAllergyBadge } from "./allergy-badge";
 import { MoveChildDialog } from "./move-child-dialog";
 import { structureName, type Structure } from "@/components/modules/classes/class-types";
@@ -49,6 +49,14 @@ import type { RosterNoun } from "@/lib/vocabulary";
 export type RosterClassOption = ClassOption & { structure_id: string | null };
 
 const STATUSES: ChildStatus[] = ["enrolled", "pending", "waitlist", "withdrawn", "alumni"];
+
+/** The status filter's one entry that is not a status (0164). */
+const DOSSIER_INCOMPLETE: RosterDossierFilter = "dossier_incomplete";
+
+/** A file short of a paper: scored, and fewer accepted than required. */
+function dossierIncomplete(child: RosterChild): boolean {
+  return child.dossier !== null && child.dossier.ok < child.dossier.total;
+}
 
 function ClassChip({ child, locale }: { child: RosterChild; locale: string }) {
   const t = useTranslations("children");
@@ -93,7 +101,9 @@ function AllergyBadge({ child }: { child: RosterChild }) {
  * the establishment is simply not billing this family yet. Shown only to
  * finance (the page sets the flag to false for everyone else), and here at
  * the end of the row rather than in the Allergies column, where a money fact
- * read as a safety warning.
+ * read as a safety warning. Last, the enrolment file short of a paper —
+ * muted, with the count: nobody is late, the office simply has not got
+ * everything yet (0164). One pill at most: the first of these that applies.
  */
 const STATUS_TONE: Partial<Record<ChildStatus, StatusTone>> = {
   pending: "attention",
@@ -111,6 +121,17 @@ function StatusCell({ child }: { child: RosterChild }) {
       <span title={t("billing.noPlanHint")}>
         <StatusPill tone="attention">{t("billing.noPlan")}</StatusPill>
       </span>
+    );
+  }
+  if (child.dossier && dossierIncomplete(child)) {
+    return (
+      <StatusPill tone="muted">
+        {t("roster.dossierPill")}{" "}
+        {/* An ltr island, so "3 / 7" never reads "7 / 3" in Arabic. */}
+        <span dir="ltr" className="tabular-nums">
+          {child.dossier.ok} / {child.dossier.total}
+        </span>
+      </StatusPill>
     );
   }
   return null;
@@ -250,6 +271,11 @@ export function ChildrenRoster({
   const structureOf = (c: RosterChild) =>
     c.structure_id ? (structureById.get(c.structure_id) ?? null) : null;
 
+  // The filter entry appears only once the register is switched on for at
+  // least one child on the roster (D14): before that, "Dossier incomplet"
+  // would offer to find something nothing here can be.
+  const hasDossier = useMemo(() => rows.some((c) => c.dossier !== null), [rows]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((c) => {
@@ -257,7 +283,11 @@ export function ChildrenRoster({
       if (classFilter === "none" && c.class_id !== null) return false;
       if (classFilter !== "all" && classFilter !== "none" && c.class_id !== classFilter)
         return false;
-      if (statusFilter !== "all" && c.status !== statusFilter) return false;
+      // "Dossier incomplet" reads the enrolled register only: a withdrawn
+      // child's missing papers are nobody's task.
+      if (statusFilter === DOSSIER_INCOMPLETE) {
+        if (c.status !== "enrolled" || !dossierIncomplete(c)) return false;
+      } else if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (!q) return true;
       const haystack = [
         c.first_name,
@@ -409,6 +439,9 @@ export function ChildrenRoster({
                 {t(`status.${s}`)}
               </SelectItem>
             ))}
+            {hasDossier && (
+              <SelectItem value={DOSSIER_INCOMPLETE}>{t("roster.dossierIncomplete")}</SelectItem>
+            )}
           </SelectContent>
         </Select>
         <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">

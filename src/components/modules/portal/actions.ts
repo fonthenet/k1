@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getTenantContext, type TenantContext } from "@/lib/tenant";
+import { getTenantContext, requireParent, type TenantContext } from "@/lib/tenant";
 import { algiersToday } from "@/lib/algiers";
 import { childDisplayName, formatDate } from "@/lib/format";
 import { flushPush } from "@/app/actions/push";
@@ -15,11 +15,25 @@ import { serializeHealthList } from "./health-edit-shared";
 // One phone rule for the whole portal — the forms mirror this exact regex.
 import { PHONE_RE } from "./portal-types";
 import { setActiveTenant, setLocale } from "@/app/actions/locale";
+// The two path rules a family upload must satisfy before the register hears
+// of it — see the dossier section below.
+import { FAMILY_CHILD_PATH_RE, FAMILY_ENROLL_PATH_RE } from "@/lib/dossier";
 
 type ActionError = "generic" | "forbidden" | "invalid" | "duplicate";
 type Result = { ok: true } | { ok: false; error: ActionError };
 /** Same shape as `Result`, plus the id of the row that was just created. */
 type ThreadResult = { ok: true; id: string } | { ok: false; error: ActionError };
+
+/** The portal's error vocabulary, under the name the dossier contracts use (§2 I). */
+export type PortalActionError = ActionError;
+/** What attaching a paper answers: the register row's id, or one of the four codes. */
+export type AttachResult = { ok: true; id: string } | { ok: false; error: PortalActionError };
+/** One paper the family list hands back after the browser uploaded it. */
+export interface AttachDocumentInput {
+  requirementId: string;
+  path: string;
+  fileName: string;
+}
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -975,6 +989,23 @@ const siblingSchema = z.object({
   structureId: z.uuid().nullable(),
   /** A room preference within it, or null for "the crèche decides". */
   classId: z.uuid().nullable(),
+  /**
+   * The papers the family photographed on the Dossier step (0164). The
+   * browser already put each file under the caller's own `u/<uid>/enroll/docs/`
+   * prefix; the path is re-checked against that prefix below, after parsing,
+   * because a uuid is only known once the context is. Twenty is the width
+   * guard: no list has that many requirements.
+   */
+  documents: z
+    .array(
+      z.object({
+        requirementId: z.uuid(),
+        path: z.string().trim().min(1).max(300),
+        fileName: z.string().trim().min(1).max(120),
+      })
+    )
+    .max(20)
+    .default([]),
 });
 
 /**
@@ -1024,6 +1055,16 @@ export async function submitSiblingApplication(
     return { ok: false, error: "invalid" };
   }
 
+  // Same rule for every paper, and stricter: the register keys on the exact
+  // `u/<uid>/enroll/docs/<uuid>.<jpg|pdf>` shape the upload control writes.
+  // The RPC re-reads each object under Storage's own rules and drops what it
+  // cannot register; a path that fails the shape here is a client that is
+  // not ours, and the whole request is refused rather than trimmed.
+  const enrollPath = FAMILY_ENROLL_PATH_RE(ctx.user.id);
+  if (v.documents.some((d) => !enrollPath.test(d.path))) {
+    return { ok: false, error: "invalid" };
+  }
+
   // Key-for-key what kg_approve_application reads out of `child` / `health`.
   const child = {
     first_name: v.firstName,
@@ -1058,10 +1099,10 @@ export async function submitSiblingApplication(
   };
 
   const supabase = await createClient();
-  // All seven arguments, always: the RPC has defaults for the last three, and
-  // a call that omits them is ambiguous to PostgREST against the older
-  // four-argument signature. The RPC validates the pair itself — a class in
-  // another structure is dropped, and a class alone names its structure.
+  // All eight arguments, always: the RPC has defaults for the last four, and
+  // a call that omits them is ambiguous to PostgREST against an older
+  // signature. The RPC validates the pair itself — a class in another
+  // structure is dropped, and a class alone names its structure.
   const { error } = await supabase.rpc("kg_submit_sibling_application", {
     p_tenant: ctx.tenant.id,
     p_child: child,
@@ -1073,6 +1114,14 @@ export async function submitSiblingApplication(
     // The short wizard does not ask for a tariff; the office picks one at
     // approval, as it did before structures existed.
     p_fee_plan_id: null,
+    // Registered in the same transaction as the request (0164, D3): the RPC
+    // reads each object's owner, type and size from Storage itself, so the
+    // only thing this side names is which requirement a path answers.
+    p_documents: v.documents.map((d) => ({
+      requirement_id: d.requirementId,
+      path: d.path,
+      file_name: d.fileName,
+    })),
   });
 
   if (error) {
@@ -1178,7 +1227,16 @@ async function dropChildPhoto(
 ): Promise<void> {
   if (!previous || previous === next || !previous.startsWith(prefix)) return;
   try {
-    await supabase.storage.from("kg-media").remove([previous]);
+    // `remove` reports a refusal as an error OBJECT, never a throw. Since
+    // 0164 a photo the OFFICE uploaded is no longer the family's to delete:
+    // kg_storage_may_alter lets a parent alter only objects they own, so a
+    // staff-sourced `photo-*` is refused here and stays behind as an orphan.
+    // The row already points at the new file, which is what the door check
+    // reads; the stray object costs a few hundred kilobytes and is left for a
+    // later clean-up rather than turned into a failure the parent can do
+    // nothing about. A photo the family uploaded itself is removed as before.
+    const { error } = await supabase.storage.from("kg-media").remove([previous]);
+    if (error) return;
   } catch {
     // the row is already correct
   }
@@ -1256,6 +1314,126 @@ export async function removeMyChildPhoto(childId: string): Promise<ChildPhotoRes
   return { ok: true };
 }
 
+// ------------------------------------------- the dossier d'inscription (0164)
+// A family paper is uploaded by the browser — to the child's own folder from
+// the portal, to the applicant's own `u/` prefix before approval — and only
+// then registered, through kg_attach_document. The RPC is the authority: it
+// reads the object's owner, type and size from Storage, refuses a path the
+// caller does not own, a requirement of another tenant, an approved or
+// refused application. What these two actions own is the shape of the path
+// (so a crafted one never reaches the database) and the words each SQLSTATE
+// becomes. Neither writes a notification: the register's trigger tells the
+// office itself.
+
+const attachChildSchema = z.object({
+  childId: z.uuid(),
+  requirementId: z.uuid(),
+  path: z.string().trim().min(1).max(300),
+  fileName: z.string().trim().min(1).max(120),
+});
+
+const attachApplicationSchema = z.object({
+  applicationId: z.uuid(),
+  tenantId: z.uuid(),
+  requirementId: z.uuid(),
+  path: z.string().trim().min(1).max(300),
+  fileName: z.string().trim().min(1).max(120),
+});
+
+/**
+ * kg_attach_document's refusals, by SQLSTATE: a bad requirement, path or
+ * subject is 22023; an object the caller does not own, or a file that is
+ * closed to them, is 42501; a path already on the register is 23505 — the
+ * browser sent the same upload twice, and the first one stands.
+ */
+function mapAttachError(error: { code?: string; message: string }): PortalActionError {
+  if (error.code === "23505") return "duplicate";
+  if (error.code === "22023") return "invalid";
+  if (error.code === "42501" || error.message.toLowerCase().includes("forbidden")) return "forbidden";
+  return "generic";
+}
+
+/**
+ * A paper for an ENROLLED child, from the child's portal page. The path must
+ * be the child's `documents/` folder in the active tenant — the one folder
+ * storage lets a parent write to under `t/` (D5).
+ */
+export async function attachMyChildDocument(input: {
+  childId: string;
+  requirementId: string;
+  path: string;
+  fileName: string;
+}): Promise<AttachResult> {
+  const ctx = await requireParent();
+  const parsed = attachChildSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+
+  if (!FAMILY_CHILD_PATH_RE(ctx.tenant.id, v.childId).test(v.path)) {
+    return { ok: false, error: "invalid" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kg_attach_document", {
+    p_tenant: ctx.tenant.id,
+    p_requirement: v.requirementId,
+    p_path: v.path,
+    p_child: v.childId,
+    p_file_name: v.fileName,
+  });
+  if (error) return { ok: false, error: mapAttachError(error) };
+
+  revalidatePath(`/portal/children/${v.childId}`);
+  revalidatePath("/portal/children");
+  revalidatePath("/portal");
+  // The office was notified by the register's trigger; send the push now —
+  // best-effort, never part of this action's result.
+  await flushPush();
+  return { ok: true, id: String(data) };
+}
+
+/**
+ * A paper for a PENDING application, from /enroll/dossier/[id]. No tenant
+ * context on purpose: a first-time applicant has no membership yet (D12), so
+ * the caller is only who Storage and the RPC say it is — the signed-in user
+ * whose `u/<uid>/enroll/docs/` prefix the path must sit under. The tenant is
+ * the application's own, handed back by kg_my_application.
+ */
+export async function attachMyApplicationDocument(input: {
+  applicationId: string;
+  tenantId: string;
+  requirementId: string;
+  path: string;
+  fileName: string;
+}): Promise<AttachResult> {
+  const parsed = attachApplicationSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "forbidden" };
+
+  if (!FAMILY_ENROLL_PATH_RE(user.id).test(v.path)) {
+    return { ok: false, error: "invalid" };
+  }
+
+  const { data, error } = await supabase.rpc("kg_attach_document", {
+    p_tenant: v.tenantId,
+    p_requirement: v.requirementId,
+    p_path: v.path,
+    p_application: v.applicationId,
+    p_file_name: v.fileName,
+  });
+  if (error) return { ok: false, error: mapAttachError(error) };
+
+  revalidatePath(`/enroll/dossier/${v.applicationId}`);
+  await flushPush();
+  return { ok: true, id: String(data) };
+}
+
 // ------------------------------------------------ switching between crèches
 
 /**
@@ -1269,14 +1447,20 @@ export async function removeMyChildPhoto(childId: string): Promise<ChildPhotoRes
  * the child page said "file unavailable" for a child the parent plainly has.
  *
  * Membership is verified here rather than trusting the id in the row, and the
- * destination is confined to the portal so a crafted href can never carry the
- * cookie switch onto a staff page. `chooseWorkspace` (onboarding/actions.ts)
- * does the same check for the topbar switcher; it always lands on /portal,
- * which is why this variant takes a destination.
+ * destination is confined to family pages so a crafted href can never carry
+ * the cookie switch onto a staff page. /enroll/dossier/[id] counts as one: it
+ * is the signed-in family file guarded by kg_my_application, and it is where
+ * "document refused" on a pending sibling application points, so a parent
+ * with children in two crèches must land on the file and not on the home
+ * page. `chooseWorkspace` (onboarding/actions.ts) does the same check for the
+ * topbar switcher; it always lands on /portal, which is why this variant
+ * takes a destination.
  */
 export async function openInCreche(tenantId: string, href: string): Promise<void> {
   if (!z.uuid().safeParse(tenantId).success) redirect("/portal");
-  const target = href.startsWith("/portal") && !href.startsWith("//") ? href : "/portal";
+  const safe =
+    (href.startsWith("/portal") || href.startsWith("/enroll/dossier/")) && !href.startsWith("//");
+  const target = safe ? href : "/portal";
 
   const supabase = await createClient();
   const {
@@ -1295,4 +1479,59 @@ export async function openInCreche(tenantId: string, href: string): Promise<void
 
   await setActiveTenant(tenantId);
   redirect(target);
+}
+
+// ------------------------------------------------------ the family calendar
+
+const respondSchema = z.object({
+  eventId: z.uuid(),
+  response: z.enum(["going", "not_going"]),
+  note: z.string().trim().max(280),
+});
+
+export type RespondResult = { ok: true } | { ok: false; error: ActionError };
+
+/**
+ * "J'y serai" — one row per PERSON in kg_event_responses (0159): two
+ * guardians of the same child answer separately and the director's count is
+ * per person, never per family (decision 8). Answering again replaces the
+ * earlier answer, which is what the upsert on (event_id, user_id) does.
+ *
+ * The database decides whether an answer is still welcome: rsp_own_ins and
+ * rsp_own_upd accept a member of the event's tenant on an event that asked
+ * (rsvp), is not cancelled and has not ended. A refusal comes back as 42501
+ * and is handed to the sheet as `forbidden` so it can say so — the event
+ * started between the render and the tap, or the family was moved out of
+ * its audience. No push is sent for an answer (decision 8).
+ */
+export async function respondToEvent(
+  eventId: string,
+  response: "going" | "not_going",
+  note: string
+): Promise<RespondResult> {
+  const parsed = respondSchema.safeParse({ eventId, response, note });
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+  const ctx = await getTenantContext();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("kg_event_responses").upsert(
+    {
+      event_id: v.eventId,
+      user_id: ctx.user.id,
+      tenant_id: ctx.tenant.id,
+      response: v.response,
+      note: v.note || null,
+      responded_at: new Date().toISOString(),
+    },
+    { onConflict: "event_id,user_id" }
+  );
+  if (error) {
+    if (error.code === "42501") return { ok: false, error: "forbidden" };
+    if (error.code === "23514" || error.code === "23503") return { ok: false, error: "invalid" };
+    return { ok: false, error: "generic" };
+  }
+
+  revalidatePath("/portal/calendar");
+  return { ok: true };
 }

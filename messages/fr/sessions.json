@@ -67,7 +67,8 @@
     "published": "Partagée avec le parent",
     "columns": {
       "time": "Heure"
-    }
+    },
+    "seeCalendar": "Voir au calendrier"
   },
   "newSession": {
     "trigger": "Nouvelle séance",
@@ -85,7 +86,9 @@
     "programNone": "Sans programme",
     "programHint": "Rattacher une séance à un programme la comptabilise dans le plan.",
     "submit": "Programmer la séance",
-    "noChildren": "Inscrivez d'abord un enfant — une séance concerne toujours un seul enfant."
+    "noChildren": "Inscrivez d'abord un enfant — une séance concerne toujours un seul enfant.",
+    "closedDay": "L'établissement est fermé ce jour-là ({name}).",
+    "closedDayTentative": "Fermeture à confirmer ce jour-là : {name}."
   },
   "detail": {
     "title": "Séance — {child}",
@@ -209,7 +212,8 @@
   "errors": {
     "title": "Impossible de charger les séances",
     "description": "Le planning n'a pas pu être lu. Vérifiez la connexion puis réessayez.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "outsideOpeningHours": "L'établissement est fermé ce jour-là — la séance n'a pas été enregistrée."
   },
   "toasts": {
     "sessionCreated": "Séance programmée",

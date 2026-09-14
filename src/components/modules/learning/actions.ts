@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
+import { flushPush } from "@/app/actions/push";
 import {
   programSchema,
   lessonSchema,
@@ -30,6 +31,9 @@ function refresh() {
     "/dashboard",
     "/classes",
     "/portal/learning",
+    // An exam date is a calendar item on both sides since 0158.
+    "/calendar",
+    "/portal/calendar",
   ])
     revalidatePath(path);
   revalidatePath("/learning/assessments/[id]", "page");
@@ -54,6 +58,10 @@ export async function saveProgram(
   });
   if (error) return lessonErrorState(error);
   refresh();
+  // The 0159 trigger wrote the families' `assessment_scheduled` rows in that
+  // transaction; every other calendar writer flushes the push at once rather
+  // than leaving them to the five-minute cron.
+  await flushPush();
   return { ok: true };
 }
 

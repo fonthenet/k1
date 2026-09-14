@@ -5,15 +5,29 @@ import { z } from "zod";
 import { setLocale } from "@/app/actions/locale";
 import { flushPush } from "@/app/actions/push";
 import { parseChildDay, type ChildDay, type DailyJournalData } from "@/lib/child-day";
+import {
+  MAX_DOCUMENT_BYTES,
+  centerKind,
+  sniffDocumentMime,
+  type DocumentAppliesTo,
+  type DocumentRequirement,
+  type DossierKind,
+} from "@/lib/dossier";
+import { religiousHolidays } from "@/lib/hijri";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { CENTER_TYPES } from "./center-types";
 import { isValidSendAt, parseDailyJournalData } from "./daily-journal";
-import { TENANT_DOC_TYPES } from "./settings-types";
+import { HOLIDAY_KINDS, TENANT_DOC_TYPES, type ClosureImpact } from "./settings-types";
 import { WILAYA_NAMES } from "./wilayas";
 
-type ActionError = "generic" | "forbidden" | "invalid" | "nameTaken";
+type ActionError = "generic" | "forbidden" | "invalid" | "nameTaken" | "duplicate";
+export type SettingsActionError = ActionError;
 export type SettingsResult = { ok: true } | { ok: false; error: ActionError };
+/** deleteRequirement: the FK is RESTRICT, so a pièce with received papers answers "referenced" (D17). */
+export type DeleteRequirementResult = SettingsResult | { ok: false; error: "referenced" };
+/** restoreLegalList: how many rows were inserted or re-activated, summed over the kinds the tenant runs. */
+export type RestoreResult = { ok: true; count: number } | { ok: false; error: ActionError };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -258,6 +272,43 @@ export async function deleteEnrollLink(id: string): Promise<SettingsResult> {
 
 // ------------------------------------------------------------------- holidays
 
+/**
+ * A closure is read by every calendar in the product: the staff calendar,
+ * the dashboard's next-closure line, the register, the family's month. All
+ * of them are told, and the push queue is flushed because the holiday
+ * trigger of 0159 writes the closure notification in the same transaction
+ * as the row.
+ */
+async function afterHolidayWrite() {
+  for (const path of [
+    "/settings/holidays",
+    "/calendar",
+    "/dashboard",
+    "/portal",
+    "/portal/calendar",
+    "/attendance",
+  ]) {
+    revalidatePath(path);
+  }
+  await flushPush();
+}
+
+/**
+ * What the database refused, as the word the dialog prints (SPEC5 §10):
+ * a second row on the same date and name — or a generated key already
+ * present — is `duplicate`; a range or kind the checks refuse, or a
+ * generator payload the RPC would not cast, is `invalid`; RLS is
+ * `forbidden`.
+ */
+function mapHolidayError(error: { code?: string; message?: string }): { ok: false; error: ActionError } {
+  if (error.code === "23505") return { ok: false, error: "duplicate" };
+  if (error.code === "23514" || error.code === "22023") return { ok: false, error: "invalid" };
+  if (error.code === "42501" || error.message?.toLowerCase().includes("forbidden")) {
+    return { ok: false, error: "forbidden" };
+  }
+  return { ok: false, error: "generic" };
+}
+
 const holidaySchema = z
   .object({
     // Either name is enough: an Arabic director names the feast in Arabic and
@@ -269,6 +320,9 @@ const holidaySchema = z
     endDate: z.string().regex(DATE_RE).or(z.literal("")).optional(),
     tentative: z.boolean(),
     closure: z.boolean(),
+    // Vocabulary, not behaviour (0157): a feast the establishment works
+    // through is still a "public" row, with `closure` unticked.
+    kind: z.enum(HOLIDAY_KINDS),
     // Null shuts the whole building — a national holiday. A structure id shuts
     // that one activity: the jardin takes the vacances scolaires, the crèche
     // stays open through them.
@@ -293,12 +347,95 @@ export async function addHoliday(input: z.infer<typeof holidaySchema>): Promise<
     name_ar: v.nameAr?.trim() || null,
     tentative: v.tentative,
     closure: v.closure,
+    kind: v.kind,
     structure_id: v.structureId || null,
   });
-  if (error) return { ok: false, error: "generic" };
+  if (error) return mapHolidayError(error);
 
-  revalidatePath("/settings/holidays");
+  await afterHolidayWrite();
   return { ok: true };
+}
+
+const yearSchema = z.number().int().min(2020).max(2100);
+
+/**
+ * The year's Algerian public holidays in one click: the civil dates of both
+ * calendar years the school year spans, confirmed, then the religious
+ * feasts of the school year as tentative rows. Both RPCs are idempotent —
+ * a date already there under any name is skipped, a generated key is never
+ * written twice — so the count is what was actually added and "nothing to
+ * add" is an honest answer for a year already complete.
+ */
+export async function generateHolidays(
+  schoolYearStart: number,
+): Promise<{ ok: true; count: number; tentative: number } | { ok: false; error: ActionError }> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const parsed = yearSchema.safeParse(schoolYearStart);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const year = parsed.data;
+
+  const supabase = await createClient();
+  let civil = 0;
+  for (const y of [year, year + 1]) {
+    const { data, error } = await supabase.rpc("kg_generate_public_holidays", {
+      p_tenant: ctx.tenant.id,
+      p_year: y,
+    });
+    if (error) return mapHolidayError(error);
+    civil += Number(data ?? 0);
+  }
+  const rows = religiousHolidays(year);
+  const { data: added, error } = await supabase.rpc("kg_add_generated_holidays", {
+    p_tenant: ctx.tenant.id,
+    p_rows: rows,
+  });
+  if (error) return mapHolidayError(error);
+  const tentative = Number(added ?? 0);
+
+  await afterHolidayWrite();
+  return { ok: true, count: civil + tentative, tentative };
+}
+
+const impactSchema = z.object({
+  structureId: z.uuid().nullable(),
+  from: z.string().regex(DATE_RE),
+  to: z.string().regex(DATE_RE),
+});
+
+const NO_IMPACT: ClosureImpact = { lessons: [], sessions: [], events: [], activitySlots: 0 };
+
+/**
+ * What a closure of these days would land on, for the confirm and add
+ * dialogs to say before Save. A failed read answers "nothing" rather than
+ * blocking the dialog: the sentence is a courtesy, the database keeps the
+ * last word on every cours it later refuses.
+ */
+export async function closureImpact(
+  structureId: string | null,
+  from: string,
+  to: string,
+): Promise<ClosureImpact> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return NO_IMPACT;
+  const parsed = impactSchema.safeParse({ structureId, from, to });
+  if (!parsed.success || parsed.data.to < parsed.data.from) return NO_IMPACT;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kg_closure_impact", {
+    p_tenant: ctx.tenant.id,
+    p_structure: parsed.data.structureId,
+    p_from: parsed.data.from,
+    p_to: parsed.data.to,
+  });
+  if (error || !data) return NO_IMPACT;
+  const body = data as Partial<ClosureImpact>;
+  return {
+    lessons: Array.isArray(body.lessons) ? body.lessons : [],
+    sessions: Array.isArray(body.sessions) ? body.sessions : [],
+    events: Array.isArray(body.events) ? body.events : [],
+    activitySlots: Number(body.activitySlots ?? 0),
+  };
 }
 
 const confirmSchema = z
@@ -306,10 +443,25 @@ const confirmSchema = z
     id: z.uuid(),
     date: z.string().regex(DATE_RE),
     endDate: z.string().regex(DATE_RE).or(z.literal("")).optional(),
+    cancelSlots: z.boolean(),
   })
   .refine((v) => !v.endDate || v.endDate >= v.date);
 
-/** Confirm a tentative (religious) holiday once the actual date is announced. */
+/**
+ * Confirm a tentative (religious) holiday once the actual date is announced.
+ *
+ * One transaction (kg_confirm_holiday, 0160): the announced dates are
+ * written FIRST — that is the write the database may refuse, a hand-typed
+ * row already on that date being the usual reason — and only then, when
+ * the box stayed ticked and the row is a closure, the cours and follow-ups
+ * those days carry are set to cancelled. A refusal at either step leaves
+ * nothing half done: no cancelled cours on a day that stayed open, no
+ * "annulé" told to a family for a date that never closed. The session
+ * trigger of 0159 tells each family on its own row, the closure trigger
+ * tells the structure's families and the staff once, and the database
+ * stamps confirmed_at itself (kg_holiday_stamp_confirmed). Events are left
+ * on the calendar — a fête on a closed day is a fête.
+ */
 export async function confirmHoliday(input: z.infer<typeof confirmSchema>): Promise<SettingsResult> {
   const ctx = await requireAdminCtx();
   if (!ctx) return { ok: false, error: "forbidden" };
@@ -318,14 +470,18 @@ export async function confirmHoliday(input: z.infer<typeof confirmSchema>): Prom
   const v = parsed.data;
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("kg_holidays")
-    .update({ date: v.date, end_date: v.endDate || null, tentative: false })
-    .eq("id", v.id)
-    .eq("tenant_id", ctx.tenant.id);
-  if (error) return { ok: false, error: "generic" };
+  const { error } = await supabase.rpc("kg_confirm_holiday", {
+    p_tenant: ctx.tenant.id,
+    p_id: v.id,
+    p_date: v.date,
+    p_end_date: v.endDate || null,
+    p_cancel_slots: v.cancelSlots,
+  });
+  if (error) return mapHolidayError(error);
 
-  revalidatePath("/settings/holidays");
+  await afterHolidayWrite();
+  revalidatePath("/learning/timetable");
+  revalidatePath("/sessions");
   return { ok: true };
 }
 
@@ -339,8 +495,8 @@ export async function setHolidayClosure(id: string, closure: boolean): Promise<S
     .update({ closure })
     .eq("id", id)
     .eq("tenant_id", ctx.tenant.id);
-  if (error) return { ok: false, error: "generic" };
-  revalidatePath("/settings/holidays");
+  if (error) return mapHolidayError(error);
+  await afterHolidayWrite();
   return { ok: true };
 }
 
@@ -354,8 +510,8 @@ export async function deleteHoliday(id: string): Promise<SettingsResult> {
     .delete()
     .eq("id", id)
     .eq("tenant_id", ctx.tenant.id);
-  if (error) return { ok: false, error: "generic" };
-  revalidatePath("/settings/holidays");
+  if (error) return mapHolidayError(error);
+  await afterHolidayWrite();
   return { ok: true };
 }
 
@@ -431,6 +587,340 @@ export async function deleteTenantDocument(id: string): Promise<SettingsResult> 
   }
   revalidatePath("/settings/documents");
   return { ok: true };
+}
+
+// -------------------------------------------------------- dossier d'inscription
+
+/**
+ * The kinds of structure the establishment runs, from its active structures
+ * (kg_center_kind: private_* → school, everything else → early). A building
+ * with no structure at all is a crèche: 'early'. Restoring the legal list
+ * seeds one list per kind — a mixed building gets both, a crèche only its own.
+ */
+function tenantKinds(
+  structures: ReadonlyArray<{ active: boolean; center_type: string }>,
+  tenantType: string | null | undefined,
+): DossierKind[] {
+  const kinds = new Set<DossierKind>();
+  for (const s of structures) if (s.active) kinds.add(centerKind(s.center_type));
+  // No structure yet: the building's own type decides, as the migration's
+  // seeding rule does — a private school without structures is not a crèche.
+  return kinds.size === 0 ? [centerKind(tenantType)] : (["early", "school"] as const).filter((k) => kinds.has(k));
+}
+
+const KINDS = ["early", "school"] as const satisfies readonly DossierKind[];
+const APPLIES_TO = ["child", "guardian"] as const satisfies readonly DocumentAppliesTo[];
+
+const requirementSchema = z.object({
+  id: z.uuid().optional(),
+  kind: z.enum(KINDS),
+  name: z.string().trim().min(2).max(160),
+  nameAr: z.string().trim().max(160).optional(),
+  description: z.string().trim().max(300).optional(),
+  descriptionAr: z.string().trim().max(300).optional(),
+  appliesTo: z.enum(APPLIES_TO),
+  required: z.enum(["true", "false"]),
+  validMonths: z.enum(["", "6", "12", "24"]),
+});
+
+/** A FormData field as a string, or undefined when absent — File entries are never strings. */
+function field(formData: FormData, key: string): string | undefined {
+  const v = formData.get(key);
+  return typeof v === "string" ? v : undefined;
+}
+
+/** What the database refused, in the settings page's words. */
+function mapRequirementError(error: { code?: string; message?: string }): { ok: false; error: ActionError } {
+  if (error.code === "23505") return { ok: false, error: "duplicate" };
+  if (error.code === "23514" || error.code === "22023") return { ok: false, error: "invalid" };
+  if (error.code === "42501" || error.message?.toLowerCase().includes("forbidden")) {
+    return { ok: false, error: "forbidden" };
+  }
+  return { ok: false, error: "generic" };
+}
+
+/**
+ * Add or edit one pièce of the dossier d'inscription — name in both scripts,
+ * description, who it concerns, whether it is required, how long an accepted
+ * copy stays valid, and the blank form the family fills in.
+ *
+ * A new row gets a `custom-` key (the seeded keys are the legal list's, and
+ * kg_seed_document_requirements finds them by key when the director restores
+ * it), lands at the end of its kind and accepts any file. The form is a PDF
+ * checked by its first bytes, not by the name the browser gave it, and is
+ * stored under the requirement's own id (`t/{tenant}/forms/{id}.pdf`, upsert)
+ * so a replacement overwrites the old one and the family's link never
+ * changes. It is uploaded AFTER the row exists because the path needs the id;
+ * an upload that fails leaves the row without a form, which "Modifier" fixes.
+ */
+export async function saveRequirement(formData: FormData): Promise<SettingsResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+
+  const parsed = requirementSchema.safeParse({
+    id: field(formData, "id") || undefined,
+    kind: field(formData, "kind"),
+    name: field(formData, "name"),
+    nameAr: field(formData, "nameAr"),
+    description: field(formData, "description"),
+    descriptionAr: field(formData, "descriptionAr"),
+    appliesTo: field(formData, "appliesTo"),
+    required: field(formData, "required"),
+    validMonths: field(formData, "validMonths") ?? "",
+  });
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const v = parsed.data;
+
+  const form = formData.get("form");
+  let formFile: File | null = null;
+  if (form instanceof File && form.size > 0) {
+    if (form.size > MAX_DOCUMENT_BYTES) return { ok: false, error: "invalid" };
+    const head = new Uint8Array(await form.slice(0, 16).arrayBuffer());
+    if (sniffDocumentMime(head) !== "application/pdf") return { ok: false, error: "invalid" };
+    formFile = form;
+  }
+
+  const columns = {
+    name: v.name,
+    name_ar: v.nameAr || null,
+    description: v.description || null,
+    description_ar: v.descriptionAr || null,
+    applies_to: v.appliesTo,
+    required: v.required === "true",
+    valid_months: v.validMonths ? Number(v.validMonths) : null,
+  };
+
+  const supabase = await createClient();
+  let id = v.id ?? null;
+  if (id) {
+    // The kind is not editable: a pièce moved from one list to the other
+    // would carry its received papers along, and the two lists are the two
+    // ministries' — a director who needs it on the other list adds it there.
+    const { data, error } = await supabase
+      .from("kg_document_requirements")
+      .update(columns)
+      .eq("id", id)
+      .eq("tenant_id", ctx.tenant.id)
+      .select("id")
+      .maybeSingle();
+    if (error) return mapRequirementError(error);
+    if (!data) return { ok: false, error: "forbidden" };
+  } else {
+    const { data: last } = await supabase
+      .from("kg_document_requirements")
+      .select("sort_order")
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("kind", v.kind)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ sort_order: number }>();
+    const { data, error } = await supabase
+      .from("kg_document_requirements")
+      .insert({
+        tenant_id: ctx.tenant.id,
+        kind: v.kind,
+        key: `custom-${crypto.randomUUID().slice(0, 8)}`,
+        accepts: "any",
+        sort_order: (last?.sort_order ?? 0) + 10,
+        active: true,
+        ...columns,
+      })
+      .select("id")
+      .single<{ id: string }>();
+    if (error || !data) return mapRequirementError(error ?? {});
+    id = data.id;
+  }
+
+  if (formFile) {
+    const path = `t/${ctx.tenant.id}/forms/${id}.pdf`;
+    const { error: upErr } = await supabase.storage
+      .from("kg-media")
+      .upload(path, formFile, { upsert: true, contentType: "application/pdf" });
+    if (upErr) return { ok: false, error: "generic" };
+    const { error } = await supabase
+      .from("kg_document_requirements")
+      .update({ form_path: path, form_name: formFile.name.slice(0, 160) })
+      .eq("id", id)
+      .eq("tenant_id", ctx.tenant.id);
+    if (error) return mapRequirementError(error);
+  }
+
+  revalidatePath("/settings/dossier");
+  return { ok: true };
+}
+
+/**
+ * The switch on the row. Off, the pièce leaves the wizard step, the counts
+ * and the pills; papers already received on it stay visible under "Autres
+ * pièces" (D18). For a tenant that existed before 0164 this — or the
+ * restore — is what turns the register on (D14).
+ */
+export async function setRequirementActive(id: string, active: boolean): Promise<SettingsResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "invalid" };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("kg_document_requirements")
+    .update({ active })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenant.id);
+  if (error) return mapRequirementError(error);
+  revalidatePath("/settings/dossier");
+  return { ok: true };
+}
+
+/**
+ * Monter / Descendre within the kind. The whole list of the kind is read in
+ * its current order, the row swapped with its neighbour, and every row whose
+ * rank changed is renumbered in steps of ten — the seeded rows' own spacing.
+ * Two rows that happen to share a sort_order (a hand-edited list) would make
+ * a literal swap of the two values a no-op; renumbering by rank cannot. At
+ * either end there is no neighbour and nothing is written.
+ */
+export async function moveRequirement(id: string, direction: "up" | "down"): Promise<SettingsResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "invalid" };
+  if (direction !== "up" && direction !== "down") return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("kg_document_requirements")
+    .select("kind")
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenant.id)
+    .maybeSingle<{ kind: DossierKind }>();
+  if (!row) return { ok: false, error: "forbidden" };
+
+  const { data: rows, error } = await supabase
+    .from("kg_document_requirements")
+    .select("id, sort_order")
+    .eq("tenant_id", ctx.tenant.id)
+    .eq("kind", row.kind)
+    .order("sort_order")
+    .order("created_at");
+  if (error) return mapRequirementError(error);
+  const list = (rows ?? []) as { id: string; sort_order: number }[];
+  const index = list.findIndex((r) => r.id === id);
+  const target = direction === "up" ? index - 1 : index + 1;
+  if (index < 0 || target < 0 || target >= list.length) return { ok: true };
+  [list[index], list[target]] = [list[target], list[index]];
+
+  for (let i = 0; i < list.length; i++) {
+    const sortOrder = (i + 1) * 10;
+    if (list[i].sort_order === sortOrder) continue;
+    const { error: upErr } = await supabase
+      .from("kg_document_requirements")
+      .update({ sort_order: sortOrder })
+      .eq("id", list[i].id)
+      .eq("tenant_id", ctx.tenant.id);
+    if (upErr) return mapRequirementError(upErr);
+  }
+
+  revalidatePath("/settings/dossier");
+  return { ok: true };
+}
+
+/**
+ * Take the blank form off a pièce. The object goes first, then the columns:
+ * a row that still names a missing object would hand the family a link that
+ * opens on nothing, whereas an orphaned object costs a few kilobytes and is
+ * overwritten by the next upload under the same id.
+ */
+export async function removeRequirementForm(id: string): Promise<SettingsResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("kg_document_requirements")
+    .select("form_path")
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenant.id)
+    .maybeSingle<Pick<DocumentRequirement, "form_path">>();
+  if (!row) return { ok: false, error: "forbidden" };
+  if (!row.form_path) return { ok: true };
+
+  const { error: rmErr } = await supabase.storage.from("kg-media").remove([row.form_path]);
+  if (rmErr) return { ok: false, error: "generic" };
+  const { error } = await supabase
+    .from("kg_document_requirements")
+    .update({ form_path: null, form_name: null })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenant.id);
+  if (error) return mapRequirementError(error);
+
+  revalidatePath("/settings/dossier");
+  return { ok: true };
+}
+
+/**
+ * Retirer. No pre-select of the papers: the FK from kg_child_documents is
+ * RESTRICT (D17), so a pièce that received papers comes back as 23503 and
+ * the toast says to deactivate it instead — "set null" would have turned
+ * forty answers into "Autres pièces" without a word. The blank form, if any,
+ * is removed once the row is gone; nothing links to it any more.
+ */
+export async function deleteRequirement(id: string): Promise<DeleteRequirementResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("kg_document_requirements")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenant.id)
+    .select("id, form_path");
+  if (error) {
+    if (error.code === "23503") return { ok: false, error: "referenced" };
+    return mapRequirementError(error);
+  }
+  const gone = (data ?? []) as Pick<DocumentRequirement, "id" | "form_path">[];
+  if (gone.length === 0) return { ok: false, error: "forbidden" };
+  if (gone[0].form_path) {
+    await supabase.storage.from("kg-media").remove([gone[0].form_path]);
+  }
+
+  revalidatePath("/settings/dossier");
+  return { ok: true };
+}
+
+/**
+ * "Rétablir la liste réglementaire": for each kind the establishment runs,
+ * kg_seed_document_requirements inserts the seeded keys that are missing and
+ * re-activates the ones the director had switched off (p_restore). The RPC
+ * is idempotent, so the count is what actually changed — and for a tenant
+ * seeded inactive by the migration this is the switch that turns the
+ * register on for every child already enrolled (D14); the dialog says so.
+ */
+export async function restoreLegalList(): Promise<RestoreResult> {
+  const ctx = await requireAdminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+
+  const supabase = await createClient();
+  let count = 0;
+  for (const kind of tenantKinds(ctx.structures, (ctx.tenant as { center_type?: string | null }).center_type)) {
+    const { data, error } = await supabase.rpc("kg_seed_document_requirements", {
+      p_tenant: ctx.tenant.id,
+      p_kind: kind,
+      p_active: true,
+      p_restore: true,
+    });
+    if (error) return mapRequirementError(error);
+    count += Number(data ?? 0);
+  }
+
+  // The list feeds the wizard step, the roster's pill, the board's column
+  // and the family's home line; every one of them reads the next request.
+  revalidatePath("/settings/dossier");
+  revalidatePath("/children");
+  revalidatePath("/applications");
+  revalidatePath("/portal");
+  return { ok: true, count };
 }
 
 // ------------------------------------------------------------- daily journal

@@ -95,7 +95,7 @@
       "expense": "مجموع المصاريف",
       "net": "نتيجة الشهر"
     },
-    "count": "{count, plural, zero {لا معاملات} one {معاملة واحدة} two {معاملتان} few {# معاملات} many {# معاملة} other {# معاملة}}",
+    "count": "{count, plural, zero {لا معاملات} one {# معاملة} two {# معاملات} few {# معاملات} many {# معاملة} other {# معاملة}}",
     "deleteTitle": "حذف هذه المعاملة؟",
     "deleteDesc": "سيتم حذف « {description} » ({amount}) نهائيًا من الدفتر.",
     "added": "تمت إضافة المعاملة",
@@ -110,7 +110,7 @@
       "qty": "الكمية",
       "unit": "سعر الوحدة",
       "remove": "حذف",
-      "count": "{count, plural, zero {# مادة} one {مادة واحدة} two {مادتان} few {# مواد} many {# مادة} other {# مادة}}",
+      "count": "{count, plural, zero {# مادة} one {# مادة} two {# مواد} few {# مواد} many {# مادة} other {# مادة}}",
       "total": "مجموع القائمة",
       "empty": "غير مفصّل",
       "detailTitle": "ما تم شراؤه",
@@ -149,7 +149,7 @@
     "added": "تم إنشاء الفئة",
     "updated": "تم تعديل الفئة",
     "deleted": "تم حذف الفئة",
-    "count": "{count, plural, zero {لا فئات} one {فئة واحدة} two {فئتان} few {# فئات} many {# فئة} other {# فئة}}"
+    "count": "{count, plural, zero {لا فئات} one {# فئة} two {# فئات} few {# فئات} many {# فئة} other {# فئة}}"
   },
   "payroll": {
     "title": "الرواتب",
@@ -161,7 +161,7 @@
     "month": "الشهر",
     "status": "الحالة",
     "totalNet": "المجموع الصافي",
-    "members": "{count, plural, zero {لا موظفين} one {موظف واحد} two {موظفان} few {# موظفين} many {# موظفًا} other {# موظف}}",
+    "members": "{count, plural, zero {لا موظفين} one {# موظف} two {# موظفين} few {# موظفين} many {# موظفًا} other {# موظف}}",
     "empty": "لم يتم تحضير أي رواتب",
     "emptyHint": "أنشئ أول كشف رواتب شهري للفريق.",
     "statusLabels": {
@@ -261,7 +261,7 @@
     "outstanding": "جارية",
     "repaid": "مسدَّدة",
     "totalOutstanding": "مجموع الجارية",
-    "count": "{count, plural, zero {لا تسبيقات} one {تسبيق واحد} two {تسبيقان} few {# تسبيقات} many {# تسبيقًا} other {# تسبيق}}",
+    "count": "{count, plural, zero {لا تسبيقات} one {# تسبيق} two {# تسبيقات} few {# تسبيقات} many {# تسبيقًا} other {# تسبيق}}",
     "markRepaid": "وضع علامة مسدَّد",
     "markRepaidTitle": "اعتباره مسدَّدًا؟",
     "markRepaidDesc": "سيُعتبر التسبيق بمبلغ {amount} الممنوح لـ {name} مسدَّدًا.",
@@ -282,7 +282,7 @@
     "decisionSaved": "تم تسجيل القرار",
     "emptyRequested": "لا توجد طلبات في الانتظار",
     "pending": "في انتظار الرد",
-    "pendingCount": "{count, plural, zero {لا طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلبًا} other {# طلب}}",
+    "pendingCount": "{count, plural, zero {لا طلبات} one {# طلب} two {# طلبات} few {# طلبات} many {# طلبًا} other {# طلب}}",
     "reason": "سبب الطلب",
     "reasonPlaceholder": "مصاريف عائلية، كراء…",
     "reject": "رفض",

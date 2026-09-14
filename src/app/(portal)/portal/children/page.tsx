@@ -13,6 +13,7 @@ import { algiersToday, monthLabel } from "@/components/modules/billing/dates";
 import { getDuesByChild } from "@/components/modules/portal/dues";
 import {
   classLabel,
+  getDossierGaps,
   getMyChildren,
   getMyGuardianBadge,
   getStructures,
@@ -56,6 +57,17 @@ export default async function PortalChildrenPage() {
     today
   );
   const photoUrls = await Promise.all(children.map((c) => signedMediaUrl(c.photo_path)));
+  // Which children still owe the office a paper (0164). One summary read
+  // under the family's RLS; a read that fails costs this one muted word on
+  // the row, never the list. Empty until the establishment activates its
+  // list (D14), so nothing here changes for a tenant that has not.
+  const dossierGaps = await getDossierGaps(supabase, ctx.tenant.id).catch((e: unknown) => {
+    console.error("[portal/children] dossier summary failed:", e);
+    return [];
+  });
+  const incompleteDossier = new Set(
+    dossierGaps.map((row) => row.child_id).filter((id): id is string => Boolean(id))
+  );
   const ForwardIcon = locale === "ar" ? ChevronLeft : ChevronRight;
   const hasRows = children.length > 0 || applications.length > 0;
 
@@ -209,6 +221,14 @@ export default async function PortalChildrenPage() {
                           {due.overdue && (
                             <StatusPill tone="danger">{t("payments.statuses.overdue")}</StatusPill>
                           )}
+                        </span>
+                      )}
+                      {/* A file with a paper still to hand in: one muted
+                          word, never a second coloured mark beside the
+                          money — the child's own page says which paper. */}
+                      {incompleteDossier.has(child.id) && (
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {t("dossier.incomplete")}
                         </span>
                       )}
                       <ForwardIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />

@@ -23,6 +23,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, scoped } from "@/lib/tenant";
 import { algiersToday } from "@/lib/algiers";
+import { closuresOn, holidayLabel, readClosures, type ClosureRow } from "@/lib/closures";
+import { addDaysStr } from "@/components/modules/comms/dates";
 import { rosterNoun } from "@/lib/vocabulary";
 import { scopedCenterTypes } from "@/components/shell/nav-items";
 import { childDisplayName, formatDZD, formatDate, formatTime, initials, intlLocale } from "@/lib/format";
@@ -56,6 +58,9 @@ import {
 import { JournalSentLine } from "@/components/modules/dashboard/journal-sent-line";
 import { ChildLink } from "@/components/shared/entity-link";
 import { isAway } from "@/components/modules/attendance/status-config";
+
+/** How far ahead the "next closure" line looks: the coming quarter. */
+const CLOSURE_HORIZON_DAYS = 90;
 
 interface ChildLite {
   id: string;
@@ -152,7 +157,7 @@ export default async function DashboardPage() {
     classRes,
     txnRes,
     incidentRes,
-    holidayRes,
+    closureRows,
     annRes,
     arrearsRes,
     journalSentLine,
@@ -201,16 +206,14 @@ export default async function DashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tid)
       .is("parent_ack_at", null),
-    scoped(
-      supabase
-        .from("kg_holidays")
-        .select("id, name, name_ar, date")
-        .eq("tenant_id", tid)
-        .eq("tentative", true)
-        .gte("date", today)
-        .order("date")
-        .limit(10),
-      ctx
+    // Every kg_holidays row of the coming quarter, read through the one
+    // closure rule (lib/closures) rather than a predicate of this page's
+    // own: the "next closure" line must name the day the register, the
+    // timetable and the calendar will actually shut. One line of one card
+    // must never take the whole dashboard down, so a failed read is an
+    // empty list here and the row simply does not appear.
+    readClosures(supabase, tid, today, addDaysStr(today, CLOSURE_HORIZON_DAYS)).catch(
+      () => [] as ClosureRow[],
     ),
     scoped(
       supabase
@@ -351,13 +354,24 @@ export default async function DashboardPage() {
   const mtdExpense = stats?.mtd_expense ?? 0;
 
   // ----- À traiter -----
-  const holidays = (holidayRes.data ?? []) as {
-    id: string;
-    name: string;
-    name_ar: string | null;
-    date: string;
-  }[];
-  const nextHoliday = holidays[0] ?? null;
+  // The tentative closures still to confirm, in the scope the rail reads;
+  // and the next day the scope is shut, confirmed or not, found by asking
+  // the one rule day by day — a structure's own closure counts inside the
+  // whole building, where the register greys that structure's lane.
+  const appliesHere = (structureId: string | null) =>
+    ctx.structureId === null || structureId === null || structureId === ctx.structureId;
+  const pendingClosures = closureRows.filter(
+    (r) => r.closure && r.tentative && appliesHere(r.structure_id) && (r.end_date ?? r.date) >= today,
+  );
+  const closureScopes = ctx.structureId ? [ctx.structureId] : [null, ...ctx.structures.map((s) => s.id)];
+  let nextClosure: { name: string; date: string } | null = null;
+  for (let d = today; d <= addDaysStr(today, CLOSURE_HORIZON_DAYS) && !nextClosure; d = addDaysStr(d, 1)) {
+    const rows = closureScopes
+      .flatMap((scope) => closuresOn(closureRows, d, scope))
+      .filter((r, i, all) => r.closure && all.indexOf(r) === i)
+      .sort((a, b) => Number(a.tentative) - Number(b.tentative) || Number(a.structure_id !== null) - Number(b.structure_id !== null));
+    if (rows[0]) nextClosure = { name: holidayLabel(rows[0], locale), date: d };
+  }
   const todoItems: {
     key: "applications" | "incidents" | "assessments" | "holidays";
     count: number;
@@ -365,6 +379,8 @@ export default async function DashboardPage() {
     icon: React.ReactNode;
     tone: string;
     hint?: string;
+    /** A second door under the title, when the hint is one: the calendar on the day it names. */
+    hintHref?: string;
   }[] = [
     {
       key: "applications" as const,
@@ -390,21 +406,21 @@ export default async function DashboardPage() {
       icon: <ClipboardCheck className="size-4" />,
       tone: "bg-primary/10 text-primary",
     },
+    // A date to confirm is decided in Settings › Jours fériés; the hint
+    // names the next closure and opens the calendar on that day.
     {
       key: "holidays" as const,
-      count: holidays.length,
-      href: "/calendar",
+      count: pendingClosures.length,
+      href: "/settings/holidays",
       icon: <CalendarDays className="size-4" />,
       tone: "bg-chart-4/10 text-chart-4",
-      hint: nextHoliday
+      hint: nextClosure
         ? t("todo.nextHoliday", {
-            name:
-              locale === "ar" && nextHoliday.name_ar
-                ? nextHoliday.name_ar
-                : nextHoliday.name,
-            date: formatDate(nextHoliday.date, locale),
+            name: nextClosure.name,
+            date: formatDate(`${nextClosure.date}T12:00:00Z`, locale),
           })
         : undefined,
+      hintHref: nextClosure ? `/calendar?date=${nextClosure.date}` : undefined,
     },
     // No "unpaid invoices" row. The arrears alert at the top of this same page
     // already names the money, the families and the oldest debt, and a second
@@ -784,33 +800,47 @@ export default async function DashboardPage() {
                 </div>
               ) : (
                 <ul className="space-y-1">
+                  {/* The row is the link: the title's link stretches over the
+                      whole row (its ::after covers the li), and a hint that is
+                      a door of its own sits above it as a second, smaller
+                      link — two anchors side by side, never one inside the
+                      other. */}
                   {todoItems.map((item) => (
-                    <li key={item.key}>
-                      <Link
-                        href={item.href}
-                        className="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted"
+                    <li
+                      key={item.key}
+                      className="group relative flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted"
+                    >
+                      <span
+                        className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${item.tone}`}
                       >
-                        <span
-                          className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${item.tone}`}
+                        {item.icon}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        {/* Wraps rather than truncates. "1 incident without
+                            parent acknowledgement" cut to "1 incident without
+                            parent …" loses the only word that says what to do
+                            about it, and this column is never getting wider. */}
+                        <Link
+                          href={item.href}
+                          className="block text-sm font-medium text-foreground after:absolute after:inset-0 after:rounded-lg"
                         >
-                          {item.icon}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          {/* Wraps rather than truncates. "1 incident without
-                              parent acknowledgement" cut to "1 incident without
-                              parent …" loses the only word that says what to do
-                              about it, and this column is never getting wider. */}
-                          <span className="block text-sm font-medium text-foreground">
-                            {t(`todo.${item.key}`, { count: item.count })}
-                          </span>
-                          {item.hint && (
+                          {t(`todo.${item.key}`, { count: item.count })}
+                        </Link>
+                        {item.hint &&
+                          (item.hintHref ? (
+                            <Link
+                              href={item.hintHref}
+                              className="relative block truncate text-xs text-muted-foreground hover:text-primary"
+                            >
+                              {item.hint}
+                            </Link>
+                          ) : (
                             <span className="block truncate text-xs text-muted-foreground">
                               {item.hint}
                             </span>
-                          )}
-                        </span>
-                        <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary rtl:-scale-x-100" />
-                      </Link>
+                          ))}
+                      </span>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary rtl:-scale-x-100" />
                     </li>
                   ))}
                 </ul>

@@ -2,14 +2,35 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
-import { ArrowRight } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PRINTABLE_KEYS, requirementName } from "@/lib/dossier";
+import { listFormat } from "@/lib/format";
 
 const EMOJI = ["🎉", "🎈", "🌟", "🎊", "✨", "🌈"];
 
-export function StepSuccess({ tenantName }: { tenantName: string }) {
+export interface StepSuccessProps {
+  tenantName: string;
+  /** The uuid kg_submit_application returned; null when the RPC returned none, or when no paper was asked for — then no links render. */
+  submittedId: string | null;
+  /** The required papers of the kind with no file, in sort_order. */
+  missing: ReadonlyArray<{ key: string; name: string; name_ar: string | null }>;
+}
+
+/** A tertiary link of the success screen: text-primary with a trailing chevron, no underline. */
+function TertiaryLink({ href, children }: { href: string; children: string }) {
+  return (
+    <Link href={href} className="inline-flex items-center gap-0.5 text-sm text-primary">
+      {children}
+      <ChevronRight className="size-3.5 rtl:rotate-180" aria-hidden />
+    </Link>
+  );
+}
+
+export function StepSuccess({ tenantName, submittedId, missing }: StepSuccessProps) {
   const t = useTranslations("enroll");
+  const locale = useLocale();
 
   // Generated after mount rather than during render: Math.random() makes a
   // render non-idempotent, and the confetti is decoration that nothing depends
@@ -62,6 +83,38 @@ export function StepSuccess({ tenantName }: { tenantName: string }) {
         {t("success.message", { name: tenantName })}
       </p>
       <p className="mt-2 text-xs text-muted-foreground">{t("success.hint")}</p>
+
+      {/* What is still to bring to the desk — one muted sentence, no list of
+          red rows: a missing paper never blocked the application (D7), and
+          the office reads the same names as "Manquante". */}
+      {missing.length > 0 && (
+        <p className="mt-4 max-w-sm text-sm text-pretty text-muted-foreground">
+          {t("success.bring", {
+            list: listFormat(locale).format(missing.map((m) => requirementName(m, locale))),
+          })}
+        </p>
+      )}
+
+      {/* The family's own file — valid before approval and after it, when
+          the route redirects to the child's page (D12) — and the two sheets
+          that stand in for a paper the establishment still asks for on
+          paper: the fiche pre-filled with what they just typed, the
+          handwritten request as a template. */}
+      {submittedId && (
+        <div className="mt-4 flex flex-col items-center gap-1.5">
+          <TertiaryLink href={`/enroll/dossier/${submittedId}`}>{t("success.seeDossier")}</TertiaryLink>
+          {missing.some((m) => m.key === PRINTABLE_KEYS.fiche) && (
+            <TertiaryLink href={`/enroll/dossier/${submittedId}/print?sheet=fiche`}>
+              {t("success.printFiche")}
+            </TertiaryLink>
+          )}
+          {missing.some((m) => m.key === PRINTABLE_KEYS.demande) && (
+            <TertiaryLink href={`/enroll/dossier/${submittedId}/print?sheet=demande`}>
+              {t("success.printDemande")}
+            </TertiaryLink>
+          )}
+        </div>
+      )}
 
       {/* /after-login, not /portal. A first-time applicant has no membership
           yet — the office creates it on approval — so /portal bounced them

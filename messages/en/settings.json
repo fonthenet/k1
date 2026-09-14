@@ -6,7 +6,9 @@
     "holidays": "Holidays",
     "documents": "Documents",
     "notifications": "Notifications",
-    "subscription": "Subscription"
+    "subscription": "Subscription",
+    "dossier": "Enrolment file",
+    "badges": "Badges and cards"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -182,9 +184,9 @@
     "structureHint": "A public holiday closes the whole establishment; school holidays close one structure only.",
     "wholeBuilding": "The whole establishment",
     "closureLabel": "Establishment closed",
-    "tentativeLabel": "Date not yet confirmed",
-    "tentativeBadge": "Approximate date",
-    "openBadge": "Kindergarten open",
+    "tentativeLabel": "Date to be confirmed (religious holiday)",
+    "tentativeBadge": "To be confirmed",
+    "openBadge": "Establishment open",
     "confirmed": "Date confirmed",
     "confirmTitle": "Confirm the date",
     "confirmDescription": "Set the officially announced date for “{name}”.",
@@ -202,7 +204,27 @@
     },
     "tentativeNotice": "Religious dates stay approximate until the official announcement: confirm them when it comes.",
     "past": "Past",
-    "more": "More actions"
+    "more": "More actions",
+    "kind": "Type",
+    "kinds": {
+      "public": "National holiday",
+      "religious": "Religious holiday",
+      "school_break": "School break",
+      "closure": "Closure"
+    },
+    "noClosure": "Without closure",
+    "generate": "Add the {year} public holidays",
+    "generateHint": "National holidays confirmed; religious holidays to be confirmed by the moon.",
+    "generated": "{count, plural, =0 {Nothing to add, the year is complete} one {# public holiday added} other {# public holidays added}}, {tentative, plural, =0 {} one {# to confirm} other {# to confirm}}",
+    "schoolYear": "School year",
+    "alreadyClosed": "{date} is already closed: {name}.",
+    "impact": "{lessons, plural, =0 {No lesson} one {<b>#</b> lesson} other {<b>#</b> lessons}}, {sessions, plural, =0 {no follow-up} one {<b>#</b> follow-up} other {<b>#</b> follow-ups}} and {events, plural, =0 {no event} one {<b>#</b> event} other {<b>#</b> events}} fall on these days.",
+    "cancelSlots": "Cancel these lessons and follow-ups and tell the families",
+    "eventsStay": "Events stay on the calendar.",
+    "seeTimetable": "See the timetable",
+    "duplicateDate": "A public holiday already exists on that date.",
+    "closeDay": "Close the establishment",
+    "keepOpen": "Keep the establishment open"
   },
   "documents": {
     "title": "Compliance documents",
@@ -421,6 +443,275 @@
       },
       "children": "{count, plural, one {# child} other {# children}}",
       "pupils": "{count, plural, one {# pupil} other {# pupils}}"
+    }
+  },
+  "dossier": {
+    "title": "Enrolment file",
+    "description": "What each family hands in at enrolment, and the forms to fill in",
+    "add": "Add a document",
+    "edit": "Edit the document",
+    "newTitle": "New document",
+    "dialogHint": "Families see the name in their language.",
+    "columns": {
+      "piece": "Document",
+      "appliesTo": "Applies to",
+      "validity": "Validity",
+      "required": "Required",
+      "active": "Active"
+    },
+    "fields": {
+      "name": "Name",
+      "nameAr": "Arabic name",
+      "description": "Description",
+      "descriptionAr": "Arabic description",
+      "kind": "List",
+      "form": "Form to fill in"
+    },
+    "validity": {
+      "none": "No limit",
+      "months": "{count} months"
+    },
+    "formHint": "PDF only, 10 MB max. The family downloads it, fills it in and attaches it signed.",
+    "formOpen": "Open",
+    "formRemove": "Remove the form",
+    "formRemoveDescription": "Families will no longer be able to download it. Documents already received are kept.",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "remove": "Remove",
+    "removeDescription": "The document leaves the list families are asked for.",
+    "removeRefused": "Received documents refer to it: deactivate it instead.",
+    "restore": "Restore the regulatory list",
+    "restoreDescription": "The regulatory documents are activated; children already enrolled show as \"File incomplete\" until their documents are added.",
+    "restored": "{count} documents added",
+    "legalNote": "Décret exécutif 19-253, cahier des charges, art. 6",
+    "empty": "No document requested",
+    "emptyHint": "Restore the regulatory list or add your own documents.",
+    "save": "Save",
+    "toasts": {
+      "saved": "Document saved",
+      "removed": "Document removed"
+    }
+  },
+  "badges": {
+    "title": "Badges and cards",
+    "description": "Who can open the door with a proximity card, and the reader that hands them out.",
+    "empty": "Nobody to equip yet",
+    "emptyHint": "Enrolled children, their parents and the team will appear here.",
+    "noMatch": "Nobody matches these filters",
+    "noMatchHint": "Try changing the search or the filters.",
+    "more": "More actions",
+    "noCard": "None",
+    "familyWithoutCard": "Family without a card",
+    "cardCount": "{count, plural, one {# card} other {# cards}}",
+    "stats": {
+      "children": "Children",
+      "childrenHint": "with a card",
+      "guardians": "Parents",
+      "guardiansHint": "with a card",
+      "staff": "Team",
+      "staffHint": "with a card",
+      "usedThisWeek": "This week",
+      "usedThisWeekHint": "cards passed over the reader"
+    },
+    "filter": {
+      "search": "Search a person…",
+      "structure": "Structure",
+      "allStructures": "All structures",
+      "withoutCard": "Without a card",
+      "count": "{count, plural, =0 {Nobody} one {# person} other {# people}}",
+      "pin": {
+        "label": "Filter by PIN",
+        "all": "With or without PIN",
+        "with": "With PIN",
+        "without": "Without PIN"
+      }
+    },
+    "columns": {
+      "person": "Person",
+      "code": "Printed code",
+      "cards": "Cards",
+      "lastPass": "Last pass"
+    },
+    "groups": {
+      "child": "Children",
+      "guardian": "Parents",
+      "staff": "Team",
+      "family": "{name} family",
+      "noClass": "No class yet",
+      "withoutCard": "{count, plural, one {# without a card} other {# without a card}}",
+      "collapseAll": "Collapse all",
+      "expandAll": "Expand all"
+    },
+    "scan": {
+      "start": "Assign by scan",
+      "stop": "Stop scanning",
+      "selectPerson": "Select a person, then pass their card",
+      "passCard": "Now pass the card for <name></name>",
+      "escape": "Esc to leave",
+      "selectFirst": "Select a person in the list first.",
+      "issuedTo": "Card assigned to <name></name>"
+    },
+    "reader": {
+      "title": "Reader test",
+      "hint": "Pass a card to see what the reader picks up and whose it is — without recording a pass.",
+      "placeholder": "Pass a card over the reader",
+      "unfocused": "Click into the field, then pass the card",
+      "read": "Read:",
+      "chars": "{count, plural, one {# character} other {# characters}}",
+      "belongsTo": "Belongs to <name></name> ({subject})",
+      "subjects": {
+        "child": "child",
+        "guardian": "parent",
+        "staff": "team"
+      },
+      "unknown": "unknown — assign it below",
+      "unknownShort": "unknown",
+      "recent": "Recent reads",
+      "unexpectedLength": "unexpected length ({got} instead of {expected})"
+    },
+    "pin": {
+      "column": "PIN",
+      "set": "PIN set",
+      "withPin": "{count, plural, =0 {no PINs} one {# with a PIN} other {# with a PIN}}",
+      "generate": "Generate a PIN",
+      "reset": "Reset the PIN",
+      "remove": "Remove the PIN",
+      "removed": "PIN removed",
+      "issued": {
+        "title": "PIN issued",
+        "description": "Hand this code to <name></name> now.",
+        "warning": "It will never be shown again. If it is forgotten, reset the PIN from this register."
+      },
+      "confirm": {
+        "guardian": {
+          "reset": {
+            "title": "Reset the PIN of <name></name>?",
+            "description": "<b>The old PIN stops working at the kiosk</b>; the new one is shown once. The printed card and the phone QR keep working."
+          },
+          "remove": {
+            "title": "Remove the PIN of <name></name>?",
+            "description": "<b>Checking in by PIN will no longer be possible</b>; the printed card and the phone QR keep working."
+          }
+        },
+        "staff": {
+          "reset": {
+            "title": "Reset the PIN of <name></name>?",
+            "description": "<b>The old PIN stops working at the kiosk</b>; the new one is shown once."
+          },
+          "remove": {
+            "title": "Remove the PIN of <name></name>?",
+            "description": "<b>Clocking in by PIN will no longer be possible</b>; the staff code and the cards keep working."
+          }
+        }
+      }
+    },
+    "print": {
+      "title": "Print badges",
+      "description": "Eight card-sized badges per A4 sheet, ready to cut. The sheet opens in a new tab.",
+      "scope": "Who gets a badge",
+      "class": "Class",
+      "allClasses": "All classes",
+      "count": "{count, plural, =0 {No badge to print} one {# badge} other {# badges}}",
+      "withoutCode": "{count, plural, one {# without a printed code} other {# without a printed code}}",
+      "sheets": "{count, plural, one {# sheet} other {# sheets}}",
+      "empty": "No badge to print",
+      "emptyHint": "Nobody in this selection holds a printed code yet."
+    },
+    "settings": {
+      "title": "Reader and tags",
+      "hint": "What the establishment uses at the door — the guide and the reader test follow it.",
+      "guide": "Setup guide",
+      "tagType": "Tag type",
+      "tagTypes": {
+        "em125": "125 kHz fobs (EM4100)",
+        "nfc": "NFC cards 13.56 MHz",
+        "any": "Any"
+      },
+      "codeLength": "Number length",
+      "codeLengthHint": "The reader test flags a card whose number is not this long.",
+      "codeLengthInvalid": "A whole number from {min} to {max}.",
+      "testedAt": "Tested on {date} at <time></time>.",
+      "neverTested": "Not tested yet.",
+      "testedNow": "Tested just now."
+    },
+    "guide": {
+      "title": "Setup guide",
+      "subtitle": "Tags, reader and kiosk: from the purchase to the first pass at the door.",
+      "buy": {
+        "title": "What to buy",
+        "tags": {
+          "em125": "125 kHz tags: EM4100 key fobs or cards, sold as \"RFID 125 kHz\". Sturdy, no battery, contactless — a fob gets lost less often than a card.",
+          "nfc": "NFC cards 13.56 MHz: MIFARE Classic, NTAG or any \"ISO 14443\" card. The bank-card format can be printed on and slipped into a badge holder.",
+          "chooseOne": "Pick one frequency and keep it: a 125 kHz reader does not read an NFC card, and the other way round."
+        },
+        "reader": "A USB \"keyboard emulation\" reader at the same frequency as the tags. It plugs in like a keyboard, needs no software, and types the card number followed by Enter. One reader per kiosk device."
+      },
+      "counts": {
+        "children": "{count, plural, one {# child} other {# children}}",
+        "guardians": "{count, plural, one {# parent} other {# parents}}",
+        "staff": "{count, plural, one {# team member} other {# team members}}",
+        "sentence": "Today, {list} do not have a card yet. Order a few spare tags.",
+        "none": "Today, everyone has a card. Order a few spare tags for the next enrolments."
+      },
+      "plug": {
+        "title": "Plug in the reader",
+        "p1": "Plug the reader into the kiosk device: straight into a computer, through an OTG adapter on an Android tablet, through a USB adapter on an iPad. No driver to install: the device sees it as a keyboard. To check, open any text field and pass a tag: its number appears, followed by a line break.",
+        "p2": "If the reader offers several output formats (10 digits, 8 hexadecimal characters…), pick one and never change it: a tag enrolled in one format is not recognised in the other."
+      },
+      "test": {
+        "title": "Test the reader",
+        "p1": "In Settings › Badges and cards, click into the \"Reader\" field and pass a tag. The line says what was read, how many characters, and whose card it is, without recording a pass. Enter the number length under \"Reader and tags\": the test then flags every read that does not match."
+      },
+      "assign": {
+        "title": "Assign the tags",
+        "p1": "Click \"Assign by scan\", select a person in the register and pass their tag: the card is theirs, the selection clears and you move on to the next. From a child's or a team member's record, \"Scan a card\" does the same for one person."
+      },
+      "kiosk": {
+        "title": "At the kiosk",
+        "p1": "Open the kiosk on the device the reader is plugged into. A parent passes their tag: their children's arrival or departure is recorded at the time of the pass. A child's or a team member's tag works the same way. Without a reader, the code printed on the card still works on the keypad or the camera."
+      },
+      "lost": {
+        "title": "Lost tag",
+        "p1": "In the register, open the person's \"…\" menu and revoke the lost card: it opens nothing any more, as of now. Assign a new one by scan; the history of passes is kept."
+      },
+      "printed": "Printed on {date}",
+      "office": {
+        "title": "At the desk, while the computer does something else",
+        "p1": "A \"keyboard emulation\" reader is a keyboard: what it reads goes to the active window. If you are working in a spreadsheet, the pass is typed into the spreadsheet, and no web page can bring itself to the front for a keystroke it never received. Two settings, together, settle it: read the reader through a port instead of the keyboard, and keep a small kiosk window on top of the others.",
+        "moves": {
+          "serial": "Switch the reader to \"serial port\" (USB-COM) mode with the configuration barcode from the manufacturer's sheet: \"USB CDC\" for Zebra and Symbol, \"USB Serial\" for Honeywell, \"USB virtual COM\" for Netum and Inateck. From then on it types nothing into text fields: that is expected.",
+          "connect": "Open the kiosk in Chrome or Edge on the computer, choose \"Serial port\", click \"Connect the reader\" and pick the port from the list. The browser remembers the choice: on the next starts, the kiosk reconnects by itself.",
+          "pip": "Click \"Keep on screen\": a small window detaches and stays on top of the others, in a corner of the screen. It is the one that shows \"Ready\", then the check and the card of every pass, while the rest of the screen serves the spreadsheet or the mail."
+        },
+        "fallback": "If the browser does not offer \"Keep on screen\" (Firefox, Safari), turn on \"Alerts\": every pass shows a system notification with the child's name, the direction and the time; the kiosk sound stays, and the tab title blinks in the taskbar.",
+        "limit": "A reader that can only pose as a keyboard cannot do this: what it reads will always go to the active window. Two ways out: a reader that offers a serial mode — most 2D barcode readers, between 3,000 and 6,000 DA — or the tablet that stays at the door."
+      }
+    },
+    "groupBy": {
+      "label": "Group by",
+      "family": "By family",
+      "structure": "By structure and class",
+      "klass": "By class",
+      "type": "By kind of person"
+    },
+    "kiosk": {
+      "title": "The kiosk",
+      "hint": "What the tablet at the door does on its own, and what it leaves to the team.",
+      "autoConfirm": "Record automatically after a scan",
+      "autoConfirmHint": "After a parent's badge, the obvious moves record themselves once the delay runs out; a touch on the screen takes over.",
+      "seconds": "Delay before recording",
+      "secondsHint": "In seconds. The button counts down; the parent can correct until it reaches zero.",
+      "secondsInvalid": "A whole number from {min} to {max}.",
+      "doorMode": "Door mode",
+      "doorModeHint": "Parents only: the switch to team clock-in leaves the screen and the kiosk stays on children.",
+      "sound": "Sound",
+      "soundHint": "A different tone for each outcome: recorded, needs a look, refused.",
+      "floatingScan": "Floating scan button",
+      "floatingScanHint": "On the team's phones and the dashboard: a floating button opens the kiosk's scan from any screen, without locking the device.",
+      "selfCheckin": "Check-in by parents",
+      "selfCheckinHint": "The kiosk screen shows a code that parents scan with their phone to record their own child's arrival.",
+      "selfPickupConfirm": "Departures wait for the team",
+      "selfPickupConfirmHint": "A departure requested by a parent is confirmed by a team member on the kiosk or their phone before it is recorded."
     }
   }
 }

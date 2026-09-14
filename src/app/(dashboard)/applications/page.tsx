@@ -7,6 +7,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ChevronRight, Inbox, TriangleAlert } from "lucide-react";
 import { requireStaff, scoped } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { indexDossierSummary, loadDossierSummary } from "@/lib/dossier-server";
 import { ageFromDob, childDisplayName, formatDate, formatTime, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
@@ -61,16 +62,22 @@ export default async function ApplicationsPage() {
   // which side of the building it is for, by colour and name, without a
   // second read per row. A transfer request (0140) is scoped by the structure
   // the family wants to move TO — the one whose registrar needs to see it.
-  const { data, error } = await scoped(
-    supabase
-      .from("kg_applications")
-      .select(
-        "*, kg_structures(id, name, name_ar, color, center_type), kg_classes(id, name, name_ar, structure_id, color)"
-      )
-      .eq("tenant_id", ctx.tenant.id)
-      .order("created_at", { ascending: false }),
-    ctx
-  );
+  // The enrolment file rides along as one grouped read (0164): accepted
+  // papers over required ones per open application, and how many wait on a
+  // human. Unscoped on purpose — the rows below decide what is shown.
+  const [{ data, error }, summaryRows] = await Promise.all([
+    scoped(
+      supabase
+        .from("kg_applications")
+        .select(
+          "*, kg_structures(id, name, name_ar, color, center_type), kg_classes(id, name, name_ar, structure_id, color)"
+        )
+        .eq("tenant_id", ctx.tenant.id)
+        .order("created_at", { ascending: false }),
+      ctx
+    ),
+    loadDossierSummary(supabase, ctx.tenant.id),
+  ]);
 
   if (error) {
     return (
@@ -85,11 +92,19 @@ export default async function ApplicationsPage() {
     );
   }
 
-  const apps = (data ?? []) as unknown as ReviewApplication[];
+  const { byApplication } = indexDossierSummary(summaryRows);
+  const apps = ((data ?? []) as unknown as ReviewApplication[]).map((app) => ({
+    ...app,
+    dossier: byApplication.get(app.id) ?? null,
+  }));
   const canManage = ctx.isAdmin;
   // The structure column only means something when there is a choice of
   // structure; on a single-structure crèche every row would carry the same word.
   const showStructure = ctx.isMultiStructure;
+  // The Dossier column exists only once the register is switched on: the
+  // summary scores a file only for a kind with an active required paper, so
+  // a tenant that never activated its list sees no column at all (D14).
+  const showDossier = apps.some((app) => app.dossier !== null);
 
   const byStage = new Map<BoardStage, ReviewApplication[]>(
     [...BOARD_STAGES, "rejected" as const].map((s) => [s, apps.filter((a) => a.status === s)])
@@ -102,8 +117,12 @@ export default async function ApplicationsPage() {
     ...BOARD_STAGES,
     ...(byStage.get("rejected")!.length > 0 ? (["rejected"] as const) : []),
   ];
-  // Enfant · âge · structure · classe · origine · reçue · suivi · menu
-  const columns = 6 + (showStructure ? 1 : 0) + (canManage ? 1 : 0);
+  // Enfant · âge · structure · classe · dossier · origine · reçue · suivi · menu
+  const columns = 6 + (showStructure ? 1 : 0) + (showDossier ? 1 : 0) + (canManage ? 1 : 0);
+  // With the Dossier column in, the table no longer fits 1024 without
+  // clipping its last column; the origin word is the one the reviewer can
+  // do without at that width, so it steps aside until xl.
+  const sourceClass = showDossier ? "hidden xl:table-cell" : undefined;
 
   /** The one word that says where a file came from, when it changes what
    *  approval does or how the family was met. The public link is the default
@@ -135,6 +154,11 @@ export default async function ApplicationsPage() {
     if (app.status === "waitlist") {
       return <span className="text-muted-foreground">{t("admin.waitlistRank", { rank })}</span>;
     }
+    // A paper the family sent and nobody has looked at. After the stage's
+    // own follow-up, so a row never carries two pills.
+    if (app.dossier && app.dossier.pending > 0) {
+      return <StatusPill tone="attention">{t("admin.documentsToReview")}</StatusPill>;
+    }
     return null;
   };
 
@@ -153,7 +177,8 @@ export default async function ApplicationsPage() {
                 <TableHead>{t("admin.columns.age")}</TableHead>
                 {showStructure && <TableHead>{t("admin.columns.structure")}</TableHead>}
                 <TableHead>{t("admin.columns.requestedClass")}</TableHead>
-                <TableHead>{t("admin.columns.source")}</TableHead>
+                {showDossier && <TableHead>{t("admin.columns.dossier")}</TableHead>}
+                <TableHead className={sourceClass}>{t("admin.columns.source")}</TableHead>
                 <TableHead>{t("admin.columns.received")}</TableHead>
                 <TableHead>{t("admin.columns.followUp")}</TableHead>
                 {canManage && (
@@ -258,7 +283,22 @@ export default async function ApplicationsPage() {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{source}</TableCell>
+                        {showDossier && (
+                          <TableCell>
+                            {/* Accepted over required, as an ltr island so
+                                "3 / 7" never reads "7 / 3". A file without a
+                                score — its kind asks for nothing, or the
+                                file is closed — shows a dash. */}
+                            {app.dossier ? (
+                              <span dir="ltr" className="tabular-nums text-muted-foreground">
+                                {app.dossier.accepted} / {app.dossier.required}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell className={cn("text-muted-foreground", sourceClass)}>{source}</TableCell>
                         <TableCell className="tabular-nums text-muted-foreground">
                           {formatDate(app.created_at, locale)}
                         </TableCell>

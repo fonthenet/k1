@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowRight, Camera, HeartPulse, MapPin, School, Smartphone } from "lucide-react";
+import { ArrowRight, Camera, FileText, HeartPulse, MapPin, School, Smartphone } from "lucide-react";
 import { directionsUrl, mapSearchUrl } from "@/lib/geo";
 import { Button } from "@/components/ui/button";
 import type { EnrollLinkData, EnrollStructure } from "./types";
@@ -84,9 +84,14 @@ export function StepWelcome({
     </>
   );
 
+  // The papers line appears only when the establishment asks for papers
+  // (0164): a family told to "prepare the documents" for a dossier step that
+  // never comes would look for it.
+  const asksPapers = (link.documents ?? []).some((d) => d.required);
   const needs = [
     { Icon: Camera, text: t("welcome.needPhoto") },
     { Icon: HeartPulse, text: t("welcome.needHealth") },
+    ...(asksPapers ? [{ Icon: FileText, text: t("welcome.needDocuments") }] : []),
     { Icon: Smartphone, text: t("welcome.needAccount") },
   ];
 

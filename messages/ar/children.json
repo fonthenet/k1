@@ -8,7 +8,7 @@
     "allClasses": "كل الأقسام",
     "allStatuses": "كل الحالات",
     "noClass": "بدون قسم",
-    "count": "{count, plural, =0 {لا يوجد أطفال} one {طفل واحد} two {طفلان} few {# أطفال} many {# طفلًا} other {# طفل}}",
+    "count": "{count, plural, =0 {لا يوجد أطفال} one {# طفل} two {# أطفال} few {# أطفال} many {# طفلًا} other {# طفل}}",
     "empty": "لا يوجد أطفال حاليًا",
     "emptyDescription": "أضف أول طفل يدويًا أو وافق على طلب تسجيل.",
     "noMatch": "لا يوجد طفل يطابق هذه المعايير",
@@ -33,7 +33,7 @@
     "filterStructure": "التصفية حسب الهيكل",
     "allStructures": "كل الهياكل",
     "structureColumn": "الهيكل",
-    "bulkSelected": "{count, plural, one {تم اختيار طفل واحد} two {تم اختيار طفلين} few {تم اختيار # أطفال} many {تم اختيار # طفلًا} other {تم اختيار # طفل}}",
+    "bulkSelected": "{count, plural, one {تم اختيار # طفل} two {تم اختيار # أطفال} few {تم اختيار # أطفال} many {تم اختيار # طفلًا} other {تم اختيار # طفل}}",
     "bulkMove": "نقل إلى…",
     "bulkClear": "إلغاء الاختيار",
     "bulkSelectAll": "اختيار كل الأطفال المعروضين",
@@ -41,11 +41,13 @@
     "pupils": {
       "title": "التلاميذ",
       "description": "ملفات التلاميذ والعائلات والصحة",
-      "count": "{count, plural, =0 {لا يوجد تلاميذ} one {تلميذ واحد} two {تلميذان} few {# تلاميذ} many {# تلميذًا} other {# تلميذ}}",
+      "count": "{count, plural, =0 {لا يوجد تلاميذ} one {# تلميذ} two {# تلاميذ} few {# تلاميذ} many {# تلميذًا} other {# تلميذ}}",
       "searchPlaceholder": "ابحثوا عن تلميذ (بالفرنسية أو العربية)…",
       "addChild": "إضافة تلميذ",
       "column": "التلميذ"
-    }
+    },
+    "dossierIncomplete": "الملف غير مكتمل",
+    "dossierPill": "الملف"
   },
   "status": {
     "pending": "قيد الانتظار",
@@ -63,7 +65,7 @@
     "moderate": "متوسطة",
     "severe": "شديدة"
   },
-  "allergyBadge": "{count, plural, one {حساسية واحدة} two {حساسيتان} few {# حساسيات} many {# حساسية} other {# حساسية}}",
+  "allergyBadge": "{count, plural, one {# حساسية} two {# حساسيات} few {# حساسيات} many {# حساسية} other {# حساسية}}",
   "form": {
     "firstName": "الاسم (بالفرنسية)",
     "lastName": "اللقب (بالفرنسية)",
@@ -122,7 +124,7 @@
       "health": "الصحة",
       "attendance": "الحضور",
       "billing": "الفوترة",
-      "documents": "الوثائق",
+      "documents": "الملف",
       "consents": "الموافقات"
     },
     "info": {
@@ -216,7 +218,7 @@
       "cancelDescription": "يتوقف الرمز عن العمل فورًا. يمكنك إرسال رمز جديد في أي وقت.",
       "cancelKeep": "الاحتفاظ بها",
       "cancelConfirm": "إلغاء الدعوة",
-      "outstanding": "{count, plural, =0 {تنتهي اليوم.} one {تنتهي خلال يوم واحد.} two {تنتهي خلال يومين.} few {تنتهي خلال # أيام.} many {تنتهي خلال # يومًا.} other {تنتهي خلال # يوم.}} للاستعمال مرة واحدة.",
+      "outstanding": "{count, plural, =0 {تنتهي اليوم.} one {تنتهي خلال # يوم.} two {تنتهي خلال # أيام.} few {تنتهي خلال # أيام.} many {تنتهي خلال # يومًا.} other {تنتهي خلال # يوم.}} للاستعمال مرة واحدة.",
       "reissue": "إرسال رمز جديد",
       "message": "مرحبًا {name}، هذا رابط دخولك إلى فضاء أولياء الأمور: {link}"
     },
@@ -370,7 +372,7 @@
   "documents": {
     "title": "الوثائق",
     "empty": "لا توجد وثائق",
-    "emptyDescription": "أضف شهادة الميلاد أو دفتر التلقيح أو وثائق أخرى.",
+    "emptyDescription": "أضيفوا الوثائق المسلَّمة في الاستقبال؛ يمكن للعائلة أيضًا إرفاقها من فضائها.",
     "upload": "إضافة وثيقة",
     "uploadTitle": "وثيقة جديدة",
     "docTitle": "عنوان الوثيقة",
@@ -434,7 +436,7 @@
   "move": {
     "button": "نقل",
     "title": "نقل الطفل",
-    "titleBulk": "نقل {count, plural, one {طفل واحد} two {طفلين} few {# أطفال} other {# طفلاً}}",
+    "titleBulk": "نقل {count, plural, one {# طفل} two {# أطفال} few {# أطفال} other {# طفلاً}}",
     "step": "الخطوة {step} من {total}",
     "steps": {
       "structure": "إلى أي هيكل؟",
@@ -464,12 +466,12 @@
     "reason": "السبب",
     "reasonHint": "اختياري — يظهر في مسار الطفل",
     "summary": "ينتقل الطفل إلى {structure} ({cls}) ابتداءً من {date}. وستُبلَّغ العائلة بذلك.",
-    "summaryBulk": "ينتقل {count, plural, one {طفل واحد} two {طفلان} few {# أطفال} other {# طفلاً}} إلى {structure} ({cls}) ابتداءً من {date}. وستُبلَّغ العائلات بذلك.",
+    "summaryBulk": "ينتقل {count, plural, one {# طفل} two {# أطفال} few {# أطفال} other {# طفلاً}} إلى {structure} ({cls}) ابتداءً من {date}. وستُبلَّغ العائلات بذلك.",
     "confirm": "نقل",
-    "confirmBulk": "نقل {count, plural, one {طفل واحد} two {طفلين} few {# أطفال} other {# طفلاً}}",
+    "confirmBulk": "نقل {count, plural, one {# طفل} two {# أطفال} few {# أطفال} other {# طفلاً}}",
     "toasts": {
       "moved": "نُقل الطفل إلى {structure}",
-      "bulk": "‏{moved} نُقلوا، {failed, plural, =0 {بدون أي إخفاق} one {إخفاق واحد} two {إخفاقان} few {# إخفاقات} other {# إخفاقاً}}"
+      "bulk": "‏{moved} نُقلوا، {failed, plural, =0 {بدون أي إخفاق} one {# إخفاق} two {# إخفاقات} few {# إخفاقات} other {# إخفاقاً}}"
     },
     "errors": {
       "invalid": "الطلب غير مكتمل. تحقّقوا من الهيكل والقسم.",
@@ -483,10 +485,10 @@
       "error": "تعذّر تسجيل النقل. أعيدوا المحاولة."
     },
     "effectiveFrom": "ابتداءً من",
-    "alreadyHere": "{count, plural, one {واحد هنا بالفعل} two {اثنان هنا بالفعل} few {# هنا بالفعل} other {# هنا بالفعل}}",
-    "moreNames": "{count, plural, one {وطفل آخر} two {وطفلان آخران} few {و# أطفال آخرين} other {و# طفلاً آخر}}",
+    "alreadyHere": "{count, plural, one {# هنا بالفعل} two {# هنا بالفعل} few {# هنا بالفعل} other {# هنا بالفعل}}",
+    "moreNames": "{count, plural, one {و# طفل آخر} two {و# أطفال آخرين} few {و# أطفال آخرين} other {و# طفلاً آخر}}",
     "toStructure": "نقل إلى {structure}",
-    "toStructureBulk": "نقل {count, plural, one {طفل واحد} two {طفلين} few {# أطفال} other {# طفلاً}} إلى {structure}"
+    "toStructureBulk": "نقل {count, plural, one {# طفل} two {# أطفال} few {# أطفال} other {# طفلاً}} إلى {structure}"
   },
   "transfers": {
     "title": "المسار",

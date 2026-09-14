@@ -7,7 +7,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { algiersToday } from "@/lib/algiers";
 
-const dayHref = (childId: string, d: string) => `/portal/children/${childId}/day/${d}`;
+/** Where the page came from, when it was not the child's Journal tab: the calendar keeps its back link through every step of the arrows. */
+export type DayNavFrom = "calendar";
+
+const dayHref = (childId: string, d: string, from?: DayNavFrom) =>
+  `/portal/children/${childId}/day/${d}${from ? `?from=${from}` : ""}`;
 
 /**
  * The ‹ date › row of a child's day page.
@@ -23,6 +27,10 @@ const dayHref = (childId: string, d: string) => `/portal/children/${childId}/day
  * through the days the same way the buttons do, which is how a parent reads a
  * fortnight in a minute. The chevrons flip with the writing direction
  * (rtl:rotate-180): "previous" always points to the start of the line.
+ *
+ * `from` rides on every href the row builds — arrows, keyboard, the link
+ * back to today — so a day reached from the calendar still returns to the
+ * calendar after a week of stepping, not to the Journal tab.
  */
 export function DayNav({
   childId,
@@ -35,6 +43,7 @@ export function DayNav({
   prevLabel,
   nextLabel,
   groupLabel,
+  from,
 }: {
   childId: string;
   date: string;
@@ -46,9 +55,10 @@ export function DayNav({
   prevLabel: string;
   nextLabel: string;
   groupLabel: string;
+  from?: DayNavFrom;
 }) {
   const router = useRouter();
-  const href = (d: string) => dayHref(childId, d);
+  const href = (d: string) => dayHref(childId, d, from);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -69,12 +79,12 @@ export function DayNav({
       const rtl = document.documentElement.dir === "rtl";
       const toPrev = rtl ? e.key === "ArrowRight" : e.key === "ArrowLeft";
       const toNext = rtl ? e.key === "ArrowLeft" : e.key === "ArrowRight";
-      if (toPrev && prevDate) router.push(dayHref(childId, prevDate));
-      else if (toNext && nextDate) router.push(dayHref(childId, nextDate));
+      if (toPrev && prevDate) router.push(dayHref(childId, prevDate, from));
+      else if (toNext && nextDate) router.push(dayHref(childId, nextDate, from));
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [childId, prevDate, nextDate, router]);
+  }, [childId, prevDate, nextDate, from, router]);
 
   return (
     <nav

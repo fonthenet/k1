@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Fragment } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
+import { closureOn, holidayLabel, readClosures } from "@/lib/closures";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/tenant";
 import { childDisplayName, formatDate } from "@/lib/format";
@@ -120,7 +121,7 @@ export default async function MenusPage({
   // rows, which is not worth a second round trip to avoid.
   const aheadFrom = addDaysStr(today, 1) > weekEnd ? addDaysStr(today, 1) : addDaysStr(weekEnd, 1);
 
-  const [menusRes, allergiesRes, holidayRes, aheadRes] = await Promise.all([
+  const [menusRes, allergiesRes, closures, aheadRes] = await Promise.all([
     onStructure(
       supabase
         .from("kg_menus")
@@ -136,15 +137,9 @@ export default async function MenusPage({
         "child_id, allergen, kg_children(first_name, last_name, first_name_ar, last_name_ar, status, structure_id)"
       )
       .eq("tenant_id", ctx.tenant.id),
-    // closure only: a tentative or non-closing entry (a school photo, an open
-    // day) is a note on the calendar, not a day the kitchen stands down.
-    supabase
-      .from("kg_holidays")
-      .select("date, end_date, name, name_ar, structure_id")
-      .eq("tenant_id", ctx.tenant.id)
-      .eq("closure", true)
-      .lte("date", weekEnd)
-      .or(`end_date.gte.${weekStart},and(end_date.is.null,date.gte.${weekStart})`),
+    // Every closure row touching the week; lib/closures decides below which
+    // one shuts the kitchen, under the one rule every screen shares.
+    readClosures(supabase, ctx.tenant.id, weekStart, weekEnd),
     onStructure(
       supabase
         .from("kg_menus")
@@ -156,26 +151,23 @@ export default async function MenusPage({
     ),
   ]);
 
-  const firstError = menusRes.error ?? allergiesRes.error ?? holidayRes.error ?? aheadRes.error;
+  const firstError = menusRes.error ?? allergiesRes.error ?? aheadRes.error;
   if (firstError) throw new Error(firstError.message);
 
-  // A holiday may be a single date or a range; both close every day they cover.
-  //
-  // Whose closure, though: a national holiday (structure_id null) shuts the
-  // whole address, an inspection at the jardin shuts only the jardin. The
-  // building's own week is therefore closed by the building's holidays alone —
-  // greying out its Monday because the jardin was shut would tell the crèche's
-  // cook to stop cooking. Same rule as kg_structure_closed_on.
+  // Whose closure shuts the kitchen: a national holiday (structure_id null)
+  // shuts the whole address, an inspection at the jardin shuts only the
+  // jardin. The building's own week is therefore closed by the building's
+  // holidays alone — greying out its Monday because the jardin was shut
+  // would tell the crèche's cook to stop cooking. closureOn applies that
+  // scope and the one rule (0157): only a CONFIRMED closure stands the
+  // kitchen down; a tentative Aïd is a gold word beside the day and the
+  // editor stays open, since the guard of 0151 still accepts the menu.
   const closedBy = new Map<string, string>();
-  for (const h of (holidayRes.data ?? []) as {
-    date: string; end_date: string | null; name: string; name_ar: string | null;
-    structure_id: string | null;
-  }[]) {
-    if (h.structure_id !== null && h.structure_id !== structureId) continue;
-    const label = (locale === "ar" && h.name_ar) || h.name;
-    for (const d of dateRange(h.date, h.end_date ?? h.date, 60)) {
-      if (d >= weekStart && d <= weekEnd) closedBy.set(d, label);
-    }
+  const proposedBy = new Map<string, string>();
+  for (const d of dateRange(weekStart, weekEnd, 7)) {
+    const { confirmed, tentative } = closureOn(closures, d, structureId);
+    if (confirmed) closedBy.set(d, holidayLabel(confirmed, locale));
+    else if (tentative) proposedBy.set(d, holidayLabel(tentative, locale));
   }
 
   const menuByDate = new Map<string, MenuDayRow>();
@@ -537,6 +529,7 @@ export default async function MenusPage({
                   const hasContent = !!(menu?.breakfast || menu?.lunch || menu?.snack);
                   const closure = closedBy.get(d);
                   const closed = !!closure && !hasContent;
+                  const proposed = proposedBy.get(d);
                   const dayNumber = parseInt(d.slice(8), 10);
 
                   // The day as two lines: the weekday, then the date in
@@ -557,6 +550,14 @@ export default async function MenusPage({
                           dayMonthLabel(d, locale)
                         )}
                       </span>
+                      {/* A closure still to be confirmed: the one gold word
+                          under the day, and nothing else changes — the row
+                          is as editable as any open day. */}
+                      {proposed && !closed && (
+                        <span className="mt-0.5 block text-xs text-gold-ink">
+                          <bdi dir="auto">{proposed}</bdi> · {t("calendar.tentative")}
+                        </span>
+                      )}
                     </>
                   );
 

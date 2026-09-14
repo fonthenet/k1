@@ -384,12 +384,19 @@ export function JournalClient({
         </div>
       </div>
 
-      {/* The register's own sentence for a shut or unborn day; the controls
-          below are disabled rather than the card repainted. When such a day
+      {/* The register's own sentence for a shut or unborn day, in the same
+          gold line as the register's; the controls below are disabled rather
+          than the card repainted. When such a day
           holds no row the sentence IS the empty state — a second one asking
           to point arrivals would contradict it. */}
       {(isClosedDay || isFuture) && rows.length > 0 && (
-        <p className="px-1 text-sm text-muted-foreground">{dayNotice}</p>
+        <p
+          role="status"
+          className="flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2 text-sm font-medium text-gold-ink"
+        >
+          <CalendarOff className="size-4 shrink-0" aria-hidden />
+          {dayNotice}
+        </p>
       )}
 
       {rows.length === 0 ? (

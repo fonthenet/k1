@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Ellipsis, Phone, Star, TriangleAlert, UserPlus, UserMinus, Users } from "lucide-react";
+import { Ellipsis, Phone, ScanLine, Star, TriangleAlert, UserPlus, UserMinus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/shared/section-card";
@@ -31,6 +31,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ import {
   type GuardianCredentialState,
 } from "./guardian-credentials-control";
 import { CredentialCards } from "@/components/modules/credentials/credential-cards";
+import { IssueCardDialog } from "@/components/modules/credentials/issue-card-dialog";
 import { GuardianPortalAccess } from "./guardian-portal-access";
 import type { CredentialRow } from "@/components/modules/credentials/types";
 import { RELATIONSHIPS, type GuardianLink, type GuardianOption } from "./types";
@@ -426,12 +428,17 @@ export function GuardiansSection({
 }) {
   const t = useTranslations("children");
   const tc = useTranslations("common");
+  const tCred = useTranslations("credentials");
   const locale = useLocale();
   const router = useRouter();
   const [, startTransition] = useTransition();
   // The guardian whose removal is being confirmed — one dialog for the list,
   // opened from each row's overflow.
   const [unlinking, setUnlinking] = useState<string | null>(null);
+  // The guardian a card is being scanned for, from the same overflow. The
+  // page's band already offers "Scanner une carte" for everyone on the file;
+  // the row keeps the verb in its menu rather than as a second button.
+  const [scanningFor, setScanningFor] = useState<GuardianLink | null>(null);
 
   function unlink(guardianId: string) {
     startTransition(async () => {
@@ -543,6 +550,15 @@ export function GuardiansSection({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      {canManageCredentials && (
+                        <>
+                          <DropdownMenuItem onSelect={() => setScanningFor(g)}>
+                            <ScanLine />
+                            {tCred("scan.title")}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
                       <DropdownMenuItem
                         variant="destructive"
                         onSelect={() => setUnlinking(g.guardian_id)}
@@ -556,9 +572,10 @@ export function GuardiansSection({
 
                 {/* How this adult proves who they are, on one line under the
                     contact details: the portal account, then the door badge
-                    and PIN, then any proximity card. Admin-only. Until a
-                    card exists the shared list's "nothing here" sentence is
-                    hidden and only its add button shows in the line. */}
+                    and PIN, then the proximity cards once there are any.
+                    Admin-only. Enrolling a card is in the row's overflow and
+                    in the page's band, so the list comes without its button
+                    and is absent altogether while it would be empty. */}
                 {canManageCredentials && (
                   <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-2 ps-15 text-sm">
                     <GuardianPortalAccess
@@ -577,24 +594,34 @@ export function GuardiansSection({
                         credentials?.[g.guardian_id] ?? { tagCode: null, hasPin: false }
                       }
                     />
-                    <div
-                      className={
-                        cards.length === 0 ? "[&>div]:contents [&_p]:hidden" : "basis-full"
-                      }
-                    >
-                      <CredentialCards
-                        subjectType="guardian"
-                        subjectId={g.guardian_id}
-                        cards={cards}
-                        path={`/children/${childId}`}
-                      />
-                    </div>
+                    {cards.length > 0 && (
+                      <div className="basis-full">
+                        <CredentialCards
+                          subjectType="guardian"
+                          subjectId={g.guardian_id}
+                          cards={cards}
+                          path={`/children/${childId}`}
+                          withAddButton={false}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             );
           })}
         </div>
+      )}
+
+      {scanningFor && (
+        <IssueCardDialog
+          subjectType="guardian"
+          subjectId={scanningFor.guardian_id}
+          open
+          onOpenChange={(o) => !o && setScanningFor(null)}
+          path={`/children/${childId}`}
+          personName={childDisplayName(scanningFor, locale)}
+        />
       )}
 
       <AlertDialog open={unlinking !== null} onOpenChange={(o) => !o && setUnlinking(null)}>

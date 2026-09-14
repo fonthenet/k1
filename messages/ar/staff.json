@@ -2,7 +2,7 @@
   "team": {
     "title": "الفريق",
     "description": "أعضاء الفريق، الأدوار وتسجيل الحضور اليومي",
-    "leavesLink": "العطل",
+    "leavesLink": "الإجازات",
     "invitesLink": "الدعوات",
     "empty": "لا يوجد أعضاء في الفريق",
     "emptyHint": "ادعُ أول عضو في الفريق للبدء.",
@@ -24,7 +24,7 @@
     "searchPlaceholder": "ابحثوا عن عضو",
     "filterRole": "التصفية حسب الدور",
     "allRoles": "كل الأدوار",
-    "count": "{count, plural, =0 {لا يوجد أعضاء} one {عضو واحد} two {عضوان} few {# أعضاء} many {# عضوًا} other {# عضو}}"
+    "count": "{count, plural, =0 {لا يوجد أعضاء} one {# عضو} two {# أعضاء} few {# أعضاء} many {# عضوًا} other {# عضو}}"
   },
   "roles": {
     "owner": "المالك",
@@ -133,7 +133,7 @@
     "hiredOn": "وُظّف بتاريخ {date}",
     "tabs": {
       "timesheets": "تسجيلات الحضور",
-      "leaves": "العطل",
+      "leaves": "الإجازات",
       "salary": "الراتب"
     }
   },
@@ -163,15 +163,15 @@
     "breakMinutes": "دقائق الاستراحة (غير مدفوعة)"
   },
   "leaves": {
-    "title": "العطل",
-    "description": "طلبات عطل أعضاء الفريق",
-    "request": "طلب عطلة",
-    "requestTitle": "طلب عطلة جديد",
+    "title": "الإجازات",
+    "description": "طلبات إجازة أعضاء الفريق",
+    "request": "طلب إجازة",
+    "requestTitle": "طلب إجازة جديد",
     "requestDescription": "سيُرسل طلبك إلى الإدارة للبت فيه.",
-    "type": "نوع العطلة",
+    "type": "نوع الإجازة",
     "types": {
-      "vacation": "عطلة سنوية",
-      "sick": "عطلة مرضية",
+      "vacation": "إجازة سنوية",
+      "sick": "إجازة مرضية",
       "personal": "سبب شخصي"
     },
     "startDate": "من",
@@ -182,8 +182,8 @@
     "myRequests": "طلباتي",
     "pendingTitle": "في انتظار القرار",
     "allTitle": "كل الطلبات",
-    "upcomingTitle": "العطل المعتمدة القادمة",
-    "upcomingEmpty": "لا توجد عطل معتمدة قادمة.",
+    "upcomingTitle": "الإجازات المقبولة القادمة",
+    "upcomingEmpty": "لا توجد إجازات مقبولة قادمة.",
     "columns": {
       "member": "العضو",
       "type": "النوع",
@@ -202,18 +202,19 @@
     "approve": "الموافقة",
     "reject": "الرفض",
     "cancel": "إلغاء الطلب",
-    "approvedToast": "تمت الموافقة على العطلة",
-    "rejectedToast": "تم رفض العطلة",
+    "approvedToast": "تمت الموافقة على الإجازة",
+    "rejectedToast": "تم رفض الإجازة",
     "cancelledToast": "تم إلغاء الطلب",
-    "empty": "لا توجد طلبات عطل.",
-    "days": "{count, plural, one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+    "empty": "لا توجد طلبات إجازة.",
+    "days": "{count, plural, one {# يوم} two {# أيام} few {# أيام} many {# يومًا} other {# يوم}}",
     "dateError": "يجب أن يكون تاريخ النهاية بعد تاريخ البداية.",
-    "hint": "طلبات عطلة هذا الشخص",
+    "hint": "طلبات إجازة هذا الشخص",
     "pastTitle": "السابقة",
-    "approveTitle": "الموافقة على هذه العطلة؟",
-    "approveDesc": "يُعتمد الطلب ويظهر لصاحبه ضمن عطله.",
+    "approveTitle": "الموافقة على هذه الإجازة؟",
+    "approveDesc": "يُعتمد الطلب ويظهر لصاحبه ضمن إجازاته.",
     "rejectTitle": "رفض هذا الطلب؟",
-    "rejectDesc": "يُرفض الطلب، ويمكن لصاحبه تقديم طلب جديد."
+    "rejectDesc": "يُرفض الطلب، ويمكن لصاحبه تقديم طلب جديد.",
+    "conflicts": "لدى {name} {lessons, plural, =0 {لا حصة} one {<b>#</b> حصة} two {<b>#</b> حصص} few {<b>#</b> حصص} many {<b>#</b> حصة} other {<b>#</b> حصة}} و{sessions, plural, =0 {لا متابعة} one {<b>#</b> متابعة} two {<b>#</b> متابعات} few {<b>#</b> متابعات} many {<b>#</b> متابعة} other {<b>#</b> متابعة}} خلال هذه الفترة — تبقى مبرمجة بلا بديل."
   },
   "salary": {
     "baseSalary": "الراتب الأساسي",
@@ -239,7 +240,7 @@
     },
     "unpaid": "غير مدفوع",
     "perHour": "‏{amount} / ساعة",
-    "hours": "{hours, plural, one {ساعة واحدة} two {ساعتان} few {# ساعات} many {# ساعة} other {# ساعة}}",
+    "hours": "{hours, plural, one {# ساعة} two {# ساعات} few {# ساعات} many {# ساعة} other {# ساعة}}",
     "advancesHint": "السلف المدفوعة وحالة تسديدها",
     "payrollHint": "كشف راتب لكل شهر"
   },

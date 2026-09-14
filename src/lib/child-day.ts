@@ -352,7 +352,10 @@ export function dailyJournalSettings(settings: unknown): DailyJournalSettings {
   const sendAt = dj && typeof dj.send_at === "string" && HHMM.test(dj.send_at) && dj.send_at <= SEND_AT_MAX
     ? dj.send_at
     : SEND_AT_DEFAULT;
-  return { enabled: dj?.enabled === true, sendAt };
+  // On unless a director turned it off (0163): a row without the key — none
+  // since the backfill, but the reader must not disagree with the database's
+  // default — reads as on.
+  return { enabled: dj ? dj.enabled === true : true, sendAt };
 }
 
 const toMinutes = (hhmm: string): number => {

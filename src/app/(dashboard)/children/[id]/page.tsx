@@ -24,15 +24,18 @@ import { StatusPill, type StatusTone } from "@/components/shared/status-pill";
 import { StructureTile } from "@/components/shared/structure-mark";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, signedMediaUrl } from "@/lib/tenant";
-import { ageFromDob, childDisplayName, formatDZD, formatDate, formatTime, intlLocale } from "@/lib/format";
+import { loadDossier, signedDossierUrls } from "@/lib/dossier-server";
+import type { DocumentRequirement } from "@/lib/dossier";
+import { ageFromDob, childDisplayName, formatDZD, formatDate, formatTime, initials, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { rosterNoun } from "@/lib/vocabulary";
 import type {
   Attendance, AttendanceStatus, Child, ChildStatus, FeePeriod, Gender, InvoiceStatus,
 } from "@/lib/types";
 import { ChildPhotoControl } from "@/components/modules/children/photo-controls";
 import { ChildTabs } from "@/components/modules/children/child-tabs";
 import { ConsentsSection } from "@/components/modules/children/consents-section";
-import { DocumentsSection } from "@/components/modules/children/documents-section";
+import { DossierSection } from "@/components/modules/enroll/dossier-section";
 import { EditChildDialog } from "@/components/modules/children/edit-child-dialog";
 import { MoveChildButton } from "@/components/modules/children/move-child-dialog";
 import { TransferHistory } from "@/components/modules/children/transfer-history";
@@ -49,6 +52,7 @@ import {
 import { activityChargeIsLocked } from "@/components/modules/classes/actions";
 import { StatusActions } from "@/components/modules/children/status-actions";
 import { CredentialCards } from "@/components/modules/credentials/credential-cards";
+import { ScanCardSheet, type ScanSubject } from "@/components/modules/credentials/scan-card-sheet";
 import type { CredentialRow } from "@/components/modules/credentials/types";
 import { parseHealthList } from "@/components/modules/portal/health-edit-shared";
 import { algiersToday } from "@/components/modules/billing/dates";
@@ -61,7 +65,6 @@ import {
   CONSENT_TYPES,
   type AllergyRow,
   type ChildTabKey,
-  type ChildDocumentRow,
   type ChildHealthRow,
   type ChildTransferRow,
   type ClassOption,
@@ -248,7 +251,7 @@ export default async function ChildProfilePage({
     { data: planRows },
     feesRes,
     invoicesRes,
-    { data: documentRows },
+    dossier,
     { data: consentRows },
     { data: activityEnrollmentRows },
     { data: activityRows },
@@ -318,12 +321,9 @@ export default async function ChildProfilePage({
           .order("issue_date", { ascending: false })
           .limit(36)
       : Promise.resolve({ data: [] }),
-    supabase
-      .from("kg_child_documents")
-      .select("id, doc_type, title, file_path, created_at")
-      .eq("child_id", id)
-      .eq("tenant_id", ctx.tenant.id)
-      .order("created_at", { ascending: false }),
+    // The enrolment file (0164), scored by kg_dossier_status for the child's
+    // kind. Only the documents tab reads it, so only that tab pays for it.
+    tab === "documents" ? loadDossier(supabase, { childId: id }) : Promise.resolve(null),
     supabase
       .from("kg_consents")
       .select("consent_type, granted, decided_at")
@@ -598,15 +598,28 @@ export default async function ChildProfilePage({
     .sort((a, b) => (a.due_date ?? a.issue_date).localeCompare(b.due_date ?? b.issue_date));
   const balanceHref = owedHref(id, openInvoices.map((i) => i.id));
 
-  const documents: ChildDocumentRow[] = await Promise.all(
-    (documentRows ?? []).map(async (d) => ({
-      id: d.id,
-      doc_type: d.doc_type,
-      title: d.title,
-      created_at: d.created_at,
-      url: await signedMediaUrl(d.file_path),
-    }))
-  );
+  // What the upload dialog may file a paper under — the kind's live list,
+  // which the RPC named — and one signed URL per file on the register.
+  const [requirementsRes, dossierUrls] = dossier
+    ? await Promise.all([
+        supabase
+          .from("kg_document_requirements")
+          .select("*")
+          .eq("tenant_id", ctx.tenant.id)
+          .eq("kind", dossier.kind)
+          .eq("active", true)
+          .order("sort_order"),
+        signedDossierUrls([
+          ...dossier.lines.flatMap((line) =>
+            line.document
+              ? [{ path: line.document.file_path, file_name: line.document.file_name, mime_type: line.document.mime_type }]
+              : []
+          ),
+          ...dossier.extra.map((extra) => ({ path: extra.file_path, file_name: extra.file_name })),
+        ]),
+      ])
+    : [{ data: [] }, {}];
+  const requirements = (requirementsRes.data ?? []) as DocumentRequirement[];
 
   const consents: ConsentState[] = (consentRows ?? [])
     .filter((c): c is { consent_type: ConsentType; granted: boolean | null; decided_at: string | null } =>
@@ -705,6 +718,33 @@ export default async function ChildProfilePage({
   }));
 
   const statusTone = CHILD_STATUS_TONE[child.status];
+
+  // Who a card scanned from the top of this page may go to: the child first
+  // (whose page it is, and the default), then every adult on the file. The
+  // child's caption takes the structure's own noun, as the roster does.
+  const scanSubjects: ScanSubject[] = ctx.isAdmin
+    ? [
+        {
+          type: "child",
+          id: child.id,
+          name,
+          photoUrl,
+          initials: initials(child.first_name, child.last_name),
+          caption:
+            rosterNoun([structure?.center_type]) === "pupils"
+              ? t("roster.pupils.column")
+              : t("roster.columns.child"),
+        },
+        ...links.map((g) => ({
+          type: "guardian" as const,
+          id: g.guardian_id,
+          name: childDisplayName(g, locale),
+          photoUrl: g.photoUrl ?? null,
+          initials: initials(g.first_name, g.last_name),
+          caption: t(`guardians.relationships.${g.relationship}`),
+        })),
+      ]
+    : [];
 
   return (
     <div>
@@ -844,6 +884,9 @@ export default async function ChildProfilePage({
               classes={classOptions}
               structures={structures}
             />
+            {/* A card for the child or for one of the adults, without
+                scrolling to their row: admins only, like every card. */}
+            {ctx.isAdmin && <ScanCardSheet subjects={scanSubjects} path={`/children/${child.id}`} />}
             {/* The verb for the crèche→école move (0140), the page's one
                 primary. Admins only, and only where there is somewhere to
                 move TO — a one-structure crèche changes class from the edit
@@ -1215,8 +1258,18 @@ export default async function ChildProfilePage({
         </div>
         )}
 
-        {/* ===== Documents ===== */}
-        {tab === "documents" && <DocumentsSection childId={child.id} documents={documents} />}
+        {/* ===== Dossier ===== */}
+        {tab === "documents" && dossier && (
+          <DossierSection
+            subject={{ childId: child.id }}
+            dossier={dossier}
+            requirements={requirements}
+            urls={dossierUrls}
+            canDelete={ctx.isAdmin}
+            // cd_ins and cd_upd are educator-gated: every staff role but the accountant.
+            canReview={ctx.role !== "accountant"}
+          />
+        )}
 
         {/* ===== Consentements ===== */}
         {tab === "consents" && <ConsentsSection childId={child.id} consents={consents} />}

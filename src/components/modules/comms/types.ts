@@ -20,6 +20,8 @@ export interface ClassOption {
   name: string;
   name_ar: string | null;
   color?: string;
+  /** The class's structure, when the caller knows it: the event dialog reads the closure of that structure for a class event. */
+  structure_id?: string | null;
 }
 
 export interface ChildOption {
@@ -97,34 +99,103 @@ export interface ThreadListItem {
 
 // ===== Calendar =====
 
+/**
+ * A kg_events row as the dialog, the card and the composer's callers read it
+ * (0157 shape). The colour column still exists in the table and is never
+ * read: an event is drawn in one tint everywhere and the only colour it
+ * carries is its structure's dot, so the column is not in EVENT_SELECT and
+ * no writer names it.
+ */
 export interface EventRow {
   id: string;
   title: string;
   description: string | null;
   start_at: string;
   end_at: string | null;
+  /** Stored as [00:00 Algiers of the first day, 00:00 Algiers of the day after the last): a three-day trip is one row. */
+  all_day: boolean;
   audience: CommsAudience;
   class_id: string | null;
   /** Which structure this is addressed to; null = the whole building. */
   structure_id: string | null;
   /** Where it takes place; null = no room (the yard without a room record, an outing). An event's class is its audience, never its place. */
   room_id: string | null;
-  color: string;
+  /** Families are asked to say whether they are coming; one answer per person (kg_event_responses). */
+  rsvp: boolean;
+  /** Set instead of deleting once anyone was told: the row stays on every calendar, struck through. */
+  cancelled_at: string | null;
+  /** Touched by the database on every update; the .ics SEQUENCE grows with it. */
+  updated_at: string;
+}
+
+/** The columns every kg_events read asks for — the EventRow shape, and nothing the row does not carry. */
+export const EVENT_SELECT =
+  "id, title, description, start_at, end_at, all_day, audience, class_id, structure_id, room_id, rsvp, cancelled_at, updated_at";
+
+/** Who was told about an event, by their LATEST notification row (kg_event_reach, 0158). */
+export interface EventReach {
+  families: number;
+  staff: number;
+  read: number;
+}
+
+/** Answers per PERSON, never per family (kg_event_rsvp_summary, 0159): two guardians count twice. */
+export interface RsvpSummary {
+  going: number;
+  notGoing: number;
+  /** Family recipients resolved now — the people who could still answer. */
+  asked: number;
+}
+
+export interface EventResponseRow {
+  userId: string;
+  /** The guardian's name in the reader's script, or the profile's full name when no guardian row carries the user. */
+  name: string;
+  response: "going" | "not_going";
+  note: string | null;
+  respondedAt: string;
+}
+
+/** What a new event starts from: the day the page had selected and the time the server computed for it. */
+export interface EventSeed {
+  date: string;
+  /** HH:mm; absent = 09:00. */
+  time?: string;
+  allDay?: boolean;
 }
 
 /**
- * Swatches offered when picking an event colour. These are persisted verbatim
- * into `kg_events.color`, so they are *data*, not theme: existing rows must keep
- * matching a swatch for the "selected" ring to show.
+ * The form's answer, in Algiers parts. The action turns the parts into
+ * instants (comms/datetime.ts eventSpan) so the browser's zone never enters
+ * a stored time. A timed event carries both endDate and endTime or neither;
+ * an all-day event carries no times and endDate = its last day (null = one
+ * day).
  */
-export const EVENT_COLORS = [
-  "#f59e0b",
-  "#3b82f6",
-  "#22c55e",
-  "#ef4444",
-  "#8b5cf6",
-  "#ec4899",
-] as const;
+export interface EventInput {
+  title: string;
+  description: string | null;
+  /** YYYY-MM-DD, the first day. */
+  date: string;
+  /** HH:mm; null for an all-day event. */
+  startTime: string | null;
+  endDate: string | null;
+  endTime: string | null;
+  allDay: boolean;
+  audience: CommsAudience;
+  classId: string | null;
+  structureId: string | null;
+  roomId: string | null;
+  rsvp: boolean;
+}
+
+/** An event with the names its card prints, resolved by the page that read it. */
+export interface EventDetail extends EventRow {
+  roomName: string | null;
+  /** The audience as a phrase: a class name, a structure name, or the audience word. */
+  audienceLabel: string;
+  structure: { name: string; color: string } | null;
+  className: string | null;
+}
 
 // ===== Menus =====
 

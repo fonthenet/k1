@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Baby } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff, scoped, signedMediaUrl } from "@/lib/tenant";
+import { indexDossierSummary, loadDossierSummary } from "@/lib/dossier-server";
 import type { AllergySeverity, Child, ChildStatus, Gender } from "@/lib/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { rosterNoun } from "@/lib/vocabulary";
@@ -38,6 +39,7 @@ export default async function ChildrenPage() {
     { data: allergyRows },
     { data: feeRows },
     { data: structureRows },
+    dossierRows,
   ] = await Promise.all([
       // The roster is narrowed to the structure being looked through.
       scoped(
@@ -84,9 +86,14 @@ export default async function ChildrenPage() {
         .eq("tenant_id", ctx.tenant.id)
         .order("sort_order")
         .order("name"),
+      // The enrolment file per child, one grouped read (0164): accepted
+      // papers over required ones. A child whose kind asks for no required
+      // paper has no row here, and no pill on the roster (D14).
+      loadDossierSummary(supabase, ctx.tenant.id),
     ]);
 
   if (error) throw new Error(error.message);
+  const { byChild: dossierByChild } = indexDossierSummary(dossierRows);
 
   const allClasses = (classRows ?? []) as RosterClassOption[];
   // The filter offers only classes that can match something on screen.
@@ -120,6 +127,7 @@ export default async function ChildrenPage() {
   const rows: RosterChild[] = await Promise.all(
     ((childRows ?? []) as ChildRow[]).map(async (c) => {
       const allergies = allergyByChild.get(c.id) ?? [];
+      const dossier = dossierByChild.get(c.id);
       return {
         // Only meaningful for a child who is actually attending, and only
         // shown to finance.
@@ -142,6 +150,7 @@ export default async function ChildrenPage() {
         allergies,
         enrollmentDate: c.enrollment_date ?? null,
         structure_id: c.structure_id ?? null,
+        dossier: dossier ? { ok: dossier.accepted, total: dossier.required } : null,
       };
     })
   );

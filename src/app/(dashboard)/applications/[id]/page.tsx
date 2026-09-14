@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { requireStaff, signedMediaUrl } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { loadDossier, signedDossierUrls } from "@/lib/dossier-server";
+import { PRINTABLE_KEYS, type DocumentRequirement } from "@/lib/dossier";
 import {
   ageFromDob,
   childDisplayName,
@@ -55,6 +57,7 @@ import {
   isTransferApplication,
   type ReviewApplication,
 } from "@/components/modules/enroll/review-types";
+import { DossierSection } from "@/components/modules/enroll/dossier-section";
 import { allergenLabel } from "@/lib/allergens";
 
 /** Label at the start, value at the end — the bill anatomy, two weights, no icon. */
@@ -148,8 +151,8 @@ export default async function ApplicationDetailPage({
   const activityIds = Array.isArray(app.activity_ids) ? app.activity_ids : [];
 
   // Parallel: photo signed URL (may fail RLS for staff on u/ paths → fallback avatar),
-  // classes with enrolled counts, requested activities.
-  const [photoUrl, classesRes, childrenRes, feePlansRes, admissionRes, activitiesRes] =
+  // classes with enrolled counts, requested activities, the enrolment file.
+  const [photoUrl, classesRes, childrenRes, feePlansRes, admissionRes, activitiesRes, dossier] =
     await Promise.all([
       signedMediaUrl(child.photo_path),
       supabase.from("kg_classes").select("*").eq("tenant_id", ctx.tenant.id).order("name"),
@@ -183,7 +186,40 @@ export default async function ApplicationDetailPage({
             .eq("tenant_id", ctx.tenant.id)
             .in("id", activityIds)
         : Promise.resolve({ data: [] as Activity[] }),
+      // The papers, as kg_dossier_status scores them for the file's kind
+      // (0164). Staff-only for an application — the family reads its own
+      // through kg_my_application.
+      loadDossier(supabase, { applicationId: id }),
     ]);
+
+  // What the upload dialog may file the paper under — the kind's live list,
+  // which the RPC named — and one signed URL per file and blank form.
+  const [requirementsRes, dossierUrls] = dossier
+    ? await Promise.all([
+        supabase
+          .from("kg_document_requirements")
+          .select("*")
+          .eq("tenant_id", ctx.tenant.id)
+          .eq("kind", dossier.kind)
+          .eq("active", true)
+          .order("sort_order"),
+        signedDossierUrls([
+          ...dossier.lines.flatMap((line) =>
+            line.document
+              ? [{ path: line.document.file_path, file_name: line.document.file_name, mime_type: line.document.mime_type }]
+              : []
+          ),
+          ...dossier.extra.map((extra) => ({ path: extra.file_path, file_name: extra.file_name })),
+        ]),
+      ])
+    : [{ data: [] }, {}];
+  const requirements = (requirementsRes.data ?? []) as DocumentRequirement[];
+  // The printable sheets stand in for two seeded papers; a link appears only
+  // while the kind's live list asks for that paper.
+  const printable = {
+    fiche: dossier?.lines.some((line) => line.active && line.key === PRINTABLE_KEYS.fiche) ?? false,
+    demande: dossier?.lines.some((line) => line.active && line.key === PRINTABLE_KEYS.demande) ?? false,
+  };
 
   const enrolledByClass = new Map<string, number>();
   for (const row of (childrenRes.data ?? []) as { class_id: string | null }[]) {
@@ -449,6 +485,47 @@ export default async function ApplicationDetailPage({
       )}
 
       <ApplicationStructureContext app={app} />
+
+      {/* The file's papers, full width: what the family sent, what the
+          office accepted, what is still to bring. Under it, the two sheets
+          the office prints for a family at the desk — tertiary links, as the
+          family's own page shows them. */}
+      {dossier && (
+        <div className="mb-4 grid gap-2">
+          <DossierSection
+            subject={{ applicationId: app.id }}
+            dossier={dossier}
+            requirements={requirements}
+            urls={dossierUrls}
+            canDelete={ctx.isAdmin}
+            // cd_ins and cd_upd are educator-gated: every staff role but the accountant.
+            canReview={ctx.role !== "accountant"}
+          />
+          {(printable.fiche || printable.demande) && (
+            <p className="flex flex-wrap items-center gap-x-1 text-sm text-muted-foreground">
+              {printable.fiche && (
+                <Link
+                  href={`/applications/${app.id}/print?sheet=fiche`}
+                  className="inline-flex items-center gap-0.5 text-primary hover:text-primary/80"
+                >
+                  {t("dossier.printFiche")}
+                  <ChevronRight className="size-3.5 rtl:rotate-180" aria-hidden />
+                </Link>
+              )}
+              {printable.fiche && printable.demande && <span aria-hidden>·</span>}
+              {printable.demande && (
+                <Link
+                  href={`/applications/${app.id}/print?sheet=demande`}
+                  className="inline-flex items-center gap-0.5 text-primary hover:text-primary/80"
+                >
+                  {t("dossier.printDemande")}
+                  <ChevronRight className="size-3.5 rtl:rotate-180" aria-hidden />
+                </Link>
+              )}
+            </p>
+          )}
+        </div>
+      )}
 
       {isSibling && family && (
         <SectionCard

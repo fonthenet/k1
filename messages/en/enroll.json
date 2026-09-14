@@ -35,7 +35,8 @@
     "greeting": "Welcome to",
     "lead": "A few minutes, from your phone. You can come back later.",
     "needAccount": "A phone number or an e-mail to create your account",
-    "classes": "Classes:"
+    "classes": "Classes:",
+    "needDocuments": "The enrolment papers (birth certificate, health booklet…) — as a photo or a PDF"
   },
   "account": {
     "title": "Your parent account",
@@ -190,13 +191,19 @@
     "placement": "Structure and class",
     "structure": "Structure",
     "class": "Preferred class",
-    "classUndecided": "To decide with the establishment"
+    "classUndecided": "To decide with the establishment",
+    "documents": "File",
+    "documentsCount": "{count} of {total} documents attached"
   },
   "success": {
     "title": "Application sent!",
     "message": "Thank you! {name} has received your application. The team will review it and contact you very soon.",
     "hint": "You will receive an answer once the application has been reviewed.",
-    "portal": "Go to the parent portal"
+    "portal": "Go to the parent portal",
+    "bring": "Remember to bring: {list}",
+    "seeDossier": "See the file",
+    "printFiche": "Print the information sheet",
+    "printDemande": "Print the handwritten request template"
   },
   "status": {
     "submitted": "Received",
@@ -261,7 +268,8 @@
       "requestedClass": "Requested class",
       "source": "Source",
       "received": "Received",
-      "followUp": "Follow-up"
+      "followUp": "Follow-up",
+      "dossier": "File"
     },
     "stages": {
       "submitted": "Received",
@@ -284,7 +292,8 @@
     "healthHint": "Allergies, treatments and doctor",
     "billingSection": "Fees and activities",
     "billingHint": "What the family asked for on the form",
-    "monthlyPlan": "per month"
+    "monthlyPlan": "per month",
+    "documentsToReview": "Documents to check"
   },
   "detail": {
     "back": "All applications",
@@ -490,5 +499,68 @@
     "fromDob": "From the date of birth:",
     "unitMonths": "months",
     "unitYears": "{n, plural, one {year} other {years}}"
+  },
+  "print": {
+    "fiche": "Information sheet",
+    "demande": "Handwritten enrolment request",
+    "print": "Print",
+    "backApplication": "Application",
+    "backDossier": "File",
+    "child": "Child",
+    "guardians": "Guardians",
+    "health": "Health",
+    "pickups": "People authorised to collect the child",
+    "documents": "Documents on file",
+    "engagement": "I, the undersigned legal guardian, certify that the information above is accurate and undertake to respect the establishment's internal rules.",
+    "doneAt": "Done at ______ on ______",
+    "signGuardian": "The guardian",
+    "signDirector": "The management",
+    "requestTo": "To the Director of <name></name>",
+    "requestSubject": "Subject: enrolment request for my child",
+    "requestHint": "Write by hand: the child's name, date of birth, the structure wanted, the desired start date.",
+    "requestGuardian": "Guardian's full name",
+    "address": "Address",
+    "phone": "Phone",
+    "signatureGuardian": "Guardian's signature",
+    "authorised": "May collect",
+    "yes": "yes",
+    "no": "no"
+  },
+  "dossier": {
+    "section": "File",
+    "count": "{ok} of {total} documents accepted",
+    "add": "Add a document",
+    "replace": "Replace",
+    "accept": "Accept",
+    "reject": "Refuse",
+    "remove": "Remove",
+    "removeDescription": "The document and its file are deleted.",
+    "rejectTitle": "Refuse the document",
+    "rejectHint": "The reason is sent to the family.",
+    "rejectReason": "Reason",
+    "rejectPlaceholder": "Blurry photo, please retake it",
+    "others": "Other documents",
+    "other": "Other document",
+    "piece": "Document",
+    "docTitle": "Title",
+    "file": "File",
+    "empty": "No document is requested for this structure.",
+    "printFiche": "Print the information sheet",
+    "printDemande": "Print the handwritten request template",
+    "toasts": {
+      "accepted": "Document accepted",
+      "rejected": "Document refused — the family has been told",
+      "added": "Document added",
+      "removed": "Document removed",
+      "noteRequired": "Give a reason"
+    }
+  },
+  "documents": {
+    "title": "Enrolment file",
+    "subtitle": "Photograph each document or attach a PDF. Anything missing can be handed in at the desk.",
+    "attached": "Attached",
+    "bringLater": "To hand in at the desk",
+    "formHint": "Print, fill in, sign and attach it here.",
+    "progress": "{count} of {total} documents attached — the rest can be handed in at the desk."
   }
 }

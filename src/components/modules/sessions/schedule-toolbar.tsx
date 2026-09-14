@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -161,7 +162,19 @@ export function ScheduleToolbar({
         </SelectContent>
       </Select>
 
-      <span className="ms-auto rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
+      {/* The same follow-ups among everything else of the establishment:
+          the calendar in the same view, on the same day or week, narrowed to
+          the reader's own sessions. Derived from this bar's own view and
+          date, so the two screens always agree on where they are. */}
+      <Button asChild variant="ghost" size="sm" className="ms-auto text-primary hover:text-primary">
+        <Link
+          href={`/calendar?view=${view}&kinds=session&scope=mine&date=${view === "week" ? weekStart : date}`}
+        >
+          {t("schedule.seeCalendar")}
+          <ChevronRight data-icon="inline-end" className="rtl:rotate-180" />
+        </Link>
+      </Button>
+      <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium tabular-nums text-primary">
         {t("filters.count", { count })}
       </span>
     </div>

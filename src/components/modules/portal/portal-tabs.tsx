@@ -3,15 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Baby, House, Megaphone, MessageCircle, Wallet } from "lucide-react";
+import { Baby, CalendarDays, House, MessageCircle, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Five doors, in the order a family reaches for them. The calendar took the
+ * third slot from the announcements (decision 12): what is planned for the
+ * children and when the establishment is shut is asked every week, while the
+ * notices keep their door on the home ("Tout voir") and their own page.
+ */
 const TABS = [
   { key: "home", href: "/portal", icon: House },
   { key: "myChildren", href: "/portal/children", icon: Baby },
+  { key: "calendar", href: "/portal/calendar", icon: CalendarDays },
   { key: "messages", href: "/portal/messages", icon: MessageCircle },
   { key: "payments", href: "/portal/payments", icon: Wallet },
-  { key: "announcements", href: "/portal/announcements", icon: Megaphone },
 ] as const;
 
 /**

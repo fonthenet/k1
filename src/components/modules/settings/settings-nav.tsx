@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BellRing, Building2, CalendarDays, CreditCard, FileText, Link2 } from "lucide-react";
+import { BellRing, Building2, CalendarDays, ClipboardList, CreditCard, FileText, IdCard, Link2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { href: "/settings", key: "school", exact: true, Icon: Building2 },
   { href: "/settings/enrollment", key: "enrollment", exact: false, Icon: Link2 },
+  // The dossier d'inscription sits next to the links that open it (D13):
+  // what a family is asked for, right after where they are asked.
+  { href: "/settings/dossier", key: "dossier", exact: false, Icon: ClipboardList },
+  // Badges next to the dossier: both are what a family is handed once
+  // enrolled. IdCard, not CreditCard — that one is the subscription's.
+  { href: "/settings/badges", key: "badges", exact: false, Icon: IdCard },
   { href: "/settings/holidays", key: "holidays", exact: false, Icon: CalendarDays },
   { href: "/settings/documents", key: "documents", exact: false, Icon: FileText },
   { href: "/settings/notifications", key: "notifications", exact: false, Icon: BellRing },

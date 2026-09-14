@@ -213,7 +213,8 @@
     "approveTitle": "Approve this leave?",
     "approveDesc": "The request is marked approved and the person finds it under their leave.",
     "rejectTitle": "Reject this request?",
-    "rejectDesc": "The request is marked rejected. The person can file another one."
+    "rejectDesc": "The request is marked rejected. The person can file another one.",
+    "conflicts": "{name} {lessons, plural, =0 {has no lesson} one {teaches <b>#</b> lesson} other {teaches <b>#</b> lessons}} and {sessions, plural, =0 {no follow-up} one {<b>#</b> follow-up} other {<b>#</b> follow-ups}} over this period — they stay scheduled, without a replacement."
   },
   "salary": {
     "baseSalary": "Base salary",

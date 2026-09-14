@@ -50,6 +50,25 @@ export interface InboxMessage {
   failed?: boolean;
 }
 
+/**
+ * A child the panel can start a conversation about. Loaded only when the pen
+ * is pressed, for the same reason the list is: most panels are never opened.
+ */
+export interface InboxChild {
+  id: string;
+  /** Already in the reader's language (childDisplayName). */
+  name: string;
+  className: string | null;
+  /**
+   * The guardians who can read the thread — those with a login, by name in
+   * the reader's language. Empty means a thread about this child is a note
+   * to self until a parent opens the app, and the composer says so before
+   * the first line.
+   */
+  reachedBy: string[];
+  reachable: boolean;
+}
+
 /** What the bubble needs before it is opened. */
 export interface InboxSummary {
   /** Conversations waiting, counted in conversations — not in messages. */

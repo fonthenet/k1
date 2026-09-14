@@ -12,6 +12,7 @@ import type {
   Relationship,
 } from "@/lib/types";
 import type { HealthListItem } from "@/components/modules/portal/health-edit-shared";
+import type { DossierCount } from "@/lib/dossier";
 
 /** One roster row, flattened server-side (signed photo URL, class + allergy summary). */
 export interface RosterChild {
@@ -39,7 +40,17 @@ export interface RosterChild {
   structure_id: string | null;
   /** Enrolled, but charged no tuition. Finance-only; false for everyone else. */
   noFeePlan: boolean;
+  /**
+   * The enrolment file, as kg_dossier_summary scores it: accepted papers over
+   * required ones (0164). Null when the child's kind has no active REQUIRED
+   * requirement — the summary returns no row for them — so a tenant that has
+   * not switched the register on sees no pill on any row (D14).
+   */
+  dossier: DossierCount | null;
 }
+
+/** The roster's status filter gains one entry that is not a status: enrolled rows whose file is short a paper. */
+export type RosterDossierFilter = "dossier_incomplete";
 
 // A type alias rather than an interface, deliberately: `groupClassesByStructure`
 // (lib/structure-groups) accepts rows with an index signature, and TypeScript
@@ -227,14 +238,6 @@ export interface ChildInvoiceRow {
   paid_amount: number;
 }
 
-export interface ChildDocumentRow {
-  id: string;
-  doc_type: string;
-  title: string;
-  created_at: string;
-  url: string | null;
-}
-
 export const CONSENT_TYPES = ["photos", "outings", "medical_emergency"] as const;
 export type ConsentType = (typeof CONSENT_TYPES)[number];
 
@@ -244,6 +247,12 @@ export interface ConsentState {
   decided_at: string | null;
 }
 
+/**
+ * The type words of the pre-0164 staff shelf. Nothing writes them any more —
+ * a paper now answers a requirement or is an "Autre pièce" — but rows filed
+ * before the register existed still carry one, and the dossier section names
+ * them by it under "Autres pièces".
+ */
 export const DOC_TYPES = [
   "birth_certificate",
   "vaccination_record",

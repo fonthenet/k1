@@ -1,9 +1,10 @@
-import { formatDZD, formatTime, intlLocale } from "@/lib/format";
+import { formatDZD, formatTime, intlLocale, listFormat } from "@/lib/format";
 import type { Locale } from "@/i18n/request";
 import { blocksNounKey, sectionsFor, toLearningProfile } from "@/lib/child-day";
 
 /** Every event the platform can notify about. Keep in sync with the DB triggers
- *  in supabase/migrations/0012_kg_notifications.sql and 0049_kg_parent_notifications.sql. */
+ *  in supabase/migrations/0012_kg_notifications.sql and 0049_kg_parent_notifications.sql
+ *  and with the allow-list 0159 puts on kg_notifications.type (extended by 0164). */
 export const NOTIFICATION_TYPES = [
   "message", "incident", "announcement", "application",
   "checkin", "checkout", "daily_report", "task", "activity_request",
@@ -16,9 +17,21 @@ export const NOTIFICATION_TYPES = [
   // 0057 — the applicant hears every admissions decision.
   "application_status",
   // 0090 — a class event reaches that class's families and nobody else.
+  // 0159 — its payload carries `kind` (created / changed / removed /
+  // cancelled / reminder) and the row is worded by it.
   "event",
   // 0140 — a child moved between the structures of the building (kg_move_child).
   "structure_changed",
+  // 0159 — the calendar reaches the people it concerns: a confirmed closure
+  // (created / confirmed / reminder), a therapy appointment (created /
+  // rescheduled / changed / cancelled / reminder), a test or exam date
+  // (created / changed), a leave decision (approved / rejected).
+  "closure", "session_scheduled", "assessment_scheduled", "leave",
+  // 0164 — the dossier d'inscription: a family paper reached the register
+  // (office), a paper was refused or the last required one was accepted
+  // (family). The second carries `kind` (rejected / complete); never one
+  // push per accepted paper.
+  "document_received", "document_reviewed",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -36,6 +49,43 @@ export interface KgNotification {
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** A payload date that is one, or undefined — nothing else reaches a URL. */
+function isoDay(raw: string | undefined): string | undefined {
+  return raw && ISO_DATE.test(raw) ? raw : undefined;
+}
+
+/** FIRST STRONG ISOLATE … POP DIRECTIONAL ISOLATE: `<bdi dir="auto">` for plain text. */
+const FSI = "\u2068";
+const PDI = "\u2069";
+
+/**
+ * An instant the payload carries, in the one shape `new Date()` parses
+ * everywhere. Rows written through to_jsonb(timestamptz) already are
+ * ("2026-09-22T16:00:00+00:00"); a row an older trigger wrote with `::text`
+ * ("2026-09-22 16:00:00+00") is a string Safari refuses, so its space becomes
+ * the T and a bare "+00" gains its minutes. A plain date is left alone.
+ */
+export function isoInstant(raw: string): string {
+  const s = raw.trim();
+  if (!s.includes(" ")) return s;
+  return s.replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00");
+}
+
+/**
+ * `notifications.types.<type>` — a title and a body, and for a type whose
+ * payload carries `kind`, one title per kind and, where a kind needs its own
+ * sentence, one body per kind. `range`/`single` bodies are picked by whether
+ * the payload spans days (a closure, a leave). Every part beyond title/body
+ * is optional: a bundle that predates a kind falls back to the type's title.
+ */
+interface NotificationTemplate {
+  title: string;
+  body: string;
+  kinds?: Record<string, string>;
+  bodies?: Record<string, string>;
+  parts?: DigestParts;
+}
+
 /** Where tapping a notification should land the reader. */
 export function notificationHref(n: Pick<KgNotification, "type" | "data">, isParent: boolean): string {
   const d = n.data ?? {};
@@ -50,12 +100,42 @@ export function notificationHref(n: Pick<KgNotification, "type" | "data">, isPar
       return isParent ? "/portal" : s("incidentId") ? `/incidents/${s("incidentId")}` : "/incidents";
     case "announcement":
       return isParent ? "/portal/announcements" : "/announcements";
-    // A LIST, never /calendar/<id>. An event can be deleted — and deleting a
-    // CLASS cascades its events away — while the notification survives, so a
-    // detail route would 404 on exactly the alert a parent taps first. The
-    // parent's "Coming up" lives on the portal home; staff have the calendar.
-    case "event":
-      return isParent ? "/portal" : "/calendar";
+    // The calendar on the event's day with the event named in the query —
+    // never /calendar/<id>. An event can be deleted (deleting a CLASS cascades
+    // its events away) while the notification survives; a detail route would
+    // 404 on exactly the alert a parent taps first, whereas the day view
+    // opens, says the event is gone, and still shows the day. A row written
+    // before the payload carried a date lands on the calendar itself.
+    case "event": {
+      const day = isoDay(s("date"));
+      const event = s("eventId");
+      if (isParent) {
+        return day ? `/portal/calendar?date=${day}${event ? `&event=${event}` : ""}` : "/portal/calendar";
+      }
+      return day ? `/calendar?view=day&date=${day}${event ? `&event=${event}` : ""}` : "/calendar";
+    }
+    // A closure is a day, not a record: land on that day of the calendar.
+    case "closure": {
+      const day = isoDay(s("date"));
+      if (isParent) return day ? `/portal/calendar?date=${day}` : "/portal/calendar";
+      return day ? `/calendar?date=${day}` : "/calendar";
+    }
+    // Families only today (the therapist has the sessions screen); the staff
+    // branch exists so a future therapist row lands on the appointment and
+    // not on the dashboard.
+    case "session_scheduled": {
+      const day = isoDay(s("date"));
+      if (isParent) return day ? `/portal/calendar?date=${day}` : "/portal/calendar";
+      return s("sessionId") ? `/sessions/${s("sessionId")}` : "/sessions";
+    }
+    case "assessment_scheduled": {
+      const day = isoDay(s("date"));
+      if (isParent) return day ? `/portal/calendar?date=${day}` : "/portal/calendar";
+      return s("assessmentId") ? `/learning/assessments/${s("assessmentId")}` : "/learning/assessments";
+    }
+    // The member's own request, decided: the leaves screen lists it with the answer.
+    case "leave":
+      return "/staff/leaves";
     case "application":
       // A parent's own application lands on their children, not on the office's
       // review queue — /applications is staff-only and would bounce them.
@@ -69,8 +149,7 @@ export function notificationHref(n: Pick<KgNotification, "type" | "data">, isPar
     // digest read on Sunday morning still opens Thursday. A row written before
     // the payload carried a date keeps the child's record.
     case "daily_report": {
-      const day = s("date");
-      const date = day && ISO_DATE.test(day) ? day : undefined;
+      const date = isoDay(s("date"));
       if (isParent) {
         const child = s("childId");
         if (!child) return "/portal";
@@ -127,6 +206,23 @@ export function notificationHref(n: Pick<KgNotification, "type" | "data">, isPar
       return s("childId")
         ? isParent ? `/portal/children/${s("childId")}` : `/children/${s("childId")}`
         : isParent ? "/portal/children" : "/children";
+    // 0164 — a paper lands where it is reviewed or fixed. Staff open the
+    // application while the file is pending and the child's Dossier tab once
+    // it exists; the family opens the child's Dossier tab after approval and
+    // its own pending file (/enroll/dossier, tenant-less: a first-time
+    // applicant has no membership and /portal would bounce them) before.
+    case "document_received":
+    case "document_reviewed": {
+      const child = s("childId");
+      const application = s("applicationId");
+      if (isParent) {
+        if (n.type === "document_received") return "/portal";
+        return child
+          ? `/portal/children/${child}?tab=permissions`
+          : application ? `/enroll/dossier/${application}` : "/portal/children";
+      }
+      return application ? `/applications/${application}` : child ? `/children/${child}?tab=documents` : "/applications";
+    }
     default:
       return isParent ? "/portal" : "/dashboard";
   }
@@ -145,7 +241,7 @@ export function renderNotification(
   locale: Locale
 ): { title: string; body: string } {
   const m = messages as {
-    types?: Record<string, { title: string; body: string; parts?: DigestParts }>;
+    types?: Record<string, NotificationTemplate>;
     // The daily journal digest: a mood is a word the reader's language picks.
     moods?: Record<string, string>;
     consentTypes?: Record<string, string>;
@@ -161,6 +257,10 @@ export function renderNotification(
     attendanceStatuses?: Record<string, string>;
     activityStates?: Record<string, string>;
     paymentMethods?: Record<string, string>;
+    // 0159 — the calendar's enums: a therapy type, a test-or-exam, a leave type.
+    sessionTypes?: Record<string, string>;
+    assessmentKinds?: Record<string, string>;
+    leaveTypes?: Record<string, string>;
   };
   const types = m.types;
   const tpl = types?.[n.type];
@@ -168,13 +268,20 @@ export function renderNotification(
 
   const d = (n.data ?? {}) as Record<string, unknown>;
   const str = (k: string) => (typeof d[k] === "string" ? (d[k] as string) : "");
+  const tag = intlLocale(locale);
 
-  const at = str("time") || str("at");
-  const time = at
-    ? new Intl.DateTimeFormat(locale === "ar" ? "ar-DZ" : locale === "en" ? "en-GB" : "fr-DZ", {
-        hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Africa/Algiers",
-      }).format(new Date(at))
-    : "";
+  // A clock, from an instant the payload carries. `time` is a timestamptz in
+  // jsonb (the 0097 shape, ISO 8601 with an offset) or '' for an all-day row;
+  // `at` is the older key the arrival rows still use. Formatted in Algiers,
+  // never in the reader's device zone.
+  const clock = (iso: string) =>
+    iso
+      ? new Intl.DateTimeFormat(tag, {
+          hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Africa/Algiers",
+        }).format(new Date(isoInstant(iso)))
+      : "";
+  const time = clock(str("time") || str("at"));
+  const endTime = clock(str("endTime"));
 
   // Money is rendered here, not in SQL: the digest row carries a raw `amount`,
   // so an Arabic reader gets "12 000 دج" and a French one "12 000 DA" from the
@@ -191,13 +298,18 @@ export function renderNotification(
   // A date the payload names (a due date, the day a child was absent). Rendered
   // from the event's own date, never from when the row happened to be written:
   // an evening push about a morning absence is worth nothing to a parent.
-  const intlLocale = locale === "ar" ? "ar-DZ" : locale === "en" ? "en-GB" : "fr-DZ";
+  const dayOf = (raw: string) =>
+    raw
+      ? new Intl.DateTimeFormat(tag, {
+          day: "numeric", month: "long", timeZone: "Africa/Algiers",
+        }).format(new Date(isoInstant(raw)))
+      : "";
   const rawDate = str("date") || str("due");
-  const date = rawDate
-    ? new Intl.DateTimeFormat(intlLocale, {
-        day: "numeric", month: "long", timeZone: "Africa/Algiers",
-      }).format(new Date(rawDate))
-    : "";
+  const rawEndDate = str("endDate");
+  const date = dayOf(rawDate);
+  // The last day of a closure or a leave; '' when the row is one day long,
+  // so a range template is only picked when there is a range to say.
+  const endDate = rawEndDate && rawEndDate !== rawDate ? dayOf(rawEndDate) : "";
 
   // Changed fields arrive as an array of NAMES. Translating each and joining
   // with the locale's own list separator is the whole reason SQL never builds
@@ -205,11 +317,23 @@ export function renderNotification(
   // share a word order.
   const fieldMap = n.type === "incident_updated" ? m.incidentFields : m.healthFields;
   const rawFields = Array.isArray(d.fields) ? (d.fields as unknown[]) : [];
-  const fields = new Intl.ListFormat(intlLocale, { style: "long", type: "conjunction" })
+  const fields = listFormat(locale)
     .format(rawFields.filter((f): f is string => typeof f === "string")
       .map((f) => fieldMap?.[f] ?? f));
 
   const previousRaw = typeof d.previousAmount === "number" ? d.previousAmount : NaN;
+
+  // The row's own title is person-typed text — an event's name, a holiday's,
+  // a member's — dropped into a sentence written in the reader's language.
+  // Isolating it (FSI … PDI, the bidi equivalent of <bdi dir="auto">) keeps
+  // "Nouvel événement — اجتماع الأولياء" from pulling the dash and the French
+  // words into the Arabic run in a push banner, where there is no markup.
+  // A closure's name is stored in both scripts and picked by locale; so is a
+  // requirement's (0164): the register names the paper in French and Arabic,
+  // and "وثيقة مرفوضة — شهادة الميلاد" must not read "— Extrait de naissance".
+  const bilingualName = n.type === "closure" || n.type === "document_received" || n.type === "document_reviewed";
+  const ownName = bilingualName ? (locale === "ar" && str("nameAr")) || str("name") || n.title : n.title;
+  const name = ownName ? `${FSI}${ownName}${PDI}` : "";
 
   const vars: Record<string, string> = {
     // A child is named in both scripts on the record; a payload that carries
@@ -219,10 +343,12 @@ export function renderNotification(
     // the same fallback className and structure below already use.
     child: (locale === "ar" && str("childNameAr")) || str("childName"),
     activity: str("activityName"),
-    name: n.title,
+    name,
     text: n.body ?? "",
     time,
+    endTime,
     date,
+    endDate,
     count: typeof d.count === "number" ? String(d.count) : str("count"),
     amount,
     previousAmount: Number.isFinite(previousRaw) ? formatDZD(previousRaw, locale) : "",
@@ -255,22 +381,50 @@ export function renderNotification(
     className: (locale === "ar" && str("classNameAr")) || str("className"),
     // What the event actually is. Staff type it; until now nobody read it.
     description: str("description"),
-    // Which structure a child now belongs to (0140). The payload carries both
+    // Which structure a child now belongs to (0140), or which one a closure
+    // shuts (0159; '' for the whole building). The payload carries both
     // scripts because a structure is named by the director in both; an Arabic
     // reader gets the Arabic name when there is one and the French otherwise —
     // never a blank.
     structure: (locale === "ar" && str("structureNameAr")) || str("structureName"),
+    // 0159 — where an event or an appointment takes place, printed once from
+    // the stored name (never "Salle Salle 3"); '' when no room is booked, and
+    // the separator collapse below swallows the empty segment.
+    room: (locale === "ar" && str("roomNameAr")) || str("roomName"),
+    // 0159 — the calendar's enums, each a word the reader's language picks.
+    sessionType: m.sessionTypes?.[str("sessionType")] ?? str("sessionType"),
+    therapist: str("therapist"),
+    assessmentKind: m.assessmentKinds?.[str("assessmentKind")] ?? str("assessmentKind"),
+    leaveType: m.leaveTypes?.[str("leaveType")] ?? str("leaveType"),
   };
   // A template is a plain `{var}` substitution with no conditionals, so an
   // absent value used to leave its separator behind — "3 September · 09:00 · "
   // for an event with no class. Collapse the empty segments instead of writing
-  // a different template for every combination that can be missing.
+  // a different template for every combination that can be missing: the
+  // filled line is cut at its separators, the blank pieces dropped, the rest
+  // joined again. (The earlier regex pass ate the space before a dot when two
+  // neighbouring segments were both empty — an all-day event with no room
+  // read "23 septembre· 1re année".)
   const fill = (s: string) =>
     s
       .replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "")
-      .replace(/\s*·\s*(?=·)/g, "")
-      .replace(/^\s*·\s*|\s*·\s*$/g, "")
-      .replace(/\s{2,}/g, " ");
+      .split(/\s*·\s*/)
+      .map((part) => part.replace(/\s{2,}/g, " ").trim())
+      .filter(Boolean)
+      .join(" · ");
+  // What happened decides the title: a payload with `kind` (an event created,
+  // changed, removed, cancelled or reminded; a closure confirmed; an
+  // appointment rescheduled; a leave approved) reads that kind's title, and
+  // its own body where the kind has one ("will not take place"). A row that
+  // spans days reads the range body when the type has one. Everything falls
+  // back to the type's plain title and body, so a bundle that predates a kind
+  // still says something true.
+  const kind = str("kind");
+  const titleTpl = (kind && tpl.kinds?.[kind]) || tpl.title;
+  const bodyTpl =
+    (kind && tpl.bodies?.[kind]) ||
+    (endDate ? tpl.bodies?.range : tpl.bodies?.single) ||
+    tpl.body;
   // The automatic daily journal (0152) carries counts and enums, never a
   // sentence; its body is assembled here from flat keys, one part per fact,
   // in the order the child's day page lays its sections out. A row the
@@ -278,9 +432,9 @@ export function renderNotification(
   // before the sender existed keep the template body.
   if (n.type === "daily_report" && d.source === "digest") {
     const body = digestParts(d, tpl.parts, m.moods, locale).join(" · ");
-    return { title: fill(tpl.title).trim(), body: fill(body).trim() };
+    return { title: fill(titleTpl).trim(), body: fill(body).trim() };
   }
-  return { title: fill(tpl.title).trim(), body: fill(tpl.body).trim() };
+  return { title: fill(titleTpl).trim(), body: fill(bodyTpl).trim() };
 }
 
 /** The six CLDR categories, all present in every locale (the merge script

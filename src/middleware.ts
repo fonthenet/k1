@@ -17,6 +17,11 @@ const PROTECTED_PREFIXES = [
   // /dashboard → /login?next=/dashboard and, having no crèche of their own,
   // ended in the "create your crèche" wizard instead of back on /admin.
   "/admin",
+  // The family's own enrolment file before approval (0164, D12). The rest
+  // of /enroll is the public wizard and stays open; this one prefix is a
+  // signed-in page, and a push that names it must land on /login with the
+  // address in `next` rather than on a shell that bounces client-side.
+  "/enroll/dossier",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -79,9 +84,15 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (isProtected && !user) {
+    // The whole address travels in `next`, query included: a tapped push
+    // carries `?date=&event=` and must still open its sheet once the family
+    // is signed in again. The clone's own query is dropped so it does not
+    // sit on /login. The login page's guard (an internal path, not "//")
+    // still passes.
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", pathname);
+    url.search = "";
+    url.searchParams.set("next", pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

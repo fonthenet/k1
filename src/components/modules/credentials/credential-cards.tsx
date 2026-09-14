@@ -1,76 +1,42 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { CreditCard, Plus, ScanLine, Trash2 } from "lucide-react";
+import { CreditCard, ScanLine, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formatDate } from "@/lib/format";
-import { issueCard, revokeCard } from "./actions";
+import { revokeCard } from "./actions";
+import { IssueCardDialog } from "./issue-card-dialog";
 import type { CredentialRow, CredentialSubject } from "./types";
 
 /**
- * Proximity cards for one person.
- *
- * Enrolment is a scan, not a transcription: a USB reader is a keyboard that
- * types the card's number and presses Enter, so the dialog just needs a focused
- * field. Typing the number by hand still works for a card read elsewhere.
+ * Proximity cards for one person, on their record page: the live cards as a
+ * list, a revoke on each, and the shared enrolment dialog behind one button
+ * — "Scanner une carte", the same words as the record page's band shortcut
+ * and the register's row menu, because it is the same act. A guardian row
+ * on a child's file keeps that verb in its own overflow instead and mounts
+ * this list without the button.
  */
 export function CredentialCards({
   subjectType,
   subjectId,
   cards,
   path,
+  withAddButton = true,
 }: {
   subjectType: CredentialSubject;
   subjectId: string;
   /** Only `rfid` rows — QR and PIN are shown by their own components. */
   cards: CredentialRow[];
   path: string;
+  /** False when the page around the list offers the enrolment verb itself. */
+  withAddButton?: boolean;
 }) {
   const t = useTranslations("credentials");
-  const tc = useTranslations("common");
   const locale = useLocale();
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState("");
-  const [label, setLabel] = useState("");
   const [pending, startTransition] = useTransition();
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // The reader fires the instant the card touches it, so the field has to be
-  // focused before anyone reaches for a card.
-  useEffect(() => {
-    if (!open) return;
-    const id = setTimeout(() => inputRef.current?.focus(), 80);
-    return () => clearTimeout(id);
-  }, [open]);
-
-  function submit() {
-    const card = value.trim();
-    if (!card || pending) return;
-    startTransition(async () => {
-      const res = await issueCard({
-        subjectType,
-        subjectId,
-        value: card,
-        label: label.trim() || undefined,
-        path,
-      });
-      if (res.ok) {
-        toast.success(t("toasts.issued"));
-        setOpen(false);
-        setValue("");
-        setLabel("");
-      } else {
-        toast.error(t(`errors.${res.error}`));
-      }
-    });
-  }
 
   function remove(id: string) {
     startTransition(async () => {
@@ -127,62 +93,22 @@ export function CredentialCards({
         </ul>
       )}
 
-      <Button variant="outline" size="sm" className="justify-self-start" onClick={() => setOpen(true)}>
-        <Plus data-icon="inline-start" />
-        {t("addCard")}
-      </Button>
+      {withAddButton && (
+        <>
+          <Button variant="outline" size="sm" className="justify-self-start" onClick={() => setOpen(true)}>
+            <ScanLine data-icon="inline-start" />
+            {t("scan.title")}
+          </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("dialog.title")}</DialogTitle>
-            <DialogDescription>{t("dialog.description")}</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="cred-value">{t("dialog.value")}</Label>
-              <div className="relative">
-                <ScanLine className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-muted-foreground" />
-                <Input
-                  id="cred-value"
-                  ref={inputRef}
-                  dir="ltr"
-                  autoComplete="off"
-                  className="ps-9 font-mono"
-                  placeholder={t("dialog.valueHint")}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    // The reader ends its burst with Enter — that is the whole
-                    // interaction, so treat it as the submit.
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      submit();
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="cred-label">{t("dialog.label")}</Label>
-              <Input
-                id="cred-label"
-                placeholder={t("dialog.labelHint")}
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-              {tc("actions.cancel")}
-            </Button>
-            <Button onClick={submit} disabled={pending || !value.trim()}>
-              {t("dialog.submit")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <IssueCardDialog
+            subjectType={subjectType}
+            subjectId={subjectId}
+            open={open}
+            onOpenChange={setOpen}
+            path={path}
+          />
+        </>
+      )}
     </div>
   );
 }

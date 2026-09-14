@@ -63,13 +63,17 @@
       "created": "Annonce publiée",
       "updated": "Annonce mise à jour",
       "deleted": "Annonce supprimée",
-      "error": "Une erreur est survenue. Réessayez."
+      "error": "Une erreur est survenue. Réessayez.",
+      "forbidden": "Vous n'avez pas les droits pour publier une annonce."
     },
     "more": "Plus d'actions",
     "columns": {
       "announcement": "Annonce",
       "author": "Auteur",
       "actions": "Actions"
+    },
+    "compose": {
+      "description": "Visible et notifiée aux destinataires dès l'envoi."
     }
   },
   "messages": {
@@ -99,12 +103,19 @@
       "sent": "Message envoyé",
       "error": "Une erreur est survenue. Réessayez."
     },
-    "unreadMessages": "{count, plural, one {# message non lu} other {# messages non lus}}"
+    "unreadMessages": "{count, plural, one {# message non lu} other {# messages non lus}}",
+    "compose": {
+      "searchChild": "Rechercher un enfant…",
+      "noMatch": "Aucun enfant ne correspond",
+      "picked": "À",
+      "unreachable": "Les parents n’ont pas encore de compte : ils ne verront pas ce message tant qu’ils ne l’auront pas ouvert.",
+      "noAccount": "Aucun parent avec un compte"
+    }
   },
   "calendar": {
     "title": "Calendrier",
     "description": "Événements de la crèche et jours fériés",
-    "newEvent": "Nouvel événement",
+    "newEvent": "Ajouter un événement",
     "tentative": "à confirmer",
     "holiday": "Férié",
     "upcoming": "À venir",
@@ -123,11 +134,20 @@
       "pastNoNotify": "Cette date est déjà passée — personne ne sera notifié. L’événement reste au calendrier.",
       "structure": "Structure",
       "chooseStructure": "Choisir une structure",
-      "roomNeedsEnd": "Indiquez une fin pour réserver la salle."
+      "roomNeedsEnd": "Indiquez une fin pour réserver la salle.",
+      "allDay": "Toute la journée",
+      "from": "Du",
+      "to": "Au",
+      "editDescription": "Les destinataires seront prévenus si la date, l'heure, le lieu ou le périmètre change.",
+      "moveNotify": "{count, plural, =0 {Personne ne sera prévenu du changement} one {# personne sera prévenue du changement} other {# personnes seront prévenues du changement}}",
+      "rsvp": "Demander une confirmation de présence",
+      "closedDay": "L'établissement est fermé ce jour-là ({name}).",
+      "closedDayTentative": "Fermeture à confirmer ce jour-là : {name}.",
+      "rsvpHint": "Chaque parent répond pour lui-même."
     },
     "createDialog": {
       "title": "Nouvel événement",
-      "description": "L'événement apparaîtra sur le calendrier des destinataires choisis.",
+      "description": "L'événement apparaîtra sur le calendrier des destinataires choisis, qui seront prévenus.",
       "submit": "Créer"
     },
     "editDialog": {
@@ -140,7 +160,10 @@
       "updated": "Événement mis à jour",
       "deleted": "Événement supprimé",
       "error": "Une erreur est survenue. Réessayez.",
-      "conflictRoom": "La salle est déjà réservée à cette heure. L’événement n’a pas été enregistré."
+      "conflictRoom": "La salle est déjà réservée à cette heure. L’événement n’a pas été enregistré.",
+      "cancelled": "Événement annulé — les personnes prévenues le savent",
+      "restored": "Événement rétabli",
+      "gone": "Cet événement n'existe plus"
     },
     "prevMonth": "Mois précédent",
     "nextMonth": "Mois suivant",
@@ -151,7 +174,120 @@
     "descriptionEvents": "Événements et jours fériés de l'établissement",
     "descriptionWithLessons": "{profile, select, academic {Événements, jours fériés et cours de l'établissement} therapy {Événements, jours fériés et ateliers de l'établissement} other {Événements, jours fériés et activités de l'établissement}}",
     "timetable": "Emploi du temps",
-    "moreLessons": "{profile, select, academic {{count, plural, one {# autre cours} other {# autres cours}}} therapy {{count, plural, one {# autre atelier} other {# autres ateliers}}} other {{count, plural, one {# autre activité} other {# autres activités}}}}"
+    "moreLessons": "{profile, select, academic {{count, plural, one {# autre cours} other {# autres cours}}} therapy {{count, plural, one {# autre atelier} other {# autres ateliers}}} other {{count, plural, one {# autre activité} other {# autres activités}}}}",
+    "cancelEvent": "Annuler l'événement",
+    "cancelConfirm": "Confirmer l'annulation",
+    "cancelHint": "Les personnes prévenues le seront. L'événement reste au calendrier, barré.",
+    "restoreEvent": "Rétablir l'événement",
+    "cancelled": "Annulé",
+    "detail": {
+      "edit": "Modifier",
+      "audience": "Destinataires",
+      "room": "Salle",
+      "addToCalendar": "Ajouter à mon agenda",
+      "responses": "Réponses",
+      "responsesList": "Voir les réponses",
+      "going": "Présent",
+      "notGoing": "Absent",
+      "noAnswer": "Sans réponse",
+      "cancelledOn": "Annulé le {date}",
+      "responsesHint": "Chaque parent répond pour lui-même."
+    },
+    "descriptionAll": "{profile, select, academic {Événements, fermetures, cours, suivis et échéances de l'établissement} therapy {Événements, fermetures, ateliers, suivis et échéances de l'établissement} other {Événements, fermetures, activités, suivis et échéances de l'établissement}}",
+    "views": {
+      "label": "Affichage",
+      "month": "Mois",
+      "week": "Semaine",
+      "day": "Jour"
+    },
+    "prevWeek": "Semaine précédente",
+    "nextWeek": "Semaine suivante",
+    "prevDay": "Jour précédent",
+    "nextDay": "Jour suivant",
+    "weekOf": "Semaine du {date}",
+    "todayKey": "Aujourd'hui (T)",
+    "allDay": "Toute la journée",
+    "closed": "Fermé",
+    "closedLine": "Fermé · {name}",
+    "closedLineTentative": "Fermé · {name} · à confirmer",
+    "tentativeName": "{name} · à confirmer",
+    "scope": {
+      "label": "Périmètre",
+      "mine": "{profile, select, academic {Mes cours} therapy {Mes ateliers} other {Mes activités}}",
+      "all": "Tout"
+    },
+    "kinds": {
+      "label": "Afficher",
+      "event": "Événements",
+      "holiday": "Fermetures",
+      "lesson": "{profile, select, academic {Cours} therapy {Ateliers} other {Activités des classes}}",
+      "session": "Suivi individuel",
+      "activity": "Activités périscolaires",
+      "assessment": "Évaluations",
+      "task": "Tâches",
+      "leave": "Congés de l'équipe",
+      "interview": "Entretiens d'inscription",
+      "birthday": "Anniversaires",
+      "invoice_due": "Échéances",
+      "payroll": "Paie"
+    },
+    "more": "{count, plural, one {# de plus} other {# de plus}}",
+    "moreTitle": "{count, plural, one {# autre élément ce jour-là} other {# autres éléments ce jour-là}}",
+    "marker": {
+      "invoices": "{count, plural, one {# facture à régler} other {# factures à régler}}",
+      "payroll": "Paie de {month}",
+      "birthday": "{name} · {age, plural, one {# an} other {# ans}}",
+      "leave": "{name} · congé",
+      "leavePending": "{name} · congé à valider"
+    },
+    "cell": {
+      "name": "{date} · {summary}",
+      "today": "{name}, aujourd'hui",
+      "empty": "{date} · rien de prévu",
+      "closed": "{date} · fermé · {name}",
+      "events": "{count, plural, one {# événement} other {# événements}}",
+      "lessons": "{profile, select, academic {{count, plural, one {# cours} other {# cours}}} therapy {{count, plural, one {# atelier} other {# ateliers}}} other {{count, plural, one {# activité} other {# activités}}}}",
+      "sessions": "{count, plural, one {# suivi individuel} other {# suivis individuels}}",
+      "others": "{count, plural, one {# autre élément} other {# autres éléments}}"
+    },
+    "grid": {
+      "label": "Calendrier, {month}",
+      "help": "Flèches gauche et droite pour changer de période, T pour aujourd'hui, M, S, J pour changer d'affichage, N pour ajouter un événement.",
+      "dayLabel": "Journée du {date}"
+    },
+    "legend": "Légende",
+    "legendTentative": "à confirmer",
+    "printTitle": "{establishment} · {month}",
+    "printScope": "{structure} · {kinds}",
+    "dayEmpty": "Rien de prévu ce jour-là",
+    "upcomingDays": "Les 7 prochains jours",
+    "hover": {
+      "openTimetable": "Voir dans l'emploi du temps",
+      "openSession": "Ouvrir le suivi",
+      "openChild": "Ouvrir le dossier",
+      "openTask": "Ouvrir la tâche",
+      "openApplication": "Ouvrir la demande",
+      "openBilling": "Voir la facturation",
+      "openPayroll": "Voir la paie",
+      "openLeaves": "Voir les congés",
+      "openAssessment": "Ouvrir l'évaluation",
+      "openActivity": "Ouvrir l'activité",
+      "confirmDate": "Confirmer la date",
+      "child": "Enfant",
+      "therapist": "Intervenant",
+      "assignee": "Responsable",
+      "pending": "En attente de décision",
+      "approved": "Congé accepté",
+      "lessonsOnLeave": "{count, plural, one {# cours sans enseignant} other {# cours sans enseignant}}",
+      "notifiedFamilies": "{count, plural, =0 {Aucune famille prévenue} one {# famille prévenue} other {# familles prévenues}}",
+      "notifiedStaff": "{count, plural, one {# membre de l'équipe} other {# membres de l'équipe}}",
+      "notifiedRead": "{count, plural, =0 {aucune lecture} one {# lecture} other {# lectures}}",
+      "rsvpGoing": "{count, plural, =0 {Aucune présence confirmée} one {# présence confirmée} other {# présences confirmées}}",
+      "rsvpNotGoing": "{count, plural, one {# absence} other {# absences}}",
+      "rsvpPending": "{count, plural, one {# sans réponse} other {# sans réponse}}",
+      "perPerson": "par personne"
+    },
+    "count": "{count, plural, =0 {Rien à afficher} one {# élément} other {# éléments}}"
   },
   "menus": {
     "title": "Menus",

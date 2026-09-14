@@ -12,7 +12,7 @@
 // which calls kg_submit_sibling_application and drops the request into the
 // same /applications pipeline staff already work.
 
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -23,10 +23,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { StepChild } from "@/components/modules/enroll/step-child";
 import { StepPhoto } from "@/components/modules/enroll/step-photo";
+import { StepDocuments } from "@/components/modules/enroll/step-documents";
 import {
   initialWizardState,
   type WizardAllergy,
 } from "@/components/modules/enroll/types";
+import {
+  centerKind,
+  forKind,
+  type DocumentRequirement,
+  type SignedUrlMap,
+  type WizardDocument,
+} from "@/lib/dossier";
 import type { Structure } from "@/components/modules/classes/class-types";
 import { submitSiblingApplication } from "./actions";
 import { AddChildStepStructure } from "./add-child-step-structure";
@@ -53,25 +61,37 @@ export interface AddChildHealth {
 /**
  * The steps, by name rather than by number. A building with two structures
  * asks "which one?" first; an ordinary crèche never does, and every index
- * in the flow would otherwise be off by one depending on the tenant.
+ * in the flow would otherwise be off by one depending on the tenant. The
+ * documents step exists only when the chosen structure's kind asks for a
+ * paper (0164) — an establishment that has not switched its list on never
+ * shows it.
  */
-export type AddChildStep = "structure" | "child" | "photo" | "health" | "review";
+export type AddChildStep = "structure" | "child" | "photo" | "health" | "documents" | "review";
 
 export function AddChildWizard({
   userId,
   tenantName,
+  tenantCenterType,
   structures,
   classes,
   initialStructureId,
+  requirements,
+  formUrls,
 }: {
   userId: string;
   tenantName: string;
+  /** The establishment's own type — the kind a structure-less child follows. */
+  tenantCenterType: string | null;
   /** Active structures of the building; the step is skipped below two. */
   structures: Structure[];
   /** Every class, with its band and structure — for the room proposed. */
   classes: PortalClassOption[];
   /** From `?structure=` — a link that already said which side (package C). */
   initialStructureId: string | null;
+  /** Every ACTIVE requirement of the establishment, both kinds; narrowed here to the structure's. */
+  requirements: DocumentRequirement[];
+  /** Signed URLs of the blank forms, keyed by form_path. */
+  formUrls: SignedUrlMap;
 }) {
   const t = useTranslations("portal.addChild");
   // Field labels are the public wizard's own — one translation of "Date of
@@ -80,14 +100,8 @@ export function AddChildWizard({
   const tc = useTranslations("common");
 
   const multiStructure = structures.length > 1;
-  const STEPS: AddChildStep[] = multiStructure
-    ? ["structure", "child", "photo", "health", "review"]
-    : ["child", "photo", "health", "review"];
-  const TOTAL_STEPS = STEPS.length;
-  const reviewIndex = TOTAL_STEPS - 1;
 
   const [step, setStep] = useState(0);
-  const current = STEPS[step];
   const [child, setChild] = useState(() => initialWizardState().child);
   // The link's structure counts only if it is one of this building's; a
   // stale id from a bookmark falls back to asking. With one structure there
@@ -104,6 +118,32 @@ export function AddChildWizard({
     doctor_name: "",
     doctor_phone: "",
   });
+  // The papers photographed on the Dossier step, by requirement id. Kept for
+  // every kind: a family that goes back and picks the other side of the
+  // building loses nothing, and only the chosen kind's papers are sent.
+  const [documents, setDocuments] = useState<Record<string, WizardDocument>>({});
+
+  // The requirements of the structure asked for — its kind, not its id (D2).
+  // Decided before the steps are, because whether the Dossier step exists
+  // at all follows from it; the structure is chosen on the first step, so
+  // the list is settled before anyone reaches the step it would add.
+  const chosenStructure = structures.find((s) => s.id === structureId) ?? null;
+  const kindRequirements = useMemo(
+    () => forKind(requirements, centerKind(chosenStructure?.center_type ?? tenantCenterType)),
+    [requirements, chosenStructure, tenantCenterType]
+  );
+
+  const STEPS: AddChildStep[] = [
+    ...(multiStructure ? (["structure"] as const) : []),
+    "child",
+    "photo",
+    "health",
+    ...(kindRequirements.length > 0 ? (["documents"] as const) : []),
+    "review",
+  ];
+  const TOTAL_STEPS = STEPS.length;
+  const reviewIndex = TOTAL_STEPS - 1;
+  const current = STEPS[step];
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -133,6 +173,8 @@ export function AddChildWizard({
     if (leaving === "health" && health.allergies.some((a) => !a.allergen.trim())) {
       return t("errors.allergenRequired");
     }
+    // The Dossier step never blocks (D7): a paper not photographed is a paper
+    // brought to the desk, and the success screen says which.
     return null;
   };
 
@@ -149,6 +191,15 @@ export function AddChildWizard({
   const back = () => goTo(Math.max(step - 1, 0));
 
   const childName = `${child.first_name} ${child.last_name}`.trim();
+
+  // Only the chosen kind's papers travel; a required one without a file is
+  // what the success screen tells the family to bring.
+  const sentDocuments = kindRequirements
+    .filter((r) => documents[r.id])
+    .map((r) => ({ requirementId: r.id, path: documents[r.id].path, fileName: documents[r.id].file_name }));
+  const stillMissing = kindRequirements
+    .filter((r) => r.required && !documents[r.id])
+    .map((r) => ({ key: r.key, name: r.name, name_ar: r.name_ar }));
 
   const submit = () => {
     setError(null);
@@ -176,6 +227,7 @@ export function AddChildWizard({
         doctorPhone: health.doctor_phone.trim(),
         structureId,
         classId: classId === CLASS_UNDECIDED ? null : classId,
+        documents: sentDocuments,
       });
 
       if (res.ok) {
@@ -206,7 +258,8 @@ export function AddChildWizard({
         <AddChildSuccess
           tenantName={tenantName}
           childName={childName}
-          structure={multiStructure ? structures.find((s) => s.id === structureId) ?? null : null}
+          structure={multiStructure ? chosenStructure : null}
+          missing={stillMissing}
         />
       </div>
     );
@@ -303,12 +356,27 @@ export function AddChildWizard({
             health={health}
             onChange={(patch) => setHealth((h) => ({ ...h, ...patch }))}
           />
+        ) : current === "documents" ? (
+          <StepDocuments
+            // The public wizard's own step: one upload control, one path
+            // rule. Uploads go to u/{userId}/enroll/docs/ — the applicant's
+            // prefix, the same the photo uses — and the RPC registers them
+            // with the request in one transaction (D3).
+            user={{ id: userId, email: null, fullName: null, phone: null }}
+            requirements={kindRequirements}
+            documents={documents}
+            onChange={(requirementId, doc) => setDocuments((d) => ({ ...d, [requirementId]: doc }))}
+            pathPrefix={`u/${userId}/enroll/docs`}
+            formUrls={formUrls}
+          />
         ) : (
           <AddChildStepReview
             child={child}
             health={health}
-            structure={multiStructure ? structures.find((s) => s.id === structureId) ?? null : null}
+            structure={multiStructure ? chosenStructure : null}
             klass={classes.find((c) => c.id === classId) ?? null}
+            requirements={kindRequirements}
+            documents={documents}
             submitting={pending}
             error={error}
             goTo={(target) => goTo(STEPS.indexOf(target))}

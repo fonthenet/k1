@@ -3,6 +3,17 @@
 // kg_approve_application reads (supabase/migrations/0004_kg_rpcs.sql).
 
 import type { AllergySeverity, FeePeriod, Gender, Relationship } from "@/lib/types";
+import {
+  centerKind,
+  forKind,
+  type DossierKind,
+  type EnrollRequirement,
+  type SubmitDocument,
+  type WizardDocument,
+} from "@/lib/dossier";
+
+/** The wizard's own name for the client-side upload value (lib/dossier owns the shape). */
+export type { WizardDocument };
 
 // ----- kg_get_enroll_link payload -----
 
@@ -99,6 +110,14 @@ export interface EnrollLinkData {
   admission_fees: EnrollAdmissionFee[];
   /** Added in 0122; absent from a response served before that migration. */
   classes?: EnrollClass[];
+  /**
+   * The dossier d'inscription (0164): every ACTIVE requirement of the
+   * establishment, both kinds, ordered kind then sort_order. The step narrows
+   * to the chosen structure's kind (wizardRequirements). Optional like
+   * `classes`: a response served before the migration has none, and the
+   * step then simply does not exist.
+   */
+  documents?: EnrollRequirement[];
 }
 
 // ----- Wizard state (persisted to localStorage for resume) -----
@@ -183,13 +202,25 @@ export interface WizardState {
    * structure wins and this stays empty (see effectiveStructureId).
    */
   structureId: string;
+  /**
+   * The papers the family attached, by requirement id. Each value is a file
+   * already sitting in the family's own folder of the bucket
+   * (`u/<uid>/enroll/docs/…`); the submit RPC registers them with the
+   * application in the same transaction (D3). A file is never required
+   * here — a missing paper is brought to the desk (D7).
+   */
+  documents: Record<string, WizardDocument>;
 }
 
 /**
- * The wizard's screens, by index. Two of them are conditional — the structure
- * question only exists on a whole-building link with a choice to make, and
- * the account step is skipped for a signed-in visitor — so the wizard walks
- * this order and steps over the ones that do not apply.
+ * The wizard's screens, by index. Three of them are conditional — the
+ * structure question only exists on a whole-building link with a choice to
+ * make, the account step is skipped for a signed-in visitor, and the dossier
+ * step only exists when the chosen kind asks for at least one paper — so the
+ * wizard walks this order and steps over the ones that do not apply.
+ *
+ * The dossier sits after health and before activities (D6): the papers prove
+ * what the health step asked, and only two indices shifted when it arrived.
  */
 export const STEP = {
   welcome: 0,
@@ -199,14 +230,25 @@ export const STEP = {
   photo: 4,
   guardians: 5,
   health: 6,
-  activities: 7,
-  review: 8,
+  documents: 7,
+  activities: 8,
+  review: 9,
 } as const;
-export const TOTAL_STEPS = 9;
+export const TOTAL_STEPS = 10;
 
-/** The structure the application will land on: the link's, else the family's answer. */
+/**
+ * The structure the application will land on: the link's, else the family's
+ * answer, else the building's only active structure — the one case where
+ * there was nothing to ask. Recorded rather than left null because the
+ * papers were registered against THAT structure's list (wizardKind), and
+ * the database scores an application without a structure by the tenant's
+ * type; a crèche-typed tenant whose only structure is an école would then
+ * list the école's papers here and lose them on every screen after. The
+ * sibling wizard records the single structure for the same reason.
+ */
 export function effectiveStructureId(link: EnrollLinkData, state: WizardState): string | null {
-  return link.structure_id ?? (state.structureId || null);
+  const structures = link.structures ?? [];
+  return link.structure_id ?? (state.structureId || (structures.length === 1 ? structures[0].id : null));
 }
 
 /**
@@ -218,6 +260,43 @@ export function effectiveStructureId(link: EnrollLinkData, state: WizardState): 
 export function inStructure<T extends EnrollScoped>(items: readonly T[], structureId: string | null): T[] {
   if (!structureId) return [...items];
   return items.filter((i) => !i.structure_id || i.structure_id === structureId);
+}
+
+/**
+ * The kind of structure the application is for — which decides which list of
+ * papers the family sees (D2). The link's own structure wins, then the
+ * family's answer on a whole-building link, then the building's first
+ * structure; an establishment with no structure at all is an early-years one.
+ */
+export function wizardKind(
+  link: { structure_id: string | null; structures: ReadonlyArray<{ id: string; center_type: string }> },
+  state: { structureId: string },
+): DossierKind {
+  const chosen = link.structure_id ?? (state.structureId || null);
+  const structure =
+    (chosen ? link.structures.find((s) => s.id === chosen) : undefined) ?? link.structures[0] ?? null;
+  return centerKind(structure?.center_type);
+}
+
+/** The papers this application is asked for: the link's active requirements of the chosen kind, in sort_order. Empty → no dossier step. */
+export function wizardRequirements(
+  link: {
+    structure_id: string | null;
+    structures: ReadonlyArray<{ id: string; center_type: string }>;
+    documents?: EnrollRequirement[];
+  },
+  state: { structureId: string },
+): EnrollRequirement[] {
+  return forKind(link.documents ?? [], wizardKind(link, state));
+}
+
+/** `p_documents` for the submit RPCs, from the draft's uploads. */
+export function toSubmitDocuments(documents: Record<string, WizardDocument>): SubmitDocument[] {
+  return Object.entries(documents).map(([requirement_id, doc]) => ({
+    requirement_id,
+    path: doc.path,
+    file_name: doc.file_name,
+  }));
 }
 
 export const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
@@ -277,6 +356,7 @@ export function initialWizardState(): WizardState {
     feePlanId: "",
     classId: "",
     structureId: "",
+    documents: {},
   };
 }
 

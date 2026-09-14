@@ -8,6 +8,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  FileCheck2,
+  FileWarning,
+  FolderOpen,
   HeartPulse,
   IdCard,
   Phone,
@@ -27,6 +30,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ValueRange } from "@/components/shared/value-range";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext, signedMediaUrl } from "@/lib/tenant";
+import { loadDossier, signedDossierUrls } from "@/lib/dossier-server";
+import type { DossierStatus, SignedUrlMap } from "@/lib/dossier";
 import { ageFromDob, childDisplayName, formatDZD, formatDate, formatPhone, formatTime, telHref } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { normaliseSchedule } from "@/lib/activity-schedule";
@@ -79,6 +84,8 @@ import {
 import { CONSENT_TYPES } from "@/components/modules/children/types";
 import { algiersToday, monthLabel } from "@/components/modules/billing/dates";
 import { getDuesByChild } from "@/components/modules/portal/dues";
+import { FamilyDossierList } from "@/components/modules/portal/family-dossier-list";
+import { attachMyChildDocument, type AttachDocumentInput, type AttachResult } from "@/components/modules/portal/actions";
 
 const TABS = ["journal", "attendance", "health", "activities", "permissions"] as const;
 type TabKey = (typeof TABS)[number];
@@ -87,7 +94,10 @@ const TAB_ICONS: Record<TabKey, LucideIcon> = {
   attendance: CalendarCheck,
   health: Stethoscope,
   activities: Sparkles,
-  permissions: ShieldCheck,
+  // The tab keeps its key and its URL (notifications and bookmarks point at
+  // `?tab=permissions`); its label became "Dossier" with 0164, because the
+  // enrolment file now opens it and the two registers sit under the file.
+  permissions: FolderOpen,
 };
 
 // Every status the register can hold. "excused" was left out of the counters,
@@ -227,6 +237,7 @@ export default async function PortalChildDetailPage({
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const ctx = await getTenantContext();
   const t = await getTranslations("portal");
+  const tCommon = await getTranslations("common");
   const locale = await getLocale();
   const supabase = await createClient();
 
@@ -272,10 +283,19 @@ export default async function PortalChildDetailPage({
 
   const { start: monthStart, end: monthEnd } = monthRange(month);
 
+  // The dossier list never learns which register it writes to: the page
+  // binds the action to this child here, and the bound id travels to the
+  // browser sealed — an inline action's closure is encrypted, not editable —
+  // while the action itself re-checks the path against the child's folder.
+  async function attachChildDocument(input: AttachDocumentInput): Promise<AttachResult> {
+    "use server";
+    return attachMyChildDocument({ childId: id, ...input });
+  }
+
   // Allergies always load: the header carries the safety badge on every tab.
   // So does the door badge, which is per guardian and therefore fetched once
   // here — the header raises it for this child without another query.
-  const [photoUrls, badge, { data: allergyRows }, structures, transfers] = await Promise.all([
+  const [photoUrls, badge, { data: allergyRows }, structures, transfers, dossier] = await Promise.all([
     // Every sibling's face, not only this child's: the corner badge opens on
     // the whole family, and a tab without a photo is one a parent has to read
     // instead of recognise. These are storage signatures over children this
@@ -293,8 +313,30 @@ export default async function PortalChildDetailPage({
     // tab — history, next to the register it changed — so they are read only
     // when that tab is open.
     tab === "attendance" ? getChildTransfers(supabase, child.id) : Promise.resolve([]),
+    // The enrolment file, on every tab: the band under the name says what is
+    // still to hand in whichever tab is open, and the Dossier tab lists it.
+    // One RPC under the family's own RLS (0164). A read that fails costs the
+    // band line and the list, never the child's page — the same rule the
+    // home applies to its calendar.
+    loadDossier(supabase, { childId: child.id }).catch((e: unknown): DossierStatus | null => {
+      console.error("[portal/child] dossier read failed:", e);
+      return null;
+    }),
   ]);
   const allergies = (allergyRows ?? []) as PortalAllergy[];
+
+  // What the family still has to do about the file, as one line under the
+  // name — rejected first, because a refused paper is the office waiting on
+  // them, and a missing one is only the gate waiting. Counts look at active
+  // required lines only, so a tenant that has not switched its list on (D14)
+  // never puts this line on anyone.
+  const dossierRejected = dossier?.todo.filter((item) => item.state === "rejected").length ?? 0;
+  const dossierBand: { count: number; kind: "rejected" | "missing" } | null =
+    dossierRejected > 0
+      ? { count: dossierRejected, kind: "rejected" }
+      : dossier && dossier.missing > 0
+        ? { count: dossier.missing, kind: "missing" }
+        : null;
 
   // The structure is a fact about this child only in a building that has
   // more than one; in the ordinary crèche the word never appears. Asking to
@@ -331,6 +373,7 @@ export default async function PortalChildDetailPage({
     activitiesRes,
     pickupsRes,
     consentsRes,
+    dossierUrls,
   ] = await Promise.all([
     // The last 30 days on which the child has a record — attendance, a
     // published journal, an incident, a published session — one lean row
@@ -401,6 +444,27 @@ export default async function PortalChildDetailPage({
           .eq("child_id", child.id)
           .eq("tenant_id", ctx.tenant.id)
       : Promise.resolve({ data: [] }),
+    // One signing call for every paper on the file and every blank form the
+    // list links to (1 h). Only on the tab that shows them: a signed URL is a
+    // bearer token, and the journal has no use for one.
+    tab === "permissions" && dossier
+      ? signedDossierUrls([
+          ...dossier.lines
+            .filter((line) => line.document)
+            .map((line) => ({
+              path: line.document!.file_path,
+              file_name: line.document!.file_name,
+              mime_type: line.document!.mime_type,
+            })),
+          ...dossier.lines
+            .filter((line) => line.active && line.form_path)
+            .map((line) => ({
+              path: line.form_path!,
+              file_name: line.form_name,
+              mime_type: "application/pdf",
+            })),
+        ])
+      : Promise.resolve<SignedUrlMap>({}),
   ]);
 
   const name = childDisplayName(child, locale);
@@ -690,11 +754,13 @@ export default async function PortalChildDetailPage({
                 />
 
                 {/* The one thing that needs the family's action, never two:
-                    what is outstanding wins over a missing photo, because it
-                    is the conversation the office will start at the gate. The
-                    figure is the same helper the children list and the home
-                    screen use, so one child cannot read as settled on one
-                    screen and owing on another. */}
+                    what is owed wins over a paper still to hand in, and the
+                    paper wins over a missing photo, because that is the
+                    order the office raises them in at the gate. The figure
+                    is the same helper the children list and the home screen
+                    use, so one child cannot read as settled on one screen
+                    and owing on another; the dossier line wears the same
+                    gold pill, and links to the tab that settles it. */}
                 {due ? (
                   <div className="mt-1.5">
                     <span
@@ -711,6 +777,19 @@ export default async function PortalChildDetailPage({
                           })
                         : t("children.due.amount", { amount: formatDZD(due.balance, locale) })}
                     </span>
+                  </div>
+                ) : dossierBand ? (
+                  <div className="mt-1.5">
+                    <Link
+                      href={`/portal/children/${child.id}?tab=permissions`}
+                      scroll={false}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-gold-muted px-2 py-0.5 text-[0.6875rem] font-medium text-gold-ink"
+                    >
+                      <FileWarning className="size-3" aria-hidden />
+                      {dossierBand.kind === "rejected"
+                        ? t("dossier.rejectedLine", { count: dossierBand.count })
+                        : t("dossier.missingLine", { count: dossierBand.count })}
+                    </Link>
                   </div>
                 ) : (
                   !child.photo_path && (
@@ -1199,9 +1278,35 @@ export default async function PortalChildDetailPage({
         </div>
       )}
 
-      {/* ===== Autorisations — the two registers the family owns ===== */}
+      {/* ===== Dossier — the enrolment file, then the two registers the family owns ===== */}
       {tab === "permissions" && (
         <div className="grid gap-3">
+          {/* --- The papers of the file (0164) ---
+               First, because it is what the tab is now named for. One card,
+               one row per requirement of the child's kind, the family's next
+               move at the end of each row. Not drawn at all while the
+               establishment has no active requirement (D14): an empty file
+               is the expected state and renders nothing. */}
+          {dossier && dossier.lines.length > 0 && (
+            <SectionCard
+              icon={FileCheck2}
+              tone={1}
+              title={t("dossier.title")}
+              hint={
+                dossier.required > 0
+                  ? tCommon("dossier.count", { ok: dossier.accepted, total: dossier.required })
+                  : undefined
+              }
+            >
+              <FamilyDossierList
+                lines={dossier.lines}
+                urls={dossierUrls}
+                pathPrefix={`t/${ctx.tenant.id}/children/${child.id}/documents`}
+                onAttach={attachChildDocument}
+              />
+            </SectionCard>
+          )}
+
           {/* --- Who may collect the child: the décret 19-253 register --- */}
           <Card className="shadow-sm ring-gold/25">
             <CardHeader className="flex flex-row items-center gap-3">

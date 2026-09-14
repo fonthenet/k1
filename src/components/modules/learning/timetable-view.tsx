@@ -22,12 +22,14 @@ import {
   DayStrip,
   WeekAgenda,
   WeekGrid,
+  type WeekGridAllDayItem,
   type WeekGridDay,
   type WeekGridItem,
   type WeekGridLane,
 } from "@/components/shared/week-grid";
 import { roomName } from "@/components/modules/classes/class-types";
 import { algiersClock, algiersDate, algiersToday } from "@/lib/algiers";
+import { closureApplies, closureCovers, holidayLabel } from "@/lib/closures";
 import { formatDate, initialsFromName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { LearningTabs } from "./learning-tabs";
@@ -149,12 +151,15 @@ export function TimetableView({ data }: { data: TimetableWeek }) {
   const ts = useTranslations("scheduler.lesson");
   const tc = useTranslations("common");
   const tSessions = useTranslations("sessions");
+  // The one word for a date still to be confirmed is the calendar's
+  // (SPEC5 decision 13); the sheet borrows it rather than minting a second.
+  const tCal = useTranslations("comms.calendar");
   const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const {
-    week, days, open, close, hours, structures, structureId, structureFilterable,
+    week, days, closures, onLeave, open, close, hours, structures, structureId, structureFilterable,
     classes, classId, editorClasses, staff, teachers, teacherId, me, programs,
     lessons, rooms, busy, canTeach, view, day,
   } = data;
@@ -317,7 +322,7 @@ export function TimetableView({ data }: { data: TimetableWeek }) {
   } | null>(null);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const hoursByDate = useMemo(
-    () => Object.fromEntries(days.map((d) => [d.date, d.hours])),
+    () => Object.fromEntries(days.map((d) => [d.date, d.hours ?? null])),
     [days],
   );
 
@@ -364,30 +369,69 @@ export function TimetableView({ data }: { data: TimetableWeek }) {
   const detailRoom = detail ? roomOf(detail, detailClass) : null;
 
   // ---- what the grid draws ----------------------------------------------
-  const gridDays: WeekGridDay[] = days.map((d) => {
-    const at = new Date(`${d.date}T12:00:00Z`);
-    const isToday = d.date === liveToday;
-    const fullLabel = formatDate(at, locale, { weekday: "long", day: "numeric", month: "long", year: undefined });
-    return {
-      date: d.date,
-      weekday: formatDate(at, locale, { weekday: "short", day: undefined, month: undefined, year: undefined }),
-      dayNumber: String(at.getUTCDate()),
-      fullLabel: isToday ? `${fullLabel}, ${tc("labels.today")}` : fullLabel,
-      isToday,
-      closed: d.closed,
-      closedLabel: d.holiday?.name,
-      tentative: d.holiday?.tentative,
-      hours: d.hours,
-      // A structure's own closure shuts its lanes — the structure's and its
-      // classes' — while the rest of the building keeps its day.
-      closedLanes: d.closedStructures.map((s) => ({
-        keys: [s.id, ...classes.filter((c) => c.structure_id === s.id).map((c) => c.id)],
-        label: s.name,
-        tentative: s.tentative,
-      })),
-    };
-  });
+  // The columns arrive built by the shared buildWeekDays (lib/closures);
+  // only today's ring moves here, when the wall screen ticks past midnight
+  // and the server's "today" is yesterday's.
+  const gridDays: WeekGridDay[] = useMemo(
+    () =>
+      days.map((d) => {
+        const isToday = d.date === liveToday;
+        if (isToday === !!d.isToday) return d;
+        const at = new Date(`${d.date}T12:00:00Z`);
+        const fullLabel = formatDate(at, locale, { weekday: "long", day: "numeric", month: "long", year: undefined });
+        return { ...d, isToday, fullLabel: isToday ? `${fullLabel}, ${tc("labels.today")}` : fullLabel };
+      }),
+    [days, liveToday, locale, tc],
+  );
   const dayOf = (date: string) => gridDays.find((d) => d.date === date) ?? gridDays[0];
+
+  // A closure that shuts no column still has a place on the sheet: the row
+  // above the hours, where the calendar's week draws its closures too. A
+  // tentative one is the dashed-gold word over the OPEN column it names
+  // (decision 3: the guard accepts a cours on it, so the column must show
+  // the cours); in the whole building, another structure's own row carries
+  // that structure's dot. A confirmed structure-only closure joins the row
+  // in week view only, where no lane band can say it. Nothing to say means
+  // no row at all — the sheet is then the timetable it always was.
+  const closureSpans = useMemo(() => {
+    const weekEnd = addDays(week, 6);
+    const onScope: WeekGridAllDayItem[] = [];
+    const structureOnly: WeekGridAllDayItem[] = [];
+    for (const row of closures) {
+      if (!row.closure) continue;
+      const touches = row.date <= weekEnd && (row.end_date ?? row.date) >= week;
+      if (!touches) continue;
+      const title = holidayLabel(row, locale);
+      const item: WeekGridAllDayItem = {
+        id: `closure:${row.id}`,
+        from: row.date,
+        to: row.end_date ?? row.date,
+        title,
+        face: "neutral",
+        tentative: row.tentative,
+        // The dashed gold says "to confirm" to the eye; the name says it too.
+        label: row.tentative ? `${title} · ${tCal("tentative")}` : undefined,
+      };
+      if (closureApplies(row, structureId)) {
+        if (row.tentative) onScope.push(item);
+      } else if (structureId === null && row.structure_id !== null) {
+        const dot = structureById.get(row.structure_id)?.color;
+        structureOnly.push({ ...item, dot });
+      }
+    }
+    return {
+      week: [...onScope, ...structureOnly],
+      day: [...onScope, ...structureOnly.filter((it) => it.tentative)],
+    };
+  }, [closures, week, structureId, structureById, locale, tCal]);
+  // The row exists only when a span lands on a column actually drawn: a
+  // closure on a weekend the sheet leaves out must not cost every open day
+  // an empty band.
+  const coversAny = (it: WeekGridAllDayItem, dates: string[]) =>
+    dates.some((date) => closureCovers({ date: it.from, end_date: it.to }, date));
+  const sheetDates = gridDays.map((d) => d.date);
+  const weekAllDay = closureSpans.week.some((it) => coversAny(it, sheetDates)) ? closureSpans.week : undefined;
+  const dayAllDay = closureSpans.day.some((it) => coversAny(it, [day])) ? closureSpans.day : undefined;
   const addLabel = (d: WeekGridDay, time: string) =>
     t("addAt", { day: `${d.weekday} ${d.dayNumber}`, time, profile });
 
@@ -417,14 +461,22 @@ export function TimetableView({ data }: { data: TimetableWeek }) {
     // With a teacher filter on, the initials would repeat the filter on
     // every block; the class name stays because a lane head may not say it.
     const initials = teacherId ? undefined : initialsFromName(teacher?.name);
+    // The teacher is on approved leave that day: the initials are struck on
+    // the block and the hover names the dates. The cours stays planned — a
+    // replacement is the director's move, not the sheet's.
+    const leave = onLeave[l.id];
     const { room, inherited } = roomOf(l, cls);
     // The room is on the face only when it is news: a cours held away from
     // its class's own room (the gym, the yard). In its home room the facts
     // say it and the block does not.
     const offHomeRoom = room && !inherited ? roomName(room, locale) : undefined;
+    // The struck initials need words for a screen reader: a scheduled cours
+    // whose teacher is away is named as such; a cancelled or completed one
+    // keeps its own state, which says more.
     const state =
       l.status === "cancelled" ? t("detail.cancelled")
       : l.status === "completed" ? t("detail.completed")
+      : leave ? t("absentTeacher", { teacher: teacher?.name ?? "" })
       : undefined;
     const bare = t("block.name", { title: l.title, from, to, class: cls?.name ?? "", teacher: teacher?.name ?? "" });
     const name = offHomeRoom ? t("block.nameWithRoom", { name: bare, room: offHomeRoom }) : bare;
@@ -434,7 +486,11 @@ export function TimetableView({ data }: { data: TimetableWeek }) {
       start: from,
       end: to,
       title: l.title,
-      subtitle: [cls?.name, initials, offHomeRoom].filter(Boolean).join(" · "),
+      // The initials are the tail that survives truncation — and the one
+      // thing the sheet strikes through when their owner is away.
+      subtitle: [cls?.name, offHomeRoom].filter(Boolean).join(" · "),
+      subtitleEnd: initials,
+      subtitleEndStruck: leave !== undefined,
       laneSubtitle: [initials, offHomeRoom].filter(Boolean).join(" · ") || undefined,
       color: cls?.color ?? undefined,
       lane: cls?.id,
@@ -444,18 +500,28 @@ export function TimetableView({ data }: { data: TimetableWeek }) {
       // carries through the whole label instead of switching to a Latin one.
       label: state ? t("block.nameWithState", { name, state }) : name,
       preview: (
-        <LessonPreview
-          lesson={l}
-          cls={cls}
-          structure={cls?.structure_id ? structureById.get(cls.structure_id) : undefined}
-          showStructure={showStructure}
-          teacher={teacher}
-          program={l.program_id ? programById.get(l.program_id) : undefined}
-          room={room}
-          roomInherited={inherited}
-          start={from}
-          end={to}
-        />
+        <>
+          <LessonPreview
+            lesson={l}
+            cls={cls}
+            structure={cls?.structure_id ? structureById.get(cls.structure_id) : undefined}
+            showStructure={showStructure}
+            teacher={teacher}
+            program={l.program_id ? programById.get(l.program_id) : undefined}
+            room={room}
+            roomInherited={inherited}
+            start={from}
+            end={to}
+          />
+          {leave && (
+            <p aria-hidden className="mt-2 max-w-72 border-t border-border pt-2 text-xs text-gold-ink">
+              {t("onLeave", {
+                from: formatDate(leave.from, locale, { year: undefined }),
+                to: formatDate(leave.to, locale, { year: undefined }),
+              })}
+            </p>
+          )}
+        </>
       ),
       onClick: () => setDetailId(l.id),
     };
@@ -686,9 +752,9 @@ export function TimetableView({ data }: { data: TimetableWeek }) {
                 {/* The grid root is the focus stop; the panel itself stays out of the Tab order. */}
                 <TabsContent value={view} tabIndex={-1}>
                   {view === "day" ? (
-                    <WeekGrid {...gridProps} days={[dayOf(day)]} dayHeads={false} items={dayItems} laneTiers={dayTiers} />
+                    <WeekGrid {...gridProps} days={[dayOf(day)]} dayHeads={false} items={dayItems} laneTiers={dayTiers} allDay={dayAllDay} />
                   ) : (
-                    <WeekGrid {...gridProps} days={gridDays} items={items} fit="shrink" />
+                    <WeekGrid {...gridProps} days={gridDays} items={items} fit="shrink" allDay={weekAllDay} />
                   )}
                 </TabsContent>
               </Tabs>
@@ -699,6 +765,7 @@ export function TimetableView({ data }: { data: TimetableWeek }) {
             className="md:hidden"
             days={gridDays}
             items={agendaItems}
+            allDay={weekAllDay}
             selected={agendaSelected}
             onSelect={setAgendaDay}
             emptyLabel={t("emptyDay", { profile })}

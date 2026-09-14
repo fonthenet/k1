@@ -220,7 +220,9 @@
       "forbidden": "Only administrators and this class's team can edit this sheet.",
       "failed": "Could not save. Try again.",
       "published": "This sheet is published. Unpublish it before editing."
-    }
+    },
+    "closedDay": "The establishment is closed that day ({name}).",
+    "closedDayTentative": "Closure to be confirmed that day: {name}."
   },
   "newProgram": "Add a learning program",
   "newLesson": "Schedule sessions",
@@ -395,7 +397,9 @@
     "gridLabel": "Timetable, week of {date}",
     "dayStrip": "Days of the week",
     "legend": "Class legend",
-    "emptyClass": "No class to plan in this structure."
+    "emptyClass": "No class to plan in this structure.",
+    "absentTeacher": "{teacher} absent",
+    "onLeave": "Leave approved {from} – {to} — no replacement"
   },
   "programs": {
     "descriptions": {
