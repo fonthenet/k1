@@ -876,6 +876,22 @@
     "openKiosk": "Open the kiosk",
     "done": "Done",
     "expiresIn": "Code valid for {seconds} s",
-    "orScan": "Or scan the code shown at the door with your phone's camera."
+    "orScan": "Or scan the code shown at the door with your phone's camera.",
+    "move": {
+      "in": "Arrival",
+      "out": "Departure",
+      "done": "Day over · left at {time}"
+    },
+    "submitOne": {
+      "in": "Record {name}'s arrival",
+      "out": "Record {name}'s departure"
+    },
+    "changed": "Things have changed since this screen was read — check the rows again before recording.",
+    "recordedUnexpected": "This is not the move that was shown: {name}'s situation had changed in the meantime. If in doubt, ask at the front desk."
+  },
+  "badge": {
+    "family": "The whole family",
+    "childHint": "Show this card at the kiosk: {name}'s arrival or departure is recorded straight away.",
+    "familyHint": "The whole family's card: the kiosk shows your children and you choose."
   }
 }

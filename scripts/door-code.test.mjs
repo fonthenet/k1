@@ -3,12 +3,14 @@ import test from "node:test";
 
 // Runs on Node 22.6+ (native type stripping): `node --test scripts/door-code.test.mjs`.
 //
-// The door code (0168) as the kiosk and the parent page read it: the URL the
-// QR carries from any origin, the bare code a keypad might get, and every
-// shape that is NOT a door code — a badge number first among them, because a
-// staff scanner that reads the door's own QR must be told so rather than sent
-// down the badge path. The module has no React and no `@/` imports, so it is
-// loaded straight from src/.
+// The door code (0168, daily since 0169) as the kiosk and the parent page
+// read it: the URL the QR carries from any origin, the bare code a keypad
+// might get, and every shape that is NOT a door code — a badge number first
+// among them, because a staff scanner that reads the door's own QR must be
+// told so rather than sent down the badge path. Then the child's card (0169):
+// the guardian tag and the child tag joined by a plus, which the kiosk must
+// split and a badge must never be mistaken for. The module has no React and
+// no `@/` imports, so it is loaded straight from src/.
 
 process.env.NEXT_PUBLIC_APP_URL = "https://www.rawdatik.com/";
 
@@ -19,12 +21,20 @@ const {
   DOOR_CODE_TTL_S,
   DOOR_CODE_REFRESH_MS,
   DOOR_PATH,
+  PAIR_JOINT,
+  PAIR_RE,
   parseDoorCode,
   isDoorUrl,
   doorUrl,
+  parsePair,
+  pairValue,
 } = await import("../src/lib/door-code.ts");
 
 const CODE = "ABCD2345EFGH";
+// The demo tenant's shapes: a guardian tag of twelve symbols, a child's of five.
+const GUARDIAN_TAG = "G-01434648E7";
+const CHILD_TAG = "A-001";
+const PAIR = `${GUARDIAN_TAG}+${CHILD_TAG}`;
 
 // ─── the alphabet and the regex agree ───────────────────────────────────────
 
@@ -44,10 +54,11 @@ test("every symbol of the alphabet passes the regex and every banned one fails i
   assert.equal(DOOR_CODE_RE.source, "^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{12}$");
 });
 
-test("a scanned code always keeps at least a minute of its life", () => {
-  assert.equal(DOOR_CODE_TTL_S, 90);
-  assert.equal(DOOR_CODE_REFRESH_MS, 30_000);
-  assert.ok(DOOR_CODE_TTL_S * 1000 - DOOR_CODE_REFRESH_MS >= 60_000);
+test("the code is the day's: it lives at most a day and the kiosk re-asks every five minutes", () => {
+  assert.equal(DOOR_CODE_TTL_S, 24 * 60 * 60);
+  assert.equal(DOOR_CODE_REFRESH_MS, 5 * 60 * 1000);
+  // The re-ask is a keep-alive, not a renewal: many asks fit in one day's code.
+  assert.ok(DOOR_CODE_REFRESH_MS < DOOR_CODE_TTL_S * 1000);
 });
 
 // ─── what parses ────────────────────────────────────────────────────────────
@@ -135,4 +146,56 @@ test("doorUrl never doubles the slash and falls back to nothing worse than a pat
   assert.equal(doorUrl(CODE), `/d/${CODE}`);
   assert.equal(parseDoorCode(doorUrl(CODE)), CODE);
   process.env.NEXT_PUBLIC_APP_URL = "https://www.rawdatik.com/";
+});
+
+// ─── the child's card: guardian tag + child tag ─────────────────────────────
+
+test("the joint is outside the code alphabet, so a pair and a badge cannot look alike", () => {
+  assert.equal(PAIR_JOINT, "+");
+  assert.doesNotMatch(PAIR_JOINT, /^[A-Z0-9-]$/);
+  assert.equal(PAIR_RE.source, "^[A-Z0-9-]{1,32}\\+[A-Z0-9-]{1,32}$");
+  // Neither half alone is a pair, and a pair is neither a door code nor its URL.
+  assert.doesNotMatch(GUARDIAN_TAG, PAIR_RE);
+  assert.doesNotMatch(CHILD_TAG, PAIR_RE);
+  assert.match(PAIR, PAIR_RE);
+  assert.equal(parseDoorCode(PAIR), null);
+  assert.equal(isDoorUrl(PAIR), false);
+});
+
+test("a pair splits into its two tags, whatever its case or surrounding blanks", () => {
+  assert.deepEqual(parsePair(PAIR), { guardian: GUARDIAN_TAG, child: CHILD_TAG });
+  assert.deepEqual(parsePair("g-01434648e7+a-001"), { guardian: GUARDIAN_TAG, child: CHILD_TAG });
+  assert.deepEqual(parsePair(`  ${PAIR} \n`), { guardian: GUARDIAN_TAG, child: CHILD_TAG });
+  // The shortest legal pair, and the longest.
+  assert.deepEqual(parsePair("A+1"), { guardian: "A", child: "1" });
+  const long = "K".repeat(32);
+  assert.deepEqual(parsePair(`${long}+${long}`), { guardian: long, child: long });
+});
+
+test("a badge alone is not a pair — the kiosk keeps it on the badge path", () => {
+  for (const badge of [GUARDIAN_TAG, CHILD_TAG, "K-001", "123456", CODE, ""]) {
+    assert.equal(parsePair(badge), null, JSON.stringify(badge));
+  }
+});
+
+test("an empty half, a second plus or a symbol outside the alphabet is not a pair", () => {
+  assert.equal(parsePair(`+${CHILD_TAG}`), null, "no guardian");
+  assert.equal(parsePair(`${GUARDIAN_TAG}+`), null, "no child");
+  assert.equal(parsePair("+"), null, "nothing but the joint");
+  assert.equal(parsePair(`${GUARDIAN_TAG}+${CHILD_TAG}+X`), null, "three parts");
+  assert.equal(parsePair(`${GUARDIAN_TAG}++${CHILD_TAG}`), null, "double joint");
+  assert.equal(parsePair(`${GUARDIAN_TAG} + ${CHILD_TAG}`), null, "blanks inside");
+  assert.equal(parsePair(`${GUARDIAN_TAG}+A_001`), null, "underscore");
+  assert.equal(parsePair(`${GUARDIAN_TAG}+A.001`), null, "dot");
+  assert.equal(parsePair(`${"K".repeat(33)}+${CHILD_TAG}`), null, "a half too long");
+  assert.equal(parsePair(`https://www.rawdatik.com/d/${PAIR}`), null, "a URL is the kiosk's to unwrap");
+});
+
+test("pairValue writes the canonical value and parsePair reads it back", () => {
+  assert.equal(pairValue(GUARDIAN_TAG, CHILD_TAG), PAIR);
+  assert.equal(pairValue(" g-01434648e7 ", "a-001\n"), PAIR, "upper case, no blanks");
+  assert.deepEqual(parsePair(pairValue(GUARDIAN_TAG, CHILD_TAG)), {
+    guardian: GUARDIAN_TAG,
+    child: CHILD_TAG,
+  });
 });

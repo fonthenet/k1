@@ -45,7 +45,7 @@ import { toDateStr } from "./dates";
 import { PRESENTISH_STATUSES, isAway, stillHere } from "./status-config";
 import { flushPush } from "@/app/actions/push";
 import { kioskSettings, type KioskSettings } from "@/lib/kiosk-settings";
-import { isDoorUrl } from "@/lib/door-code";
+import { isDoorUrl, parsePair } from "@/lib/door-code";
 import { useKioskSound } from "@/lib/kiosk-sound";
 import { isSerialSupported, useSerialReader } from "@/lib/serial-reader";
 import { isPipSupported, usePipWindow } from "@/lib/pip";
@@ -144,6 +144,29 @@ interface CheckinPayload {
   check_out_at?: string | null;
 }
 
+/**
+ * The jsonb kg_kiosk_pair returns (0169): a badge pass's outcome — recorded,
+ * duplicate or refused, the same keys as above — plus who the two of them
+ * are. The adult comes as an id, a name and a photo path; the cards want the
+ * adult's row (relationship, the two names apart), so the id is what is read
+ * back. `direction` is the move the database inferred from the child's day,
+ * or null on a refusal that never got that far (`not_linked`) — which also
+ * carries the adult by NAME alone, no `guardian_id`: it is answered before
+ * the writer runs, and the writer's fuller shape is what the id rides on.
+ */
+interface PairPayload extends CheckinPayload {
+  child_id?: string;
+  first_name?: string;
+  last_name?: string;
+  photo_path?: string | null;
+  tag_code?: string;
+  direction?: Direction | null;
+  guardian_id?: string;
+  guardian_name?: string | null;
+  guardian_photo_path?: string | null;
+  pair?: boolean;
+}
+
 interface CheckedEntry {
   child: KioskChild;
   direction: Direction;
@@ -205,7 +228,21 @@ function resultKind(entries: CheckedEntry[]): ResultKind {
     ? "attention"
     : "recorded";
 }
-const CODE_RE = /^[A-Z0-9-]{1,32}$/;
+/**
+ * A badge code, or a child's card (0169): a guardian tag and a child tag
+ * joined by a plus — `G-01434648E7+A-001`. The plus is outside the badge
+ * alphabet, so the two shapes cannot be confused; parsePair splits the
+ * second, and everything that has a plus but is not that shape is a card the
+ * camera half-read.
+ */
+const CODE_RE = /^[A-Z0-9-]{1,32}(\+[A-Z0-9-]{1,32})?$/;
+/**
+ * The most the readout holds: the longest value CODE_RE accepts. A wedge
+ * reader types the whole card in one burst — the pair above is eighteen
+ * symbols, and a cap of sixteen cut its child off — and anything longer than
+ * this is refused as unknown whatever the length.
+ */
+const CODE_MAX_LENGTH = 32 + 1 + 32;
 const RELATIONSHIPS = ["father", "mother", "guardian", "grandparent", "sibling", "other"];
 
 // ----- office mode: the device's own choices -----
@@ -340,17 +377,18 @@ function localDuplicate(
 /**
  * A camera reads whatever is on the phone screen. If a QR happens to carry a
  * URL wrapper, the code we care about is the last path segment or a code/tag
- * query parameter; anything else is passed through untouched.
+ * query parameter; anything else is passed through untouched. The plus of a
+ * child's card (0169) survives: a bare value keeps it as it is, and inside a
+ * query string it is escaped before URLSearchParams gets to read it as the
+ * form-encoded space it would otherwise become.
  */
 function normalizeScan(raw: string): string {
   let value = raw.trim();
   if (/^https?:\/\//i.test(value)) {
     try {
       const url = new URL(value);
-      const param =
-        url.searchParams.get("code") ??
-        url.searchParams.get("tag") ??
-        url.searchParams.get("pin");
+      const params = new URLSearchParams(url.search.replace(/\+/g, "%2B"));
+      const param = params.get("code") ?? params.get("tag") ?? params.get("pin");
       const segment = url.pathname.split("/").filter(Boolean).pop() ?? "";
       value = param ?? segment;
     } catch {
@@ -664,6 +702,11 @@ export function KioskClient({
       if (message.includes("unknown_tag") || message.includes("unknown_code"))
         showError(t("errors.unknownCode"));
       else if (message.includes("pickup_not_allowed")) showError(t("errors.pickupNotAllowed"));
+      // A child's card whose adult is not linked to that child: both are
+      // known, the card just gives no right. Nothing was written.
+      else if (message.includes("not_linked")) showError(t("errors.notLinked"));
+      // The database could not read the pair the camera thought it saw.
+      else if (message.includes("invalid_pair")) showError(t("errors.invalidPair"));
       // The crèche is shut. Said plainly, because the person holding the tag is
       // standing at a door that is not open.
       else if (message.includes("closed_day")) showError(t("errors.closedDay"));
@@ -1258,6 +1301,146 @@ export function KioskClient({
     ]
   );
 
+  /**
+   * A child's card (0169): the adult and the child in one QR. A parent with
+   * two children and one badge had to find the right tile on the pick list
+   * with a queue behind them; the card names the child, so the database
+   * (kg_kiosk_pair) verifies that this adult may act for that child, reads
+   * the move off the child's day — not arrived: arrival; arrived: departure;
+   * already left: a fact — and records at once. No pick list, no countdown,
+   * no direction asked. What comes back is exactly what a badge pass comes
+   * back with, so it goes through the same cards: the confirmation with the
+   * two faces and the door card, or the duplicate question, whose "anyway"
+   * button forces through the child's tag with this adult attached — the
+   * very call it makes for a badge (recordChild → kg_checkin_by_tag with
+   * p_force and p_guardian). Door mode changes nothing here: the card is a
+   * parent's, and the door is the parents'.
+   *
+   * The database identifies both from the two tags; the cards want more than
+   * the ids it returns (the Arabic names, the class, the relationship), so
+   * the two rows are read back after the write — the same reads the badge
+   * path makes before its own. If a read fails the write has still happened
+   * and the card still shows, built from what the database said: the child
+   * without class or Arabic name, the adult by name with the relationship
+   * falling to "other".
+   */
+  const submitPair = useCallback(
+    async (pair: string) => {
+      const { data, error: rpcError } = await supabase.rpc("kg_kiosk_pair", {
+        p_tenant: tenantId,
+        p_pair: pair,
+      });
+      if (rpcError) {
+        mapError(rpcError.message);
+        return;
+      }
+      const payload = (data ?? {}) as PairPayload;
+      if (payload.refused === true) {
+        // NOTHING was written. The card was read whole, so the readout
+        // clears as it does once a badge is recognised. The refusal is
+        // decided before the ids are asked for: not_linked — the card's own
+        // refusal, the adult and the child both known and the card giving
+        // no right — comes back without a guardian_id (see PairPayload),
+        // and a guard on the ids here once turned that sentence into the
+        // generic error. The others are v1's gates — the hours, the custody
+        // rule — in the writer's fuller shape; the reason alone names each.
+        setCode("");
+        mapError(payload.reason ?? "generic");
+        return;
+      }
+      // Recorded or duplicate: the cards below are built from the two rows,
+      // so both ids have to be there.
+      if (!payload.child_id || !payload.guardian_id) {
+        showError(t("errors.generic"));
+        return;
+      }
+      // Both are known from here on: the readout clears whatever the move's
+      // outcome.
+      setCode("");
+
+      const [childRes, guardianRes, signed] = await Promise.all([
+        supabase
+          .from("kg_children")
+          .select(CHILD_SELECT)
+          .eq("tenant_id", tenantId)
+          .eq("id", payload.child_id)
+          .limit(1),
+        supabase
+          .from("kg_guardians")
+          .select(GUARDIAN_SELECT)
+          .eq("tenant_id", tenantId)
+          .eq("id", payload.guardian_id)
+          .limit(1),
+        signPhotos([payload.photo_path ?? null, payload.guardian_photo_path ?? null]),
+      ]);
+      const childRow = ((childRes.data ?? []) as unknown as KioskChild[])[0];
+      const child: KioskChild = childRow ?? {
+        id: payload.child_id,
+        first_name: payload.first_name ?? "",
+        last_name: payload.last_name ?? "",
+        first_name_ar: null,
+        last_name_ar: null,
+        tag_code: payload.tag_code ?? null,
+        photo_path: payload.photo_path ?? null,
+        kg_classes: null,
+      };
+      const guardianRow = (
+        (guardianRes.data ?? []) as unknown as Omit<KioskGuardian, "photoUrl">[]
+      )[0] ?? {
+        id: payload.guardian_id,
+        first_name: payload.guardian_name ?? "",
+        last_name: "",
+        relationship: "",
+        photo_path: payload.guardian_photo_path ?? null,
+      };
+      const guardian: KioskGuardian = {
+        ...guardianRow,
+        photoUrl: guardianRow.photo_path ? (signed[guardianRow.photo_path] ?? null) : null,
+      };
+      const photoUrl = child.photo_path ? (signed[child.photo_path] ?? null) : null;
+      const knownPhotos = { [child.id]: photoUrl };
+      const date = toDateStr(new Date());
+      const direction: Direction = payload.direction === "out" ? "out" : "in";
+
+      if (payload.duplicate === true) {
+        // The record already says something else — already in, just
+        // arrived, or the day is over. Nothing was written; the buzz says so
+        // before the question is read, and a human decides, as for a badge.
+        play("refused");
+        setDuplicateBatch({
+          queue: [
+            {
+              child,
+              photoUrl,
+              reason: readReason(payload.reason, direction),
+              checkInAt: payload.check_in_at ?? null,
+              checkOutAt: payload.check_out_at ?? null,
+            },
+          ],
+          done: [],
+          guardian,
+          knownPhotos,
+          failedCount: 0,
+          usedRpc: false,
+          date,
+          total: 1,
+        });
+        announce([`${childDisplayName(child, locale)} · ${t("duplicate.title")}`]);
+        return;
+      }
+
+      await finishBatch({
+        date,
+        done: [{ child, direction, at: payload.at ?? new Date().toISOString() }],
+        guardian,
+        failedCount: 0,
+        knownPhotos,
+        usedRpc: true,
+      });
+    },
+    [supabase, tenantId, mapError, showError, t, setCode, signPhotos, play, announce, locale, finishBatch]
+  );
+
   const submitStaff = useCallback(
     async (value: string) => {
       const { data, error: rpcError } = await supabase.rpc("kg_staff_clock_state", {
@@ -1362,22 +1545,28 @@ export function KioskClient({
         return;
       }
       if (!CODE_RE.test(value)) {
-        showError(t("errors.unknownCode"));
+        // A plus that is not inside a well-formed pair is a child's card the
+        // camera caught half of: ask for it again, rather than call unknown
+        // a card that is perfectly known.
+        showError(value.includes("+") ? t("errors.invalidPair") : t("errors.unknownCode"));
         return;
       }
       setBusy(true);
       try {
-        // Every badge and PIN of the establishment lives under one unique
-        // index, so the code says whose it is: a child or a parent stays on
-        // this path, a staff badge goes to the clock.
-        if ((await submitChild(value)) === "staff") await submitStaff(value);
+        // A child's card names the adult and the child at once and skips the
+        // pick list (submitPair). Otherwise every badge and PIN of the
+        // establishment lives under one unique index, so the code says whose
+        // it is: a child or a parent stays on this path, a staff badge goes
+        // to the clock.
+        if (parsePair(value)) await submitPair(value);
+        else if ((await submitChild(value)) === "staff") await submitStaff(value);
       } catch {
         showError(t("errors.generic"));
       } finally {
         setBusy(false);
       }
     },
-    [busy, submitChild, submitStaff, showError, t]
+    [busy, submitPair, submitChild, submitStaff, showError, t]
   );
 
   const submit = useCallback(() => {
@@ -1395,20 +1584,23 @@ export function KioskClient({
     overlayRef.current = overlayOpen;
   }, [overlayOpen]);
 
-  // ----- the parents' end of the scan (0168) -----
+  // ----- the parents' end of the scan (0168, the day's code and the child's card since 0169) -----
   // With self check-in on, the idle screen shows the door's own code for a
-  // parent's phone (DoorCodePanel) and the pad carries the departures parents
-  // asked for, waiting on a member of the team (HandoverCards). The code is
-  // for children mode only — the team's clock has no parent at it — and
-  // never over an overlay: the panel pauses while a card is up, and the veil
-  // already covers it. The hand-overs poll whatever the tab, since the person
-  // who confirms one may be on either — and, once the office has allowed the
-  // browser's notifications, while the tab is hidden too, else no request
-  // could ever reach a hidden tab's announcement. In door mode the tablet is
-  // the parents' door: the cards show the request but carry no buttons,
-  // because the confirmation exists so that a member of the team looks at
-  // the person, and a screen the public can reach must not offer to skip
-  // that; the team confirms on its own tablet, its phone or the register.
+  // parent's phone (DoorCodePanel — one code per Algiers day, no countdown)
+  // and the pad carries the departures parents asked for, waiting on a
+  // member of the team (HandoverCards). The code is for children mode only —
+  // the team's clock has no parent at it — and never over an overlay: the
+  // panel pauses while a card is up, and the veil already covers it. The
+  // hand-overs poll whatever the tab, since the person who confirms one may
+  // be on either — and, once the office has allowed the browser's
+  // notifications, while the tab is hidden too, else no request could ever
+  // reach a hidden tab's announcement. In door mode the tablet is the
+  // parents' door: the cards show the request but carry no buttons, because
+  // the confirmation exists so that a member of the team looks at the
+  // person, and a screen the public can reach must not offer to skip that;
+  // the team confirms on its own tablet, its phone or the register. The
+  // other direction — the parent's phone showing a child's card to the
+  // kiosk — is a scan like any badge and lives in runValue (submitPair).
   // Nothing else here changes: the countdown, the single-direction rule and
   // the duplicate question belong to the badge path and stay there.
   const doorPanelOn = live.selfCheckin;
@@ -1461,8 +1653,10 @@ export function KioskClient({
       }
       if (e.key === "Enter") submitRef.current();
       else if (e.key === "Backspace") setCode((c) => c.slice(0, -1));
-      else if (/^[a-zA-Z0-9-]$/.test(e.key))
-        setCode((c) => (c + e.key.toUpperCase()).slice(0, 16));
+      // The plus is the joint of a child's card (0169), typed by a wedge
+      // reader that reads one; the on-screen keypad has no such key.
+      else if (/^[a-zA-Z0-9+-]$/.test(e.key))
+        setCode((c) => (c + e.key.toUpperCase()).slice(0, CODE_MAX_LENGTH));
     };
     window.addEventListener("keydown", onKey);
     pipWindow?.addEventListener("keydown", onKey);
@@ -2316,11 +2510,17 @@ export function KioskClient({
               {t("children.prompt")}
             </p>
 
-            {/* Code display — also the readout for hardware scanners in scan mode */}
+            {/* Code display — also the readout for hardware scanners in scan mode.
+                A child's card is eighteen symbols where a badge is five or
+                twelve: past a badge's length the type steps down so the whole
+                value stays readable when it is left on screen after a refusal. */}
             <div
               key={shakeKey}
               className={cn(
-                "flex h-16 w-full max-w-sm items-center justify-center rounded-2xl border-2 bg-card font-mono text-3xl font-bold tracking-[0.2em] shadow-sm sm:h-18 sm:text-4xl",
+                "flex h-16 w-full max-w-sm items-center justify-center overflow-hidden rounded-2xl border-2 bg-card px-3 font-mono font-bold shadow-sm sm:h-18",
+                code.length > 12
+                  ? "text-xl tracking-[0.1em] sm:text-2xl"
+                  : "text-3xl tracking-[0.2em] sm:text-4xl",
                 error ? "border-destructive" : "border-border",
                 error && "[animation:kiosk-shake_0.4s_ease-in-out]"
               )}
@@ -2341,7 +2541,7 @@ export function KioskClient({
 
             {entry === "keypad" ? (
               <KioskKeypad
-                onKey={(k) => setCode((c) => (c + k).slice(0, 16))}
+                onKey={(k) => setCode((c) => (c + k).slice(0, CODE_MAX_LENGTH))}
                 onBackspace={() => setCode((c) => c.slice(0, -1))}
                 onClear={() => setCode("")}
                 onSubmit={submit}
@@ -2427,7 +2627,13 @@ export function KioskClient({
                           <p className="text-xs font-semibold text-gold-ink">{t("office.noPort")}</p>
                         )}
                       {code && (
-                        <p dir="ltr" className="font-mono text-2xl font-bold tracking-[0.2em]">
+                        <p
+                          dir="ltr"
+                          className={cn(
+                            "max-w-full truncate font-mono font-bold",
+                            code.length > 12 ? "text-lg tracking-[0.1em]" : "text-2xl tracking-[0.2em]"
+                          )}
+                        >
                           {code}
                         </p>
                       )}

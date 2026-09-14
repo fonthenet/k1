@@ -327,10 +327,17 @@ export function useHandovers(
     let timer: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
     const isHidden = () => document.visibilityState === "hidden" && !pipOpenRef.current;
+    // When the list was last read, for the return-to-view floor: some hosts
+    // flip the document hidden and visible every few seconds, and each
+    // flip must not be a read of its own.
+    let lastRead = 0;
     const tick = async () => {
       if (cancelled) return;
       clearTimeout(timer);
-      if (!isHidden() || alertHiddenRef.current) await refresh();
+      if (!isHidden() || alertHiddenRef.current) {
+        lastRead = Date.now();
+        await refresh();
+      }
       if (cancelled) return;
       // One chain: a tick started from `onVisible` while another was in flight
       // must not leave two timers behind. The cadence is read now, not before
@@ -339,7 +346,7 @@ export function useHandovers(
       timer = setTimeout(tick, isHidden() ? Math.max(intervalMs, HIDDEN_POLL_MS) : intervalMs);
     };
     const onVisible = () => {
-      if (document.visibilityState === "visible") void tick();
+      if (document.visibilityState === "visible" && Date.now() - lastRead >= intervalMs) void tick();
     };
     void tick();
     document.addEventListener("visibilitychange", onVisible);

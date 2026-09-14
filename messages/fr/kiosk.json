@@ -133,7 +133,9 @@
     "closedDay": "La crèche est fermée aujourd'hui.",
     "outsideHours": "En dehors des heures d'ouverture.",
     "staffCodeDoor": "Porte réservée aux parents — pointez sur la tablette de l'équipe.",
-    "doorCode": "C'est le code de la porte : il se scanne avec le téléphone d'un parent, pas au kiosque."
+    "doorCode": "C'est le code de la porte : il se scanne avec le téléphone d'un parent, pas au kiosque.",
+    "notLinked": "Cette carte ne donne pas droit à cet enfant.",
+    "invalidPair": "Carte illisible — présentez-la de nouveau."
   },
   "exitDialog": {
     "title": "Quitter le kiosque",
@@ -160,7 +162,9 @@
     "allergies": "Allergies : {list}",
     "title": "Scannez avec votre téléphone",
     "hint": "Ouvrez l'appareil photo ou l'application Rawdatik : arrivée ou départ en un geste.",
-    "renews": "Nouveau code dans {seconds} s"
+    "renews": "Nouveau code dans {seconds} s",
+    "dayHint": "Le code du jour — il change à minuit.",
+    "day": "Code du {date}"
   },
   "feedback": {
     "recorded": "Enregistré",

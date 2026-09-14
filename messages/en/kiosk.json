@@ -133,7 +133,9 @@
     "closedDay": "The kindergarten is closed today.",
     "outsideHours": "Outside opening hours.",
     "staffCodeDoor": "This door is for parents — clock in on the team's tablet.",
-    "doorCode": "That is the door's code: it is scanned with a parent's phone, not at the kiosk."
+    "doorCode": "That is the door's code: it is scanned with a parent's phone, not at the kiosk.",
+    "notLinked": "This card does not cover this child.",
+    "invalidPair": "Card unreadable — present it again."
   },
   "exitDialog": {
     "title": "Exit the kiosk",
@@ -160,7 +162,9 @@
     "allergies": "Allergies: {list}",
     "title": "Scan with your phone",
     "hint": "Open your camera or the Rawdatik app: arrival or departure in one move.",
-    "renews": "New code in {seconds} s"
+    "renews": "New code in {seconds} s",
+    "dayHint": "Today's code — it changes at midnight.",
+    "day": "Code for {date}"
   },
   "feedback": {
     "recorded": "Recorded",

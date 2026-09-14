@@ -2,17 +2,20 @@
 import "server-only";
 
 import type { createClient } from "@/lib/supabase/server";
-import type { TenantContext } from "@/lib/tenant";
+import { signedMediaUrl, type TenantContext } from "@/lib/tenant";
 import type { ChildStatus, Gender } from "@/lib/types";
 import { childDisplayName, initials } from "@/lib/format";
 import { loadDossierSummary } from "@/lib/dossier-server";
 import type { DossierSummaryRow } from "@/lib/dossier";
 import type { Structure } from "@/components/modules/classes/class-types";
 import type {
+  CheckinBadge,
   CheckinDialogChild,
   CheckinDialogChildStatus,
 } from "./checkin-dialog";
-import type { PortalClassOption, PortalGuardianBadge } from "./portal-types";
+import type { CheckinBadgeChild } from "./checkin-qr-card";
+import type { PortalClassOption } from "./portal-types";
+import { PAIR_RE, pairValue } from "@/lib/door-code";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -248,9 +251,10 @@ export function toCheckinDialogChildren(
   }));
 }
 
-// ----- The parent's door badge (kg_guardians.tag_code) -----
+// ----- The parent's door badge (kg_guardians.tag_code) and its children -----
 
 type GuardianBadgeRow = {
+  id: string;
   first_name: string;
   last_name: string;
   first_name_ar: string | null;
@@ -258,22 +262,62 @@ type GuardianBadgeRow = {
   tag_code: string | null;
 };
 
+type BadgeChildRow = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  first_name_ar: string | null;
+  last_name_ar: string | null;
+  photo_path: string | null;
+  tag_code: string;
+};
+
+type BadgeAttendanceRow = {
+  child_id: string;
+  check_in_at: string | null;
+  check_out_at: string | null;
+};
+
 /**
- * The signed-in user's door badge for this tenant.
+ * The signed-in user's door badge for this tenant, and the children it may
+ * act for.
  *
  * Call this ONCE per page and pass the result down: the badge belongs to the
  * guardian, not to a child, so a page listing four children still asks for it
  * a single time. RLS policy `g_sel` lets a parent read their own guardian row
  * (user_id = auth.uid()), so no elevated access is needed to reach `tag_code`.
+ *
+ * Since 0169 the badge is a pager — one card per child, the family last —
+ * and a child's card encodes the adult AND the child (`<GUARDIAN>+<CHILD>`,
+ * see pairValue). So the badge carries its children: the ENROLLED children
+ * linked (kg_child_guardians) to the guardian row whose tag the QR carries,
+ * each with their own tag and today's register row for the state line. The
+ * links are read for that one row, not for every guardian row of the
+ * account, because kg_kiosk_pair verifies the pair against exactly that
+ * guardian — a card for a child linked only to some other row of the same
+ * account would scan to `not_linked`, and a card that cannot work is worse
+ * than no card. (Two guardian rows for one account in one tenant is an
+ * office duplicate anyway; every real family has one.) A child with no tag
+ * yet cannot have a card and is left to the family one — and so is a child
+ * whose tag the kiosk could not read as half of a pair: the office may type
+ * a tag by hand (`A 001`, `A_001` are legal in kg_children), and
+ * kg_kiosk_pair accepts only `[A-Z0-9-]` either side of the plus, so a card
+ * drawn from such a tag would answer "carte illisible" at every scan with
+ * nothing to tell the parent the card is the problem. The pair is tested
+ * here against the kiosk's own PAIR_RE, on the exact value the QR would
+ * carry; a guardian tag that fails it fails every pair, and the pager gives
+ * way to the family card alone. Faces are signed through the same cache as
+ * the rest of the page, so the child cards cost no new signature where the
+ * page already drew the child.
  */
 export async function getMyGuardianBadge(
   supabase: Supabase,
   ctx: TenantContext,
   locale: string
-): Promise<PortalGuardianBadge> {
+): Promise<CheckinBadge> {
   const { data } = await supabase
     .from("kg_guardians")
-    .select("first_name, last_name, first_name_ar, last_name_ar, tag_code")
+    .select("id, first_name, last_name, first_name_ar, last_name_ar, tag_code")
     .eq("tenant_id", ctx.tenant.id)
     .eq("user_id", ctx.user.id)
     .order("created_at");
@@ -282,13 +326,70 @@ export async function getMyGuardianBadge(
   // A user can in theory hold more than one guardian row in a tenant; prefer
   // the one that actually carries a badge.
   const guardian = guardians.find((g) => g.tag_code) ?? guardians[0] ?? null;
-  if (!guardian) return { hasGuardian: false, tagCode: null, name: "" };
+  if (!guardian) return { hasGuardian: false, tagCode: null, name: "", children: [] };
 
-  return {
+  const badge: CheckinBadge = {
     hasGuardian: true,
     tagCode: guardian.tag_code,
     // `childDisplayName` is structural (first/last + Arabic pair), so it works
     // for a guardian exactly as it does for a child.
     name: childDisplayName(guardian, locale),
+    children: [],
   };
+  // No tag, no pair: the dialog shows the "not issued yet" state and the
+  // children are not worth three reads.
+  if (!guardian.tag_code) return badge;
+
+  const { data: links } = await supabase
+    .from("kg_child_guardians")
+    .select("child_id")
+    .eq("guardian_id", guardian.id);
+  const childIds = [...new Set((links ?? []).map((l) => l.child_id as string))];
+  if (childIds.length === 0) return badge;
+
+  const [{ data: childRows }, { data: todayRows }] = await Promise.all([
+    supabase
+      .from("kg_children")
+      .select("id, first_name, last_name, first_name_ar, last_name_ar, photo_path, tag_code")
+      .in("id", childIds)
+      .eq("tenant_id", ctx.tenant.id)
+      .eq("status", "enrolled")
+      .not("tag_code", "is", null)
+      .order("first_name")
+      .order("last_name"),
+    // Today in Algiers, as the register keeps it (kg_today), so the state
+    // line agrees with the kiosk and with the chips on the home.
+    supabase
+      .from("kg_attendance")
+      .select("child_id, check_in_at, check_out_at")
+      .in("child_id", childIds)
+      .eq("date", algiersToday()),
+  ]);
+
+  const todayByChild = new Map<string, BadgeAttendanceRow>();
+  for (const row of (todayRows ?? []) as BadgeAttendanceRow[]) todayByChild.set(row.child_id, row);
+
+  // Only the children whose card the kiosk can read (see above); the
+  // guardian's tag is hoisted so the narrowing holds inside the filter.
+  const guardianTag = guardian.tag_code;
+  const children = ((childRows ?? []) as BadgeChildRow[]).filter((child) =>
+    PAIR_RE.test(pairValue(guardianTag, child.tag_code))
+  );
+  badge.children = await Promise.all(
+    children.map(async (child): Promise<CheckinBadgeChild> => {
+      const today = todayByChild.get(child.id);
+      return {
+        id: child.id,
+        name: childDisplayName(child, locale),
+        // Given name alone on a tab: it is what a parent scans for, and what
+        // still fits next to three siblings at 375px.
+        givenName: locale === "ar" && child.first_name_ar ? child.first_name_ar : child.first_name,
+        initials: initials(child.first_name, child.last_name),
+        photoUrl: await signedMediaUrl(child.photo_path),
+        tagCode: child.tag_code,
+        today: { checkInAt: today?.check_in_at ?? null, checkOutAt: today?.check_out_at ?? null },
+      };
+    })
+  );
+  return badge;
 }

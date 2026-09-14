@@ -876,6 +876,22 @@
     "openKiosk": "Ouvrir le kiosque",
     "done": "Terminé",
     "expiresIn": "Code valable {seconds} s",
-    "orScan": "Ou scannez le code affiché à la porte avec l'appareil photo de votre téléphone."
+    "orScan": "Ou scannez le code affiché à la porte avec l'appareil photo de votre téléphone.",
+    "move": {
+      "in": "Arrivée",
+      "out": "Départ",
+      "done": "Journée terminée · parti à {time}"
+    },
+    "submitOne": {
+      "in": "Enregistrer l'arrivée de {name}",
+      "out": "Enregistrer le départ de {name}"
+    },
+    "changed": "La situation a changé depuis l'affichage — relisez les lignes avant d'enregistrer.",
+    "recordedUnexpected": "Ce n'est pas le mouvement qui était affiché : la situation de {name} avait changé entre-temps. En cas de doute, adressez-vous à l'accueil."
+  },
+  "badge": {
+    "family": "Toute la famille",
+    "childHint": "Présentez cette carte au kiosque : l'arrivée ou le départ de {name} est enregistré directement.",
+    "familyHint": "La carte de toute la famille : le kiosque affiche vos enfants et vous choisissez."
   }
 }

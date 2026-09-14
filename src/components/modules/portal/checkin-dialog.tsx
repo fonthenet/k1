@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Camera, QrCode, Sun } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,16 +13,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { CheckinBadgeMissing, CheckinQrCard } from "./checkin-qr-card";
+import {
+  CheckinBadgeMissing,
+  CheckinChildQrCard,
+  CheckinQrCard,
+  type CheckinBadgeChild,
+} from "./checkin-qr-card";
+import { pairValue } from "@/lib/door-code";
 import type { CheckinStatusKind, PortalGuardianBadge } from "./portal-types";
 import { useScreenWakeLock } from "./use-screen-wake-lock";
 
 /**
  * Today's attendance for one child, resolved by whichever page opens the
  * dialog. Optional everywhere: the dialog never queries for it, so a surface
- * that does not already hold today's rows simply omits it and the tabs show
- * name and face alone.
+ * that does not already hold today's rows simply omits it. Since 0169 the
+ * dialog reads today off the badge's own children instead (see
+ * CheckinBadgeChild); the shape stays because the home computes it for its
+ * chips and hands it through unchanged.
  */
 export interface CheckinDialogChildStatus {
   kind: CheckinStatusKind;
@@ -34,7 +42,12 @@ export interface CheckinDialogChildStatus {
   collectedBy?: string | null;
 }
 
-/** The child a trigger was opened from — name and face, nothing else. */
+/**
+ * The child a trigger was opened from — the cue that picks which card the
+ * pager opens on. A child's file raises the badge for THAT child, so their
+ * card comes up first; the home and the children list raise it for nobody in
+ * particular and the pager opens on the first child.
+ */
 export interface CheckinDialogChild {
   id: string;
   name: string;
@@ -44,6 +57,19 @@ export interface CheckinDialogChild {
   photoUrl: string | null;
   status?: CheckinDialogChildStatus;
 }
+
+/**
+ * getMyGuardianBadge's answer since 0169: v1's badge plus the children it
+ * may act for (CheckinBadgeChild, declared with the card that draws it).
+ * Declared here, next to the other shapes data.ts builds for this dialog,
+ * because the dialog is the only reader.
+ */
+export interface CheckinBadge extends PortalGuardianBadge {
+  children: CheckinBadgeChild[];
+}
+
+/** The pager's last tab: v1's card for the whole family. */
+const FAMILY_TAB = "family";
 
 /**
  * The two shapes this trigger takes in the portal. Kept here rather than
@@ -78,59 +104,6 @@ const TRIGGER: Record<
 };
 
 /**
- * Which child the badge is being raised for: face, "show this for X", and —
- * when the calling page already knew it — where that child stands today.
- *
- * This is the ONLY thing a tab changes. The QR above it is untouched.
- */
-function CheckinChildLine({ child }: { child: CheckinDialogChild }) {
-  const t = useTranslations("portal.checkin");
-  // Today's wording is the portal's own, shared with the chip on the child
-  // cards — a parent must never read two phrasings of the same fact on two
-  // surfaces.
-  const tHome = useTranslations("portal.home");
-
-  const status = child.status;
-  let statusLabel: string | null = null;
-  if (status) {
-    switch (status.kind) {
-      case "arrived":
-        statusLabel = tHome("status.arrived", { time: status.time ?? "" });
-        break;
-      case "left":
-        statusLabel = status.collectedBy
-          ? tHome("status.leftWith", { time: status.time ?? "", name: status.collectedBy })
-          : tHome("status.left", { time: status.time ?? "" });
-        break;
-      case "absent":
-        statusLabel = status.reason
-          ? tHome("status.absentReason", { reason: status.reason })
-          : tHome("status.absent");
-        break;
-      default:
-        statusLabel = tHome("status.notYet");
-    }
-  }
-
-  return (
-    <div className="flex items-center justify-center gap-2.5 rounded-xl bg-primary/10 px-3.5 py-2.5">
-      <Avatar className="size-9 shrink-0 ring-1 ring-primary/20">
-        {child.photoUrl && <AvatarImage src={child.photoUrl} alt="" />}
-        <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-          {child.initials}
-        </AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 text-start">
-        <p className="text-sm font-semibold text-primary">{t("showFor", { name: child.name })}</p>
-        {statusLabel && (
-          <p className="text-xs font-medium text-muted-foreground">{statusLabel}</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
  * The door badge as a quick pop-up.
  *
  * A parent opens this one-handed while queueing at the gate, so it is a sheet
@@ -144,13 +117,20 @@ function CheckinChildLine({ child }: { child: CheckinDialogChild }) {
  * It writes NOTHING. Attendance is recorded by the kiosk after a staff member
  * has compared the guardian's photo with the child's — that human comparison is
  * the second factor, and a phone screen can be photographed by anyone, so this
- * surface must never be able to shortcut it. Naming a child here is a cue for
- * the conversation at the door, nothing more.
+ * surface must never be able to shortcut it.
  *
- * And the badge is issued to the ADULT: one tag code, one QR, whichever child
- * is selected. The tabs below the code switch who is being announced, never
- * what is scanned — the kiosk resolves the guardian and then offers their
- * children, siblings together if they arrive together.
+ * Since 0169 "Ma carte" is a pager: one card per child, and last the card
+ * of the whole family. A child's card carries BOTH the adult and the child
+ * in one QR (`<GUARDIAN_TAG>+<CHILD_TAG>`, see pairValue): the kiosk reads
+ * it, checks that this adult may act for that child, decides arrival or
+ * departure from the child's state and records at once — no pick list. The
+ * family card is v1's: the guardian's tag alone, and the kiosk shows the
+ * children to choose from. The owner asked for this after seeing v1 live —
+ * a parent with several children and one QR did not know, at the door,
+ * which child the scan was about. Now the card says it, and the segmented
+ * track above the card is a REAL choice at last: it changes what is scanned.
+ * (v1's sibling tabs changed nothing but a caption, and were removed for
+ * that reason; the pager does not bring them back — it replaces the code.)
  */
 export function CheckinDialog({
   badge,
@@ -159,8 +139,12 @@ export function CheckinDialog({
   selfCheckin = false,
   className,
 }: {
-  badge: PortalGuardianBadge;
-  /** Omit when the badge is opened for the family as a whole. */
+  badge: CheckinBadge;
+  /**
+   * The child the trigger was opened from, if any: their card opens first.
+   * Omit when the badge is opened for the family as a whole — the pager then
+   * opens on the first child.
+   */
   child?: CheckinDialogChild;
   trigger?: TriggerShape;
   /**
@@ -173,10 +157,25 @@ export function CheckinDialog({
   className?: string;
 }) {
   const t = useTranslations("portal.checkin");
+  const tBadge = useTranslations("portal.badge");
   const tDoor = useTranslations("portal.door");
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
 
+  // Which card is up. The cue's child when the trigger was theirs, else the
+  // first child; the family card only when there is no child to show.
+  // Seeded once per mount: the home's live refresh re-renders the server
+  // tree around this component and keeps its state, so the card a parent
+  // swiped to stays up while today's rows refresh under it — the right
+  // memory for a badge held up at a door.
+  const cards = badge.children;
+  const cued = child && cards.some((c) => c.id === child.id) ? child.id : null;
+  const [tab, setTab] = useState<string>(cued ?? cards[0]?.id ?? FAMILY_TAB);
+  // A card the list no longer has (a child withdrawn under an open portal)
+  // falls back to the first, never to an empty pane.
+  const activeTab = tab === FAMILY_TAB || cards.some((c) => c.id === tab) ? tab : (cards[0]?.id ?? FAMILY_TAB);
+  // Hoisted so the narrowing survives into the cards' render callbacks.
+  const tagCode = badge.tagCode;
 
   // Only while the badge is actually up: outside the dialog the parent is
   // reading their portal like any other page and should keep the usual timeout.
@@ -232,23 +231,60 @@ export function CheckinDialog({
           <DialogDescription className="sr-only">{t("subtitle")}</DialogDescription>
         </DialogHeader>
 
-        {!badge.hasGuardian || !badge.tagCode ? (
+        {!badge.hasGuardian || !tagCode ? (
           <CheckinBadgeMissing kind={badge.hasGuardian ? "noBadge" : "noGuardian"} />
-        ) : (
+        ) : cards.length === 0 ? (
+          // No enrolled child linked to this badge yet (a family whose
+          // application is still open): the family card alone, as in v1.
           <>
-            <CheckinQrCard tagCode={badge.tagCode} guardianName={badge.name} />
+            <CheckinQrCard tagCode={tagCode} guardianName={badge.name} />
+            <p className="text-center text-xs leading-relaxed text-muted-foreground text-pretty">
+              {tBadge("familyHint")}
+            </p>
+          </>
+        ) : (
+          // The pager: a segmented track of the children by given name, the
+          // family last — in both directions, because the track is a flex
+          // row and flips with the page. Only the active card is mounted,
+          // so one QR is drawn at a time.
+          <Tabs value={activeTab} onValueChange={setTab} className="gap-3.5">
+            <TabsList
+              aria-label={t("pickChild")}
+              // Taller than the house default: these are tapped at a door.
+              // With more names than fit, the track scrolls sideways rather
+              // than squeezing the names to nothing.
+              className="h-auto! w-full max-w-full flex-nowrap justify-start overflow-x-auto snap-x snap-mandatory"
+            >
+              {cards.map((c) => (
+                <TabsTrigger key={c.id} value={c.id} className="h-10 shrink-0 snap-start px-3 text-sm">
+                  {/* A given name is a person's own text. */}
+                  <bdi dir="auto">{c.givenName}</bdi>
+                </TabsTrigger>
+              ))}
+              <TabsTrigger value={FAMILY_TAB} className="h-10 shrink-0 snap-start px-3 text-sm">
+                {tBadge("family")}
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Named under the code, because the staff member reads the code
-                first and then asks who they are handing over.
+            {cards.map((c) => (
+              <TabsContent key={c.id} value={c.id} className="grid gap-3.5">
+                <CheckinChildQrCard child={c} value={pairValue(tagCode, c.tagCode)} />
+                <p className="text-center text-xs leading-relaxed text-muted-foreground text-pretty">
+                  {tBadge("childHint", { name: c.name })}
+                </p>
+              </TabsContent>
+            ))}
+            <TabsContent value={FAMILY_TAB} className="grid gap-3.5">
+              <CheckinQrCard tagCode={tagCode} guardianName={badge.name} />
+              <p className="text-center text-xs leading-relaxed text-muted-foreground text-pretty">
+                {tBadge("familyHint")}
+              </p>
+            </TabsContent>
+          </Tabs>
+        )}
 
-                There used to be a row of sibling tabs here. It had to be
-                followed by a line explaining that tapping it changed nothing —
-                the badge is issued per GUARDIAN, so every child shares one
-                code — and a control whose own caption says it does nothing is
-                a control that should not exist. The child is named, not
-                chosen. */}
-            {child && <CheckinChildLine child={child} />}
-
+        {badge.hasGuardian && tagCode && (
+          <>
             <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
               <Sun className="mt-px size-4 shrink-0 text-gold" aria-hidden />
               {t("brightnessHint")}
