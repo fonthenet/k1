@@ -275,6 +275,33 @@
           "body": "Quand ces conditions changent, la date en haut change avec elles. Les changements importants sont annoncés dans l'application."
         }
       ]
+    },
+    "deleteAccount": {
+      "title": "Supprimer votre compte",
+      "intro": "Comment faire supprimer votre compte Rawdatik et les données qui y sont rattachées — que vous soyez parent, membre du personnel ou propriétaire d'un établissement.",
+      "sections": [
+        {
+          "title": "Si vous êtes parent",
+          "body": "Votre compte portail existe parce qu'un établissement a inscrit votre enfant. La suppression se fait en deux temps :",
+          "items": [
+            "Envoyez un e-mail à l'adresse en bas de cette page depuis l'adresse avec laquelle vous vous connectez (ou indiquez votre numéro de profil), avec pour objet « Supprimer mon compte ».",
+            "Nous fermons votre accès sous 7 jours et vous le confirmons par e-mail. Votre identifiant (e-mail ou téléphone, mot de passe, numéro de profil, jetons de notification) est effacé.",
+            "La fiche de votre enfant (nom, présences, factures) appartient au registre de l'établissement et y reste — la loi exige qu'un registre des inscrits reste complet. Pour la faire corriger ou retirer, adressez-vous directement à l'établissement."
+          ]
+        },
+        {
+          "title": "Si vous êtes membre du personnel",
+          "body": "Demandez au propriétaire de votre établissement de désactiver votre accès, puis écrivez-nous pour faire supprimer l'identifiant lui-même. Vos pointages et fiches de paie restent dans les archives de l'établissement, comme le droit du travail l'exige."
+        },
+        {
+          "title": "Si vous êtes propriétaire d'un établissement",
+          "body": "Écrivez-nous depuis l'adresse du propriétaire pour demander la fermeture de l'établissement. Nous supprimons toutes ses données — enfants, tuteurs, personnel, finances, photos et documents — sous 30 jours, et vous le confirmons. Exportez d'abord ce dont vous avez besoin : la page des paramètres propose des exports CSV."
+        },
+        {
+          "title": "Ce qui est conservé, et combien de temps",
+          "body": "Rien, une fois la suppression confirmée, sauf les factures déjà émises, que les règles comptables nous obligent à garder 10 ans, et les sauvegardes automatiques, qui expirent sous 30 jours."
+        }
+      ]
     }
   }
 }

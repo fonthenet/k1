@@ -275,6 +275,33 @@
           "body": "When these terms change, the date at the top changes with it. Significant changes are announced inside the application."
         }
       ]
+    },
+    "deleteAccount": {
+      "title": "Deleting your account",
+      "intro": "How to have your Rawdatik account, and the data attached to it, deleted — whether you are a parent, a member of staff or the owner of a centre.",
+      "sections": [
+        {
+          "title": "If you are a parent",
+          "body": "Your portal account exists because a centre enrolled your child. Deletion goes in two steps:",
+          "items": [
+            "Send an email to the address at the bottom of this page from the address you sign in with (or give your profile number), with the subject \"Delete my account\".",
+            "We close your sign-in within 7 days and confirm by email. Your login (email or phone, password, profile number, notification tokens) is erased.",
+            "Your child's record (name, attendance, invoices) belongs to the centre's register and stays with the centre — the law requires an enrolment register to remain complete. To have it corrected or removed, ask the centre directly."
+          ]
+        },
+        {
+          "title": "If you are a member of staff",
+          "body": "Ask the owner of your centre to disable your access, then email us to have the sign-in itself deleted. Your timesheets and payslips remain in the centre's records, as employment law requires."
+        },
+        {
+          "title": "If you own a centre",
+          "body": "Email us from the owner's address asking to close the establishment. We delete every record of the centre — children, guardians, staff, finances, photos and documents — within 30 days, and confirm to you when it is done. Export what you need beforehand: the settings page offers CSV exports."
+        },
+        {
+          "title": "What is kept, and for how long",
+          "body": "Nothing, once the deletion is confirmed, except invoices already issued, which accounting rules require us to keep for 10 years, and automated backups, which expire within 30 days."
+        }
+      ]
     }
   }
 }

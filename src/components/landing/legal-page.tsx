@@ -6,7 +6,7 @@ import { LanguageSwitcher } from "./language-switcher";
 import { Wordmark } from "./wordmark";
 import { SECTION } from "./styles";
 
-export type LegalKind = "privacy" | "terms";
+export type LegalKind = "privacy" | "terms" | "deleteAccount";
 
 interface LegalSection {
   title: string;
@@ -15,7 +15,7 @@ interface LegalSection {
 }
 
 /**
- * The shell shared by /privacy and /terms.
+ * The shell shared by /privacy, /terms and /delete-account.
  *
  * Not the landing header and footer: their links are in-page anchors
  * (#features, #pricing) that go nowhere from another route. A wordmark that
@@ -30,7 +30,9 @@ export async function LegalPage({ kind }: { kind: LegalKind }) {
   const [t, locale] = await Promise.all([getTranslations("landing.legal"), getLocale()]);
   const tFooter = await getTranslations("landingCta.footer");
   const sections = t.raw(`${kind}.sections`) as LegalSection[];
-  const other: LegalKind = kind === "privacy" ? "terms" : "privacy";
+  // The footer points at the sibling legal page; the deletion page, a leaf
+  // Google Play links to from the store listing, points back at the policy.
+  const other: "privacy" | "terms" = kind === "privacy" ? "terms" : "privacy";
   const BackIcon = locale === "ar" ? ArrowRightIcon : ArrowLeftIcon;
 
   return (
