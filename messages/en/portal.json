@@ -652,7 +652,10 @@
       "saved": "Your account was updated",
       "edit": "Display name and phone",
       "editHint": "The name shown beside your messages, and the phone attached to your login.",
-      "fullNameRequired": "Enter the name to display."
+      "fullNameRequired": "Enter the name to display.",
+      "loginNumber": "Profile number",
+      "loginNumberHint": "You can sign in with this number instead of your email or phone. The nursery can remind you of it.",
+      "loginNumberCopied": "Number copied"
     },
     "children": {
       "title": "My children",

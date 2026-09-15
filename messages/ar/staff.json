@@ -53,7 +53,12 @@
     "clockedOut": "سُجّل الانصراف على الساعة {time}",
     "presentSince": "حاضر منذ {time}",
     "leftAt": "غادر على الساعة {time}",
-    "notIn": "لم يسجّل حضوره"
+    "notIn": "لم يسجّل حضوره",
+    "self": {
+      "notIn": "لم يُسجَّل حضورك بعد",
+      "presentSince": "حضورك مسجّل منذ {time}",
+      "leftAt": "سُجّل انصرافك على الساعة {time}"
+    }
   },
   "invite": {
     "button": "دعوة عضو",

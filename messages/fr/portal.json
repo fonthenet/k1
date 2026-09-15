@@ -652,7 +652,10 @@
       "saved": "Votre compte a été mis à jour",
       "edit": "Nom affiché et téléphone",
       "editHint": "Le nom qui apparaît à côté de vos messages, et le téléphone rattaché à votre connexion.",
-      "fullNameRequired": "Saisissez le nom à afficher."
+      "fullNameRequired": "Saisissez le nom à afficher.",
+      "loginNumber": "Numéro de profil",
+      "loginNumberHint": "Vous pouvez vous connecter avec ce numéro à la place de votre e-mail ou de votre téléphone. La crèche peut vous le rappeler.",
+      "loginNumberCopied": "Numéro copié"
     },
     "children": {
       "title": "Mes enfants",

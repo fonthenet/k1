@@ -53,7 +53,12 @@
     "clockedOut": "Clocked out at {time}",
     "presentSince": "Present since {time}",
     "leftAt": "Left at {time}",
-    "notIn": "Not clocked in"
+    "notIn": "Not clocked in",
+    "self": {
+      "notIn": "You haven't clocked in yet",
+      "presentSince": "You've been in since {time}",
+      "leftAt": "You clocked out at {time}"
+    }
   },
   "invite": {
     "button": "Invite a member",

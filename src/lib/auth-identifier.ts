@@ -87,10 +87,27 @@ export function displayIdentity(email: string | null | undefined): string {
  */
 export function signInIdentity(
   raw: string
-): { email: string; kind: "email" | "phone" } | null {
+): { email: string; kind: "email" | "phone" } | { number: string; kind: "number" } | null {
   const value = raw.trim();
   if (!value) return null;
   if (looksLikeEmail(value)) return { email: value, kind: "email" };
+  const number = loginNumber(value);
+  if (number) return { number, kind: "number" };
   const alias = phoneToAlias(value);
   return alias ? { email: alias, kind: "phone" } : null;
+}
+
+/**
+ * The profile number (0171): eight digits, the first never 0 — an Algerian
+ * phone is ten and starts with 0, so the two never read alike. Blanks and
+ * dots between the digits are forgiven ("5150 2941"). Null otherwise.
+ */
+export function loginNumber(raw: string): string | null {
+  const digits = raw.replace(/[\s.\-]/g, "");
+  return /^[1-9][0-9]{7}$/.test(digits) ? digits : null;
+}
+
+/** "51 502 941" — the number as it is read aloud and written on a card. */
+export function formatLoginNumber(number: string): string {
+  return number.replace(/^(\d{2})(\d{3})(\d{3})$/, "$1 $2 $3");
 }

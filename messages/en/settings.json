@@ -298,7 +298,9 @@
     "passwordUpdated": "Password updated",
     "passwordMismatch": "The two passwords do not match",
     "passwordTooShort": "The password must be at least 8 characters long",
-    "passwordError": "The password could not be updated. Sign in again, then retry."
+    "passwordError": "The password could not be updated. Sign in again, then retry.",
+    "loginNumber": "Profile number",
+    "loginNumberHint": "A sign-in identifier in place of the email or phone — yours, not to be shared."
   },
   "notifications": {
     "title": "Notifications",

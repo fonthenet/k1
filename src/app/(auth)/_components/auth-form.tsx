@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { EyeIcon, EyeOffIcon, Loader2Icon, MailCheckIcon } from "lucide-react";
 import { createClient, setRememberPreference } from "@/lib/supabase/client";
 import {
+  loginNumber,
   looksLikeEmail,
   normalizeAlgerianPhone,
   signInIdentity,
@@ -40,11 +41,13 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   // What they have typed so far reads as: an address, a number, or neither yet.
   const trimmed = email.trim();
-  const identifierKind: "email" | "phone" | "unknown" = looksLikeEmail(trimmed)
+  const identifierKind: "email" | "phone" | "number" | "unknown" = looksLikeEmail(trimmed)
     ? "email"
-    : normalizeAlgerianPhone(trimmed)
-      ? "phone"
-      : "unknown";
+    : loginNumber(trimmed)
+      ? "number"
+      : normalizeAlgerianPhone(trimmed)
+        ? "phone"
+        : "unknown";
   const [submitting, setSubmitting] = useState(false);
   const [confirmationSentTo, setConfirmationSentTo] = useState<string | null>(null);
 
@@ -79,16 +82,39 @@ export function AuthForm({ mode, next, idPrefix = mode }: AuthFormProps) {
       if (mode === "login") setRememberPreference(remember);
       const supabase = createClient();
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: identity.email,
-          password,
-        });
+        // The profile number (0171) is a lookup, not an identity: the
+        // database answers the account's e-mail only with the right
+        // password, and the sign-in then takes the ordinary road. A wrong
+        // number, a wrong password and a locked number all come back null
+        // and read as wrong credentials — nothing to enumerate.
+        let email: string;
+        if (identity.kind === "number") {
+          const { data, error } = await supabase.rpc("kg_login_email_for_number", {
+            p_number: identity.number,
+            p_password: password,
+          });
+          if (error || typeof data !== "string" || !data) {
+            toast.error(t("errors.invalidCredentials"));
+            setSubmitting(false);
+            return;
+          }
+          email = data;
+        } else {
+          email = identity.email;
+        }
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
-          toast.error(mapAuthError(error.message, identity.kind));
+          toast.error(mapAuthError(error.message, identity.kind === "number" ? "email" : identity.kind));
           setSubmitting(false);
           return;
         }
       } else {
+        if (identity.kind === "number") {
+          // A number is issued by the platform, never chosen at sign-up.
+          toast.error(t("errors.badIdentifier"));
+          setSubmitting(false);
+          return;
+        }
         // The real number is stored on the profile either way — the alias is an
         // identifier, not a record of anything.
         const realPhone =

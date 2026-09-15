@@ -1,5 +1,7 @@
 "use client";
 
+import { formatLoginNumber } from "@/lib/auth-identifier";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -21,11 +23,14 @@ export function MyProfileForm({
   phone: initialPhone,
   locale: initialLocale,
   email,
+  loginNumber,
 }: {
   fullName: string;
   phone: string | null;
   locale: ProfileLocale;
   email: string | null;
+  /** The 8-digit profile number (0171), a third way to sign in. */
+  loginNumber: string | null;
 }) {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
@@ -87,6 +92,20 @@ export function MyProfileForm({
             />
           </div>
         </div>
+        {loginNumber && (
+          <div className="grid gap-2">
+            <Label htmlFor="profile-number">{t("profile.loginNumber")}</Label>
+            <Input
+              id="profile-number"
+              dir="ltr"
+              className="text-start font-mono tracking-wider"
+              value={formatLoginNumber(loginNumber)}
+              readOnly
+              disabled
+            />
+            <p className="text-xs text-muted-foreground">{t("profile.loginNumberHint")}</p>
+          </div>
+        )}
         <div className="grid gap-2">
           <Label>{t("profile.language")}</Label>
           <Select value={locale} onValueChange={(v) => setLocale(v as ProfileLocale)}>

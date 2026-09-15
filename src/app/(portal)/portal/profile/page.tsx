@@ -78,7 +78,7 @@ export default async function PortalProfilePage() {
   const supabase = await createClient();
 
   // RLS keeps all three to this user's own rows (g_sel / pr_sel / kg_is_parent_of).
-  const [guardiansRes, profileRes, children] = await Promise.all([
+  const [guardiansRes, profileRes, children, numberRes] = await Promise.all([
     supabase
       .from("kg_guardians")
       .select(
@@ -89,7 +89,10 @@ export default async function PortalProfilePage() {
       .order("updated_at", { ascending: false }),
     supabase.from("kg_profiles").select("full_name, phone, locale").eq("id", ctx.user.id).maybeSingle(),
     getMyChildren(supabase, ctx),
+    // The profile number (0171): minted on first read, shown beside the e-mail.
+    supabase.rpc("kg_my_login_number"),
   ]);
+  const loginNumber = typeof numberRes.data === "string" ? numberRes.data : null;
 
   const rows = (guardiansRes.data ?? []) as GuardianRow[];
   const seed = seedFrom(rows);
@@ -165,6 +168,7 @@ export default async function PortalProfilePage() {
         phone={profile?.phone ?? ""}
         locale={profileLocale}
         email={displayIdentity(ctx.user.email)}
+        loginNumber={typeof loginNumber === "string" ? loginNumber : null}
       />
 
       <Card>

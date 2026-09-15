@@ -31,11 +31,11 @@ export default async function MyProfilePage() {
   const supabase = await createClient();
   const t = await getTranslations("settings");
 
-  const { data: profile } = await supabase
-    .from("kg_profiles")
-    .select("full_name, phone, locale")
-    .eq("id", ctx.user.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: loginNumber }] = await Promise.all([
+    supabase.from("kg_profiles").select("full_name, phone, locale").eq("id", ctx.user.id).maybeSingle(),
+    // The profile number (0171): minted on first read, shown beside the e-mail.
+    supabase.rpc("kg_my_login_number"),
+  ]);
 
   const locale = (LOCALES as readonly string[]).includes(profile?.locale ?? "")
     ? (profile!.locale as ProfileLocale)
@@ -50,6 +50,7 @@ export default async function MyProfilePage() {
         phone={profile?.phone ?? null}
         locale={locale}
         email={displayIdentity(ctx.user.email)}
+        loginNumber={typeof loginNumber === "string" ? loginNumber : null}
       />
 
       <Card className="border border-border shadow-sm ring-0">

@@ -46,7 +46,9 @@ export function StepAccount({
       // whole audience — are exactly the population that has a phone and no
       // email they check; see lib/auth-identifier.ts for how a number signs in.
       const identity = signInIdentity(email);
-      if (!identity) {
+      // Sign-up takes an address or a phone; a profile number is issued
+      // by the platform afterwards, never typed here.
+      if (!identity || identity.kind === "number") {
         setError(t("account.badIdentifier"));
         setBusy(false);
         return;

@@ -53,7 +53,12 @@
     "clockedOut": "Départ enregistré à {time}",
     "presentSince": "Présent depuis {time}",
     "leftAt": "Parti à {time}",
-    "notIn": "Non pointé"
+    "notIn": "Non pointé",
+    "self": {
+      "notIn": "Vous n'avez pas encore pointé",
+      "presentSince": "Vous êtes sur place depuis {time}",
+      "leftAt": "Vous avez pointé votre départ à {time}"
+    }
   },
   "invite": {
     "button": "Inviter un membre",

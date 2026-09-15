@@ -1,5 +1,7 @@
 "use client";
 
+import { formatLoginNumber } from "@/lib/auth-identifier";
+
 import { LOCALES, type Locale } from "@/i18n/locales";
 
 import { useState, useTransition } from "react";
@@ -35,12 +37,15 @@ export function ProfileAccountForm({
   phone: initialPhone,
   locale: initialLocale,
   email,
+  loginNumber,
 }: {
   fullName: string;
   phone: string;
   locale: ProfileLocale;
   /** The sign-in address from auth — read-only here. */
   email: string | null;
+  /** The 8-digit profile number (0171), a third way to sign in. */
+  loginNumber: string | null;
 }) {
   const t = useTranslations("portal.profile");
   const tc = useTranslations("common");
@@ -132,6 +137,23 @@ export function ProfileAccountForm({
           />
           <p className="text-xs leading-relaxed text-muted-foreground">{t("account.emailHint")}</p>
         </div>
+
+        {loginNumber && (
+          <div className="grid gap-1.5">
+            <Label htmlFor="account-number" className="text-sm">
+              {t("account.loginNumber")}
+            </Label>
+            <Input
+              id="account-number"
+              dir="ltr"
+              readOnly
+              disabled
+              className="h-11 text-start text-base font-mono tracking-wider"
+              value={formatLoginNumber(loginNumber)}
+            />
+            <p className="text-xs leading-relaxed text-muted-foreground">{t("account.loginNumberHint")}</p>
+          </div>
+        )}
 
         <div className="grid gap-1.5">
           <Label htmlFor="account-locale" className="text-sm">
